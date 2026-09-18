@@ -1,0 +1,37 @@
+{
+  "name": "Command",
+  "type": "object",
+  "properties": {
+    "channel": {
+      "type": "string",
+      "default": "stage-1"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "call_incoming",
+        "call_outgoing",
+        "call_answered",
+        "call_end"
+      ]
+    },
+    "contact_name": {
+      "type": "string"
+    },
+    "contact_number": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "completed"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "type"
+  ]
+}

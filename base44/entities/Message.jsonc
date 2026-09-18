@@ -1,0 +1,28 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "thread_id": {
+      "type": "string",
+      "default": "stage-1"
+    },
+    "sender": {
+      "type": "string",
+      "enum": [
+        "control",
+        "phone"
+      ]
+    },
+    "text": {
+      "type": "string"
+    },
+    "sender_name": {
+      "type": "string",
+      "default": "Control"
+    }
+  },
+  "required": [
+    "sender",
+    "text"
+  ]
+}
