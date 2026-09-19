@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { EyeOff, LayoutGrid } from "lucide-react";
+import { EyeOff } from "lucide-react";
 import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
-import { uiFor } from "@/lib/osLanguages";
 import IconTile from "./IconTile";
 import { skinOf } from "@/lib/osSkins";
 import { formatBadge, normalizeBadge } from "@/lib/osNotifications";
-import AppLibrary from "./AppLibrary";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +13,6 @@ const DOCK_SLOTS = [0, 1, 2, 3];
 const BADGE_APPS = ["phone", "messages", "email"];
 
 export default function Homescreen({ config, update, onOpen }) {
-  const [library, setLibrary] = useState(false);
   const [clockEdit, setClockEdit] = useState(false);
   const [drag, setDrag] = useState(null);
   const [menu, setMenu] = useState(null);
@@ -31,7 +28,6 @@ export default function Homescreen({ config, update, onOpen }) {
 
   const light = config.theme === "light";
   const skin = skinOf(config);
-  const t = uiFor(config.language);
   const now = new Date();
   const time = config.clock.mode === "custom" && config.clock.time
     ? config.clock.time
@@ -273,15 +269,6 @@ export default function Homescreen({ config, update, onOpen }) {
     setSwipeOffset(0);
   };
 
-  const toggleApp = (id) => {
-    update((c) => {
-      if (c.order.includes(id)) {
-        return { order: c.order.filter((x) => x !== id), dock: (c.dock || []).filter((x) => x !== id) };
-      }
-      return { order: [...c.order, id] };
-    });
-  };
-
   const tileButton = (a) => (
     <button
       data-app-id={a.id}
@@ -315,11 +302,6 @@ export default function Homescreen({ config, update, onOpen }) {
               textShadow: "0 -1px 0 rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.25)",
             } : undefined}>{time}</div>
           <div className="text-[13px] mt-1 font-medium opacity-55">{date}</div>
-        </button>
-        <button onClick={() => setLibrary(true)}
-          className={cn("absolute right-3.5 top-8 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-body uppercase tracking-wider backdrop-blur transition",
-            light ? "bg-black/10 border-black/15 text-black/70 hover:bg-black/20" : "bg-white/10 border-white/15 text-white/80 hover:bg-white/20")}>
-          <LayoutGrid size={12} /> {t.apps}
         </button>
       </div>
 
@@ -448,7 +430,6 @@ export default function Homescreen({ config, update, onOpen }) {
         );
       })()}
 
-      {library && <AppLibrary order={config.order} onToggle={toggleApp} onClose={() => setLibrary(false)} />}
     </div>
   );
 }

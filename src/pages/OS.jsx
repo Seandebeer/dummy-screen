@@ -28,6 +28,7 @@ import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
 import { slimConfig } from "@/lib/osConfigStore";
 import LockScreen from "@/components/os/LockScreen";
 import SettingsApp from "@/components/os/apps/SettingsApp";
+import AppStoreApp from "@/components/os/apps/AppStoreApp";
 import { base44 } from "@/api/base44Client";
 
 export default function OS() {
@@ -300,6 +301,7 @@ export default function OS() {
       case "music": return <MusicApp />;
       case "maps": return <MapsApp />;
       case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
+      case "appstore": return <AppStoreApp config={config} update={update} />;
       case null: return <Homescreen onOpen={setApp} config={config} update={update} />;
       default: return <MockApp app={allAppsById[app]} />;
     }
