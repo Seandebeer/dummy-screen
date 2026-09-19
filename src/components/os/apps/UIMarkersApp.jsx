@@ -44,6 +44,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const containerRef = useRef(null);
   const holdTimer = useRef(null);
   const suppressClick = useRef(false);
+  const [dragMark, setDragMark] = useState(null);
+  const holdMarkTimer = useRef(null);
+  const pendingMarkId = useRef(null);
+  const lastMarkTap = useRef({ id: null, t: 0 });
 
   useEffect(() => { onLockChange?.(locked); }, [locked]);
 
@@ -93,6 +97,76 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
   };
   const markColor = bgColor ? (isLightHex(bgColor) ? "#000000" : "#FFFFFF") : (light ? "#000000" : "#FFFFFF");
+
+  // per-style tracking-mark layout - draggable, rotatable, persisted
+  const markLayout = markers.markLayouts?.[markStyle] || defaultLayoutFor(markStyle);
+  const updateMarkLayout = (fn) => saveMarkers((m) => ({
+    markLayouts: {
+      ...(m.markLayouts || {}),
+      [markStyle]: fn(m.markLayouts?.[markStyle] || defaultLayoutFor(markStyle)),
+    },
+  }));
+
+  // snap grid lines sit in the gaps between the grid buttons (the long bars
+  // are the exception - lines simply run across them)
+  const snapLines = (rect) => {
+    const pad = 4, gap = 4;
+    const cols = COLS + 1, rows = ROWS + 1;
+    const tw = (rect.width - 2 * pad - (cols - 1) * gap) / cols;
+    const th = (rect.height - 2 * pad - (rows - 1) * gap) / rows;
+    return {
+      xs: Array.from({ length: cols - 1 }, (_, i) => pad + i * (tw + gap) + tw + gap / 2),
+      ys: Array.from({ length: rows - 1 }, (_, i) => pad + i * (th + gap) + th + gap / 2),
+    };
+  };
+  const nearest = (v, arr) => arr.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
+
+  const onMarkDown = (id, e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    clearTimeout(holdMarkTimer.current);
+    pendingMarkId.current = id;
+    holdMarkTimer.current = setTimeout(() => { pendingMarkId.current = null; setDragMark(id); }, 250);
+  };
+
+  // drag a mark - snaps to the button-gap grid lines
+  useEffect(() => {
+    if (!dragMark) return;
+    const move = (e) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const { xs, ys } = snapLines(rect);
+      const x = Math.max(2, Math.min(98, (nearest(e.clientX - rect.left, xs) / rect.width) * 100));
+      const y = Math.max(2, Math.min(98, (nearest(e.clientY - rect.top, ys) / rect.height) * 100));
+      updateMarkLayout((list) => list.map((m) => (m.id !== dragMark ? m : { ...m, x, y })));
+    };
+    window.addEventListener("pointermove", move);
+    return () => window.removeEventListener("pointermove", move);
+  }, [dragMark, markStyle]);
+
+  // release: end a drag; double-tap rotates the mark 45°
+  useEffect(() => {
+    if (locked || markStyle === "none") return;
+    const up = () => {
+      clearTimeout(holdMarkTimer.current);
+      const tapped = pendingMarkId.current;
+      pendingMarkId.current = null;
+      if (dragMark) { setDragMark(null); return; }
+      if (!tapped) return;
+      const now = Date.now();
+      if (lastMarkTap.current.id === tapped && now - lastMarkTap.current.t < 350) {
+        lastMarkTap.current = { id: null, t: 0 };
+        updateMarkLayout((list) => list.map((m) => (m.id !== tapped ? m : { ...m, rot: ((m.rot || 0) + 45) % 360 })));
+      } else {
+        lastMarkTap.current = { id: tapped, t: now };
+      }
+    };
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [dragMark, markStyle, locked]);
 
   // 3-finger tap to unlock
   useEffect(() => {
@@ -346,10 +420,27 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       </div>
       {/* tracking marks overlay - follows the chosen background */}
       {markStyle !== "none" && (
-        <div className="absolute inset-0 pointer-events-none">
-          <TrackingMarks type={markStyle} color={markColor} opacity={0.85} size={0.9} thickness={0.5}
-            markers={defaultLayoutFor(markStyle)} />
-        </div>
+        <>
+          <TrackingMarks type={markStyle} color={markColor} opacity={0.85} size={1.1} thickness={0.6}
+            markers={markLayout} dragId={dragMark}
+            onMarkerDown={!locked ? onMarkDown : undefined} />
+          {/* temporary snap grid - lines sit in the button gaps */}
+          {dragMark && (() => {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (!rect) return null;
+            const { xs, ys } = snapLines(rect);
+            return (
+              <svg className="absolute inset-0 z-10 pointer-events-none" width={rect.width} height={rect.height}>
+                {xs.map((x, i) => (
+                  <line key={`x${i}`} x1={x} y1={0} x2={x} y2={rect.height} stroke={markColor} strokeWidth={1} strokeDasharray="4 4" opacity={0.45} />
+                ))}
+                {ys.map((y, i) => (
+                  <line key={`y${i}`} x1={0} y1={y} x2={rect.width} y2={y} stroke={markColor} strokeWidth={1} strokeDasharray="4 4" opacity={0.45} />
+                ))}
+              </svg>
+            );
+          })()}
+        </>
       )}
       {locked && hint && (
         <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
