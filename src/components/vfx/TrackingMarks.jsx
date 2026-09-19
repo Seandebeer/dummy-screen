@@ -54,11 +54,11 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
       </>);
     }
     if (kind === "circles") {
-      const d = 52 * size;
+      const d = 46 * size;
       return spin(0,
         <div className="absolute rounded-full flex items-center justify-center"
           style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
-          <span style={{ width: 20 * size, height: 20 * size, borderRadius: "50%", background: fill }} />
+          <span style={{ width: 10 * size, height: 10 * size, borderRadius: "50%", background: fill }} />
         </div>
       );
     }

@@ -143,6 +143,21 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     return () => window.removeEventListener("pointermove", move);
   }, [dragMark, markStyle]);
 
+  // the first time a mark style is shown, place its default marks on the
+  // grid intersections (button gaps)
+  useEffect(() => {
+    if (locked || markStyle === "none" || markers.markLayouts?.[markStyle]) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect || !rect.width || !rect.height) return;
+    const { xs, ys } = snapLines(rect);
+    const layout = defaultLayoutFor(markStyle).map((m) => ({
+      ...m,
+      x: (nearest((m.x / 100) * rect.width, xs) / rect.width) * 100,
+      y: (nearest((m.y / 100) * rect.height, ys) / rect.height) * 100,
+    }));
+    saveMarkers((mm) => ({ markLayouts: { ...(mm.markLayouts || {}), [markStyle]: layout } }));
+  }, [markStyle, locked]);
+
   // release: end a drag; double-tap rotates the mark 45°
   useEffect(() => {
     if (locked || markStyle === "none") return;
