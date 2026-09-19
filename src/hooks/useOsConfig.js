@@ -14,7 +14,8 @@ export const bgPresets = [
 const defaults = {
   order: [...defaultHomeOrder],
   orderVer: 2,
-  dock: ["phone", "messages", "email", "settings"],
+  dock: ["phone", "messages", "videos", "settings"],
+  dockVer: 1,
   uiMarkers: { assignments: {}, barRow: 7, barCol: 5, barVRow: 2, layoutVer: 3 },
   dialCodes: ["026", "034", "049"],
   dialCode: "026",
@@ -44,9 +45,11 @@ function loadConfig() {
       const order = saved.orderVer === 2
         ? saved.order.filter((id) => known.includes(id))
         : [...defaultHomeOrder];
-      const dock = Array.isArray(saved.dock)
+      let dock = Array.isArray(saved.dock)
         ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
         : [...defaults.dock];
+      // one-time refresh: the Videos app joins the default dock
+      if ((saved.dockVer || 0) < 1) dock = [...defaults.dock];
       const dialCodes = Array.isArray(saved.dialCodes) && saved.dialCodes.length
         ? saved.dialCodes.filter((c) => /^\d{3}$/.test(c)).slice(0, 3)
         : defaults.dialCodes;
@@ -71,7 +74,7 @@ function loadConfig() {
         uiMarkers.barVRow = defaults.uiMarkers.barVRow;
         uiMarkers.layoutVer = 3;
       }
-      return { ...defaults, ...saved, order, orderVer: 2, dock, lockVer: 2, lockscreen, uiMarkers, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
+      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 1, lockVer: 2, lockscreen, uiMarkers, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;
