@@ -154,8 +154,9 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
     return { width: "100%", height: "100%" };
   };
 
+  // locked playback takes over the whole screen edge-to-edge - no dock or tools
   return (
-    <div className="relative h-full bg-black text-white">
+    <div className={locked ? "fixed inset-0 z-[100] bg-black text-white" : "relative h-full bg-black text-white"}>
       {/* stage - cropped to the chosen aspect ratio, tap toggles playback */}
       <div ref={stageRef} className="absolute inset-0 flex items-center justify-center overflow-hidden bg-black"
         onClick={!locked ? togglePlay : undefined}>
@@ -169,8 +170,9 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
               const v = vidRef.current;
               if (v?.videoWidth) setVidRatio(v.videoWidth / v.videoHeight);
             }} />
-          <VideoMarks marks={marks} onChange={setMarksPersist} locked={locked} color={marks.color || "#FFFFFF"} />
         </div>
+        {/* marks anchor to the whole screen, not the letterboxed video frame */}
+        <VideoMarks marks={marks} onChange={setMarksPersist} locked={locked} color={marks.color || "#FFFFFF"} />
       </div>
 
       {!locked && (
