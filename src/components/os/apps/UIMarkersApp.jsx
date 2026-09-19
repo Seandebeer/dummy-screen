@@ -138,9 +138,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         onClick={locked ? undefined : () => toggleAssign(key)}
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
-          isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
-          !locked && assigned != null && "border-amber/60 text-amber",
-          !locked && "hover:border-white/40")}>
+          isPressed ? "border-white/50 marker-pulse" : "border-white/10",
+          !locked && assigned != null && "text-white/90",
+          !locked && "hover:border-white/30")}>
         {assigned != null ? assigned : ""}
       </button>
     );
@@ -167,7 +167,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onContextMenu={(e) => e.preventDefault()}
       className="flex items-center justify-center">
       <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "h" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
+        pressedBar === "h" ? "border-white/50 marker-pulse" : "border-white/10")}>
         {barNumber}
       </div>
     </div>
@@ -181,7 +181,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onContextMenu={(e) => e.preventDefault()}
       className={cn("flex items-center justify-center", dragBar === "h" ? "cursor-grabbing" : "cursor-grab")}>
       <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "h" ? "bg-white/30 border-white/70" : "bg-amber/15 border-amber/50")}>
+        dragBar === "h" ? "border-white/50" : "border-white/10")}>
         {barNumber}
       </div>
     </div>
@@ -205,7 +205,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "v" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
+        pressedBar === "v" ? "border-white/50 marker-pulse" : "border-white/10")}>
       {barVNumber}
     </div>
   ) : (
@@ -216,7 +216,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onClick={() => toggleBarNumber("barVNumber")}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "v" ? "bg-white/30 border-white/70 cursor-grabbing" : "bg-amber/15 border-amber/50 cursor-grab")}>
+        dragBar === "v" ? "border-white/50 cursor-grabbing" : "border-white/10 cursor-grab")}>
       {barVNumber}
     </div>
   );
