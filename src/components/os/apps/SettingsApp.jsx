@@ -123,30 +123,34 @@ export default function SettingsApp({ config, update, onLock }) {
         </div>
       </Section>
 
-      <Section title={t.background}>
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          {bgPresets.map((p) => (
-            <button key={p.id} onClick={() => update({ background: { type: "preset", preset: p.id, url: "" } })}
-              className={cn("rounded-lg border-2 p-1 transition",
-                !hasImage && (bg.preset || "default") === p.id ? "border-amber" : "border-white/10 hover:border-white/30")}>
-              <span className="block h-8 rounded" style={{ background: p.dark }} />
+      <div className="grid grid-cols-2 gap-2 px-5 pt-2 items-start">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">{t.background}</div>
+          <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-3">
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {bgPresets.map((p) => (
+                <button key={p.id} onClick={() => update({ background: { type: "preset", preset: p.id, url: "" } })}
+                  className={cn("rounded-lg border-2 p-1 transition",
+                    !hasImage && (bg.preset || "default") === p.id ? "border-amber" : "border-white/10 hover:border-white/30")}>
+                  <span className="block h-8 rounded" style={{ background: p.dark }} />
+                </button>
+              ))}
+            </div>
+            <button onClick={() => fileRef.current?.click()} disabled={uploading}
+              className="w-full rounded-lg bg-[#0A84FF] text-white text-xs font-semibold py-2 flex items-center justify-center gap-1.5 disabled:opacity-60">
+              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Upload
             </button>
-          ))}
+            {hasImage && (
+              <button onClick={() => update({ background: { type: "preset", preset: bg.preset || "default", url: "" } })}
+                className="mt-2 w-full rounded-lg bg-white/10 text-white/80 text-xs py-2 flex items-center justify-center gap-1.5">
+                <Trash2 size={14} /> Remove
+              </button>
+            )}
+            {uploadError && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed - try again</p>}
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="flex-1 rounded-lg bg-[#0A84FF] text-white text-xs font-semibold py-2 flex items-center justify-center gap-1.5 disabled:opacity-60">
-            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Upload Image
-          </button>
-          {hasImage && (
-            <button onClick={() => update({ background: { type: "preset", preset: bg.preset || "default", url: "" } })}
-              className="rounded-lg bg-white/10 text-white/80 text-xs px-3 py-2 flex items-center gap-1.5">
-              <Trash2 size={14} /> Remove
-            </button>
-          )}
-        </div>
-        {uploadError && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed - try again</p>}
-      </Section>
+        <LockSettings config={config} update={update} onLock={onLock} bare />
+      </div>
 
       <Section title={t.dialCodes}>
         <div className="flex gap-2">
@@ -216,8 +220,6 @@ export default function SettingsApp({ config, update, onLock }) {
         </div>
         <p className="text-[11px] text-white/40 font-body mt-2">How incoming calls are answered on this device.</p>
       </Section>
-
-      <LockSettings config={config} update={update} onLock={onLock} />
 
       <p className="text-center text-[10px] text-white/25 font-body uppercase tracking-widest pt-6 pb-8">Takeover OS · prop build 1.0</p>
     </div>

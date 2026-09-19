@@ -14,7 +14,7 @@ const METHODS = [
 
 const DEFAULT_LOCK = { type: "none", background: { type: "preset", preset: "default", url: "" } };
 
-export default function LockSettings({ config, update, onLock }) {
+export default function LockSettings({ config, update, onLock, bare = false }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(false);
   const fileRef = useRef(null);
@@ -47,7 +47,7 @@ export default function LockSettings({ config, update, onLock }) {
     (lock.type === "pattern" && !config.pattern);
 
   return (
-    <div className="px-5 pt-2">
+    <div className={bare ? "" : "px-5 pt-2"}>
       <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">Lock Screen</div>
       <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
         {METHODS.map(({ id, label, hint, Icon }) => (
