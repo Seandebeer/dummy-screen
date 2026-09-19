@@ -13,6 +13,10 @@ import OS from '@/pages/OS';
 import VFXStage from '@/pages/VFXStage';
 import Control from '@/pages/Control';
 import UIMarkers from '@/pages/UIMarkers';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -43,6 +47,10 @@ const AuthenticatedApp = () => {
       <Route path="/os" element={<OS />} />
       <Route path="/vfx" element={<VFXStage />} />
       <Route path="/uimarkers" element={<UIMarkers />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

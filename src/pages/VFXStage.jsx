@@ -140,7 +140,7 @@ export default function VFXStage() {
       {!locked && (
         <>
           {isPoint && (
-            <div className="absolute bottom-24 inset-x-0 flex justify-center z-40 pointer-events-none">
+            <div className="absolute bottom-36 inset-x-0 flex justify-center z-40 pointer-events-none">
               <div className="px-3.5 py-1.5 rounded-full text-[10px] font-body tracking-wide bg-black/55 text-white border border-white/15 shadow-2xl backdrop-blur-xl">
                 Hold &amp; drag to move · tap to remove
               </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
+import QrConnect from "@/components/control/QrConnect";
 import { cn } from "@/lib/utils";
 
 const CONTACT_KEY = "takeover-control-contact";
@@ -174,6 +175,9 @@ export default function ControlPanel() {
           </div>
         </div>
       </div>
+
+      {/* quick connect via QR */}
+      <QrConnect />
 
       {/* alarm trigger */}
       <div className="rounded-xl border border-border bg-surface p-4">

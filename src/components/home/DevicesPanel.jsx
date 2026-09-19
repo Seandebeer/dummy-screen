@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, Plus, Trash2, Loader2 } from "lucide-react";
+import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Save } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
 
 const kinds = [
   { id: "phone", label: "Phone" },
@@ -16,6 +18,7 @@ export default function DevicesPanel() {
   const [name, setName] = useState("");
   const [kind, setKind] = useState("phone");
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
 
   const refresh = useCallback(() => {
     base44.entities.Device.list("-created_date", 100)
@@ -59,6 +62,22 @@ export default function DevicesPanel() {
   const remove = async (d) => {
     await base44.entities.Device.delete(d.id);
     refresh();
+  };
+
+  // each device carries its own saved OS layout — snapshot this screen's
+  // current config onto the device, or load the device's layout back here
+  const saveLayout = async (d) => {
+    const config = readCurrentOsConfig();
+    if (!config) return;
+    await base44.entities.Device.update(d.id, { config: JSON.stringify(slimConfig(config)) });
+    refresh();
+  };
+
+  const loadLayout = (d) => {
+    try {
+      applyOsConfig(JSON.parse(d.config));
+      navigate("/os");
+    } catch {}
   };
 
   const projectById = (id) => projects.find((p) => p.id === id);
@@ -108,7 +127,7 @@ export default function DevicesPanel() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-body truncate">{d.name}</div>
                 <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
-                  {d.kind}{d.project_id && projectById(d.project_id) ? ` · ${projectById(d.project_id).name}` : ""}
+                  {d.kind}{d.project_id && projectById(d.project_id) ? ` · ${projectById(d.project_id).name}` : ""}{d.config ? " · layout saved" : ""}
                 </div>
               </div>
               <select value={d.project_id || ""} onChange={(e) => assign(d, e.target.value)}
@@ -116,6 +135,16 @@ export default function DevicesPanel() {
                 <option value="">Unassigned</option>
                 {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
+              <button onClick={() => saveLayout(d)} title="Save this screen's OS layout to the device"
+                className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
+                <Save size={15} />
+              </button>
+              {d.config && (
+                <button onClick={() => loadLayout(d)} title="Load this device's layout onto this screen"
+                  className="text-amber/80 hover:text-amber transition opacity-60 group-hover:opacity-100">
+                  <Download size={15} />
+                </button>
+              )}
               <button onClick={() => remove(d)} className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
                 <Trash2 size={15} />
               </button>

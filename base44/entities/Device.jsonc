@@ -25,6 +25,9 @@
     },
     "project_id": {
       "type": "string"
+    },
+    "config": {
+      "type": "string"
     }
   },
   "required": [

@@ -24,7 +24,7 @@ export default function StageToolbar({
       </div>
 
       {/* single consolidated tool bar */}
-      <div className={cn("flex items-center gap-0.5 rounded-full border p-1.5", glass)}>
+      <div className={cn("flex flex-wrap items-center justify-center gap-0.5 rounded-full border p-1.5 max-w-[92vw]", glass)}>
         <Link to="/" title="Exit stage" className={btn}><ArrowLeft size={16} /></Link>
         <span className={divider} />
 

@@ -1,0 +1,15 @@
+{
+  "name": "OsProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "config": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
