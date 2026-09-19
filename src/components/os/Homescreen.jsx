@@ -8,7 +8,7 @@ import AppLibrary from "./AppLibrary";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 20;
 const DOCK_SLOTS = [0, 1, 2, 3];
 
 export default function Homescreen({ config, update, onOpen }) {

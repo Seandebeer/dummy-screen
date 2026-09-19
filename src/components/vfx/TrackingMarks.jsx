@@ -23,8 +23,8 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
     const pts = [...CORNERS, { left: "50%", top: "50%" }];
     return overlay(pts.map((p, i) => (
       <div key={i} className="absolute" style={p}>
-        <div className="absolute" style={{ width: 22, height: 3, background: fill, transform: "translate(-50%, -50%)" }} />
-        <div className="absolute" style={{ width: 3, height: 22, background: fill, transform: "translate(-50%, -50%)" }} />
+        <div className="absolute" style={{ width: 24, height: 7, background: fill, transform: "translate(-50%, -50%)" }} />
+        <div className="absolute" style={{ width: 7, height: 24, background: fill, transform: "translate(-50%, -50%)" }} />
       </div>
     )));
   }
@@ -34,15 +34,15 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
     const pts = [...CORNERS, { left: "50%", top: "50%" }];
     return overlay(pts.map((p, i) => (
       <div key={i} className="absolute rounded-full flex items-center justify-center"
-        style={{ ...p, width: 22, height: 22, border: `2px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
-        <span style={{ width: 4, height: 4, borderRadius: "50%", background: fill }} />
+        style={{ ...p, width: 26, height: 26, border: `5px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: fill }} />
       </div>
     )));
   }
 
   // 3. checkerboard — alternating black & white squares (black & white only)
   if (type === "checkerboard") {
-    const s = 32;
+    const s = 128;
     return (
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundColor: "#FFFFFF",
@@ -57,7 +57,7 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
   if (type === "squares") {
     return overlay(CORNERS.map((p, i) => (
       <div key={i} className="absolute"
-        style={{ ...p, width: 28, height: 28, border: `2px solid ${fill}`, transform: "translate(-50%, -50%)" }} />
+        style={{ ...p, width: 30, height: 30, border: `5px solid ${fill}`, transform: "translate(-50%, -50%)" }} />
     )));
   }
 
@@ -66,7 +66,7 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
     return (
       <div className="absolute inset-0 pointer-events-none" style={{
         opacity,
-        backgroundImage: `radial-gradient(${fill} 1.5px, transparent 1.5px)`,
+        backgroundImage: `radial-gradient(${fill} 3px, transparent 3px)`,
         backgroundSize: "40px 40px",
         backgroundPosition: "20px 20px",
       }} />
@@ -86,12 +86,12 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
     return overlay([
       ...corners.map((c, i) => (
         <div key={i} className="absolute" style={{ left: c.x, top: c.y }}>
-          <div style={{ width: c.dx * L, height: 2, background: fill, transform: `translateX(${c.dx > 0 ? 0 : -L}px)` }} />
-          <div style={{ width: 2, height: c.dy * L, background: fill, transform: `translateY(${c.dy > 0 ? 0 : -L}px)` }} />
+          <div style={{ width: c.dx * L, height: 7, background: fill, transform: `translateX(${c.dx > 0 ? 0 : -L}px)` }} />
+          <div style={{ width: 7, height: c.dy * L, background: fill, transform: `translateY(${c.dy > 0 ? 0 : -L}px)` }} />
         </div>
       )),
       <div key="diamond" className="absolute"
-        style={{ left: "50%", top: "50%", width: 16, height: 16, border: `2px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />,
+        style={{ left: "50%", top: "50%", width: 22, height: 22, border: `5px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />,
     ]);
   }
 

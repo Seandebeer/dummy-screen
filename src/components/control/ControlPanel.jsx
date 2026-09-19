@@ -126,17 +126,17 @@ export default function ControlPanel() {
           <button onClick={() => triggerCall("call_incoming")} disabled={callState !== "idle" || busy}
             className="flex flex-col items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 py-3 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
             <PhoneIncoming size={20} />
-            <span className="text-[11px] font-body">Incoming</span>
+            <span className="text-[11px] font-body">Call</span>
           </button>
           <button onClick={() => triggerCall("call_outgoing")} disabled={callState !== "idle" || busy}
             className="flex flex-col items-center gap-1.5 rounded-lg border border-amber/40 bg-amber/10 py-3 text-amber disabled:opacity-40 hover:bg-amber/20 transition">
             <PhoneOutgoing size={20} />
-            <span className="text-[11px] font-body">Outgoing</span>
+            <span className="text-[11px] font-body">Call</span>
           </button>
           <button onClick={endCall} disabled={callState === "idle"}
             className="flex flex-col items-center gap-1.5 rounded-lg border border-alert/40 bg-alert/10 py-3 text-alert disabled:opacity-40 hover:bg-alert/20 transition">
             <PhoneOff size={20} />
-            <span className="text-[11px] font-body">End Call</span>
+            <span className="text-[11px] font-body">End</span>
           </button>
         </div>
       </div>

@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 
 const COLS = 5;
 const ROWS = 8;
-const BAR = 40;
 
 export default function UIMarkersApp({ config, update, onLockChange }) {
   const markers = config.uiMarkers || {};
@@ -21,6 +20,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const [dragBar, setDragBar] = useState(null); // "h" | "v"
   const containerRef = useRef(null);
   const holdTimer = useRef(null);
+  const suppressClick = useRef(false);
 
   useEffect(() => { onLockChange?.(locked); }, [locked]);
 
@@ -66,7 +66,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const onBarPointerDown = (e, which) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     clearTimeout(holdTimer.current);
-    holdTimer.current = setTimeout(() => setDragBar(which), 250);
+    holdTimer.current = setTimeout(() => { suppressClick.current = true; setDragBar(which); }, 250);
   };
 
   const cancelDrag = () => {
@@ -102,12 +102,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   // grid tracks — a fixed 40px band for each bar, 1fr everywhere else
   const colTemplate = [];
   for (let c = 0; c <= COLS; c++) {
-    if (c === barCol) colTemplate.push(`${BAR}px`);
+    if (c === barCol) colTemplate.push("1fr");
     if (c < COLS) colTemplate.push("1fr");
   }
   const rowTemplate = [];
   for (let r = 0; r <= ROWS; r++) {
-    if (r === barRow) rowTemplate.push(`${BAR}px`);
+    if (r === barRow) rowTemplate.push("1fr");
     if (r < ROWS) rowTemplate.push("1fr");
   }
 
@@ -133,14 +133,14 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     );
   };
 
-  // number input shown on each bar in edit mode
-  const barInput = (value, key) => (
-    <input type="text" inputMode="numeric" value={value}
-      onChange={(e) => saveMarkers({ [key]: e.target.value.replace(/\D/g, "").slice(0, 2) })}
-      onPointerDown={(e) => e.stopPropagation()}
-      placeholder="№"
-      className="w-10 text-center rounded-lg bg-black/40 border border-white/15 text-sm font-display text-white placeholder:text-white/25 outline-none focus:border-amber/60" />
-  );
+  // tap anywhere on a bar (edit mode) → next number appears, tap again to clear
+  const toggleBarNumber = (key) => {
+    if (suppressClick.current) { suppressClick.current = false; return; }
+    const used = [...Object.values(assignments), Number(barNumber), Number(barVNumber)]
+      .filter((n) => Number.isInteger(n) && n > 0);
+    const next = used.length ? Math.max(...used) + 1 : 1;
+    saveMarkers((m) => (m[key] ? { [key]: "" } : { [key]: String(next) }));
+  };
 
   const horizontalBar = locked ? (
     <div
@@ -150,9 +150,11 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerLeave={() => setPressedBar(null)}
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
-      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+      className="flex items-center justify-center">
+      <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
         pressedBar === "h" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
-      {barNumber}
+        {barNumber}
+      </div>
     </div>
   ) : (
     <div
@@ -160,10 +162,13 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerDown={(e) => onBarPointerDown(e, "h")}
       onPointerUp={cancelDrag}
       onPointerCancel={cancelDrag}
+      onClick={() => toggleBarNumber("barNumber")}
       onContextMenu={(e) => e.preventDefault()}
-      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center",
-        dragBar === "h" ? "bg-white/30 border-white/70 cursor-grabbing" : "bg-amber/15 border-amber/50 cursor-grab")}>
-      {barInput(barNumber, "barNumber")}
+      className={cn("flex items-center justify-center", dragBar === "h" ? "cursor-grabbing" : "cursor-grab")}>
+      <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+        dragBar === "h" ? "bg-white/30 border-white/70" : "bg-amber/15 border-amber/50")}>
+        {barNumber}
+      </div>
     </div>
   );
 
@@ -175,9 +180,11 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerLeave={() => setPressedBar(null)}
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
-      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+      className="flex items-center justify-center">
+      <div className={cn("w-full h-[70%] rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
         pressedBar === "v" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
-      {barVNumber}
+        {barVNumber}
+      </div>
     </div>
   ) : (
     <div
@@ -185,10 +192,13 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerDown={(e) => onBarPointerDown(e, "v")}
       onPointerUp={cancelDrag}
       onPointerCancel={cancelDrag}
+      onClick={() => toggleBarNumber("barVNumber")}
       onContextMenu={(e) => e.preventDefault()}
-      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center",
-        dragBar === "v" ? "bg-white/30 border-white/70 cursor-grabbing" : "bg-amber/15 border-amber/50 cursor-grab")}>
-      {barInput(barVNumber, "barVNumber")}
+      className={cn("flex items-center justify-center", dragBar === "v" ? "cursor-grabbing" : "cursor-grab")}>
+      <div className={cn("w-full h-[70%] rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+        dragBar === "v" ? "bg-white/30 border-white/70" : "bg-amber/15 border-amber/50")}>
+        {barVNumber}
+      </div>
     </div>
   );
 
