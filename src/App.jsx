@@ -37,11 +37,10 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/vfx" element={<Home />} />
         <Route path="/control" element={<Control />} />
       </Route>
       <Route path="/os" element={<OS />} />
-      <Route path="/vfx-stage" element={<VFXStage />} />
+      <Route path="/vfx" element={<VFXStage />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

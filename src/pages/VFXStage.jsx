@@ -61,7 +61,7 @@ export default function VFXStage() {
       {!locked && (
         <>
           <div className="absolute top-4 left-4 z-40">
-            <Link to="/vfx" className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-body backdrop-blur",
+            <Link to="/" className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-body backdrop-blur",
               isLight ? "bg-black/60 text-white" : "bg-white/15 text-white")}>
               ← Exit
             </Link>
@@ -75,7 +75,7 @@ export default function VFXStage() {
           </div>
           <div className="absolute top-4 right-4 z-40 flex gap-2">
             {trackingMarks.map((m) => (
-              <Link key={m.id} to={`/vfx-stage?color=${colorId}&marks=${m.id}`}
+              <Link key={m.id} to={`/vfx?color=${colorId}&marks=${m.id}`}
                 className={cn("px-2.5 py-1 rounded-full text-[10px] font-body backdrop-blur border",
                   marksId === m.id ? "bg-amber text-black border-amber" : isLight ? "bg-black/40 text-white border-white/20" : "bg-white/15 text-white border-white/20")}>
                 {m.name}

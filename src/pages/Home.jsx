@@ -29,54 +29,48 @@ function CardHeader({ icon: Icon, title, accent }) {
 }
 
 function MobileHome() {
-  const [mode, setMode] = useState("os");
   const navigate = useNavigate();
   const [color, setColor] = useState("green");
   const [marks, setMarks] = useState("crosshair");
 
   return (
     <div className="min-h-dvh bg-background">
-      <div className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="font-display font-bold text-lg tracking-wide">TAKEOVER</div>
-          <span className="flex items-center gap-1.5 text-[11px] font-body text-signal">
-            <span className="h-2 w-2 rounded-full bg-signal led-pulse" /> SYNC LIVE
-          </span>
-        </div>
-        <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted/40 p-1">
-          {[{ id: "os", label: "OS" }, { id: "vfx", label: "VFX" }, { id: "control", label: "Control" }].map((m) => (
-            <button key={m.id} onClick={() => setMode(m.id)}
-              className={cn("py-2 rounded-md text-sm font-display font-semibold transition",
-                mode === m.id ? "bg-amber text-background" : "text-muted-foreground")}>
-              {m.label}
-            </button>
-          ))}
-        </div>
+      <div className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur px-4 py-3 flex items-center justify-between">
+        <div className="font-display font-bold text-lg tracking-wide">TAKEOVER</div>
+        <span className="flex items-center gap-1.5 text-[11px] font-body text-signal">
+          <span className="h-2 w-2 rounded-full bg-signal led-pulse" /> SYNC LIVE
+        </span>
       </div>
 
-      <div className="p-4">
-        {mode === "os" && (
-          <div className="flex flex-col items-center gap-5 py-4">
-            <PhoneMirror />
-            <div className="grid grid-cols-3 gap-3 w-full">
-              {osApps.map((a) => (
-                <div key={a.label} className="flex flex-col items-center gap-1.5">
-                  <span className="h-12 w-12 rounded-xl flex items-center justify-center" style={{ background: a.color }}>
-                    <span className="text-white text-xs font-display font-bold">{a.label[0]}</span>
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-body">{a.label}</span>
-                </div>
-              ))}
-            </div>
+      <div className="p-4 flex flex-col gap-4">
+        {/* mirror preview */}
+        <div className="rounded-2xl border border-border bg-surface p-4 flex flex-col items-center gap-4">
+          <PhoneMirror />
+          <div className="grid grid-cols-5 gap-2 w-full">
+            {osApps.map((a) => (
+              <button key={a.label} onClick={() => navigate("/os")}
+                className="flex flex-col items-center gap-1.5 active:scale-95 transition">
+                <span className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ background: a.color }}>
+                  <span className="text-white text-xs font-display font-bold">{a.label[0]}</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground font-body">{a.label}</span>
+              </button>
+            ))}
           </div>
-        )}
-        {mode === "vfx" && (
+        </div>
+
+        {/* VFX quick stage */}
+        <div className="rounded-2xl border border-border bg-surface p-4">
+          <CardHeader icon={Grid2x2} title="VFX Chroma Stage" accent="bg-amber/15 text-amber" />
           <VFXPicker color={color} setColor={setColor} marks={marks} setMarks={setMarks}
-            onTakeover={() => navigate(`/vfx-stage?color=${color}&marks=${marks}`)} />
-        )}
-        {mode === "control" && (
-          <div className="h-[calc(100dvh-9rem)]"><ControlPanel /></div>
-        )}
+            onTakeover={() => navigate(`/vfx?color=${color}&marks=${marks}`)} />
+        </div>
+
+        {/* control deck */}
+        <div className="rounded-2xl border border-border bg-surface p-4">
+          <CardHeader icon={Radio} title="Remote Control Deck" accent="bg-signal/15 text-signal" />
+          <ControlPanel />
+        </div>
       </div>
     </div>
   );
@@ -137,7 +131,7 @@ export default function Home() {
             <div className="rounded-2xl border border-border bg-surface p-5">
               <CardHeader icon={Grid2x2} title="VFX Chroma Stage" accent="bg-amber/15 text-amber" />
               <VFXPicker color={color} setColor={setColor} marks={marks} setMarks={setMarks}
-                onTakeover={() => navigate(`/vfx-stage?color=${color}&marks=${marks}`)} />
+                onTakeover={() => navigate(`/vfx?color=${color}&marks=${marks}`)} />
             </div>
             <div className="rounded-2xl border border-border bg-surface p-5">
               <CardHeader icon={Radio} title="Remote Control Deck" accent="bg-signal/15 text-signal" />
