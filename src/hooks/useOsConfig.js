@@ -17,6 +17,7 @@ const defaults = {
   dock: ["phone", "messages", "email", "settings"],
   dockVer: 2,
   uiMarkers: { assignments: {}, barRow: 7, barCol: 5, barVRow: 2, layoutVer: 3 },
+  osMarks: { style: "none", layouts: {} },
   dialCodes: ["026", "034", "049"],
   dialCode: "026",
   contacts: makeDefaultContacts(["026", "034", "049"], "en"),
@@ -74,7 +75,7 @@ function loadConfig() {
         uiMarkers.barVRow = defaults.uiMarkers.barVRow;
         uiMarkers.layoutVer = 3;
       }
-      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
+      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks: { ...defaults.osMarks, ...(saved.osMarks || {}) }, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;

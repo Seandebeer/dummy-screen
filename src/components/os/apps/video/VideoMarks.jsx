@@ -13,7 +13,22 @@ const XS = [...Array.from({ length: COLS + 1 }, (_, i) => (i / COLS) * 100), 50]
 const YS = Array.from({ length: ROWS + 1 }, (_, i) => (i / ROWS) * 100);
 const nearest = (v, arr) => arr.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
 
-export default function VideoMarks({ marks, onChange, locked }) {
+export const MARK_STYLES = [
+  { id: "cross", label: "Cross" },
+  { id: "circles", label: "Targets" },
+  { id: "squares", label: "Squares" },
+  { id: "brackets", label: "Brackets" },
+  { id: "diamond", label: "Diamond" },
+];
+
+const rgba = (hex, a) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+};
+
+export default function VideoMarks({ marks, onChange, locked, color = "#FFFFFF" }) {
   const [dragMark, setDragMark] = useState(null);
   const boxRef = useRef(null);
   const holdTimer = useRef(null);
@@ -80,16 +95,16 @@ export default function VideoMarks({ marks, onChange, locked }) {
   return (
     // stops marker taps from bubbling into the stage's play/pause toggle
     <div ref={boxRef} className="pointer-events-none absolute inset-0 z-[5]" onClick={(e) => e.stopPropagation()}>
-      <TrackingMarks type={style} color="#FFFFFF" opacity={0.85} size={1.1} thickness={0.6}
+      <TrackingMarks type={style} color={color} opacity={0.85} size={1.1} thickness={0.6}
         markers={layout} dragId={dragMark}
         onMarkerDown={!locked ? onMarkDown : undefined} />
       {dragMark && (
         <div className="pointer-events-none absolute inset-0" style={{
-          backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.35) 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(to right, ${rgba(color, 0.35)} 1px, transparent 1px), linear-gradient(to bottom, ${rgba(color, 0.35)} 1px, transparent 1px)`,
           backgroundSize: `${100 / COLS}% ${100 / ROWS}%`,
         }}>
-          <div className="absolute inset-y-0 left-1/2 w-px bg-white/45" />
-          <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80" />
+          <div className="absolute inset-y-0 left-1/2 w-px" style={{ background: rgba(color, 0.45) }} />
+          <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: rgba(color, 0.8) }} />
         </div>
       )}
     </div>

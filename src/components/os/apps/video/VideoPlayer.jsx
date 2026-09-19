@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Timeline from "./Timeline";
-import VideoMarks from "./VideoMarks";
+import VideoMarks, { MARK_STYLES } from "./VideoMarks";
 import { fmtDur, updateVideo } from "@/lib/videoStore";
 import { cn } from "@/lib/utils";
 
@@ -19,13 +19,6 @@ const ASPECTS = [
   { id: "2.39:1", label: "2.39:1 cinema" },
 ];
 const RATIOS = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:3": [4, 3], "2.39:1": [2.39, 1] };
-const MARK_STYLES = [
-  { id: "cross", label: "Cross" },
-  { id: "circles", label: "Targets" },
-  { id: "squares", label: "Squares" },
-  { id: "brackets", label: "Brackets" },
-  { id: "diamond", label: "Diamond" },
-];
 
 export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor }) {
   const video = videos[index];
@@ -33,6 +26,7 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
   const stageRef = useRef(null);
   const saveTimer = useRef(null);
   const marksTimer = useRef(null);
+  const lockEnteredFs = useRef(false);
 
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -67,10 +61,17 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
     return () => ro.disconnect();
   }, []);
 
-  // 3-finger tap to unlock
+  // 3-finger tap to unlock - leaves fullscreen if the lock entered it
   useEffect(() => {
     if (!locked) return;
-    const onTouch = (e) => { if (e.touches.length >= 3) setLocked(false); };
+    const onTouch = (e) => {
+      if (e.touches.length < 3) return;
+      setLocked(false);
+      if (lockEnteredFs.current) {
+        lockEnteredFs.current = false;
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      }
+    };
     window.addEventListener("touchstart", onTouch, { passive: true });
     return () => window.removeEventListener("touchstart", onTouch);
   }, [locked]);
@@ -121,10 +122,17 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
     if (v.paused) v.play().catch(() => {}); else v.pause();
   };
 
-  const lockScreen = () => {
+  const lockScreen = async () => {
     setLocked(true);
     setHint(true);
     setTimeout(() => setHint(false), 2400);
+    // locked playback takes over the whole screen - no app dock
+    try {
+      if (!document.fullscreenElement && stageRef.current?.requestFullscreen) {
+        lockEnteredFs.current = true;
+        await stageRef.current.requestFullscreen();
+      }
+    } catch {}
   };
 
   const toggleFs = async () => {

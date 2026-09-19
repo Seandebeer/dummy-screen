@@ -32,6 +32,11 @@ export default function VFXStage() {
 
   // drag snap grid mirrors the UI marker grid: 5 columns x 8 rows
   const snapC = (v, cells) => Math.min(100, Math.max(0, (Math.round((v / 100) * cells) / cells) * 100));
+  // centre-line exception: x can also snap to the vertical centre / centre point
+  const snapX = (v) => {
+    const grid = snapC(v, 5);
+    return Math.abs(50 - v) < Math.abs(grid - v) ? 50 : grid;
+  };
 
   const [locked, setLocked] = useState(false);
   const [banner, setBanner] = useState(null);
@@ -90,7 +95,7 @@ export default function VFXStage() {
     const move = (e) => {
       updateLayout((list) => list.map((m) => m.id !== dragId ? m : {
         ...m,
-        x: snapC((e.clientX / window.innerWidth) * 100, 5),
+        x: snapX((e.clientX / window.innerWidth) * 100),
         y: snapC((e.clientY / window.innerHeight) * 100, 8),
       }));
     };
@@ -156,7 +161,12 @@ export default function VFXStage() {
         <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: `linear-gradient(to right, ${isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)"} 1px, transparent 1px), linear-gradient(to bottom, ${isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)"} 1px, transparent 1px)`,
           backgroundSize: `${100 / 5}% ${100 / 8}%`,
-        }} />
+        }}>
+          {/* centre line + centre screen point */}
+          <div className="absolute inset-y-0 left-1/2 w-px" style={{ background: isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.45)" }} />
+          <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ background: isLight ? "#000000" : "#FFFFFF", opacity: 0.9 }} />
+        </div>
       )}
 
       {/* lock / unlock banner */}

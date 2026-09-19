@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Maximize2, Save } from "lucide-react";
+import { ArrowLeft, Check, Maximize2, Save, Shapes } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PhoneFrame from "@/components/os/PhoneFrame";
 import Homescreen from "@/components/os/Homescreen";
 import PhoneApp from "@/components/os/apps/PhoneApp";
@@ -16,6 +17,8 @@ import CallOverlay from "@/components/os/CallOverlay";
 import AlarmOverlay from "@/components/os/AlarmOverlay";
 import MockApp from "@/components/os/apps/MockApp";
 import { allAppsById } from "@/lib/osApps";
+import VideoMarks, { MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
+import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
 import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
 import { slimConfig } from "@/lib/osConfigStore";
@@ -177,6 +180,12 @@ export default function OS() {
     : fmtTime(Date.now());
   const onStatusChange = (patch) => update({ status: { ...config.status, ...patch } });
 
+  // tracking-mark overlay for the OS screen - works like the video / UI marks
+  const osMarks = config.osMarks || { style: "none", layouts: {} };
+  const setOsMarks = (updater) => update((c) => ({
+    osMarks: updater(c.osMarks || { style: "none", layouts: {} }),
+  }));
+
   const endCall = useCallback(() => {
     const cur = callRef.current;
     if (cur) {
@@ -244,6 +253,29 @@ export default function OS() {
         </Link>
         <div className="font-display font-bold text-lg tracking-wide">OS SIMULATOR</div>
         <div className="flex items-center gap-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-body transition",
+                osMarks.style !== "none" ? "border-amber/50 text-amber" : "border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground")}>
+                <Shapes size={14} /> <span className="hidden sm:inline">Marks</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-36 p-1.5">
+              <button onClick={() => setOsMarks((m) => ({ ...m, style: "none" }))}
+                className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider hover:bg-muted">
+                None
+                {osMarks.style === "none" && <Check size={12} className="text-amber" />}
+              </button>
+              {MARK_STYLES.map((s) => (
+                <button key={s.id} onClick={() => setOsMarks((m) => ({ ...m, style: s.id }))}
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider hover:bg-muted">
+                  {s.label}
+                  {osMarks.style === s.id && <Check size={12} className="text-amber" />}
+                </button>
+              ))}
+              <p className="px-2.5 pt-1.5 text-[8px] font-body text-muted-foreground">Hold &amp; drag to move · double-tap to rotate</p>
+            </PopoverContent>
+          </Popover>
           <button onClick={saveAsDevice}
             className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-muted-foreground transition">
             <Save size={14} /> <span className="hidden sm:inline">Save as Device</span>
@@ -258,6 +290,8 @@ export default function OS() {
         <PhoneFrame onHome={() => setApp(null)} light={(app === null || app === "messages") && config.theme === "light"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
+          <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
+            color={config.theme === "light" ? "#000000" : "#FFFFFF"} />
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
         </PhoneFrame>
@@ -275,6 +309,8 @@ export default function OS() {
             light={(app === null || app === "messages") && config.theme === "light"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
+            <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
+              color={config.theme === "light" ? "#000000" : "#FFFFFF"} />
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
             {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>
