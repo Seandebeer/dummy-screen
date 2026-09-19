@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -28,11 +29,11 @@
     --signal: 186 100% 50%;
     --alert: 3 100% 59%;
     --amber: 41 100% 50%;
-    --radius: 0.75rem;
-    --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --font-mono: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --radius: 1rem;
+    --font-heading: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Space Grotesk", "Inter", ui-monospace, monospace;
   }
 }
 
@@ -90,6 +91,21 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
+  }
+
+  /* gentle, premium hover for every button */
+  button:not(:disabled) {
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease,
+      border-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+    }
+    button:not(:disabled):active {
+      transform: translateY(0);
+    }
   }
 }
 
