@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOutgoing, PhoneOff, Send, Radio, Users } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { mockContacts } from "@/lib/osData";
 import { cn } from "@/lib/utils";
@@ -122,15 +122,10 @@ export default function ControlPanel() {
             {mockContacts.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.number}</option>)}
           </select>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button onClick={() => triggerCall("call_incoming")} disabled={callState !== "idle" || busy}
             className="flex flex-col items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 py-3 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
             <PhoneIncoming size={20} />
-            <span className="text-[11px] font-body">Call</span>
-          </button>
-          <button onClick={() => triggerCall("call_outgoing")} disabled={callState !== "idle" || busy}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-amber/40 bg-amber/10 py-3 text-amber disabled:opacity-40 hover:bg-amber/20 transition">
-            <PhoneOutgoing size={20} />
             <span className="text-[11px] font-body">Call</span>
           </button>
           <button onClick={endCall} disabled={callState === "idle"}

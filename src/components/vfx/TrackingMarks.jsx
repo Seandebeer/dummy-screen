@@ -1,99 +1,100 @@
 import React from "react";
+import { cn } from "@/lib/utils";
 
-// tracking marker overlays — the six standard VFX screen-replacement styles.
-// markers follow the active mark color — except checkerboard, which is always black & white.
-export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
+// tracking marker overlays for the key screens stage.
+// point styles (cross / circles / squares / brackets) render individually
+// positioned markers that can be moved, added and removed in edit mode.
+// patterns (dots / checkerboard) fill the screen — checkerboard is always black & white.
+export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 1, thickness = 1, markers = [], onMarkerDown, dragId }) {
   const fill = color;
 
   if (type === "none") return null;
 
-  const CORNERS = [
-    { left: 28, top: 28 },
-    { right: 28, top: 28 },
-    { left: 28, bottom: 28 },
-    { right: 28, bottom: 28 },
-  ];
-
-  const overlay = (children) => (
-    <div className="absolute inset-0 pointer-events-none" style={{ opacity }}>{children}</div>
+  const pattern = (style) => (
+    <div className="absolute inset-0 pointer-events-none" style={{ opacity, ...style }} />
   );
 
-  // 1. cross markers — plus signs in the four corners + center
-  if (type === "cross") {
-    const pts = [...CORNERS, { left: "50%", top: "50%" }];
-    return overlay(pts.map((p, i) => (
-      <div key={i} className="absolute" style={p}>
-        <div className="absolute" style={{ width: 24, height: 7, background: fill, transform: "translate(-50%, -50%)" }} />
-        <div className="absolute" style={{ width: 7, height: 24, background: fill, transform: "translate(-50%, -50%)" }} />
-      </div>
-    )));
-  }
-
-  // 2. circular markers — outlined circle with a center dot, four corners + center
-  if (type === "circles") {
-    const pts = [...CORNERS, { left: "50%", top: "50%" }];
-    return overlay(pts.map((p, i) => (
-      <div key={i} className="absolute rounded-full flex items-center justify-center"
-        style={{ ...p, width: 26, height: 26, border: `5px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
-        <span style={{ width: 10, height: 10, borderRadius: "50%", background: fill }} />
-      </div>
-    )));
-  }
-
-  // 3. checkerboard — alternating black & white squares (black & white only)
+  // checkerboard — alternating black & white squares (black & white only)
   if (type === "checkerboard") {
-    const s = 128;
-    return (
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundColor: "#FFFFFF",
-        backgroundImage: `linear-gradient(45deg, #000000 25%, transparent 25%, transparent 75%, #000000 75%), linear-gradient(45deg, #000000 25%, transparent 25%, transparent 75%, #000000 75%)`,
-        backgroundSize: `${s}px ${s}px`,
-        backgroundPosition: `0 0, ${s / 2}px ${s / 2}px`,
-      }} />
-    );
+    const s = 128 * size;
+    return pattern({
+      backgroundColor: "#FFFFFF",
+      backgroundImage: `linear-gradient(45deg, #000000 25%, transparent 25%, transparent 75%, #000000 75%), linear-gradient(45deg, #000000 25%, transparent 25%, transparent 75%, #000000 75%)`,
+      backgroundSize: `${s}px ${s}px`,
+      backgroundPosition: `0 0, ${s / 2}px ${s / 2}px`,
+    });
   }
 
-  // 4. square / QR markers — hollow square outlines in the four corners
-  if (type === "squares") {
-    return overlay(CORNERS.map((p, i) => (
-      <div key={i} className="absolute"
-        style={{ ...p, width: 30, height: 30, border: `5px solid ${fill}`, transform: "translate(-50%, -50%)" }} />
-    )));
-  }
-
-  // 5. dot pattern — small dots across the whole screen
+  // dot pattern — small dots across the whole screen
   if (type === "dots") {
-    return (
-      <div className="absolute inset-0 pointer-events-none" style={{
-        opacity,
-        backgroundImage: `radial-gradient(${fill} 3px, transparent 3px)`,
-        backgroundSize: "40px 40px",
-        backgroundPosition: "20px 20px",
-      }} />
-    );
+    return pattern({
+      backgroundImage: `radial-gradient(${fill} ${3 * thickness}px, transparent ${3 * thickness}px)`,
+      backgroundSize: `${40 * size}px ${40 * size}px`,
+      backgroundPosition: `${20 * size}px ${20 * size}px`,
+    });
   }
 
-  // 6. bracket markers — L-shaped corner brackets + diamond in the center
-  if (type === "brackets") {
-    const L = 64;
-    const m = 32;
-    const corners = [
-      { x: m, y: m, dx: 1, dy: 1 },
-      { x: `calc(100% - ${m}px)`, y: m, dx: -1, dy: 1 },
-      { x: m, y: `calc(100% - ${m}px)`, dx: 1, dy: -1 },
-      { x: `calc(100% - ${m}px)`, y: `calc(100% - ${m}px)`, dx: -1, dy: -1 },
-    ];
-    return overlay([
-      ...corners.map((c, i) => (
-        <div key={i} className="absolute" style={{ left: c.x, top: c.y }}>
-          <div style={{ width: c.dx * L, height: 7, background: fill, transform: `translateX(${c.dx > 0 ? 0 : -L}px)` }} />
-          <div style={{ width: 7, height: c.dy * L, background: fill, transform: `translateY(${c.dy > 0 ? 0 : -L}px)` }} />
+  if (!markers.length) return null;
+
+  const glyph = (m) => {
+    if (type === "cross") {
+      const arm = 24 * size;
+      const th = 7 * thickness;
+      return (
+        <>
+          <div className="absolute" style={{ width: arm, height: th, background: fill, transform: "translate(-50%, -50%)" }} />
+          <div className="absolute" style={{ width: th, height: arm, background: fill, transform: "translate(-50%, -50%)" }} />
+        </>
+      );
+    }
+    if (type === "circles") {
+      const d = 26 * size;
+      return (
+        <div className="absolute rounded-full flex items-center justify-center"
+          style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
+          <span style={{ width: 10 * size, height: 10 * size, borderRadius: "50%", background: fill }} />
         </div>
-      )),
-      <div key="diamond" className="absolute"
-        style={{ left: "50%", top: "50%", width: 22, height: 22, border: `5px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />,
-    ]);
-  }
+      );
+    }
+    if (type === "squares") {
+      const d = 30 * size;
+      return <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }} />;
+    }
+    if (type === "brackets") {
+      if (m.kind === "diamond") {
+        const d = 22 * size;
+        return <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />;
+      }
+      const L = 64 * size;
+      const th = Math.max(3, 7 * thickness);
+      const dx = m.x <= 50 ? 1 : -1;
+      const dy = m.y <= 50 ? 1 : -1;
+      return (
+        <>
+          <div className="absolute" style={{ width: L, height: th, background: fill, transform: `translate(${dx > 0 ? 0 : -L}px, 0)` }} />
+          <div className="absolute" style={{ width: th, height: L, background: fill, transform: `translate(0, ${dy > 0 ? 0 : -L}px)` }} />
+        </>
+      );
+    }
+    return null;
+  };
 
-  return null;
+  return (
+    <div className="absolute inset-0 pointer-events-none" style={{ opacity }}>
+      {markers.map((m) => (
+        <div key={m.id}
+          className={cn("absolute touch-none select-none",
+            onMarkerDown && "pointer-events-auto cursor-grab",
+            dragId === m.id && "cursor-grabbing")}
+          style={{ left: `${m.x}%`, top: `${m.y}%` }}
+          onPointerDown={onMarkerDown ? (e) => onMarkerDown(m.id, e) : undefined}
+          onContextMenu={(e) => e.preventDefault()}>
+          {onMarkerDown && (
+            <span className="absolute rounded-lg" style={{ width: 44, height: 44, transform: "translate(-50%, -50%)" }} />
+          )}
+          {glyph(m)}
+        </div>
+      ))}
+    </div>
+  );
 }
