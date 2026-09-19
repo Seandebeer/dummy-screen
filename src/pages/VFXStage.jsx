@@ -5,7 +5,6 @@ import { saveConfig } from "@/lib/savedConfigs";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import useScreenMarks, { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import StageToolbar from "@/components/vfx/StageToolbar";
-import { cn } from "@/lib/utils";
 
 const POINT_STYLES = ["cross", "circles", "squares", "brackets"];
 
@@ -119,6 +118,7 @@ export default function VFXStage() {
   const resetCustomisation = () => update((m) => ({
     scale: 1,
     thickness: 1,
+    markColor: null,
     layouts: { ...m.layouts, [marksId]: defaultLayoutFor(marksId) },
   }));
 
@@ -130,7 +130,7 @@ export default function VFXStage() {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" style={{ background: color.hex }}>
-      <TrackingMarks type={marksId} color={isLight ? "#000000" : "#FFFFFF"}
+      <TrackingMarks type={marksId} color={marks.markColor || (isLight ? "#000000" : "#FFFFFF")}
         opacity={marksId === "checkerboard" ? 1 : 0.85}
         size={marks.scale} thickness={marks.thickness}
         markers={layout} dragId={dragId}
@@ -170,16 +170,12 @@ export default function VFXStage() {
             onSelectMarks={(id) => navigate(`/vfx?color=${colorId}&marks=${id}`)}
             onScale={(v) => update((m) => ({ scale: v }))}
             onThick={(v) => update((m) => ({ thickness: v }))}
+            onMarkColor={(v) => update((m) => ({ markColor: v }))}
             onAdd={addMarker} onSave={saveScreen} onReset={resetCustomisation}
           />
         </>
       )}
 
-      {locked && (
-        <div className="absolute top-3 right-4 z-40 pointer-events-none">
-          <span className={cn("text-[10px] font-body tracking-[0.25em] opacity-60", isLight ? "text-black" : "text-white")}>LOCKED</span>
-        </div>
-      )}
     </div>
   );
 }

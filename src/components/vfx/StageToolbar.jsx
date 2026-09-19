@@ -19,10 +19,20 @@ const MARKER_KINDS = [
   { id: "diamond", label: "Diamond" },
 ];
 
+const MARK_COLORS = [
+  { id: "white", hex: "#FFFFFF" },
+  { id: "black", hex: "#000000" },
+  { id: "red", hex: "#FF3B30" },
+  { id: "green", hex: "#34C759" },
+  { id: "magenta", hex: "#FF2D92" },
+  { id: "cyan", hex: "#32ADE6" },
+  { id: "yellow", hex: "#FFD60A" },
+];
+
 export default function StageToolbar({
   colorId, marksId, isPoint, marks, addKind,
   onSelectAddKind, onRotateAll,
-  onSelectColor, onSelectMarks, onScale, onThick, onAdd, onSave, onReset,
+  onSelectColor, onSelectMarks, onScale, onThick, onMarkColor, onAdd, onSave, onReset,
 }) {
   return (
     <div className="absolute inset-x-0 bottom-6 z-40 flex flex-col items-center gap-3 px-4">
@@ -88,6 +98,26 @@ export default function StageToolbar({
                     <span className="text-white/60">{Number(marks.thickness.toFixed(2))}×</span>
                   </div>
                   <Slider value={[marks.thickness]} min={0.5} max={3} step={0.25} onValueChange={([v]) => onThick(v)} />
+                </div>
+              )}
+              {marksId !== "checkerboard" && (
+                <div className="mt-4">
+                  <div className="mb-1.5 flex items-center justify-between text-[9px] font-body uppercase tracking-[0.2em]">
+                    <span>Mark colour</span>
+                    <span className="text-white/60">{marks.markColor ? "Custom" : "Auto"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => onMarkColor(null)} title="Auto (contrast with background)"
+                      className={cn("h-5 w-5 rounded-full border border-white/30 transition hover:bg-white/15",
+                        !marks.markColor && "ring-2 ring-amber ring-offset-1 ring-offset-black")}
+                      style={{ background: "conic-gradient(#FFFFFF 0turn 0.5turn, #000000 0.5turn 1turn)" }} />
+                    {MARK_COLORS.map((c) => (
+                      <button key={c.id} onClick={() => onMarkColor(c.hex)} title={c.id}
+                        className={cn("h-5 w-5 rounded-full border border-white/25 transition hover:bg-white/15",
+                          marks.markColor === c.hex && "ring-2 ring-amber ring-offset-1 ring-offset-black")}
+                        style={{ background: c.hex }} />
+                    ))}
+                  </div>
                 </div>
               )}
             </PopoverContent>
