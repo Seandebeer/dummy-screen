@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { Sun, Moon, Upload, Trash2, Loader2 } from "lucide-react";
 import LockSettings from "./LockSettings";
 import { bgPresets } from "@/hooks/useOsConfig";
+import { DIAL_CODES, remapContacts } from "@/lib/osData";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,22 @@ export default function SettingsApp({ config, update, onLock }) {
           )}
         </div>
         {uploadError && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed — try again</p>}
+      </Section>
+
+      <Section title="Default Dial Code">
+        <div className="flex gap-2">
+          {DIAL_CODES.map((code) => (
+            <button key={code}
+              onClick={() => update((c) => ({ dialCode: code, contacts: remapContacts(c.contacts, code) }))}
+              className={cn("flex-1 rounded-lg border py-2.5 font-body text-sm transition",
+                (config.dialCode || "082") === code
+                  ? "border-amber text-amber bg-amber/10"
+                  : "border-white/10 text-white/60 hover:border-white/30")}>
+              {code}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-white/40 font-body mt-2">Mock contacts start with this code until manually edited.</p>
       </Section>
 
       <LockSettings config={config} update={update} onLock={onLock} />

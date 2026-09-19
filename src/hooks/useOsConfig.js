@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { allApps } from "@/lib/osApps";
+import { makeDefaultContacts } from "@/lib/osData";
 
 const STORAGE_KEY = "takeover-os-config";
 
@@ -12,6 +13,9 @@ export const bgPresets = [
 
 const defaults = {
   order: allApps.map((a) => a.id),
+  dock: ["phone", "messages", "email", "settings"],
+  dialCode: "082",
+  contacts: makeDefaultContacts("082"),
   theme: "dark",
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
@@ -28,7 +32,10 @@ function loadConfig() {
       const known = allApps.map((a) => a.id);
       const order = saved.order.filter((id) => known.includes(id));
       known.forEach((id) => { if (!order.includes(id)) order.push(id); });
-      return { ...defaults, ...saved, order };
+      const dock = Array.isArray(saved.dock)
+        ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
+        : defaults.dock;
+      return { ...defaults, ...saved, order, dock };
     }
   } catch {}
   return defaults;

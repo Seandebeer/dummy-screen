@@ -26,6 +26,8 @@ export default function OS() {
   const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
   const [recents, setRecents] = useState([]);
+  const [messageTo, setMessageTo] = useState(null);
+  const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
   const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -80,6 +82,10 @@ export default function OS() {
     const t = setInterval(() => setTick((n) => n + 1), 15000);
     return () => clearInterval(t);
   }, []);
+
+  // clear cross-app compose targets once the user leaves the app
+  useEffect(() => { if (app !== "messages" && messageTo) setMessageTo(null); }, [app]);
+  useEffect(() => { if (app !== "email" && emailTo) setEmailTo(null); }, [app]);
 
   // browser fullscreen exit (Esc) should also end the takeover
   useEffect(() => {
@@ -160,9 +166,14 @@ export default function OS() {
   const renderApp = () => {
     switch (app) {
       case "phone": return <PhoneApp onCall={startLocalCall} recents={recents} />;
-      case "contacts": return <ContactsApp onCall={startLocalCall} />;
-      case "messages": return <MessagesApp />;
-      case "email": return <EmailApp />;
+      case "contacts": return (
+        <ContactsApp contacts={config.contacts} dialCode={config.dialCode} update={update}
+          onCall={startLocalCall}
+          onMessage={(c) => { setMessageTo(c); setApp("messages"); }}
+          onEmail={(c) => { setEmailTo(c); setApp("email"); }} />
+      );
+      case "messages": return <MessagesApp key={messageTo?.id || "list"} contacts={config.contacts} initialTo={messageTo} />;
+      case "email": return <EmailApp initialTo={emailTo} />;
       case "clock": return <ClockApp />;
       case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
       case null: return <Homescreen onOpen={setApp} config={config} update={update} />;
@@ -192,7 +203,7 @@ export default function OS() {
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame onHome={() => setApp(null)} light={app === null && config.theme === "light"}
+        <PhoneFrame onHome={() => setApp(null)} light={app === null ? config.theme === "light" : app === "messages"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
@@ -208,7 +219,7 @@ export default function OS() {
             </div>
           )}
           <PhoneFrame bare onHome={() => setApp(null)}
-            light={app === null && config.theme === "light"}
+            light={app === null ? config.theme === "light" : app === "messages"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />

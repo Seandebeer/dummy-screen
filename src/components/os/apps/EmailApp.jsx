@@ -3,16 +3,41 @@ import { Search, ChevronLeft, Archive, Trash2 } from "lucide-react";
 import { mockEmails } from "@/lib/osData";
 import { cn } from "@/lib/utils";
 
-export default function EmailApp() {
+export default function EmailApp({ initialTo }) {
   const [emails, setEmails] = useState(mockEmails);
   const [openId, setOpenId] = useState(null);
   const [query, setQuery] = useState("");
+  const [compose, setCompose] = useState(() => (initialTo ? { to: initialTo.email || "", subject: "", body: "" } : null));
 
   const open = emails.find((e) => e.id === openId);
   const filtered = emails.filter((e) =>
     e.from.toLowerCase().includes(query.toLowerCase()) || e.subject.toLowerCase().includes(query.toLowerCase())
   );
   const unreadCount = emails.filter((e) => e.unread).length;
+
+  if (compose) {
+    const canSend = compose.to.trim() && compose.body.trim();
+    return (
+      <div className="h-full bg-black text-white flex flex-col">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+          <button onClick={() => setCompose(null)} className="flex items-center gap-1 text-[#0A84FF]"><ChevronLeft size={20} /> Inbox</button>
+          <span className="text-sm font-medium">New Message</span>
+          <button onClick={() => setCompose(null)} disabled={!canSend}
+            className={cn("text-sm font-semibold", canSend ? "text-[#0A84FF]" : "text-white/25")}>
+            Send
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto no-scrollbar px-4 pt-4 space-y-3">
+          <input value={compose.to} onChange={(e) => setCompose({ ...compose, to: e.target.value })} placeholder="To:"
+            className="w-full bg-transparent border-b border-white/10 pb-2.5 text-sm outline-none placeholder:text-white/30" />
+          <input value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} placeholder="Subject"
+            className="w-full bg-transparent border-b border-white/10 pb-2.5 text-sm outline-none placeholder:text-white/30" />
+          <textarea value={compose.body} onChange={(e) => setCompose({ ...compose, body: e.target.value })} rows={8} placeholder="Body"
+            className="w-full rounded-xl bg-white/5 p-3 text-sm outline-none resize-none placeholder:text-white/30" />
+        </div>
+      </div>
+    );
+  }
 
   if (open) {
     return (

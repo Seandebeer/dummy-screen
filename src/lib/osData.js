@@ -1,11 +1,21 @@
+export const DIAL_CODES = ["082", "083", "084"];
+
 export const mockContacts = [
-  { id: 1, name: "Sarah Chen", number: "+1 555 0142", initials: "SC", color: "#00E5FF" },
-  { id: 2, name: "Marcus Webb", number: "+1 555 0198", initials: "MW", color: "#FFB000" },
-  { id: 3, name: "Elena Frost", number: "+1 555 0177", initials: "EF", color: "#FF3B30" },
-  { id: 4, name: "David Park", number: "+1 555 0123", initials: "DP", color: "#8A92A6" },
-  { id: 5, name: "Nora Vega", number: "+1 555 0156", initials: "NV", color: "#00FF00" },
-  { id: 6, name: "Sam Ryder", number: "+1 555 0119", initials: "SR", color: "#FFB000" },
+  { id: "c1", name: "Sarah Chen", suffix: "555 0142", email: "sarah.chen@setmail.co", initials: "SC", color: "#00E5FF" },
+  { id: "c2", name: "Marcus Webb", suffix: "555 0198", email: "marcus.webb@setmail.co", initials: "MW", color: "#FFB000" },
+  { id: "c3", name: "Elena Frost", suffix: "555 0177", email: "elena.frost@setmail.co", initials: "EF", color: "#FF3B30" },
+  { id: "c4", name: "David Park", suffix: "555 0123", email: "david.park@setmail.co", initials: "DP", color: "#8A92A6" },
+  { id: "c5", name: "Nora Vega", suffix: "555 0156", email: "nora.vega@setmail.co", initials: "NV", color: "#00FF00" },
+  { id: "c6", name: "Sam Ryder", suffix: "555 0119", email: "sam.ryder@setmail.co", initials: "SR", color: "#FFB000" },
 ];
+
+export const contactNumber = (dialCode, suffix) => `${dialCode} ${suffix}`.trim();
+
+export const makeDefaultContacts = (dialCode = "082") =>
+  mockContacts.map((c) => ({ ...c, custom: false, number: contactNumber(dialCode, c.suffix) }));
+
+export const remapContacts = (contacts = [], dialCode) =>
+  contacts.map((c) => (c.custom || !c.suffix ? c : { ...c, number: contactNumber(dialCode, c.suffix) }));
 
 export const mockEmails = [
   { id: 1, from: "Production Desk", subject: "Call sheet — Day 14", preview: "We're moving to the warehouse unit for the night shoot. Call time 18:00.", time: "9:41 AM", unread: true, body: "Crew,\n\nWe're relocating to the warehouse unit for the night shoot tonight. Call time 18:00 sharp. Parking is on the east lot — do not block the loading bay.\n\nThe VFX team will be running the chroma inserts after midnight, so keep the prop phones on the control channel until wrap.\n\n— Production" },
