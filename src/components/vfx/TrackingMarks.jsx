@@ -63,7 +63,7 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
       );
     }
     if (kind === "squares") {
-      const d = 60 * size;
+      const d = 48 * size;
       return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }} />);
     }
     if (kind === "diamond") {
@@ -71,7 +71,7 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
       return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />);
     }
     if (kind === "brackets") {
-      const L = 32 * size;
+      const L = 40 * size;
       const th = Math.max(3, 14 * thickness);
       // canonical corner opens toward the bottom-right; orient per quadrant
       const dx = m.x <= 50 ? 1 : -1;
