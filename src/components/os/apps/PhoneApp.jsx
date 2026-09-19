@@ -56,14 +56,14 @@ export default function PhoneApp({ onCall, recents = [], language = "en" }) {
           <div className="grid grid-cols-3 gap-3">
             {keypad.map((k) => (
               <button key={k} onClick={() => setNumber((n) => n + k)}
-                className="h-14 w-14 rounded-full bg-white/10 text-2xl font-display font-light active:bg-white/20">{k}</button>
+                className="h-20 w-20 rounded-full bg-white/10 text-3xl font-display font-light active:bg-white/20">{k}</button>
             ))}
           </div>
           <div className="flex items-center gap-8">
-            <div className="w-12" />
+            <div className="w-16" />
             <button onClick={() => number && onCall?.({ name: number, number })}
-              className="h-14 w-14 rounded-full bg-[#34C759] flex items-center justify-center"><Phone size={24} className="text-black" /></button>
-            <button onClick={() => setNumber((n) => n.slice(0, -1))} className="w-12 text-white/60"><Delete size={22} /></button>
+              className="h-20 w-20 rounded-full bg-[#34C759] flex items-center justify-center"><Phone size={30} className="text-black" /></button>
+            <button onClick={() => setNumber((n) => n.slice(0, -1))} className="w-16 text-white/60"><Delete size={26} /></button>
           </div>
         </div>
       )}
