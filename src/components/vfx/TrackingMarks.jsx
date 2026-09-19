@@ -1,5 +1,9 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { compositeMarks } from "@/lib/vfxData";
+import CompositeGlyph from "@/components/vfx/CompositeMarks";
+
+const COMPOSITE_IDS = new Set(compositeMarks.map((m) => m.id));
 
 // tracking marker overlays for the key screens stage.
 // point styles (cross / circles / squares / brackets) render individually
@@ -76,6 +80,9 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
         fill="none" style={{ transform: "translate(-50%, -50%)" }}>
         <path d="M12 2.5 L22 21 H2 Z" stroke={fill} strokeWidth={4.5 * thickness} strokeLinejoin="round" />
       </svg>);
+    }
+    if (COMPOSITE_IDS.has(kind)) {
+      return spin(0, <CompositeGlyph kind={kind} fill={fill} size={size} thickness={thickness} />);
     }
     if (kind === "brackets") {
       const L = 40 * size;

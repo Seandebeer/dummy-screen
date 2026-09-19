@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getColor } from "@/lib/vfxData";
+import { compositeMarks, getColor } from "@/lib/vfxData";
 import { saveConfig } from "@/lib/savedConfigs";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import useScreenMarks, { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import StageToolbar from "@/components/vfx/StageToolbar";
 
-const POINT_STYLES = ["cross", "circles", "squares", "brackets", "triangle"];
+const POINT_STYLES = ["cross", "circles", "squares", "brackets", "triangle", ...compositeMarks.map((m) => m.id)];
 
 export default function VFXStage() {
   const [params] = useSearchParams();

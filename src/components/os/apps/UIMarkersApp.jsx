@@ -5,7 +5,7 @@ import MarkAdjust from "@/components/os/MarkAdjust";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import { defaultLayoutFor } from "@/hooks/useScreenMarks";
-import { vfxColors } from "@/lib/vfxData";
+import { compositeMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
 
 const MARK_STYLES = [
@@ -15,6 +15,7 @@ const MARK_STYLES = [
   { id: "brackets", label: "Brackets" },
   { id: "diamond", label: "Diamond" },
   { id: "triangle", label: "Triangle" },
+  ...compositeMarks,
 ];
 
 const COLS = 5;

@@ -17,13 +17,9 @@ export const defaultLayoutFor = (style) => {
   return [...corners, pt(`${style}-c`, style === "brackets" ? "diamond" : style, 50, 50)];
 };
 
-const buildDefaults = () => ({
-  cross: defaultLayoutFor("cross"),
-  circles: defaultLayoutFor("circles"),
-  squares: defaultLayoutFor("squares"),
-  brackets: defaultLayoutFor("brackets"),
-  triangle: defaultLayoutFor("triangle"),
-});
+const POINT_IDS = ["cross", "circles", "squares", "brackets", "triangle",
+  "circtriplus", "solidtri", "squaretri", "invtri", "plusgrid", "dotcircle", "quads", "squads", "crosshair"];
+const buildDefaults = () => Object.fromEntries(POINT_IDS.map((s) => [s, defaultLayoutFor(s)]));
 
 const defaults = { scale: 1, thickness: 1, markColor: null, bgColor: null, bgImage: null, layouts: buildDefaults() };
 

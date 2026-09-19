@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Palette, Plus, RotateCcw, RotateCw, Save, Shapes, Sli
 import { base44 } from "@/api/base44Client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { trackingMarks, vfxColors } from "@/lib/vfxData";
+import { compositeMarks, trackingMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
 
 const glass = "bg-black/55 text-white border-white/15 shadow-2xl backdrop-blur-xl";
@@ -19,6 +19,7 @@ const MARKER_KINDS = [
   { id: "brackets", label: "Brackets" },
   { id: "diamond", label: "Diamond" },
   { id: "triangle", label: "Triangle" },
+  ...compositeMarks,
 ];
 
 const MARK_COLORS = [

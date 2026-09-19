@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import { defaultLayoutFor } from "@/hooks/useScreenMarks";
+import { compositeMarks } from "@/lib/vfxData";
 
 // tracking-mark overlay for the video player - works the same way as the
 // UI marker marks: pick a style, hold & drag to move (snapped to the same
@@ -20,6 +21,7 @@ export const MARK_STYLES = [
   { id: "brackets", label: "Brackets" },
   { id: "diamond", label: "Diamond" },
   { id: "triangle", label: "Triangle" },
+  ...compositeMarks,
 ];
 
 export const MARK_COLORS = ["#FFFFFF", "#000000", "#FF3B30", "#34C759", "#0A84FF", "#FF9F0A"];
