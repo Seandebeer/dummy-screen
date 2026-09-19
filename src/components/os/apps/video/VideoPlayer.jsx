@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Check, ChevronLeft, Crop, Lock, Maximize2, Minimize2, Pause, Play,
-  Repeat, SkipBack, SkipForward,
+  Repeat, Shapes, SkipBack, SkipForward,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Timeline from "./Timeline";
+import VideoMarks from "./VideoMarks";
 import { fmtDur, updateVideo } from "@/lib/videoStore";
 import { cn } from "@/lib/utils";
 
@@ -18,12 +19,20 @@ const ASPECTS = [
   { id: "2.39:1", label: "2.39:1 cinema" },
 ];
 const RATIOS = { "16:9": [16, 9], "9:16": [9, 16], "1:1": [1, 1], "4:3": [4, 3], "2.39:1": [2.39, 1] };
+const MARK_STYLES = [
+  { id: "cross", label: "Cross" },
+  { id: "circles", label: "Targets" },
+  { id: "squares", label: "Squares" },
+  { id: "brackets", label: "Brackets" },
+  { id: "diamond", label: "Diamond" },
+];
 
 export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor }) {
   const video = videos[index];
   const vidRef = useRef(null);
   const stageRef = useRef(null);
   const saveTimer = useRef(null);
+  const marksTimer = useRef(null);
 
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -31,15 +40,19 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
   const [hint, setHint] = useState(false);
   const [fs, setFs] = useState(false);
   const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+  const [vidRatio, setVidRatio] = useState(null);
   const [trim, setTrim] = useState({ start: video.trimStart || 0, end: video.trimEnd ?? video.duration });
   const [loop, setLoop] = useState(!!video.loop);
   const [aspect, setAspect] = useState(video.aspect || "fit");
+  const [marks, setMarks] = useState(video.marks || { style: "none", layouts: {} });
 
   // reset the editor whenever the queued video changes, then autoplay
   useEffect(() => {
     setTrim({ start: video.trimStart || 0, end: video.trimEnd ?? video.duration });
     setLoop(!!video.loop);
     setAspect(video.aspect || "fit");
+    setMarks(video.marks || { style: "none", layouts: {} });
+    setVidRatio(null);
     setTime(video.trimStart || 0);
     const v = vidRef.current;
     if (v) { v.currentTime = video.trimStart || 0; v.play().catch(() => {}); }
@@ -63,6 +76,13 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
   }, [locked]);
 
   const persist = (patch) => { updateVideo(video.id, patch).catch(() => {}); };
+
+  const setMarksPersist = (updater) => setMarks((m) => {
+    const next = typeof updater === "function" ? updater(m) : { ...m, ...updater };
+    clearTimeout(marksTimer.current);
+    marksTimer.current = setTimeout(() => persist({ marks: next }), 400);
+    return next;
+  });
 
   const onTrim = (which, t) => {
     setTrim((cur) => {
@@ -119,32 +139,42 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
-  const frameStyle = () => {
+  // the displayed video box - ratio frame, contained (fit) or the full stage
+  const boxStyle = () => {
     const r = RATIOS[aspect];
-    if (!r || !stageSize.w) return { width: "100%", height: "100%" };
-    let w = stageSize.w;
-    let h = (stageSize.w * r[1]) / r[0];
-    if (h > stageSize.h) { h = stageSize.h; w = (stageSize.h * r[0]) / r[1]; }
-    return { width: w, height: h };
+    if (r) {
+      if (!stageSize.w) return { width: "100%", height: "100%" };
+      let w = stageSize.w;
+      let h = (stageSize.w * r[1]) / r[0];
+      if (h > stageSize.h) { h = stageSize.h; w = (stageSize.h * r[0]) / r[1]; }
+      return { width: w, height: h };
+    }
+    if (aspect === "fit" && vidRatio) {
+      let w = stageSize.w;
+      let h = stageSize.w / vidRatio;
+      if (h > stageSize.h) { h = stageSize.h; w = stageSize.h * vidRatio; }
+      return { width: w, height: h };
+    }
+    return { width: "100%", height: "100%" };
   };
-
-  const videoEl = (
-    <video ref={vidRef} src={urlFor(video)} playsInline
-      className={cn("absolute inset-0 h-full w-full", aspect === "fill" ? "object-cover" : "object-contain")}
-      onTimeUpdate={onTimeUpdate}
-      onPlay={() => setPlaying(true)}
-      onPause={() => setPlaying(false)}
-    />
-  );
 
   return (
     <div className="relative h-full bg-black text-white">
       {/* stage - cropped to the chosen aspect ratio, tap toggles playback */}
       <div ref={stageRef} className="absolute inset-0 flex items-center justify-center overflow-hidden bg-black"
         onClick={!locked ? togglePlay : undefined}>
-        {RATIOS[aspect]
-          ? <div className="relative overflow-hidden bg-black" style={frameStyle()}>{videoEl}</div>
-          : videoEl}
+        <div className="relative overflow-hidden bg-black" style={boxStyle()}>
+          <video ref={vidRef} src={urlFor(video)} playsInline
+            className={cn("absolute inset-0 h-full w-full", aspect === "fit" && !vidRatio ? "object-contain" : "object-cover")}
+            onTimeUpdate={onTimeUpdate}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onLoadedMetadata={() => {
+              const v = vidRef.current;
+              if (v?.videoWidth) setVidRatio(v.videoWidth / v.videoHeight);
+            }} />
+          <VideoMarks marks={marks} onChange={setMarksPersist} locked={locked} />
+        </div>
       </div>
 
       {!locked && (
@@ -196,6 +226,29 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
                       {aspect === a.id && <Check size={12} className="text-amber" />}
                     </button>
                   ))}
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className={cn("flex items-center gap-1 rounded-full px-2.5 py-2 text-[10px] font-body",
+                    marks.style !== "none" ? "bg-amber text-black" : "bg-white/10 text-white/80")}>
+                    <Shapes size={14} /> Marks
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="center" className="w-36 border-white/15 bg-black/90 p-1.5 text-white shadow-2xl backdrop-blur-xl">
+                  <button onClick={() => setMarksPersist((m) => ({ ...m, style: "none" }))}
+                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider hover:bg-white/10">
+                    None
+                    {marks.style === "none" && <Check size={12} className="text-amber" />}
+                  </button>
+                  {MARK_STYLES.map((s) => (
+                    <button key={s.id} onClick={() => setMarksPersist((m) => ({ ...m, style: s.id }))}
+                      className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider hover:bg-white/10">
+                      {s.label}
+                      {marks.style === s.id && <Check size={12} className="text-amber" />}
+                    </button>
+                  ))}
+                  <p className="px-2.5 pt-1.5 text-[8px] font-body text-white/35">Hold &amp; drag to move · double-tap to rotate</p>
                 </PopoverContent>
               </Popover>
             </div>

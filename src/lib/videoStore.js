@@ -57,15 +57,20 @@ const loadVideoEl = (url) => new Promise((resolve, reject) => {
   v.muted = true;
   v.playsInline = true;
   v.src = url;
-  v.onloadeddata = () => resolve(v);
-  v.onerror = () => reject(new Error("This video format is not supported"));
+  const timer = setTimeout(() => reject(new Error("Could not read this video")), 15000);
+  v.onloadeddata = () => { clearTimeout(timer); resolve(v); };
+  v.onerror = () => { clearTimeout(timer); reject(new Error("This video format is not supported")); };
 });
 
-const seekTo = (v, t) => new Promise((resolve) => {
-  const done = () => { v.removeEventListener("seeked", done); resolve(); };
-  v.addEventListener("seeked", done);
-  v.currentTime = t;
-});
+// seeking can hang on some codecs - bail out after 3s and skip that thumb
+const seekTo = (v, t) => Promise.race([
+  new Promise((resolve) => {
+    const done = () => { v.removeEventListener("seeked", done); resolve(true); };
+    v.addEventListener("seeked", done);
+    v.currentTime = t;
+  }),
+  new Promise((resolve) => setTimeout(() => resolve(false), 3000)),
+]);
 
 // filmstrip thumbnails for the editor timeline
 export const grabThumbs = async (url, duration, count = 8) => {
@@ -78,8 +83,9 @@ export const grabThumbs = async (url, duration, count = 8) => {
   const ctx = canvas.getContext("2d");
   const thumbs = [];
   for (let i = 0; i < count; i++) {
+    const ok = await seekTo(v, ((i + 0.5) / count) * duration);
+    if (!ok) continue;
     try {
-      await seekTo(v, ((i + 0.5) / count) * duration);
       ctx.drawImage(v, 0, 0, w, h);
       thumbs.push(canvas.toDataURL("image/jpeg", 0.55));
     } catch { break; }
@@ -89,7 +95,8 @@ export const grabThumbs = async (url, duration, count = 8) => {
   return thumbs;
 };
 
-// validate + store a picked file
+// validate + store a picked file - thumbnails generate separately so the
+// import completes fast instead of blocking on frame-grabbing
 export const importVideo = async (file, order) => {
   const url = URL.createObjectURL(file);
   try {
@@ -103,18 +110,18 @@ export const importVideo = async (file, order) => {
     const duration = meta.duration;
     if (!isFinite(duration) || duration <= 0) throw new Error("Cannot read this video");
     if (duration > MAX_DURATION) throw new Error("Videos must be 10 minutes or shorter");
-    const thumbs = await grabThumbs(url, duration, 8);
     const record = {
       id: `vid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: (file.name || "Video").replace(/\.[^.]+$/, ""),
       type: file.type || "video/mp4",
       blob: file,
       duration,
-      thumbs,
+      thumbs: [],
       trimStart: 0,
       trimEnd: duration,
       loop: false,
       aspect: "fit",
+      marks: { style: "none", layouts: {} },
       order,
       created: Date.now(),
     };

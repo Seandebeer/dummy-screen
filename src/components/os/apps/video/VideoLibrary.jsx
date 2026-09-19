@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Film, Loader2, Play, Plus, Trash2 } from "lucide-react";
-import { MAX_DURATION, MAX_VIDEOS, deleteVideo, fmtDur, importVideo, updateVideo } from "@/lib/videoStore";
+import { MAX_DURATION, MAX_VIDEOS, deleteVideo, fmtDur, grabThumbs, importVideo, updateVideo } from "@/lib/videoStore";
 
 export default function VideoLibrary({ videos, reload, onPlay }) {
   const fileRef = useRef(null);
@@ -16,8 +16,15 @@ export default function VideoLibrary({ videos, reload, onPlay }) {
     setError(null);
     try {
       const nextOrder = videos.length ? (videos[videos.length - 1].order ?? videos.length - 1) + 1 : 0;
-      await importVideo(file, nextOrder);
+      const rec = await importVideo(file, nextOrder);
       reload();
+      // filmstrip thumbnails build in the background so the import is instant
+      const url = URL.createObjectURL(file);
+      grabThumbs(url, rec.duration, 8)
+        .then((thumbs) => (thumbs.length ? updateVideo(rec.id, { thumbs }) : null))
+        .then(reload)
+        .catch(() => {})
+        .finally(() => URL.revokeObjectURL(url));
     } catch (err) {
       setError(err.message || "Could not add this video");
     }
