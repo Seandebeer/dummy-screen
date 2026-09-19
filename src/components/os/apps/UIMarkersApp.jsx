@@ -4,12 +4,12 @@ import { saveConfig } from "@/lib/savedConfigs";
 import { cn } from "@/lib/utils";
 
 const COLS = 5;
-const ROWS = 7;
+const ROWS = 8;
 
 export default function UIMarkersApp({ config, update, onLockChange }) {
   const markers = config.uiMarkers || {};
   const assignments = markers.assignments || {};
-  const barRow = Math.max(0, Math.min(ROWS, markers.barRow ?? ROWS - 1));
+  const barRow = Math.max(0, Math.min(ROWS, markers.barRow ?? 7));
   const barCol = Math.max(1, Math.min(COLS, markers.barCol ?? COLS));
   const vStart = Math.max(1, Math.min(ROWS - 4, markers.barVRow ?? 1));
   const barNumber = markers.barNumber ?? "";

@@ -14,7 +14,7 @@ export const bgPresets = [
 const defaults = {
   order: allApps.map((a) => a.id),
   dock: ["phone", "messages", "email", "settings"],
-  uiMarkers: { assignments: {}, barRow: 6, barCol: 5, barVRow: 1, layoutVer: 2 },
+  uiMarkers: { assignments: {}, barRow: 7, barCol: 5, barVRow: 1, layoutVer: 1 },
   dialCodes: ["026", "034", "049"],
   dialCode: "026",
   contacts: makeDefaultContacts(["026", "034", "049"], "en"),
@@ -55,11 +55,10 @@ function loadConfig() {
         ? (saved.lockscreen || defaults.lockscreen)
         : { ...(saved.lockscreen || defaults.lockscreen), type: "none" };
       const uiMarkers = { ...defaults.uiMarkers, ...(saved.uiMarkers || {}) };
-      if (uiMarkers.layoutVer < 2) {
+      if (!uiMarkers.layoutVer) {
         uiMarkers.barRow = defaults.uiMarkers.barRow;
         uiMarkers.barCol = defaults.uiMarkers.barCol;
-        uiMarkers.barVRow = defaults.uiMarkers.barVRow;
-        uiMarkers.layoutVer = 2;
+        uiMarkers.layoutVer = 1;
       }
       return { ...defaults, ...saved, order, dock, lockVer: 2, lockscreen, uiMarkers, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
