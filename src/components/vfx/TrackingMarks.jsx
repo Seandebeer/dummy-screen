@@ -46,33 +46,33 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
     );
 
     if (kind === "cross") {
-      const arm = 24 * size;
-      const th = 7 * thickness;
+      const arm = 48 * size;
+      const th = 14 * thickness;
       return spin(0, <>
         <div className="absolute" style={{ width: arm, height: th, background: fill, transform: "translate(-50%, -50%)" }} />
         <div className="absolute" style={{ width: th, height: arm, background: fill, transform: "translate(-50%, -50%)" }} />
       </>);
     }
     if (kind === "circles") {
-      const d = 26 * size;
+      const d = 52 * size;
       return spin(0,
         <div className="absolute rounded-full flex items-center justify-center"
-          style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
-          <span style={{ width: 10 * size, height: 10 * size, borderRadius: "50%", background: fill }} />
+          style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
+          <span style={{ width: 20 * size, height: 20 * size, borderRadius: "50%", background: fill }} />
         </div>
       );
     }
     if (kind === "squares") {
-      const d = 30 * size;
-      return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }} />);
+      const d = 60 * size;
+      return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }} />);
     }
     if (kind === "diamond") {
-      const d = 22 * size;
-      return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />);
+      const d = 44 * size;
+      return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />);
     }
     if (kind === "brackets") {
-      const L = 64 * size;
-      const th = Math.max(3, 7 * thickness);
+      const L = 32 * size;
+      const th = Math.max(3, 14 * thickness);
       // canonical corner opens toward the bottom-right; orient per quadrant
       const dx = m.x <= 50 ? 1 : -1;
       const dy = m.y <= 50 ? 1 : -1;
