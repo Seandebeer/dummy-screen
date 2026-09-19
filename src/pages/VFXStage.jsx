@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export default function VFXStage() {
   const [params] = useSearchParams();
   const colorId = params.get("color") || "green";
-  const marksId = params.get("marks") || "crosshair";
+  const marksId = params.get("marks") || "cross";
   const color = getColor(colorId);
   const isLight = ["white", "green", "grey"].includes(colorId);
 

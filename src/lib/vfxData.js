@@ -6,17 +6,15 @@ export const vfxColors = [
   { id: "black", name: "OLED Black", hex: "#000000", label: "OLED Black" },
 ];
 
+// the six standard VFX screen-replacement tracking marker styles
 export const trackingMarks = [
   { id: "none", name: "None" },
-  { id: "crosshair", name: "Crosshair" },
-  { id: "lbar", name: "L-Bar" },
-  { id: "dotgrid", name: "Dot Grid" },
-  { id: "grid", name: "Grid" },
-  { id: "rings", name: "Rings" },
-  { id: "triangles", name: "Triangles" },
-  { id: "plus", name: "Plus" },
-  { id: "registration", name: "Reg Mark" },
+  { id: "cross", name: "Cross" },
+  { id: "circles", name: "Circle" },
   { id: "checkerboard", name: "Checker", bwOnly: true },
+  { id: "squares", name: "Square" },
+  { id: "dots", name: "Dots" },
+  { id: "brackets", name: "Brackets" },
 ];
 
 export const getColor = (id) => vfxColors.find((c) => c.id === id) || vfxColors[0];
