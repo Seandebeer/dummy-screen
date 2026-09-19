@@ -7,7 +7,9 @@ import { defaultLayoutFor } from "@/hooks/useScreenMarks";
 // 5 x 8 grid), double-tap to rotate 45 degrees
 const COLS = 5;
 const ROWS = 8;
-const XS = Array.from({ length: COLS + 1 }, (_, i) => (i / COLS) * 100);
+// grid lines plus the centre-line exception, so the middle marker can sit
+// exactly on the centre screen point
+const XS = [...Array.from({ length: COLS + 1 }, (_, i) => (i / COLS) * 100), 50];
 const YS = Array.from({ length: ROWS + 1 }, (_, i) => (i / ROWS) * 100);
 const nearest = (v, arr) => arr.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
 
@@ -85,7 +87,10 @@ export default function VideoMarks({ marks, onChange, locked }) {
         <div className="pointer-events-none absolute inset-0" style={{
           backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.35) 1px, transparent 1px)`,
           backgroundSize: `${100 / COLS}% ${100 / ROWS}%`,
-        }} />
+        }}>
+          <div className="absolute inset-y-0 left-1/2 w-px bg-white/45" />
+          <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80" />
+        </div>
       )}
     </div>
   );

@@ -115,7 +115,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     const tw = (rect.width - 2 * pad - (cols - 1) * gap) / cols;
     const th = (rect.height - 2 * pad - (rows - 1) * gap) / rows;
     return {
-      xs: Array.from({ length: cols - 1 }, (_, i) => pad + i * (tw + gap) + tw + gap / 2),
+      // grid lines plus the centre-line exception, so the middle marker can
+      // sit exactly on the centre screen point
+      xs: [...Array.from({ length: cols - 1 }, (_, i) => pad + i * (tw + gap) + tw + gap / 2), rect.width / 2],
       ys: Array.from({ length: rows - 1 }, (_, i) => pad + i * (th + gap) + th + gap / 2),
     };
   };
@@ -452,6 +454,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                 {ys.map((y, i) => (
                   <line key={`y${i}`} x1={0} y1={y} x2={rect.width} y2={y} stroke={markColor} strokeWidth={1} strokeDasharray="4 4" opacity={0.45} />
                 ))}
+                <circle cx={rect.width / 2} cy={rect.height / 2} r={3} fill={markColor} opacity={0.9} />
               </svg>
             );
           })()}
