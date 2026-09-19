@@ -3,6 +3,8 @@ import {
   Cloud, Waves, Croissant, Atom, Bug, Cat, Moon, Radar, Droplets, Rocket,
   Flame, Sparkles, Carrot, Fish, Music, Footprints, Grid3x3, Tv, Egg, Leaf,
   Mountain, Zap, Pencil, FlaskConical, Megaphone, TreePine, Cherry, Orbit, Drum, Gamepad2,
+  Dumbbell, Pizza, Umbrella, Anchor, Compass, Feather, Ghost, Anvil, Binoculars, Snowflake,
+  Flower2, Sailboat, Key, Camera, Clapperboard, Wallet, Bomb, Dices, Heart, Shell,
 } from "lucide-react";
 
 export const coreApps = [
@@ -46,6 +48,26 @@ export const mockApps = [
   { id: "orbit", label: "Orbit", Icon: Orbit, bg: "#818CF8", tile: { type: "ring", bg2: "#C7D2FE" } },
   { id: "rumble", label: "Rumble", Icon: Drum, bg: "#B45309", tile: { type: "stripes", bg2: "#FCD34D", fg: "#451A03" } },
   { id: "pixel", label: "Pixel", Icon: Gamepad2, bg: "#A78BFA", tile: { type: "dark" } },
+  { id: "swole", label: "Swole", Icon: Dumbbell, bg: "#FF9F0A", tile: { type: "gloss" } },
+  { id: "slice", label: "Slice", Icon: Pizza, bg: "#FF453A", tile: { type: "flat" } },
+  { id: "brolly", label: "Brolly", Icon: Umbrella, bg: "#38BDF8", tile: { type: "stripes", bg2: "#0369A1" } },
+  { id: "moor", label: "Moor", Icon: Anchor, bg: "#64748B", tile: { type: "dark" } },
+  { id: "northstar", label: "Northstar", Icon: Compass, bg: "#0EA5E9", tile: { type: "ring", bg2: "#7DD3FC" } },
+  { id: "plume", label: "Plume", Icon: Feather, bg: "#F472B6", tile: { type: "outline" } },
+  { id: "spooky", label: "Spooky", Icon: Ghost, bg: "#8B5CF6", tile: { type: "dark" } },
+  { id: "clank", label: "Clank", Icon: Anvil, bg: "#57534E", tile: { type: "duo", bg2: "#A8A29E" } },
+  { id: "peeper", label: "Peeper", Icon: Binoculars, bg: "#16A34A", tile: { type: "mono" } },
+  { id: "frosty", label: "Frosty", Icon: Snowflake, bg: "#67E8F9", tile: { type: "dots", bg2: "#FFFFFF" } },
+  { id: "petal", label: "Petal", Icon: Flower2, bg: "#FFD60A", tile: { type: "gloss", fg: "#783509" } },
+  { id: "skipper", label: "Skipper", Icon: Sailboat, bg: "#0E7490", tile: { type: "ring", bg2: "#22D3EE" } },
+  { id: "keyring", label: "Keyring", Icon: Key, bg: "#FBBF24", tile: { type: "flat" } },
+  { id: "paparazzi", label: "Paparazzi", Icon: Camera, bg: "#374151", tile: { type: "dark" } },
+  { id: "reel", label: "Reel", Icon: Clapperboard, bg: "#FF375F", tile: { type: "stripes", bg2: "#9F1239" } },
+  { id: "banky", label: "Banky", Icon: Wallet, bg: "#166534", tile: { type: "duo", bg2: "#22C55E" } },
+  { id: "boom", label: "Boom", Icon: Bomb, bg: "#111827", tile: { type: "ring", bg2: "#FF453A" } },
+  { id: "roll", label: "Roll", Icon: Dices, bg: "#F8FAFC", tile: { type: "gloss", fg: "#1E293B" } },
+  { id: "heartthrob", label: "Heartthrob", Icon: Heart, bg: "#FF2D55", tile: { type: "gloss" } },
+  { id: "reef", label: "Reef", Icon: Shell, bg: "#F97316", tile: { type: "dots", bg2: "#FFFFFF" } },
 ];
 
 export const allApps = [...coreApps, ...mockApps];

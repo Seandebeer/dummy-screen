@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Hash, Grid3x3, ScanFace, Fingerprint, Upload, Trash2, Loader2, Check } from "lucide-react";
+import { Hash, Grid3x3, ScanFace, Fingerprint, Upload, Trash2, Loader2, Check, LockOpen } from "lucide-react";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ const METHODS = [
   { id: "pattern", label: "Pattern", hint: "connect-the-dots", Icon: Grid3x3 },
   { id: "face", label: "Face ID", hint: "scan animation", Icon: ScanFace },
   { id: "fingerprint", label: "Fingerprint", hint: "press & hold sensor", Icon: Fingerprint },
+  { id: "none", label: "None", hint: "swipe up to unlock", Icon: LockOpen },
 ];
 
 const DEFAULT_LOCK = { type: "passcode", background: { type: "preset", preset: "default", url: "" } };

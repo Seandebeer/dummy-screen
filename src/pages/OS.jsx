@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Radio, Maximize2, Minimize2 } from "lucide-react";
+import { ArrowLeft, Radio, Maximize2 } from "lucide-react";
 import PhoneFrame from "@/components/os/PhoneFrame";
 import Homescreen from "@/components/os/Homescreen";
 import PhoneApp from "@/components/os/apps/PhoneApp";
@@ -21,6 +21,8 @@ export default function OS() {
   const [locked, setLocked] = useState(true);
   const { config, update } = useOsConfig();
   const [fullscreen, setFullscreen] = useState(false);
+  const [fsHint, setFsHint] = useState(false);
+  const fsHintTimer = useRef(null);
   const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
   const [recents, setRecents] = useState([]);
@@ -86,9 +88,25 @@ export default function OS() {
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
+  const exitFullscreen = useCallback(() => {
+    clearTimeout(fsHintTimer.current);
+    setFsHint(false);
+    setFullscreen(false);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
   const toggleFullscreen = async () => {
     const next = !fullscreen;
     setFullscreen(next);
+    if (next) {
+      setFsHint(true);
+      fsHintTimer.current = setTimeout(() => setFsHint(false), 2600);
+    } else {
+      clearTimeout(fsHintTimer.current);
+      setFsHint(false);
+    }
     try {
       if (next && !document.fullscreenElement && document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen();
@@ -97,6 +115,19 @@ export default function OS() {
       }
     } catch {}
   };
+
+  // clean-HUD takeover: 3-finger tap (or Esc / L) is the only way out
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onTouch = (e) => { if (e.touches.length >= 3) exitFullscreen(); };
+    const onKey = (e) => { if (e.key === "Escape" || e.key.toLowerCase() === "l") exitFullscreen(); };
+    window.addEventListener("touchstart", onTouch, { passive: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("touchstart", onTouch);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [fullscreen, exitFullscreen]);
 
   const statusTime = config.clock.mode === "custom" && config.clock.time
     ? config.clock.time
@@ -169,10 +200,13 @@ export default function OS() {
       </div>
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-black">
-          <button onClick={toggleFullscreen}
-            className="absolute top-4 right-4 z-50 flex items-center gap-1.5 rounded-lg border border-white/20 bg-black/60 px-3 py-1.5 text-xs font-body text-white backdrop-blur">
-            <Minimize2 size={14} /> Exit
-          </button>
+          {fsHint && (
+            <div className="absolute inset-x-0 bottom-5 z-50 flex justify-center pointer-events-none">
+              <div className="px-4 py-1.5 rounded-full text-[11px] font-body text-white/70 bg-white/10 backdrop-blur">
+                3-Finger Tap to Exit
+              </div>
+            </div>
+          )}
           <PhoneFrame bare onHome={() => setApp(null)}
             light={app === null && config.theme === "light"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>

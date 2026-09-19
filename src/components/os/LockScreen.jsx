@@ -4,6 +4,7 @@ import PasscodePad from "./PasscodePad";
 import PatternPad from "./PatternPad";
 import FaceScan from "./FaceScan";
 import FingerprintSensor from "./FingerprintSensor";
+import SwipeUpUnlock from "./SwipeUpUnlock";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { cn } from "@/lib/utils";
 
@@ -107,7 +108,7 @@ export default function LockScreen({ config, update, onUnlock }) {
       </div>
 
       <div className={cn("relative flex flex-col items-center gap-3 mt-8 w-full", light ? "text-black/85" : "text-white")}>
-        <div className="text-[13px] font-body opacity-80">{heading}</div>
+        {method !== "none" && <div className="text-[13px] font-body opacity-80">{heading}</div>}
         {method === "passcode" && (
           <div key={shake} className={cn("flex items-center gap-4 h-4", shake > 0 && "shake")}>
             {[0, 1, 2, 3].map((i) => (
@@ -130,6 +131,7 @@ export default function LockScreen({ config, update, onUnlock }) {
         )}
         {method === "face" && <FaceScan light={light} onUnlock={onUnlock} />}
         {method === "fingerprint" && <FingerprintSensor light={light} onUnlock={onUnlock} />}
+        {method === "none" && <SwipeUpUnlock light={light} onUnlock={onUnlock} />}
       </div>
     </div>
   );

@@ -7,13 +7,18 @@ import AppLibrary from "./AppLibrary";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
 
+const PAGE_SIZE = 16;
+
 export default function Homescreen({ config, update, onOpen }) {
   const [library, setLibrary] = useState(false);
   const [clockEdit, setClockEdit] = useState(false);
   const [drag, setDrag] = useState(null);
+  const [page, setPage] = useState(0);
+  const [swipeOffset, setSwipeOffset] = useState(0);
   const dragRef = useRef(null);
   const holdTimer = useRef(null);
   const pointerStart = useRef(null);
+  const swipeStart = useRef(null);
   const suppressClick = useRef(false);
 
   const light = config.theme === "light";
@@ -26,6 +31,12 @@ export default function Homescreen({ config, update, onOpen }) {
     : now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
 
   const apps = config.order.map((id) => allApps.find((a) => a.id === id)).filter(Boolean);
+  const pages = [];
+  for (let i = 0; i < apps.length; i += PAGE_SIZE) pages.push(apps.slice(i, i + PAGE_SIZE));
+  if (pages.length === 0) pages.push([]);
+
+  useEffect(() => { setPage((p) => Math.min(p, pages.length - 1)); }, [pages.length]);
+
   const dragApp = drag ? allApps.find((a) => a.id === drag.id) : null;
   const hasImage = config.background.type === "image" && config.background.url;
   const preset = bgPresets.find((p) => p.id === (config.background.preset || "default")) || bgPresets[0];
@@ -65,16 +76,13 @@ export default function Homescreen({ config, update, onOpen }) {
       dragRef.current = null;
       setDrag(null);
     };
-    const blockScroll = (e) => e.preventDefault();
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop);
     window.addEventListener("pointercancel", stop);
-    document.addEventListener("touchmove", blockScroll, { passive: false });
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
       window.removeEventListener("pointercancel", stop);
-      document.removeEventListener("touchmove", blockScroll);
     };
   }, [drag && drag.id, update]);
 
@@ -110,6 +118,27 @@ export default function Homescreen({ config, update, onOpen }) {
     onOpen(id);
   };
 
+  // page swiping
+  const onViewportDown = (e) => { swipeStart.current = { x: e.clientX, active: false }; };
+  const onViewportMove = (e) => {
+    const s = swipeStart.current;
+    if (!s || dragRef.current) return;
+    if (!s.active && Math.abs(e.clientX - s.x) < 12) return;
+    s.active = true;
+    let dx = e.clientX - s.x;
+    if ((page === 0 && dx > 0) || (page === pages.length - 1 && dx < 0)) dx *= 0.25;
+    setSwipeOffset(dx);
+  };
+  const onViewportUp = () => {
+    const s = swipeStart.current;
+    swipeStart.current = null;
+    if (!s || !s.active) { setSwipeOffset(0); return; }
+    suppressClick.current = true;
+    if (swipeOffset < -50 && page < pages.length - 1) setPage(page + 1);
+    else if (swipeOffset > 50 && page > 0) setPage(page - 1);
+    setSwipeOffset(0);
+  };
+
   const toggleApp = (id) => {
     update({
       order: config.order.includes(id)
@@ -141,30 +170,61 @@ export default function Homescreen({ config, update, onOpen }) {
         </div>
       )}
 
-      {/* app grid */}
-      <div className="relative flex-1 overflow-y-auto no-scrollbar">
-        {apps.length === 0 ? (
-          <p className={cn("pt-12 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps — open Apps to add some</p>
-        ) : (
-          <div className="grid grid-cols-4 gap-y-5 gap-x-3 px-5 content-start pt-3 pb-4">
-            {apps.map((a) => (
-              <button key={a.id}
-                data-app-id={a.id}
-                onPointerDown={(e) => onTilePointerDown(e, a.id)}
-                onPointerMove={onTilePointerMove}
-                onPointerUp={cancelHold}
-                onPointerCancel={cancelHold}
-                onContextMenu={(e) => e.preventDefault()}
-                onClick={() => onTileClick(a.id)}
-                className={cn("flex flex-col items-center gap-1.5 active:scale-95 transition select-none",
-                  drag?.id === a.id && "opacity-30")}>
-                <IconTile app={a} />
-                <span className={cn("text-[11px]", light ? "text-black/80" : "text-white/80")}>{a.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
+      {/* paged app grid — swipe left / right */}
+      <div
+        className="relative flex-1 overflow-hidden touch-pan-y"
+        onPointerDown={onViewportDown}
+        onPointerMove={onViewportMove}
+        onPointerUp={onViewportUp}
+        onPointerCancel={onViewportUp}
+      >
+        <div
+          className="flex h-full"
+          style={{
+            transform: `translateX(calc(${-page * 100}% + ${swipeOffset}px))`,
+            transition: swipeOffset === 0 ? "transform 220ms ease-out" : "none",
+          }}
+        >
+          {pages.map((pageApps, pi) => (
+            <div key={pi} className="h-full w-full shrink-0 px-5 pt-2">
+              {pageApps.length === 0 ? (
+                <p className={cn("pt-12 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps — open Apps to add some</p>
+              ) : (
+                <div className="grid grid-cols-4 gap-y-5 gap-x-3 content-start">
+                  {pageApps.map((a) => (
+                    <button key={a.id}
+                      data-app-id={a.id}
+                      onPointerDown={(e) => onTilePointerDown(e, a.id)}
+                      onPointerMove={onTilePointerMove}
+                      onPointerUp={cancelHold}
+                      onPointerCancel={cancelHold}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onClick={() => onTileClick(a.id)}
+                      className={cn("flex flex-col items-center gap-1.5 active:scale-95 transition select-none",
+                        drag?.id === a.id && "opacity-30")}>
+                      <IconTile app={a} />
+                      <span className={cn("text-[11px]", light ? "text-black/80" : "text-white/80")}>{a.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* page dots */}
+      {pages.length > 1 && (
+        <div className="relative flex justify-center gap-1.5 pb-3">
+          {pages.map((_, i) => (
+            <button key={i} onClick={() => setPage(i)}
+              className={cn("h-1.5 rounded-full transition-all",
+                light
+                  ? i === page ? "w-4 bg-black/70" : "w-1.5 bg-black/25"
+                  : i === page ? "w-4 bg-white/80" : "w-1.5 bg-white/30")} />
+          ))}
+        </div>
+      )}
 
       {/* app library */}
       <div className="relative flex justify-center pb-4">
