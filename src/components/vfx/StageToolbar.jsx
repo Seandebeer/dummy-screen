@@ -62,6 +62,23 @@ export default function StageToolbar({
                 {colorId === c.id && <Check size={12} className="ml-auto text-amber" />}
               </button>
             ))}
+            {marksId !== "checkerboard" && marksId !== "none" && (
+              <div className="mt-2 border-t border-white/10 pt-2">
+                <p className="mb-1.5 px-2 text-[9px] font-body uppercase tracking-[0.2em] text-white/50">Mark colour</p>
+                <div className="flex flex-wrap items-center gap-1.5 px-2">
+                  <button onClick={() => onMarkColor(null)} title="Auto (contrast with background)"
+                    className={cn("h-5 w-5 rounded-full border border-white/30 transition hover:bg-white/15",
+                      !marks.markColor && "ring-2 ring-amber ring-offset-1 ring-offset-black")}
+                    style={{ background: "conic-gradient(#FFFFFF 0turn 0.5turn, #000000 0.5turn 1turn)" }} />
+                  {MARK_COLORS.map((c) => (
+                    <button key={c.id} onClick={() => onMarkColor(c.hex)} title={c.id}
+                      className={cn("h-5 w-5 rounded-full border border-white/25 transition hover:bg-white/15",
+                        marks.markColor === c.hex && "ring-2 ring-amber ring-offset-1 ring-offset-black")}
+                      style={{ background: c.hex }} />
+                  ))}
+                </div>
+              </div>
+            )}
           </PopoverContent>
         </Popover>
 
@@ -98,26 +115,6 @@ export default function StageToolbar({
                     <span className="text-white/60">{Number(marks.thickness.toFixed(2))}×</span>
                   </div>
                   <Slider value={[marks.thickness]} min={0.5} max={3} step={0.25} onValueChange={([v]) => onThick(v)} />
-                </div>
-              )}
-              {marksId !== "checkerboard" && (
-                <div className="mt-4">
-                  <div className="mb-1.5 flex items-center justify-between text-[9px] font-body uppercase tracking-[0.2em]">
-                    <span>Mark colour</span>
-                    <span className="text-white/60">{marks.markColor ? "Custom" : "Auto"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button onClick={() => onMarkColor(null)} title="Auto (contrast with background)"
-                      className={cn("h-5 w-5 rounded-full border border-white/30 transition hover:bg-white/15",
-                        !marks.markColor && "ring-2 ring-amber ring-offset-1 ring-offset-black")}
-                      style={{ background: "conic-gradient(#FFFFFF 0turn 0.5turn, #000000 0.5turn 1turn)" }} />
-                    {MARK_COLORS.map((c) => (
-                      <button key={c.id} onClick={() => onMarkColor(c.hex)} title={c.id}
-                        className={cn("h-5 w-5 rounded-full border border-white/25 transition hover:bg-white/15",
-                          marks.markColor === c.hex && "ring-2 ring-amber ring-offset-1 ring-offset-black")}
-                        style={{ background: c.hex }} />
-                    ))}
-                  </div>
                 </div>
               )}
             </PopoverContent>

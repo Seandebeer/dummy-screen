@@ -23,6 +23,9 @@ export default function VFXStage() {
   const [addKind, setAddKind] = useState("cross");
   useEffect(() => { if (isPoint) setAddKind(marksId); }, [isPoint, marksId]);
 
+  // one marker length (at current scale) - the drag snap + grid cell size
+  const stepPx = 56 * (marks.scale || 1);
+
   const [locked, setLocked] = useState(false);
   const [banner, setBanner] = useState(null);
   const [dragId, setDragId] = useState(null);
@@ -78,15 +81,16 @@ export default function VFXStage() {
   useEffect(() => {
     if (!dragId) return;
     const move = (e) => {
+      const snap = (v, span) => Math.min(100, Math.max(0, (Math.round(v / stepPx) * stepPx) / span * 100));
       updateLayout((list) => list.map((m) => m.id !== dragId ? m : {
         ...m,
-        x: Math.min(100, Math.max(0, Math.round((e.clientX / window.innerWidth) * 20) * 5)),
-        y: Math.min(100, Math.max(0, Math.round((e.clientY / window.innerHeight) * 20) * 5)),
+        x: snap(e.clientX, window.innerWidth),
+        y: snap(e.clientY, window.innerHeight),
       }));
     };
     window.addEventListener("pointermove", move);
     return () => window.removeEventListener("pointermove", move);
-  }, [dragId, marksId]);
+  }, [dragId, marksId, stepPx]);
 
   // release: end a drag; a double-tap rotates 45°, a single tap removes
   useEffect(() => {
@@ -140,7 +144,7 @@ export default function VFXStage() {
       {dragId && (
         <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: `linear-gradient(to right, ${isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)"} 1px, transparent 1px), linear-gradient(to bottom, ${isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)"} 1px, transparent 1px)`,
-          backgroundSize: "5% 5%",
+          backgroundSize: `${stepPx}px ${stepPx}px`,
         }} />
       )}
 
