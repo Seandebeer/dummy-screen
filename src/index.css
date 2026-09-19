@@ -1,39 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 228 30% 4%;
+    /* Apple-style dark palette: pure black canvas, layered system greys,
+       a single blue accent (the "amber" token carries it for legacy classes) */
+    --background: 0 0% 0%;
     --foreground: 0 0% 100%;
-    --surface: 226 20% 8%;
+    --surface: 240 6% 11%;
     --surface-foreground: 0 0% 100%;
-    --card: 226 20% 8%;
+    --card: 240 6% 11%;
     --card-foreground: 0 0% 100%;
-    --popover: 226 20% 9%;
+    --popover: 240 6% 11%;
     --popover-foreground: 0 0% 100%;
-    --primary: 41 100% 50%;
-    --primary-foreground: 230 25% 5%;
-    --secondary: 226 18% 14%;
+    --primary: 211 100% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 17%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 226 18% 13%;
-    --muted-foreground: 225 12% 58%;
-    --accent: 186 100% 50%;
-    --accent-foreground: 230 25% 5%;
-    --destructive: 3 100% 59%;
+    --muted: 240 5% 17%;
+    --muted-foreground: 240 4% 60%;
+    --accent: 211 100% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 3 100% 61%;
     --destructive-foreground: 0 0% 100%;
-    --border: 227 16% 14%;
-    --input: 227 16% 16%;
-    --ring: 41 100% 50%;
-    --signal: 186 100% 50%;
-    --alert: 3 100% 59%;
-    --amber: 41 100% 50%;
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 211 100% 52%;
+    --signal: 135 64% 50%;
+    --alert: 3 100% 61%;
+    --amber: 211 100% 52%;
     --radius: 1rem;
-    --font-heading: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    --font-mono: "Space Grotesk", "Inter", ui-monospace, monospace;
+    --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   }
 }
 
@@ -81,7 +82,7 @@
   --muted-foreground: 225 10% 42%;
   --border: 220 13% 86%;
   --input: 220 13% 86%;
-  --ring: 41 100% 40%;
+  --ring: 211 100% 50%;
 }
 
 @layer base {
@@ -94,7 +95,7 @@
   }
 
   ::selection {
-    background: hsl(var(--amber) / 0.28);
+    background: hsl(var(--primary) / 0.3);
   }
 
   /* slim, unobtrusive scrollbars everywhere */
@@ -127,9 +128,9 @@
 @layer utilities {
   .grid-backdrop {
     background-image:
-      linear-gradient(to right, rgba(36, 41, 54, 0.4) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(36, 41, 54, 0.4) 1px, transparent 1px);
-    background-size: 32px 32px;
+      linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+    background-size: 44px 44px;
   }
   .led-pulse {
     animation: led-pulse 1.6s ease-in-out infinite;

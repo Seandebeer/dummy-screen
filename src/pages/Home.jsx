@@ -20,8 +20,8 @@ export default function Home() {
     <div className="min-h-dvh bg-background grid-backdrop">
       <header className="border-b border-border/60 px-6 sm:px-8 py-5 flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground/80 font-body">PropScreen</div>
-          <h1 className="font-display font-bold text-2xl tracking-[0.18em] leading-none mt-1.5">HOME</h1>
+          <div className="text-xs font-medium text-muted-foreground font-body">PropScreen</div>
+          <h1 className="font-display font-bold text-3xl tracking-[-0.02em] leading-none mt-1.5">Home</h1>
         </div>
         <div className="flex items-center gap-3">
           {deviceName && (

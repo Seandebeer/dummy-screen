@@ -318,7 +318,7 @@ export default function OS() {
         <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-body">
           <ArrowLeft size={18} /> Back
         </Link>
-        <div className="font-display font-bold text-lg tracking-[0.08em]">OS SIMULATOR</div>
+        <div className="font-display font-semibold text-[17px] tracking-[-0.01em]">OS Simulator</div>
         <div className="flex items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
