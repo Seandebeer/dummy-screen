@@ -175,7 +175,7 @@ export default function SettingsApp({ config, update, onLock }) {
         <div className="grid grid-cols-2 gap-2">
           {[
             { id: "tap", label: t.answerTap || "Button Tap" },
-            { id: "swipe", label: t.answerSwipe || "Swipe Up" },
+            { id: "swipe", label: t.answerSwipe || "Swipe" },
           ].map((o) => (
             <button key={o.id} onClick={() => update({ callAnswer: o.id })}
               className={cn("rounded-lg border py-2.5 font-body text-sm transition",
