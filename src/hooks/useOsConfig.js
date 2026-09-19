@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { allApps, defaultHomeOrder } from "@/lib/osApps";
+import { allApps, coreApps, defaultHomeOrder } from "@/lib/osApps";
 import { makeDefaultContacts } from "@/lib/osData";
 
 const STORAGE_KEY = "takeover-os-config";
@@ -43,8 +43,12 @@ function loadConfig() {
       const known = allApps.map((a) => a.id);
       // gather the functional apps on the first page (once) - everything
       // else gets added from the App Library
+      // core apps added after a layout was saved (e.g. Music) land on page 1
       const order = saved.orderVer === 2
-        ? saved.order.filter((id) => known.includes(id))
+        ? [
+          ...coreApps.filter((a) => !saved.order.includes(a.id)).map((a) => a.id),
+          ...saved.order.filter((id) => known.includes(id)),
+        ]
         : [...defaultHomeOrder];
       let dock = Array.isArray(saved.dock)
         ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
