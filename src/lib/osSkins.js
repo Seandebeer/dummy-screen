@@ -187,8 +187,9 @@ export const SKIN_UI = {
   },
   winphone: {
     font: '"Segoe UI", "Segoe WP", Tahoma, sans-serif',
+    layout: "tiles",
     clock: { size: 64, weight: 200, style: { letterSpacing: "-0.01em" } },
-    status: { className: "font-normal text-[10px] pt-2.5" },
+    status: { className: "font-normal text-[13px]", batteryPct: true },
     dock: { hidden: true, arrow: "wp" },
     lock: { method: "none", layout: "wp" },
     home: "wp",

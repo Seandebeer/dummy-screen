@@ -29,10 +29,22 @@ function HomeButton({ variant, onHome }) {
   }
   if (variant === "wp") {
     return (
-      <button onClick={onHome} aria-label="Home"
-        className="absolute bottom-2 left-1/2 -translate-x-1/2 grid grid-cols-2 gap-[2px] transition">
-        {[0, 1, 2, 3].map((i) => <span key={i} className="h-[7px] w-[7px] bg-white/85" />)}
-      </button>
+      <div className="absolute bottom-1.5 inset-x-0 flex items-center justify-center gap-14 transition">
+        <button onClick={onHome} aria-label="Back" className="flex items-center">
+          <svg width="15" height="12" viewBox="0 0 15 12" fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 6H2M7 1L2 6l5 5" stroke="rgba(255,255,255,0.85)" strokeWidth="1.6" />
+          </svg>
+        </button>
+        <button onClick={onHome} aria-label="Start" className="grid grid-cols-2 gap-[2px]">
+          {[0, 1, 2, 3].map((i) => <span key={i} className="h-[7px] w-[7px] bg-white/85" />)}
+        </button>
+        <button onClick={onHome} aria-label="Search" className="flex items-center">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" strokeLinecap="round">
+            <circle cx="5.5" cy="5.5" r="4.2" stroke="rgba(255,255,255,0.85)" strokeWidth="1.6" />
+            <path d="M8.7 8.7L12 12" stroke="rgba(255,255,255,0.85)" strokeWidth="1.6" />
+          </svg>
+        </button>
+      </div>
     );
   }
   if (variant === "holo") {
