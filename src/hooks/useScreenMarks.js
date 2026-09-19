@@ -6,12 +6,11 @@ const pt = (id, kind, x, y) => ({ id, kind, x, y });
 
 // default marker layout for a point style - four corners (+ center for some)
 export const defaultLayoutFor = (style) => {
-  // extra horizontal inset so markers clear the side edges even when rotated
-  const insetX = style === "squares" ? 16 : 14;
-  const insetY = 14;
+  // corners sit one grid cell in from the edges: exact intersections of
+  // the 5 x 8 snap grid (x = 20/80, y = 12.5/87.5), clear of the borders
   const corners = [
-    ["tl", insetX, insetY], ["tr", 100 - insetX, insetY],
-    ["bl", insetX, 100 - insetY], ["br", 100 - insetX, 100 - insetY],
+    ["tl", 20, 12.5], ["tr", 80, 12.5],
+    ["bl", 20, 87.5], ["br", 80, 87.5],
   ].map(([s, x, y]) => pt(`${style}-${s}`, style, x, y));
   if (style === "squares") return corners;
   return [...corners, pt(`${style}-c`, style === "brackets" ? "diamond" : style, 50, 50)];
