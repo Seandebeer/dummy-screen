@@ -56,6 +56,11 @@ function loadConfig() {
         ? (saved.lockscreen || defaults.lockscreen)
         : { ...(saved.lockscreen || defaults.lockscreen), type: "none" };
       const uiMarkers = { ...defaults.uiMarkers, ...(saved.uiMarkers || {}) };
+      // one-time reset: tracking marks start as "None" for existing devices
+      if ((saved.uiMarkers || {}).markStyleVer !== 1) {
+        uiMarkers.markStyle = "none";
+        uiMarkers.markStyleVer = 1;
+      }
       if ((uiMarkers.layoutVer || 0) < 3) {
         uiMarkers.barRow = defaults.uiMarkers.barRow;
         uiMarkers.barCol = defaults.uiMarkers.barCol;
