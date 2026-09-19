@@ -25,18 +25,22 @@ export default function OS() {
   const fsHintTimer = useRef(null);
   const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
-  const [recents, setRecents] = useState([]);
   const [messageTo, setMessageTo] = useState(null);
   const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
   const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-  const addRecent = (cur) => setRecents((r) => [{
-    label: cur.contact?.name || cur.contact?.number || "Unknown",
-    number: cur.contact?.number || "",
-    type: cur.phase === "incoming" ? "Incoming" : "Outgoing",
-    time: fmtTime(Date.now()),
-  }, ...r].slice(0, 30));
+  // persistent call history — names resolve from the contact book by number
+  const logCall = useCallback((entry) => {
+    update((c) => {
+      const known = (c.contacts || []).find((k) => k.number && k.number === entry.number);
+      const name = (known && known.name) || entry.name || entry.number || "Unknown";
+      return { callLog: [{ ...entry, name }, ...(c.callLog || [])].slice(0, 100) };
+    });
+  }, [update]);
+
+  const callType = (cur) =>
+    cur.phase === "incoming" ? "missed" : (cur.direction === "in" ? "incoming" : "outgoing");
 
   // load + subscribe to commands (control-driven calls)
   useEffect(() => {
@@ -44,13 +48,16 @@ export default function OS() {
     base44.entities.Command.filter({ channel: "stage-1" }, "-created_date", 50)
       .then((data) => {
         if (!mounted) return;
-        const past = data.filter((c) => c.status === "completed").map((c) => ({
-          label: c.contact_name || c.contact_number || "Unknown",
-          number: c.contact_number || "",
-          type: c.type === "call_incoming" ? "Incoming" : "Outgoing",
-          time: fmtTime(c.created_date),
-        }));
-        setRecents(past);
+        update((c) => {
+          if (c.callLog?.length) return {};
+          const past = data.filter((x) => x.status === "completed").map((x) => ({
+            name: x.contact_name || "",
+            number: x.contact_number || "",
+            type: x.type === "call_incoming" ? "incoming" : "outgoing",
+            time: fmtTime(x.created_date),
+          }));
+          return past.length ? { callLog: past } : {};
+        });
       }).catch(() => {});
 
     const unsub = base44.entities.Command.subscribe((event) => {
@@ -58,15 +65,16 @@ export default function OS() {
       if (!c || c.channel !== "stage-1") return;
       if (event.type === "create") {
         if (c.type === "call_incoming") {
-          setCall({ phase: "incoming", contact: { name: c.contact_name, number: c.contact_number }, commandId: c.id });
+          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number }, commandId: c.id });
         } else if (c.type === "call_outgoing") {
-          setCall({ phase: "outgoing", contact: { name: c.contact_name, number: c.contact_number }, commandId: c.id, startTime: Date.now() });
+          setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number }, commandId: c.id, startTime: Date.now() });
           setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), 2200);
         }
       } else if (event.type === "update") {
         // control deck ended the call remotely
         if (c.status === "completed" && callRef.current && c.id === callRef.current.commandId) {
-          addRecent(callRef.current);
+          const cur = callRef.current;
+          logCall({ name: cur.contact?.name, number: cur.contact?.number || "", type: callType(cur), time: fmtTime(Date.now()) });
           setCall(null);
         }
       }
@@ -141,16 +149,15 @@ export default function OS() {
   const onStatusChange = (patch) => update({ status: { ...config.status, ...patch } });
 
   const endCall = useCallback(() => {
-    setCall((cur) => {
-      if (cur) {
-        addRecent(cur);
-        if (cur.commandId) {
-          base44.entities.Command.update(cur.commandId, { status: "completed" }).catch(() => {});
-        }
+    const cur = callRef.current;
+    if (cur) {
+      logCall({ name: cur.contact?.name, number: cur.contact?.number || "", type: callType(cur), time: fmtTime(Date.now()) });
+      if (cur.commandId) {
+        base44.entities.Command.update(cur.commandId, { status: "completed" }).catch(() => {});
       }
-      return null;
-    });
-  }, []);
+    }
+    setCall(null);
+  }, [logCall]);
 
   const acceptCall = useCallback(() => {
     setCall((cur) => {
@@ -160,12 +167,12 @@ export default function OS() {
   }, []);
 
   const startLocalCall = (contact) => {
-    setCall({ phase: "active", contact, startTime: Date.now(), commandId: null });
+    setCall({ phase: "active", direction: "out", contact, startTime: Date.now(), commandId: null });
   };
 
   const renderApp = () => {
     switch (app) {
-      case "phone": return <PhoneApp onCall={startLocalCall} recents={recents} />;
+      case "phone": return <PhoneApp onCall={startLocalCall} recents={config.callLog || []} language={config.language} />;
       case "contacts": return (
         <ContactsApp contacts={config.contacts} dialCode={config.dialCode} update={update}
           onCall={startLocalCall}
@@ -181,11 +188,12 @@ export default function OS() {
     }
   };
 
+  const rtl = config.language === "ar";
   const screen = locked
-    ? <div className="absolute inset-0 pt-9"><LockScreen config={config} update={update} onUnlock={() => setLocked(false)} /></div>
+    ? <div className="absolute inset-0 pt-9" dir={rtl ? "rtl" : "ltr"}><LockScreen config={config} update={update} onUnlock={() => setLocked(false)} /></div>
     : app === null
       ? renderApp()
-      : <div className="absolute inset-0 pt-9">{renderApp()}</div>;
+      : <div className="absolute inset-0 pt-9" dir={rtl ? "rtl" : "ltr"}>{renderApp()}</div>;
 
   return (
     <div className="min-h-dvh bg-background grid-backdrop flex flex-col">

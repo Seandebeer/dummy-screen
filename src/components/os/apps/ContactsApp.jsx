@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const inputCls = "w-full rounded-xl bg-white/10 px-4 py-2.5 text-sm outline-none border border-white/10 focus:border-[#0A84FF] placeholder:text-white/30";
 
-export default function ContactsApp({ contacts = [], dialCode = "082", update, onCall, onMessage, onEmail }) {
+export default function ContactsApp({ contacts = [], dialCode = "026", update, onCall, onMessage, onEmail }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [editing, setEditing] = useState(null);

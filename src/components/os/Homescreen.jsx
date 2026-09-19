@@ -204,7 +204,7 @@ export default function Homescreen({ config, update, onOpen }) {
   );
 
   return (
-    <div className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
+    <div dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
       {!hasImage && <div className="grid-backdrop absolute inset-0 opacity-30 pointer-events-none" />}
 
       {/* clock — tap to edit · apps library top-right */}

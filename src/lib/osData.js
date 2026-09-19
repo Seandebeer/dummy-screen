@@ -1,3 +1,5 @@
+import { makeNames } from "./osLanguages";
+
 export const DIAL_CODES = ["026", "034", "049"];
 
 export const mockContacts = [
@@ -11,8 +13,29 @@ export const mockContacts = [
 
 export const contactNumber = (dialCode, suffix) => `${dialCode} ${suffix}`.trim();
 
-export const makeDefaultContacts = (dialCode = "026") =>
-  mockContacts.map((c) => ({ ...c, custom: false, number: contactNumber(dialCode, c.suffix) }));
+const AVATAR_COLORS = ["#00E5FF", "#FFB000", "#FF3B30", "#8A92A6", "#00FF00", "#5E5CE6", "#FF9F0A", "#34C759", "#FF2D55", "#0A84FF"];
+
+export const initialsFor = (name) => {
+  const words = (name || "").trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return words.slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+};
+
+// 100 localized default contacts — names follow the selected language
+export const makeDefaultContacts = (dialCode = "026", lang = "en") =>
+  makeNames(lang).map((name, i) => {
+    const suffix = `555 ${1000 + i}`;
+    return {
+      id: `d${i}`,
+      name,
+      suffix,
+      custom: false,
+      number: contactNumber(dialCode, suffix),
+      email: `user${String(i + 1).padStart(3, "0")}@setmail.co`,
+      initials: initialsFor(name),
+      color: AVATAR_COLORS[i % AVATAR_COLORS.length],
+    };
+  });
 
 export const remapContacts = (contacts = [], dialCode) =>
   contacts.map((c) => (c.custom || !c.suffix ? c : { ...c, number: contactNumber(dialCode, c.suffix) }));

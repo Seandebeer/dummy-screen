@@ -15,7 +15,10 @@ const defaults = {
   order: allApps.map((a) => a.id),
   dock: ["phone", "messages", "email", "settings"],
   dialCode: "026",
-  contacts: makeDefaultContacts("026"),
+  contacts: makeDefaultContacts("026", "en"),
+  language: "en",
+  contactsLang: "en",
+  callLog: [],
   theme: "dark",
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
@@ -37,10 +40,15 @@ function loadConfig() {
         : defaults.dock;
       const legacy = ["082", "083", "084"];
       const dialCode = legacy.includes(saved.dialCode) ? "026" : (saved.dialCode || defaults.dialCode);
-      const contacts = legacy.includes(saved.dialCode)
+      const language = saved.language || "en";
+      let contacts = legacy.includes(saved.dialCode)
         ? remapContacts(saved.contacts || defaults.contacts, dialCode)
         : (saved.contacts || defaults.contacts);
-      return { ...defaults, ...saved, order, dock, dialCode, contacts };
+      // (re)generate the 100 localized defaults when the language changed or on legacy data
+      if (saved.contactsLang !== language) {
+        contacts = [...makeDefaultContacts(dialCode, language), ...contacts.filter((c) => c.custom)];
+      }
+      return { ...defaults, ...saved, order, dock, dialCode, language, contactsLang: language, contacts };
     }
   } catch {}
   return defaults;

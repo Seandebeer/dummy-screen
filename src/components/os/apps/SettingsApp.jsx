@@ -2,7 +2,8 @@ import React, { useState, useRef } from "react";
 import { Sun, Moon, Upload, Trash2, Loader2 } from "lucide-react";
 import LockSettings from "./LockSettings";
 import { bgPresets } from "@/hooks/useOsConfig";
-import { DIAL_CODES, remapContacts } from "@/lib/osData";
+import { DIAL_CODES, remapContacts, makeDefaultContacts } from "@/lib/osData";
+import { LANGUAGES } from "@/lib/osLanguages";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
@@ -108,6 +109,24 @@ export default function SettingsApp({ config, update, onLock }) {
           </button>
         </div>
         <p className="text-[11px] text-white/40 font-body mt-2">Mock contacts start with this code until manually edited.</p>
+      </Section>
+
+      <Section title="Language">
+        <div className="grid grid-cols-2 gap-2">
+          {LANGUAGES.map((l) => (
+            <button key={l.code}
+              onClick={() => update((c) => ({
+                language: l.code,
+                contactsLang: l.code,
+                contacts: [...makeDefaultContacts(c.dialCode || "026", l.code), ...(c.contacts || []).filter((x) => x.custom)],
+              }))}
+              className={cn("rounded-lg border px-3 py-2 text-sm text-left font-body transition",
+                (config.language || "en") === l.code ? "border-amber text-amber bg-amber/10" : "border-white/10 text-white/70 hover:border-white/30")}>
+              {l.native}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-white/40 font-body mt-2">Default contacts follow this language; custom contacts are kept.</p>
       </Section>
 
       <LockSettings config={config} update={update} onLock={onLock} />

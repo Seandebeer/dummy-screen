@@ -1,36 +1,54 @@
-import React, { useState, useEffect } from "react";
-import { Delete, Phone } from "lucide-react";
+import React, { useState } from "react";
+import { Delete, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LANGUAGES } from "@/lib/osLanguages";
 
 const keypad = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
 
-export default function PhoneApp({ onCall, recents }) {
+const TYPE_META = {
+  missed: { Icon: PhoneMissed, color: "#FF3B30" },
+  incoming: { Icon: PhoneIncoming, color: "#34C759" },
+  outgoing: { Icon: PhoneOutgoing, color: "#8E8E93" },
+};
+
+export default function PhoneApp({ onCall, recents = [], language = "en" }) {
   const [number, setNumber] = useState("");
   const [tab, setTab] = useState("recents");
+  const t = LANGUAGES.find((l) => l.code === language)?.phone || LANGUAGES[0].phone;
 
   return (
     <div className="h-full bg-black text-white flex flex-col">
       <div className="flex border-b border-white/10">
-        {["recents", "keypad"].map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={cn("flex-1 py-2.5 text-sm capitalize", tab === t ? "text-[#34C759] border-b-2 border-[#34C759]" : "text-white/40")}>
-            {t}
+        {["recents", "keypad"].map((k) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={cn("flex-1 py-2.5 text-sm", tab === k ? "text-[#34C759] border-b-2 border-[#34C759]" : "text-white/40")}>
+            {k === "recents" ? t.recents : t.keypad}
           </button>
         ))}
       </div>
 
       {tab === "recents" ? (
         <div className="flex-1 overflow-auto no-scrollbar px-4">
-          {recents.length === 0 && <div className="text-center text-white/30 py-10 text-sm">No recent calls</div>}
-          {recents.map((r, i) => (
-            <div key={i} className="flex items-center justify-between py-3 border-b border-white/5">
-              <div>
-                <div className={cn("font-medium", r.missed && "text-[#FF3B30]")}>{r.label}</div>
-                <div className="text-xs text-white/40 font-body">{r.type} · {r.time}</div>
+          {recents.length === 0 && <div className="text-center text-white/30 py-10 text-sm">{t.noCalls}</div>}
+          {recents.map((r, i) => {
+            const meta = TYPE_META[r.type] || TYPE_META.outgoing;
+            return (
+              <div key={i} className="flex items-center justify-between py-3 border-b border-white/5">
+                <div className="min-w-0">
+                  <div className={cn("font-medium truncate", r.type === "missed" && "text-[#FF3B30]")}>
+                    {r.name || r.number || "Unknown"}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-white/40 font-body">
+                    <meta.Icon size={12} style={{ color: meta.color }} className="shrink-0" />
+                    <span className="truncate">{[r.number, t[r.type], r.time].filter(Boolean).join(" · ")}</span>
+                  </div>
+                </div>
+                <button onClick={() => onCall?.({ name: r.name, number: r.number })} className="text-[#34C759] shrink-0">
+                  <Phone size={18} />
+                </button>
               </div>
-              <button onClick={() => onCall?.({ name: r.label, number: r.number })} className="text-[#34C759]"><Phone size={18} /></button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-between py-4">
