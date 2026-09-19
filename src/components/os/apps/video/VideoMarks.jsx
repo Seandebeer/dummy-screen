@@ -21,6 +21,8 @@ export const MARK_STYLES = [
   { id: "diamond", label: "Diamond" },
 ];
 
+export const MARK_COLORS = ["#FFFFFF", "#000000", "#FF3B30", "#34C759", "#0A84FF", "#FF9F0A"];
+
 const rgba = (hex, a) => {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
   if (!m) return hex;

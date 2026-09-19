@@ -18,7 +18,7 @@ import AlarmOverlay from "@/components/os/AlarmOverlay";
 import MockApp from "@/components/os/apps/MockApp";
 import MusicApp from "@/components/os/apps/MusicApp";
 import { allAppsById } from "@/lib/osApps";
-import VideoMarks, { MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
+import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
 import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
@@ -262,7 +262,7 @@ export default function OS() {
                 <Shapes size={14} /> <span className="hidden sm:inline">Marks</span>
               </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-36 p-1.5">
+            <PopoverContent align="end" className="w-44 p-1.5">
               <button onClick={() => setOsMarks((m) => ({ ...m, style: "none" }))}
                 className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider hover:bg-muted">
                 None
@@ -275,6 +275,18 @@ export default function OS() {
                   {osMarks.style === s.id && <Check size={12} className="text-amber" />}
                 </button>
               ))}
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 border-t border-border px-2 pt-1.5">
+                {MARK_COLORS.map((c) => (
+                  <button key={c} onClick={() => setOsMarks((m) => ({ ...m, color: c }))}
+                    className={cn("h-4 w-4 rounded-full border transition", osMarks.color === c ? "border-amber ring-2 ring-amber/60" : "border-border")}
+                    style={{ background: c }} aria-label={`Mark colour ${c}`} />
+                ))}
+                <button onClick={() => setOsMarks((m) => ({ ...m, color: null }))}
+                  className={cn("rounded-md border px-1 py-0.5 text-[8px] font-body uppercase tracking-wider transition",
+                    !osMarks.color ? "border-amber text-amber" : "border-border text-muted-foreground hover:text-foreground")}>
+                  Auto
+                </button>
+              </div>
               <p className="px-2.5 pt-1.5 text-[8px] font-body text-muted-foreground">Hold &amp; drag to move · double-tap to rotate</p>
             </PopoverContent>
           </Popover>
@@ -293,7 +305,7 @@ export default function OS() {
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
-            color={config.theme === "light" ? "#000000" : "#FFFFFF"} />
+            color={osMarks.color || (config.theme === "light" ? "#000000" : "#FFFFFF")} />
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
         </PhoneFrame>
@@ -312,7 +324,7 @@ export default function OS() {
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
             <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
-              color={config.theme === "light" ? "#000000" : "#FFFFFF"} />
+              color={osMarks.color || (config.theme === "light" ? "#000000" : "#FFFFFF")} />
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
             {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>

@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Timeline from "./Timeline";
-import VideoMarks, { MARK_STYLES } from "./VideoMarks";
+import VideoMarks, { MARK_COLORS, MARK_STYLES } from "./VideoMarks";
 import { fmtDur, updateVideo } from "@/lib/videoStore";
 import { cn } from "@/lib/utils";
 
@@ -181,7 +181,7 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
               const v = vidRef.current;
               if (v?.videoWidth) setVidRatio(v.videoWidth / v.videoHeight);
             }} />
-          <VideoMarks marks={marks} onChange={setMarksPersist} locked={locked} />
+          <VideoMarks marks={marks} onChange={setMarksPersist} locked={locked} color={marks.color || "#FFFFFF"} />
         </div>
       </div>
 
@@ -256,6 +256,13 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
                       {marks.style === s.id && <Check size={12} className="text-amber" />}
                     </button>
                   ))}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 border-t border-white/10 px-2 pt-1.5">
+                    {MARK_COLORS.map((c) => (
+                      <button key={c} onClick={() => setMarksPersist((m) => ({ ...m, color: c }))}
+                        className={cn("h-4 w-4 rounded-full border transition", marks.color === c ? "border-amber ring-2 ring-amber/60" : "border-white/25")}
+                        style={{ background: c }} aria-label={`Mark colour ${c}`} />
+                    ))}
+                  </div>
                   <p className="px-2.5 pt-1.5 text-[8px] font-body text-white/35">Hold &amp; drag to move · double-tap to rotate</p>
                 </PopoverContent>
               </Popover>

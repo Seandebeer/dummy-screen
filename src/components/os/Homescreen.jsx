@@ -110,6 +110,16 @@ export default function Homescreen({ config, update, onOpen }) {
           return { order };
         });
       }
+      // dragging a dock app over the grid pulls it out of the dock
+      const gridEl = el?.closest?.("[data-grid]");
+      if (gridEl && !slotEl && lastDrop.current !== `offdock:${d.id}`) {
+        lastDrop.current = `offdock:${d.id}`;
+        update((c) => {
+          const dock = c.dock || [];
+          if (!dock.includes(d.id)) return {};
+          return { dock: dock.filter((x) => x !== d.id), order: [...c.order, d.id] };
+        });
+      }
     };
     const stop = () => {
       dragRef.current = null;
@@ -232,6 +242,7 @@ export default function Homescreen({ config, update, onOpen }) {
 
       {/* paged app grid - swipe left / right */}
       <div
+        data-grid
         className="relative flex-1 overflow-hidden"
         onPointerDown={onViewportDown}
         onPointerMove={onViewportMove}
