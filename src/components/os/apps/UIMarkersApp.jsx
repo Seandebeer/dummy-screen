@@ -261,7 +261,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         onClick={locked ? undefined : () => toggleAssign(key)}
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
-          isPressed ? `${strongLine} marker-pulse` : line,
+          locked && assigned == null ? "border-transparent" : isPressed ? `${strongLine} marker-pulse` : line,
           !locked && assigned != null && txt,
           !locked && lineHover)}>
         {assigned != null ? assigned : ""}
@@ -290,7 +290,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onContextMenu={(e) => e.preventDefault()}
       className="flex items-center justify-center">
       <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "h" ? `${strongLine} marker-pulse` : line)}>
+        barNumber ? (pressedBar === "h" ? `${strongLine} marker-pulse` : line) : "border-transparent")}>
         {barNumber}
       </div>
     </div>
@@ -328,7 +328,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "v" ? `${strongLine} marker-pulse` : line)}>
+        barVNumber ? (pressedBar === "v" ? `${strongLine} marker-pulse` : line) : "border-transparent")}>
       {barVNumber}
     </div>
   ) : (
