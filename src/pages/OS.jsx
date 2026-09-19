@@ -216,7 +216,7 @@ export default function OS() {
           onMessage={(c) => { setMessageTo(c); setApp("messages"); }}
           onEmail={(c) => { setEmailTo(c); setApp("email"); }} />
       );
-      case "messages": return <MessagesApp key={messageTo?.id || "list"} contacts={config.contacts} initialTo={messageTo} />;
+      case "messages": return <MessagesApp key={messageTo?.id || "list"} contacts={config.contacts} initialTo={messageTo} theme={config.theme} />;
       case "email": return <EmailApp initialTo={emailTo} />;
       case "clock": return <ClockApp />;
       case "calculator": return <CalculatorApp />;
@@ -255,7 +255,7 @@ export default function OS() {
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame onHome={() => setApp(null)} light={app === null ? config.theme === "light" : app === "messages"}
+        <PhoneFrame onHome={() => setApp(null)} light={(app === null || app === "messages") && config.theme === "light"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
@@ -272,7 +272,7 @@ export default function OS() {
             </div>
           )}
           <PhoneFrame bare onHome={() => setApp(null)}
-            light={app === null ? config.theme === "light" : app === "messages"}
+            light={(app === null || app === "messages") && config.theme === "light"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />

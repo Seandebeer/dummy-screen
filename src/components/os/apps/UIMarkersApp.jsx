@@ -15,6 +15,13 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const barNumber = markers.barNumber ?? "";
   const barVNumber = markers.barVNumber ?? "";
 
+  // colors follow the mock OS theme (Settings - Themes)
+  const light = config.theme === "light";
+  const line = light ? "border-black/10" : "border-white/10";
+  const strongLine = light ? "border-black/50" : "border-white/50";
+  const lineHover = light ? "hover:border-black/30" : "hover:border-white/30";
+  const txt = light ? "text-black/90" : "text-white/90";
+
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
   const [pressedBtn, setPressedBtn] = useState(null);
@@ -138,9 +145,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         onClick={locked ? undefined : () => toggleAssign(key)}
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
-          isPressed ? "border-foreground/50 marker-pulse" : "border-foreground/10",
-          !locked && assigned != null && "text-foreground/90",
-          !locked && "hover:border-foreground/30")}>
+          isPressed ? `${strongLine} marker-pulse` : line,
+          !locked && assigned != null && txt,
+          !locked && lineHover)}>
         {assigned != null ? assigned : ""}
       </button>
     );
@@ -167,7 +174,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onContextMenu={(e) => e.preventDefault()}
       className="flex items-center justify-center">
       <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "h" ? "border-foreground/50 marker-pulse" : "border-foreground/10")}>
+        pressedBar === "h" ? `${strongLine} marker-pulse` : line)}>
         {barNumber}
       </div>
     </div>
@@ -181,7 +188,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onContextMenu={(e) => e.preventDefault()}
       className={cn("flex items-center justify-center", dragBar === "h" ? "cursor-grabbing" : "cursor-grab")}>
       <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "h" ? "border-foreground/50" : "border-foreground/10")}>
+        dragBar === "h" ? strongLine : line)}>
         {barNumber}
       </div>
     </div>
@@ -205,7 +212,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "v" ? "border-foreground/50 marker-pulse" : "border-foreground/10")}>
+        pressedBar === "v" ? `${strongLine} marker-pulse` : line)}>
       {barVNumber}
     </div>
   ) : (
@@ -216,27 +223,27 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onClick={() => toggleBarNumber("barVNumber")}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "v" ? "border-foreground/50 cursor-grabbing" : "border-foreground/10 cursor-grab")}>
+        dragBar === "v" ? `${strongLine} cursor-grabbing` : `${line} cursor-grab`)}>
       {barVNumber}
     </div>
   );
 
   return (
-    <div className="relative h-full bg-background overflow-hidden">
+    <div className={cn("relative h-full overflow-hidden", light ? "bg-[#f2f2f7] text-black" : "bg-[#0b0b0f] text-white")}>
       {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
         <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
             <button onClick={saveLayout}
-              className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
+              className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
               <Save size={11} /> Save
             </button>
             <button onClick={resetNumbers}
-              className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
+              className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
               <RotateCcw size={11} /> Reset
             </button>
             <button onClick={lock}
-              className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
+              className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
               <Lock size={11} /> Lock
             </button>
           </div>
@@ -252,7 +259,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       </div>
       {locked && hint && (
         <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
-          <span className="px-3 py-1 rounded-full text-[10px] font-body text-muted-foreground bg-muted backdrop-blur">
+          <span className={cn("px-3 py-1 rounded-full text-[10px] font-body backdrop-blur", light ? "text-black/50 bg-black/5" : "text-white/50 bg-white/10")}>
             3-finger tap to unlock
           </span>
         </div>

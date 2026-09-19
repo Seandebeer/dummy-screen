@@ -26,7 +26,8 @@ function fmtListTime(d) {
 
 const digits = (s) => (s || "").replace(/\D/g, "");
 
-export default function MessagesApp({ contacts = [], initialTo }) {
+export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }) {
+  const dark = theme !== "light";
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -142,33 +143,33 @@ export default function MessagesApp({ contacts = [], initialTo }) {
     const tid = view.id;
     const msgs = threadMsgs(tid);
     return (
-      <div className="h-full bg-white text-black flex flex-col">
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-black/10">
+      <div className={cn("h-full flex flex-col", dark ? "bg-[#0b0b0f] text-white" : "bg-white text-black")}>
+        <div className={cn("flex items-center gap-2 px-3 py-2.5 border-b", dark ? "border-white/10" : "border-black/10")}>
           <button onClick={() => setView({ type: "list" })} className="flex items-center gap-0.5 text-[#007AFF]"><ChevronLeft size={20} /> <span className="text-sm">Messages</span></button>
           <span className="flex-1 text-center text-[15px] font-semibold truncate">{nameFor(tid)}</span>
           <span className="w-16" />
         </div>
         <div ref={scrollRef} className="flex-1 overflow-auto no-scrollbar px-3 py-3 space-y-1.5">
-          {loading && <div className="text-center text-black/30 text-sm py-6">Loading…</div>}
+          {loading && <div className={cn("text-center text-sm py-6", dark ? "text-white/30" : "text-black/30")}>Loading…</div>}
           {!loading && msgs.length === 0 && (
-            <div className="text-center text-black/40 text-sm py-10">No messages with {nameFor(tid)} yet.</div>
+            <div className={cn("text-center text-sm py-10", dark ? "text-white/40" : "text-black/40")}>No messages with {nameFor(tid)} yet.</div>
           )}
           {msgs.map((m) => {
             const mine = m.sender === "phone";
             return (
               <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                 <div className={cn("max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
-                  mine ? "bg-[#007AFF] text-white rounded-br-md" : "bg-[#E9E9EB] text-black rounded-bl-md")}>
+                  mine ? "bg-[#007AFF] text-white rounded-br-md" : dark ? "bg-[#3A3A3C] text-white rounded-bl-md" : "bg-[#E9E9EB] text-black rounded-bl-md")}>
                   {m.text}
                 </div>
               </div>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 px-3 py-2.5 border-t border-black/10">
+        <div className={cn("flex items-center gap-2 px-3 py-2.5 border-t", dark ? "border-white/10" : "border-black/10")}>
           <input value={text} onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendThread()}
-            placeholder="Text message" className="flex-1 rounded-full border border-black/15 px-4 py-2 text-sm outline-none placeholder:text-black/30" />
+            placeholder="Text message" className={cn("flex-1 rounded-full border px-4 py-2 text-sm outline-none", dark ? "border-white/15 placeholder:text-white/30" : "border-black/15 placeholder:text-black/30")} />
           <button onClick={sendThread} disabled={!text.trim()}
             className="h-9 w-9 rounded-full bg-[#007AFF] flex items-center justify-center disabled:opacity-30">
             <Send size={16} className="text-white" />
@@ -181,32 +182,32 @@ export default function MessagesApp({ contacts = [], initialTo }) {
   // compose view
   if (view.type === "compose") {
     return (
-      <div className="h-full bg-white text-black flex flex-col">
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-black/10">
+      <div className={cn("h-full flex flex-col", dark ? "bg-[#0b0b0f] text-white" : "bg-white text-black")}>
+        <div className={cn("flex items-center justify-between px-3 py-2.5 border-b", dark ? "border-white/10" : "border-black/10")}>
           <button onClick={() => setView({ type: "list" })} className="flex items-center gap-0.5 text-[#007AFF]"><ChevronLeft size={20} /> <span className="text-sm">Messages</span></button>
           <span className="text-[15px] font-semibold">New Message</span>
           <button onClick={sendNew} disabled={!to.trim() || !newBody.trim()}
-            className="text-sm font-semibold text-[#007AFF] disabled:text-black/25">Send</button>
+            className={cn("text-sm font-semibold text-[#007AFF]", dark ? "disabled:text-white/25" : "disabled:text-black/25")}>Send</button>
         </div>
         <div className="flex-1 overflow-auto no-scrollbar px-4 py-4">
-          <div className="flex items-center gap-2 border-b border-black/10 pb-2.5">
-            <span className="text-sm text-black/50 shrink-0">To:</span>
+          <div className={cn("flex items-center gap-2 border-b pb-2.5", dark ? "border-white/10" : "border-black/10")}>
+            <span className={cn("text-sm shrink-0", dark ? "text-white/50" : "text-black/50")}>To:</span>
             <input autoFocus value={to} onChange={(e) => setTo(e.target.value)} placeholder="Name or number"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-black/30" />
-            {to && <button onClick={() => setTo("")} className="text-black/30"><X size={14} /></button>}
+              className={cn("flex-1 bg-transparent text-sm outline-none", dark ? "placeholder:text-white/30" : "placeholder:text-black/30")} />
+            {to && <button onClick={() => setTo("")} className={dark ? "text-white/30" : "text-black/30"}><X size={14} /></button>}
           </div>
           {suggestion && to.toLowerCase() !== suggestion.name.toLowerCase() && (
-            <button onClick={() => setTo(suggestion.name)} className="w-full flex items-center gap-2.5 px-1 py-2.5 border-b border-black/10 text-left">
+            <button onClick={() => setTo(suggestion.name)} className={cn("w-full flex items-center gap-2.5 px-1 py-2.5 border-b text-left", dark ? "border-white/10" : "border-black/10")}>
               <span className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold" style={{ background: suggestion.color, color: "#000" }}>{suggestion.initials}</span>
               <span className="text-sm font-medium">{suggestion.name}</span>
             </button>
           )}
           <textarea autoFocus={false} value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={6} placeholder="iMessage"
-            className="w-full bg-transparent text-sm outline-none resize-none mt-3 placeholder:text-black/30" />
+            className={cn("w-full bg-transparent text-sm outline-none resize-none mt-3", dark ? "placeholder:text-white/30" : "placeholder:text-black/30")} />
         </div>
         <div className="flex items-center justify-center gap-2 px-4 pb-4">
           <button onClick={sendNew} disabled={!to.trim() || !newBody.trim()}
-            className="h-10 w-10 rounded-full bg-[#007AFF] flex items-center justify-center disabled:bg-black/15">
+            className={cn("h-10 w-10 rounded-full bg-[#007AFF] flex items-center justify-center", dark ? "disabled:bg-white/15" : "disabled:bg-black/15")}>
             <Send size={18} className="text-white" />
           </button>
         </div>
@@ -216,16 +217,16 @@ export default function MessagesApp({ contacts = [], initialTo }) {
 
   // list view
   return (
-    <div className="h-full bg-white text-black flex flex-col">
+    <div className={cn("h-full flex flex-col", dark ? "bg-[#0b0b0f] text-white" : "bg-white text-black")}>
       <div className="px-4 pt-2 pb-2 flex items-center justify-between">
         <button onClick={() => setEditMode((v) => !v)} className="text-sm text-[#007AFF]">{editMode ? "Done" : "Edit"}</button>
         <span className="font-display text-[22px] font-bold tracking-tight">Messages</span>
         <span className="w-10" />
       </div>
       <div className="flex-1 overflow-auto no-scrollbar">
-        {loading && <div className="text-center text-black/30 text-sm py-6">Loading…</div>}
+        {loading && <div className={cn("text-center text-sm py-6", dark ? "text-white/30" : "text-black/30")}>Loading…</div>}
         {!loading && visible.length === 0 && (
-          <div className="text-center text-black/40 text-sm py-10">No messages.</div>
+          <div className={cn("text-center text-sm py-10", dark ? "text-white/40" : "text-black/40")}>No messages.</div>
         )}
         {visible.map((tid) => {
           const msgs = threadMsgs(tid);
@@ -237,7 +238,7 @@ export default function MessagesApp({ contacts = [], initialTo }) {
           return (
             <button key={tid}
               onClick={() => (editMode ? deleteThread(tid) : setView({ type: "thread", id: tid }))}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 border-b border-black/[0.08] text-left">
+              className={cn("w-full flex items-center gap-2.5 px-4 py-2.5 border-b text-left", dark ? "border-white/[0.08]" : "border-black/[0.08]")}>
               {editMode ? (
                 <span className="h-6 w-6 rounded-full bg-[#FF3B30] flex items-center justify-center shrink-0"><Minus size={14} className="text-white" /></span>
               ) : (
@@ -253,7 +254,7 @@ export default function MessagesApp({ contacts = [], initialTo }) {
                   <span className={cn("text-[15px] truncate", isUnread(tid) ? "font-semibold" : "font-medium")}>{name}</span>
                   <span className="flex items-center gap-1 text-[13px] text-[#8E8E93] shrink-0">
                     {last ? fmtListTime(last.created_date) : ""}
-                    <ChevronRight size={14} className="text-black/25" />
+                    <ChevronRight size={14} className={dark ? "text-white/25" : "text-black/25"} />
                   </span>
                 </div>
                 <div className="text-[14px] text-[#8E8E93] truncate">{snippet}</div>
@@ -263,7 +264,7 @@ export default function MessagesApp({ contacts = [], initialTo }) {
         })}
       </div>
       <div className="px-4 pt-2 pb-3">
-        <div className="flex items-center gap-3 rounded-full bg-[#F2F2F7] px-4 py-2 shadow-sm">
+        <div className={cn("flex items-center gap-3 rounded-full px-4 py-2 shadow-sm", dark ? "bg-white/10" : "bg-[#F2F2F7]")}>
           <Search size={16} className="text-[#8E8E93] shrink-0" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search"
             className="flex-1 bg-transparent outline-none text-sm placeholder:text-[#8E8E93]" />
