@@ -1,8 +1,14 @@
 import React from "react";
 
+// tracking marker overlays for the key screens stage.
+// every style follows the active mark color — except checkerboard,
+// which is always black & white (industry standard).
 export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
-  const stroke = color;
   const fill = color;
+
+  const pattern = (style) => (
+    <div className="absolute inset-0 pointer-events-none" style={{ opacity, ...style }} />
+  );
 
   if (type === "none") return null;
 
@@ -50,13 +56,56 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85 }) {
   }
 
   if (type === "dotgrid") {
-    return (
-      <div className="absolute inset-0 pointer-events-none" style={{ opacity }}
-        dangerouslySetInnerHTML={{
-          __html: `<div style="width:100%;height:100%;background-image:radial-gradient(${fill} 1.5px, transparent 1.5px);background-size:40px 40px;background-position:20px 20px;"></div>`
-        }}
-      />
-    );
+    return pattern({
+      backgroundImage: `radial-gradient(${fill} 1.5px, transparent 1.5px)`,
+      backgroundSize: "40px 40px",
+      backgroundPosition: "20px 20px",
+    });
+  }
+
+  if (type === "grid") {
+    return pattern({
+      backgroundImage: `linear-gradient(to right, ${fill} 1px, transparent 1px), linear-gradient(to bottom, ${fill} 1px, transparent 1px)`,
+      backgroundSize: "48px 48px",
+    });
+  }
+
+  if (type === "rings") {
+    return pattern({
+      backgroundImage: `radial-gradient(circle, transparent 5px, ${fill} 5px, ${fill} 7px, transparent 7px)`,
+      backgroundSize: "40px 40px",
+    });
+  }
+
+  if (type === "triangles") {
+    return pattern({
+      backgroundImage: `conic-gradient(from 153.5deg at 50% 0%, ${fill} 53deg, transparent 53deg)`,
+      backgroundSize: "40px 40px",
+    });
+  }
+
+  if (type === "plus") {
+    return pattern({
+      backgroundImage: `linear-gradient(to bottom, transparent calc(50% - 4px), ${fill} calc(50% - 4px), ${fill} calc(50% + 4px), transparent calc(50% + 4px)), linear-gradient(to right, transparent calc(50% - 4px), ${fill} calc(50% - 4px), ${fill} calc(50% + 4px), transparent calc(50% + 4px))`,
+      backgroundSize: "40px 40px",
+    });
+  }
+
+  if (type === "registration") {
+    return pattern({
+      backgroundImage: `radial-gradient(circle, transparent 7px, ${fill} 7px, ${fill} 9px, transparent 9px), linear-gradient(to bottom, transparent calc(50% - 1px), ${fill} calc(50% - 1px), ${fill} calc(50% + 1px), transparent calc(50% + 1px)), linear-gradient(to right, transparent calc(50% - 1px), ${fill} calc(50% - 1px), ${fill} calc(50% + 1px), transparent calc(50% + 1px))`,
+      backgroundSize: "40px 40px",
+    });
+  }
+
+  if (type === "checkerboard") {
+    const s = 32;
+    return pattern({
+      backgroundColor: "#FFFFFF",
+      backgroundImage: `linear-gradient(45deg, #000000 25%, transparent 25%, transparent 75%, #000000 75%), linear-gradient(45deg, #000000 25%, transparent 25%, transparent 75%, #000000 75%)`,
+      backgroundSize: `${s}px ${s}px`,
+      backgroundPosition: `0 0, ${s / 2}px ${s / 2}px`,
+    });
   }
 
   return null;

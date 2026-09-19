@@ -15,7 +15,7 @@ export default function VFXPicker({ color, setColor, marks, setMarks, onTakeover
               style={{ background: c.hex }}>
               {color === c.id && (
                 <span className="absolute inset-0 flex items-center justify-center">
-                  <Check size={16} className={cn(c.id === "white" || c.id === "green" ? "text-black" : "text-white")} />
+                  <Check size={16} className={cn(c.id === "white" ? "text-black" : "text-white")} />
                 </span>
               )}
               <span className={cn("absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-body whitespace-nowrap",

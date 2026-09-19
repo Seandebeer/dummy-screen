@@ -9,7 +9,7 @@ export default function VFXStage() {
   const colorId = params.get("color") || "green";
   const marksId = params.get("marks") || "crosshair";
   const color = getColor(colorId);
-  const isLight = colorId === "white" || colorId === "green";
+  const isLight = ["white", "green", "grey"].includes(colorId);
 
   const [locked, setLocked] = useState(false);
   const [banner, setBanner] = useState(null);
@@ -45,7 +45,7 @@ export default function VFXStage() {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" style={{ background: color.hex }}>
-      <TrackingMarks type={marksId} color={isLight ? "#000000" : "#FFFFFF"} opacity={0.85} />
+      <TrackingMarks type={marksId} color={isLight ? "#000000" : "#FFFFFF"} opacity={marksId === "checkerboard" ? 1 : 0.85} />
 
       {/* lock / unlock banner */}
       {banner && (
@@ -66,13 +66,20 @@ export default function VFXStage() {
               ← Exit
             </Link>
             <div className="mt-3 flex flex-col gap-2">
-              {vfxColors.map((c) => (
-                <Link key={c.id} to={`/vfx?color=${c.id}&marks=${marksId}`}
-                  title={c.label}
-                  className={cn("h-6 w-6 rounded-full border-2 transition",
-                    colorId === c.id ? "border-amber" : "border-white/40 hover:border-white/80")}
-                  style={{ background: c.hex }} />
-              ))}
+              {marksId === "checkerboard" ? (
+                <span className={cn("px-3 py-1.5 rounded-full text-[10px] font-body backdrop-blur w-max",
+                  isLight ? "bg-black/60 text-white" : "bg-white/15 text-white")}>
+                  Black &amp; white only
+                </span>
+              ) : (
+                vfxColors.map((c) => (
+                  <Link key={c.id} to={`/vfx?color=${c.id}&marks=${marksId}`}
+                    title={c.label}
+                    className={cn("h-6 w-6 rounded-full border-2 transition",
+                      colorId === c.id ? "border-amber" : "border-white/40 hover:border-white/80")}
+                    style={{ background: c.hex }} />
+                ))
+              )}
             </div>
           </div>
           <div className="absolute bottom-6 inset-x-0 flex justify-center z-40 pointer-events-none">
@@ -82,7 +89,7 @@ export default function VFXStage() {
               3-Finger Tap to Lock / Unlock
             </div>
           </div>
-          <div className="absolute top-4 right-4 z-40 flex gap-2">
+          <div className="absolute top-4 right-4 z-40 flex flex-wrap justify-end gap-2 max-w-[280px]">
             {trackingMarks.map((m) => (
               <Link key={m.id} to={`/vfx?color=${colorId}&marks=${m.id}`}
                 className={cn("px-2.5 py-1 rounded-full text-[10px] font-body backdrop-blur border",
