@@ -7,9 +7,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const navItems = [
   { to: "/", label: "Home", icon: Home },
   { to: "/os", label: "OS", icon: RectangleVertical },
-  { to: "/vfx", label: "Key Screens", icon: Plus },
-  { to: "/uimarkers", label: "UI Markers", icon: Crosshair },
-  { to: "/videos", label: "Videos", icon: Play },
+  { to: "/vfx", label: "Screens", icon: Plus },
+  { to: "/uimarkers", label: "UI Marker", icon: Crosshair },
+  { to: "/videos", label: "Video", icon: Play },
   { to: "/control", label: "Control", icon: Radio },
 ];
 
