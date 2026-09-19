@@ -347,7 +347,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       {/* tracking marks overlay - follows the chosen background */}
       {markStyle !== "none" && (
         <div className="absolute inset-0 pointer-events-none">
-          <TrackingMarks type={markStyle} color={markColor} opacity={0.85} size={0.7}
+          <TrackingMarks type={markStyle} color={markColor} opacity={0.85} size={0.9} thickness={0.5}
             markers={defaultLayoutFor(markStyle)} />
         </div>
       )}
