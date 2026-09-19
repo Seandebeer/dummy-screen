@@ -16,6 +16,7 @@ const defaults = {
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
   status: { battery: 75, signal: 4, wifi: 3 },
+  passcode: "",
 };
 
 function loadConfig() {

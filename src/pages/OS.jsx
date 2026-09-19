@@ -12,10 +12,12 @@ import CallOverlay from "@/components/os/CallOverlay";
 import MockApp from "@/components/os/apps/MockApp";
 import { allAppsById } from "@/lib/osApps";
 import useOsConfig from "@/hooks/useOsConfig";
+import LockScreen from "@/components/os/LockScreen";
 import { base44 } from "@/api/base44Client";
 
 export default function OS() {
   const [app, setApp] = useState(null);
+  const [locked, setLocked] = useState(true);
   const { config, update } = useOsConfig();
   const [fullscreen, setFullscreen] = useState(false);
   const [, setTick] = useState(0);
@@ -135,6 +137,10 @@ export default function OS() {
     }
   };
 
+  const screen = locked
+    ? <LockScreen config={config} update={update} onUnlock={() => setLocked(false)} />
+    : renderApp();
+
   return (
     <div className="min-h-dvh bg-background grid-backdrop flex flex-col">
       <header className="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -155,7 +161,7 @@ export default function OS() {
       <div className="flex-1 flex items-center justify-center p-6">
         <PhoneFrame onHome={() => setApp(null)} light={app === null && config.theme === "light"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
-          {renderApp()}
+          {screen}
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
         </PhoneFrame>
       </div>
@@ -168,7 +174,7 @@ export default function OS() {
           <PhoneFrame bare onHome={() => setApp(null)}
             light={app === null && config.theme === "light"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
-            {renderApp()}
+            {screen}
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
           </PhoneFrame>
         </div>
