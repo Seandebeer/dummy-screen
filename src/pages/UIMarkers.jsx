@@ -14,7 +14,7 @@ export default function UIMarkers() {
       {!locked && (
         <header className="absolute top-0 inset-x-0 z-10 flex items-center px-6 py-4 pointer-events-none">
           <Link to="/" className="pointer-events-auto flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-body">
-            <ArrowLeft size={18} /> Deck
+            <ArrowLeft size={18} /> Back
           </Link>
         </header>
       )}
