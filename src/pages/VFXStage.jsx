@@ -20,10 +20,15 @@ export default function VFXStage() {
   const { marks, update } = useScreenMarks();
   const isPoint = POINT_STYLES.includes(marksId);
   const layout = isPoint ? (marks.layouts[marksId] ?? defaultLayoutFor(marksId)) : [];
+  // which marker kind the "+" button adds — follows the current style
+  const [addKind, setAddKind] = useState("cross");
+  useEffect(() => { if (isPoint) setAddKind(marksId); }, [isPoint, marksId]);
 
   const [locked, setLocked] = useState(false);
   const [banner, setBanner] = useState(null);
   const [dragId, setDragId] = useState(null);
+  const lastTap = useRef({ id: null, t: 0 });
+  const removeTimer = useRef(null);
   const bannerTimer = useRef(null);
   const holdTimer = useRef(null);
   const pendingId = useRef(null);
@@ -59,7 +64,9 @@ export default function VFXStage() {
     layouts: { ...m.layouts, [marksId]: fn(m.layouts[marksId] ?? defaultLayoutFor(marksId)) },
   }));
 
-  const addMarker = () => updateLayout((list) => [...list, { id: `m-${Date.now()}`, kind: marksId, x: 50, y: 50 }]);
+  const addMarker = () => updateLayout((list) => [...list, { id: `m-${Date.now()}`, kind: addKind, x: 50, y: 50, rot: 0 }]);
+  const rotateMarker = (id) => updateLayout((list) => list.map((m) => m.id !== id ? m : { ...m, rot: ((m.rot || 0) + 45) % 360 }));
+  const rotateAll = () => updateLayout((list) => list.map((m) => ({ ...m, rot: ((m.rot || 0) + 45) % 360 })));
 
   const onMarkerDown = (id, e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -82,20 +89,30 @@ export default function VFXStage() {
     return () => window.removeEventListener("pointermove", move);
   }, [dragId, marksId]);
 
-  // release: end a drag, or a short tap removes the marker
+  // release: end a drag; a double-tap rotates 45°, a single tap removes
   useEffect(() => {
     const up = () => {
       clearTimeout(holdTimer.current);
       const tapped = pendingId.current;
       pendingId.current = null;
       if (dragId) { setDragId(null); return; }
-      if (tapped) updateLayout((list) => list.filter((m) => m.id !== tapped));
+      if (!tapped) return;
+      const now = Date.now();
+      if (lastTap.current.id === tapped && now - lastTap.current.t < 350) {
+        clearTimeout(removeTimer.current);
+        lastTap.current = { id: null, t: 0 };
+        rotateMarker(tapped);
+      } else {
+        lastTap.current = { id: tapped, t: now };
+        removeTimer.current = setTimeout(() => updateLayout((list) => list.filter((m) => m.id !== tapped)), 350);
+      }
     };
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
     return () => {
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
+      clearTimeout(removeTimer.current);
     };
   }, [dragId, marksId]);
 
@@ -142,12 +159,13 @@ export default function VFXStage() {
           {isPoint && (
             <div className="absolute bottom-36 inset-x-0 flex justify-center z-40 pointer-events-none">
               <div className="px-3.5 py-1.5 rounded-full text-[10px] font-body tracking-wide bg-black/55 text-white border border-white/15 shadow-2xl backdrop-blur-xl">
-                Hold &amp; drag to move · tap to remove
+                Hold &amp; drag to move · double-tap to rotate · tap to remove
               </div>
             </div>
           )}
           <StageToolbar
             colorId={colorId} marksId={marksId} isPoint={isPoint} marks={marks}
+            addKind={addKind} onSelectAddKind={setAddKind} onRotateAll={rotateAll}
             onSelectColor={(id) => navigate(`/vfx?color=${id}&marks=${marksId}`)}
             onSelectMarks={(id) => navigate(`/vfx?color=${colorId}&marks=${id}`)}
             onScale={(v) => update((m) => ({ scale: v }))}

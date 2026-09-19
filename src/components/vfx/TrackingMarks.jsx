@@ -36,45 +36,51 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
 
   if (!markers.length) return null;
 
+  // each glyph renders inside a zero-size "spin" wrapper anchored at the marker
+  // point, so rotation (per-marker, snapped to 45°) pivots around that point
   const glyph = (m) => {
-    if (type === "cross") {
+    const kind = m.kind || type;
+    const rot = m.rot || 0;
+    const spin = (baseRot, children) => (
+      <div className="absolute" style={{ transform: `rotate(${baseRot + rot}deg)` }}>{children}</div>
+    );
+
+    if (kind === "cross") {
       const arm = 24 * size;
       const th = 7 * thickness;
-      return (
-        <>
-          <div className="absolute" style={{ width: arm, height: th, background: fill, transform: "translate(-50%, -50%)" }} />
-          <div className="absolute" style={{ width: th, height: arm, background: fill, transform: "translate(-50%, -50%)" }} />
-        </>
-      );
+      return spin(0, <>
+        <div className="absolute" style={{ width: arm, height: th, background: fill, transform: "translate(-50%, -50%)" }} />
+        <div className="absolute" style={{ width: th, height: arm, background: fill, transform: "translate(-50%, -50%)" }} />
+      </>);
     }
-    if (type === "circles") {
+    if (kind === "circles") {
       const d = 26 * size;
-      return (
+      return spin(0,
         <div className="absolute rounded-full flex items-center justify-center"
           style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
           <span style={{ width: 10 * size, height: 10 * size, borderRadius: "50%", background: fill }} />
         </div>
       );
     }
-    if (type === "squares") {
+    if (kind === "squares") {
       const d = 30 * size;
-      return <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }} />;
+      return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }} />);
     }
-    if (type === "brackets") {
-      if (m.kind === "diamond") {
-        const d = 22 * size;
-        return <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />;
-      }
+    if (kind === "diamond") {
+      const d = 22 * size;
+      return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${5 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />);
+    }
+    if (kind === "brackets") {
       const L = 64 * size;
       const th = Math.max(3, 7 * thickness);
+      // canonical corner opens toward the bottom-right; orient per quadrant
       const dx = m.x <= 50 ? 1 : -1;
       const dy = m.y <= 50 ? 1 : -1;
-      return (
-        <>
-          <div className="absolute" style={{ width: L, height: th, background: fill, transform: `translate(${dx > 0 ? 0 : -L}px, 0)` }} />
-          <div className="absolute" style={{ width: th, height: L, background: fill, transform: `translate(0, ${dy > 0 ? 0 : -L}px)` }} />
-        </>
-      );
+      const baseRot = dx > 0 ? (dy > 0 ? 0 : 270) : (dy > 0 ? 90 : 180);
+      return spin(baseRot, <>
+        <div className="absolute" style={{ width: L, height: th, background: fill }} />
+        <div className="absolute" style={{ width: th, height: L, background: fill }} />
+      </>);
     }
     return null;
   };

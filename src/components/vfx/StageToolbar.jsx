@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, Palette, Plus, RotateCcw, Save, Shapes, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Check, Palette, Plus, RotateCcw, RotateCw, Save, Shapes, SlidersHorizontal, Target } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { trackingMarks, vfxColors } from "@/lib/vfxData";
@@ -11,8 +11,17 @@ const btn = "flex h-9 w-9 items-center justify-center rounded-full transition ho
 const divider = "h-5 w-px bg-white/15 mx-0.5";
 const panel = "border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl";
 
+const MARKER_KINDS = [
+  { id: "cross", label: "Cross" },
+  { id: "circles", label: "Circles" },
+  { id: "squares", label: "Squares" },
+  { id: "brackets", label: "Brackets" },
+  { id: "diamond", label: "Diamond" },
+];
+
 export default function StageToolbar({
-  colorId, marksId, isPoint, marks,
+  colorId, marksId, isPoint, marks, addKind,
+  onSelectAddKind, onRotateAll,
   onSelectColor, onSelectMarks, onScale, onThick, onAdd, onSave, onReset,
 }) {
   return (
@@ -87,7 +96,24 @@ export default function StageToolbar({
         <span className={divider} />
 
         {isPoint && (
-          <button title="Add marker" onClick={onAdd} className={btn}><Plus size={16} /></button>
+          <>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button title="Marker type to add" className={btn}><Target size={16} /></button>
+              </PopoverTrigger>
+              <PopoverContent side="top" className={cn("w-36 p-1.5", panel)}>
+                {MARKER_KINDS.map((k) => (
+                  <button key={k.id} onClick={() => onSelectAddKind(k.id)}
+                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider transition hover:bg-white/10">
+                    {k.label}
+                    {addKind === k.id && <Check size={12} className="text-amber" />}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+            <button title="Add marker" onClick={onAdd} className={btn}><Plus size={16} /></button>
+            <button title="Rotate all markers 45°" onClick={onRotateAll} className={btn}><RotateCw size={16} /></button>
+          </>
         )}
         <button title="Save screen" onClick={onSave} className={btn}><Save size={16} /></button>
         {marksId !== "none" && (
