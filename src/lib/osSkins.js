@@ -119,21 +119,20 @@ export const SKIN_UI = {
     clock: { size: 44, weight: 300, style: { textShadow: "0 -1px 0 rgba(0,0,0,0.6)" } },
     status: {
       className: "font-normal text-[12px]",
+      timeCenter: true,
+      carrier: true,
       style: {
         backgroundImage:
-          "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0) 55%), linear-gradient(180deg, #414147 0%, #16161a 100%)",
-        borderBottom: "1px solid rgba(0,0,0,0.6)",
-        boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.14)",
+          "linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0) 55%), linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.22) 100%)",
       },
     },
     dock: {
       className: "rounded-lg",
-      labels: true,
       style: {
         backgroundImage:
-          "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.08) 10%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #3c3c42 0%, #131317 100%)",
-        borderTop: "1px solid rgba(255,255,255,0.42)",
-        boxShadow: "0 -2px 8px rgba(0,0,0,0.55)",
+          "repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 3px), linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 10%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #7C7F84 0%, #9EA2A8 55%, #A7AAB0 100%)",
+        borderTop: "1px solid rgba(255,255,255,0.65)",
+        boxShadow: "0 -2px 10px rgba(0,0,0,0.5)",
       },
     },
     lock: { method: "slide", layout: "ios" },

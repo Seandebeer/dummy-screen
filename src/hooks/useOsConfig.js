@@ -11,7 +11,7 @@ export const bgPresets = [
   { id: "mono", name: "Mono", dark: "#0a0a0a", light: "#f2f2f7" },
   { id: "aqua", name: "OS 5", dark: "linear-gradient(180deg, #4A6A8C 0%, #6a8aa3 45%, #8CA6B4 100%)", light: "linear-gradient(180deg, #c7d6e4 0%, #e2ebf2 55%, #f5f8fa 100%)" },
   { id: "droid", name: "Tint", dark: "linear-gradient(160deg, #101418 0%, #14202a 55%, #0a0e12 100%)", light: "linear-gradient(160deg, #d3e4f5 0%, #cfe8d8 55%, #f4f7fa 100%)" },
-  { id: "iphoneos", name: "iPhone OS", dark: "linear-gradient(180deg, #0d0e12 0%, #000000 100%)", light: "linear-gradient(180deg, #e9e9ee 0%, #ffffff 100%)" },
+  { id: "iphoneos", name: "iPhone OS", dark: "linear-gradient(180deg, #1A222D 0%, #0B0E14 100%)", light: "linear-gradient(180deg, #e9e9ee 0%, #ffffff 100%)" },
   { id: "linen", name: "Linen", dark: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px), linear-gradient(180deg, #43434a 0%, #2a2a30 55%, #191a1f 100%)", light: "repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 4px), linear-gradient(180deg, #d8d5cc 0%, #efece4 100%)" },
   { id: "ios7", name: "OS 7", dark: "linear-gradient(180deg, #123253 0%, #0b1e38 50%, #050d1a 100%)", light: "linear-gradient(180deg, #a7c9ea 0%, #d6e7f8 60%, #ffffff 100%)" },
   { id: "bb", name: "BlackBerry", dark: "linear-gradient(180deg, #101b2a 0%, #060b13 100%)", light: "linear-gradient(180deg, #c9d4e2 0%, #eef2f8 100%)" },
