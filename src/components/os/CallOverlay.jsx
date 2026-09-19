@@ -1,41 +1,49 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, Grid2x2, ChevronUp } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Volume2, Grid2x2, AlarmClock, MessageSquare } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
 
-// swipe-up accept control for the "swipe" answer mode
-function SwipeToAnswer({ onAccept }) {
-  const [progress, setProgress] = useState(0);
+// horizontal slide-to-answer pill, styled like the iOS incoming call screen
+function SlideToAnswer({ onAccept }) {
+  const trackRef = useRef(null);
+  const [x, setX] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const start = useRef(null);
-  const THRESHOLD = 90;
 
-  const onDown = (e) => { start.current = e.clientY; };
+  const maxX = () => Math.max(0, (trackRef.current?.clientWidth || 0) - 56);
+  const progress = maxX() ? x / maxX() : 0;
+
+  const onDown = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    start.current = e.clientX;
+    setDragging(true);
+  };
   const onMove = (e) => {
     if (start.current === null) return;
-    setProgress(Math.max(0, Math.min(1, (start.current - e.clientY) / THRESHOLD)));
+    const dx = e.clientX - start.current;
+    start.current = e.clientX;
+    setX((cur) => Math.max(0, Math.min(maxX(), cur + dx)));
   };
   const onUp = () => {
-    const released = progress;
+    if (start.current === null) return;
     start.current = null;
-    setProgress(0);
-    if (released >= 1) onAccept?.();
+    setDragging(false);
+    if (x >= maxX()) onAccept?.();
+    else setX(0);
   };
 
   return (
-    <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+    <div ref={trackRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
       onContextMenu={(e) => e.preventDefault()}
-      className="flex flex-col items-center gap-3 cursor-pointer touch-none select-none">
-      <span
-        className={cn("h-16 w-16 rounded-full bg-[#34C759] flex items-center justify-center animate-pulse",
-          "transition-transform")}
-        style={{ transform: `translateY(${-progress * 30}px)` }}>
-        <Phone size={26} className="text-black" />
+      className="relative h-14 w-full max-w-[300px] cursor-pointer touch-none select-none overflow-hidden rounded-full bg-[#e0e0e0]/90">
+      <span className="absolute inset-0 flex items-center justify-center text-[15px] font-medium font-body text-[#505050]"
+        style={{ opacity: 1 - progress }}>
+        slide to answer
       </span>
-      <div className="flex flex-col items-center gap-1 text-white/70" style={{ transform: `translateY(${-progress * 24}px)` }}>
-        <ChevronUp size={20} />
-        <span className="h-1 w-20 rounded-full bg-current opacity-40" />
-      </div>
-      <p className="text-[11px] font-body uppercase tracking-widest text-white/60">Swipe up to answer</p>
+      <span className="absolute left-1 top-1 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md"
+        style={{ transform: `translateX(${x}px)`, transition: dragging ? "none" : "transform 0.25s ease-out" }}>
+        <Phone size={22} className="text-[#66D57A]" />
+      </span>
     </div>
   );
 }
@@ -80,8 +88,18 @@ export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap" 
 
       {phase === "incoming" ? (
         answerMode === "swipe" ? (
-          <div className="flex flex-col items-center gap-8">
-            <SwipeToAnswer onAccept={onAccept} />
+          <div className="flex w-full flex-col items-center gap-8">
+            <div className="flex items-center gap-20">
+              <button onClick={onEnd} className="flex flex-col items-center gap-1.5 text-white/90">
+                <span className="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center"><AlarmClock size={22} /></span>
+                <span className="text-xs">Remind Me</span>
+              </button>
+              <button onClick={onEnd} className="flex flex-col items-center gap-1.5 text-white/90">
+                <span className="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center"><MessageSquare size={22} /></span>
+                <span className="text-xs">Message</span>
+              </button>
+            </div>
+            <SlideToAnswer onAccept={onAccept} />
             <button onClick={onEnd} className="flex flex-col items-center gap-2">
               <span className="h-14 w-14 rounded-full bg-[#FF3B30] flex items-center justify-center"><PhoneOff size={24} className="text-white" /></span>
               <span className="text-xs text-white/60">Decline</span>
