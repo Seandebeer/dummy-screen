@@ -196,15 +196,15 @@ export const SKIN_UI = {
   },
   holo: {
     font: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+    widget: "holo",
     clock: { size: 56, weight: 200 },
-    status: {
-      className: "font-normal text-[11px]",
-      style: {
-        backgroundImage: "linear-gradient(180deg, rgba(51,181,229,0.22) 0%, rgba(51,181,229,0.05) 70%, rgba(0,0,0,0) 100%)",
-        borderBottom: "1px solid rgba(51,181,229,0.5)",
-      },
+    status: { className: "font-normal text-[13px]", batteryPct: true, style: { background: "#000" } },
+    dock: {
+      drawer: "center",
+      drawerStyle: "dots",
+      labels: true,
+      className: "rounded-lg border border-[#2a5d99]/60 bg-black/30",
     },
-    dock: { drawer: "center" },
     lock: { method: "ring", layout: "holo" },
     home: "holo",
   },

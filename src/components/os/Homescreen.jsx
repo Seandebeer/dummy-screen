@@ -4,6 +4,7 @@ import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import IconTile from "./IconTile";
 import { skinUi } from "@/lib/osSkins";
+import HoloClockWidget from "./HoloClockWidget";
 import { formatBadge, normalizeBadge } from "@/lib/osNotifications";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
@@ -290,8 +291,15 @@ export default function Homescreen({ config, update, onOpen }) {
   return (
     <div ref={rootRef} dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={{ ...backgroundStyle, fontFamily: ui.font }}>
 
-      {/* clock - tap to edit · apps library top-right */}
-      <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
+      {/* clock - tap to edit · Holo skins get a widget card instead */}
+      {ui.widget === "holo" && (
+        <div className="pt-10 px-0">
+          <button onClick={() => setClockEdit(true)} className="block w-full text-left">
+            <HoloClockWidget clock={config.clock} />
+          </button>
+        </div>
+      )}
+      <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white", ui.widget === "holo" && "hidden")}>
         <button onClick={() => setClockEdit(true)} className="flex flex-col items-center">
           <div
             className="font-display text-[52px] leading-none tracking-[-0.02em]"
@@ -397,7 +405,15 @@ export default function Homescreen({ config, update, onOpen }) {
                 {ui.dock?.drawer === "center" && slot === 1 && (
                   <button onClick={() => onOpen("appstore")} aria-label="All apps"
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20">
-                    <LayoutGrid size={20} className="text-white/85" />
+                    {ui.dock?.drawerStyle === "dots" ? (
+                      <span className="grid grid-cols-3 gap-[3px]">
+                        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                          <span key={i} className="h-1 w-1 rounded-full bg-white/85" />
+                        ))}
+                      </span>
+                    ) : (
+                      <LayoutGrid size={20} className="text-white/85" />
+                    )}
                   </button>
                 )}
               </React.Fragment>
