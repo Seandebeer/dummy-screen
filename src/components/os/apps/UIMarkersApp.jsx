@@ -11,6 +11,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const assignments = markers.assignments || {};
   const barRow = Math.max(0, Math.min(ROWS, markers.barRow ?? 7));
   const barCol = Math.max(1, Math.min(COLS, markers.barCol ?? COLS));
+  const vStart = Math.max(1, Math.min(ROWS - 4, markers.barVRow ?? 1));
   const barNumber = markers.barNumber ?? "";
   const barVNumber = markers.barVNumber ?? "";
 
@@ -95,7 +96,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       } else {
         const band = rect.width / (COLS + 1);
         const col = Math.max(1, Math.min(COLS, Math.floor((e.clientX - rect.left) / band)));
-        saveMarkers((m) => (m.barCol === col ? {} : { barCol: col }));
+        // slide up / down in whole-button steps, keeping the 6-button length
+        const track = ((e.clientY - rect.top) / rect.height) * (ROWS + 1);
+        const row = Math.max(1, Math.min(ROWS - 4, Math.round(track - 2.5)));
+        saveMarkers((m) => (m.barCol === col && m.barVRow === row ? {} : { barCol: col, barVRow: row }));
       }
     };
     window.addEventListener("pointermove", move);
@@ -187,13 +191,14 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   // its column; every cell the bars leave open holds a standard button, and a
   // cell covered by a bar never holds a small one
   const columnFillers = [];
-  for (let t = 7; t <= ROWS + 1; t++) {
-    if (t === barRow + 1) continue;
+  for (let t = 1; t <= ROWS + 1; t++) {
+    if (t >= vStart && t <= vStart + 5) continue; // under the vertical bar
+    if (t === barRow + 1) continue; // under the horizontal bar
     columnFillers.push(cellButton(`vc-${t}`, { gridColumn: barCol + 1, gridRow: t }));
   }
 
   const verticalBar = locked ? (
-    <div style={{ gridColumn: barCol + 1, gridRow: "1 / 7" }}
+    <div style={{ gridColumn: barCol + 1, gridRow: `${vStart} / ${vStart + 6}` }}
       onPointerDown={() => setPressedBar("v")}
       onPointerUp={() => setPressedBar(null)}
       onPointerLeave={() => setPressedBar(null)}
@@ -204,7 +209,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       {barVNumber}
     </div>
   ) : (
-    <div style={{ gridColumn: barCol + 1, gridRow: "1 / 7" }}
+    <div style={{ gridColumn: barCol + 1, gridRow: `${vStart} / ${vStart + 6}` }}
       onPointerDown={(e) => onBarPointerDown(e, "v")}
       onPointerUp={cancelDrag}
       onPointerCancel={cancelDrag}
