@@ -48,10 +48,11 @@ export default function IconTile({ app, size = "md" }) {
   const { style, fg } = tileStyle(app);
   return (
     <span
-      className={cn("relative overflow-hidden flex items-center justify-center backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_8px_24px_rgba(0,0,0,0.45)]", s.box, s.radius)}
+      className={cn("relative overflow-hidden flex items-center justify-center backdrop-blur-sm ring-1 ring-inset ring-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.38),0_8px_24px_rgba(0,0,0,0.45)]", s.box, s.radius)}
       style={style}
     >
-      <span className="pointer-events-none absolute inset-0 rounded-[inherit] bg-gradient-to-b from-white/25 via-white/5 to-transparent" />
+      <span className="pointer-events-none absolute inset-0 rounded-[inherit] bg-gradient-to-b from-white/40 via-white/10 to-transparent" />
+      <span className="pointer-events-none absolute inset-x-1.5 top-0 h-px bg-white/50" />
       <Icon size={s.icon} style={{ color: fg }} className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]" />
     </span>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { allApps } from "@/lib/osApps";
+import { allApps, coreApps } from "@/lib/osApps";
 import { makeDefaultContacts } from "@/lib/osData";
 
 const STORAGE_KEY = "takeover-os-config";
@@ -12,7 +12,8 @@ export const bgPresets = [
 ];
 
 const defaults = {
-  order: allApps.map((a) => a.id),
+  order: coreApps.map((a) => a.id),
+  orderVer: 1,
   dock: ["phone", "messages", "email", "settings"],
   uiMarkers: { assignments: {}, barRow: 7, barCol: 5, barVRow: 2, layoutVer: 3 },
   dialCodes: ["026", "034", "049"],
@@ -38,8 +39,11 @@ function loadConfig() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved && Array.isArray(saved.order)) {
       const known = allApps.map((a) => a.id);
-      const order = saved.order.filter((id) => known.includes(id));
-      known.forEach((id) => { if (!order.includes(id)) order.push(id); });
+      // gather the functional apps on the first page (once) - everything
+      // else gets added from the App Library
+      const order = saved.orderVer === 1
+        ? saved.order.filter((id) => known.includes(id))
+        : coreApps.map((a) => a.id);
       const dock = Array.isArray(saved.dock)
         ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
         : [...defaults.dock];
@@ -67,7 +71,7 @@ function loadConfig() {
         uiMarkers.barVRow = defaults.uiMarkers.barVRow;
         uiMarkers.layoutVer = 3;
       }
-      return { ...defaults, ...saved, order, dock, lockVer: 2, lockscreen, uiMarkers, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
+      return { ...defaults, ...saved, order, orderVer: 1, dock, lockVer: 2, lockscreen, uiMarkers, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;
