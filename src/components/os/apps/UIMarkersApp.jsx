@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Lock, RotateCcw } from "lucide-react";
+import { Lock, RotateCcw, Save } from "lucide-react";
+import { saveConfig } from "@/lib/savedConfigs";
 import { cn } from "@/lib/utils";
 
 const COLS = 5;
@@ -12,7 +13,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const barCol = markers.barCol ?? 5;
   const barNumber = markers.barNumber ?? "";
   const barVNumber = markers.barVNumber ?? "";
-  const barVOffset = markers.barVOffset ?? 0.5;
+  const barVOffset = Math.min(markers.barVOffset ?? 1 / 9, 1 / 9);
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
@@ -32,8 +33,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     },
   }));
 
+  // next free number across buttons, bars and fillers — never repeats
   const nextNumber = () => {
-    const used = Object.values(assignments);
+    const used = [...Object.values(assignments), Number(barNumber), Number(barVNumber)]
+      .filter((n) => Number.isInteger(n) && n > 0);
     return used.length ? Math.max(...used) + 1 : 1;
   };
 
@@ -53,6 +56,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     setLocked(true);
     setHint(true);
     setTimeout(() => setHint(false), 2400);
+  };
+
+  const saveLayout = () => {
+    const name = window.prompt("Name this marker configuration:", `Markers ${new Date().toLocaleDateString()}`);
+    if (!name) return;
+    saveConfig({ kind: "markers", name: name.trim() || "Untitled", uiMarkers: markers });
   };
 
   // 3-finger tap to unlock
@@ -87,8 +96,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       } else {
         const band = rect.width / (COLS + 1);
         const col = Math.max(0, Math.min(COLS, Math.floor((e.clientX - rect.left) / band)));
-        const offset = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-        saveMarkers((m) => (m.barCol === col && m.barVOffset === offset ? {} : { barCol: col, barVOffset: offset }));
+        // bar follows the finger vertically, clamped so it never covers the filler buttons
+        const top = Math.max(0, Math.min(1 / 9, (e.clientY - rect.top) / rect.height - 1 / 3));
+        saveMarkers((m) => (m.barCol === col && m.barVOffset === top ? {} : { barCol: col, barVOffset: top }));
       }
     };
     window.addEventListener("pointermove", move);
@@ -138,10 +148,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   // tap anywhere on a bar (edit mode) → next number appears, tap again to clear
   const toggleBarNumber = (key) => {
     if (suppressClick.current) { suppressClick.current = false; return; }
-    const used = [...Object.values(assignments), Number(barNumber), Number(barVNumber)]
-      .filter((n) => Number.isInteger(n) && n > 0);
-    const next = used.length ? Math.max(...used) + 1 : 1;
-    saveMarkers((m) => (m[key] ? { [key]: "" } : { [key]: String(next) }));
+    saveMarkers((m) => (m[key] ? { [key]: "" } : { [key]: String(nextNumber()) }));
   };
 
   const horizontalBar = locked ? (
@@ -174,12 +181,35 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   );
 
-  // vertical bar — same length as the horizontal one (h-2/3), draggable
-  // across columns and up / down within its column
+  // vertical bar — same length as the horizontal one (h-2/3), sitting one row
+  // from the top edge; two smaller numbered buttons fill the gap below it
+  const smallButton = (id) => {
+    const assigned = assignments[id];
+    const isPressed = pressedBtn === id;
+    return (
+      <button key={id}
+        onPointerDown={locked ? () => setPressedBtn(id) : undefined}
+        onPointerUp={locked ? () => setPressedBtn(null) : undefined}
+        onPointerLeave={locked ? () => setPressedBtn(null) : undefined}
+        onPointerCancel={locked ? () => setPressedBtn(null) : undefined}
+        onClick={locked ? undefined : () => toggleAssign(id)}
+        onContextMenu={(e) => e.preventDefault()}
+        className={cn("flex-1 min-h-0 rounded-lg border flex items-center justify-center text-sm font-display select-none touch-none transition-colors",
+          isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
+          !locked && assigned != null && "border-amber/60 text-amber",
+          !locked && "hover:border-white/40")}>
+        {assigned != null ? assigned : ""}
+      </button>
+    );
+  };
+
   const verticalBar = locked ? (
     <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="relative">
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1" style={{ height: "22.22%" }}>
+        {["v0", "v1"].map(smallButton)}
+      </div>
       <div className="absolute inset-x-0 h-2/3"
-        style={{ top: `${(barVOffset * 33.33).toFixed(2)}%` }}
+        style={{ top: `${(barVOffset * 100).toFixed(2)}%` }}
         onPointerDown={() => setPressedBar("v")}
         onPointerUp={() => setPressedBar(null)}
         onPointerLeave={() => setPressedBar(null)}
@@ -193,9 +223,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   ) : (
     <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="relative">
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1" style={{ height: "22.22%" }}>
+        {["v0", "v1"].map(smallButton)}
+      </div>
       <div
         className={cn("absolute inset-x-0 h-2/3", dragBar === "v" ? "cursor-grabbing" : "cursor-grab")}
-        style={{ top: `${(barVOffset * 33.33).toFixed(2)}%` }}
+        style={{ top: `${(barVOffset * 100).toFixed(2)}%` }}
         onPointerDown={(e) => onBarPointerDown(e, "v")}
         onPointerUp={cancelDrag}
         onPointerCancel={cancelDrag}
@@ -215,6 +248,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       {!locked && (
         <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
+            <button onClick={saveLayout}
+              className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 text-[10px] font-body text-white/70 hover:text-white transition">
+              <Save size={11} /> Save
+            </button>
             <button onClick={resetNumbers}
               className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 text-[10px] font-body text-white/70 hover:text-white transition">
               <RotateCcw size={11} /> Reset

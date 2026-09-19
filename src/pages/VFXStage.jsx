@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, RotateCcw } from "lucide-react";
+import { Plus, RotateCcw, Save } from "lucide-react";
 import { getColor, trackingMarks, vfxColors } from "@/lib/vfxData";
+import { saveConfig } from "@/lib/savedConfigs";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import useScreenMarks, { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import { Slider } from "@/components/ui/slider";
@@ -104,6 +105,12 @@ export default function VFXStage() {
     layouts: { ...m.layouts, [marksId]: defaultLayoutFor(marksId) },
   }));
 
+  const saveScreen = () => {
+    const name = window.prompt("Name this screen:", `${marksId} · ${colorId}`);
+    if (!name) return;
+    saveConfig({ kind: "screen", name: name.trim() || "Untitled", colorId, marksId, marks });
+  };
+
   const chip = "rounded-full backdrop-blur border";
   const chipStyle = isLight ? "bg-black/60 text-white border-white/20" : "bg-white/15 text-white border-white/20";
 
@@ -155,31 +162,17 @@ export default function VFXStage() {
               )}
             </div>
 
-            {/* marker size / thickness sliders */}
-            {marksId !== "none" && (
-              <div className="mt-3 flex flex-col gap-1.5">
-                <div className={cn("flex items-center gap-2 px-3 py-1.5", chip, chipStyle)}>
-                  <span className="text-[10px] font-body w-9">Size</span>
-                  <Slider className="w-24" value={[marks.scale]} min={0.5} max={3} step={0.25}
-                    onValueChange={([v]) => update((m) => ({ scale: v }))} />
-                </div>
-                {marksId !== "checkerboard" && (
-                  <div className={cn("flex items-center gap-2 px-3 py-1.5", chip, chipStyle)}>
-                    <span className="text-[10px] font-body w-9">Thick</span>
-                    <Slider className="w-24" value={[marks.thickness]} min={0.5} max={3} step={0.25}
-                      onValueChange={([v]) => update((m) => ({ thickness: v }))} />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* add markers / reset customisation */}
+            {/* add markers / save / reset customisation */}
             {isPoint && (
               <button onClick={addMarker}
                 className={cn("mt-3 flex items-center gap-1 px-2.5 py-1 text-[10px] font-body", chip, chipStyle)}>
                 <Plus size={11} /> Add
               </button>
             )}
+            <button onClick={saveScreen}
+              className={cn("mt-2 flex items-center gap-1 px-2.5 py-1 text-[10px] font-body", chip, chipStyle)}>
+              <Save size={11} /> Save
+            </button>
             {marksId !== "none" && (
               <button onClick={resetCustomisation}
                 className={cn("mt-2 flex items-center gap-1 px-2.5 py-1 text-[10px] font-body", chip, chipStyle)}>
@@ -187,6 +180,24 @@ export default function VFXStage() {
               </button>
             )}
           </div>
+
+          {/* vertical size / thickness sliders — right edge */}
+          {marksId !== "none" && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-40 flex gap-2">
+              <div className={cn("flex flex-col items-center gap-2 rounded-2xl px-2.5 py-3", chip, chipStyle)}>
+                <span className="text-[9px] font-body">Size</span>
+                <Slider orientation="vertical" className="h-28" value={[marks.scale]} min={0.5} max={3} step={0.25}
+                  onValueChange={([v]) => update((m) => ({ scale: v }))} />
+              </div>
+              {marksId !== "checkerboard" && (
+                <div className={cn("flex flex-col items-center gap-2 rounded-2xl px-2.5 py-3", chip, chipStyle)}>
+                  <span className="text-[9px] font-body">Thick</span>
+                  <Slider orientation="vertical" className="h-28" value={[marks.thickness]} min={0.5} max={3} step={0.25}
+                    onValueChange={([v]) => update((m) => ({ thickness: v }))} />
+                </div>
+              )}
+            </div>
+          )}
 
           {isPoint && (
             <div className="absolute bottom-16 inset-x-0 flex justify-center z-40 pointer-events-none">

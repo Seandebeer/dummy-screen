@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Smartphone, Clapperboard, Settings2 } from "lucide-react";
+import { Smartphone, Clapperboard, Settings2, Bookmark } from "lucide-react";
 import HomeSection from "@/components/home/HomeSection";
 import ProjectsPanel from "@/components/home/ProjectsPanel";
 import DevicesPanel from "@/components/home/DevicesPanel";
 import AppSettingsPanel from "@/components/home/AppSettingsPanel";
+import SavedPanel from "@/components/home/SavedPanel";
 
 export default function Home() {
   const [deviceName, setDeviceName] = useState(() => localStorage.getItem("takeover-device-name") || "");
@@ -26,6 +27,9 @@ export default function Home() {
         </HomeSection>
         <HomeSection icon={Settings2} title="Settings" subtitle="Deck & mock OS preferences">
           <AppSettingsPanel onNameChange={setDeviceName} />
+        </HomeSection>
+        <HomeSection icon={Bookmark} title="Saved" subtitle="Saved marker & screen configurations">
+          <SavedPanel />
         </HomeSection>
       </div>
     </div>
