@@ -89,6 +89,7 @@ export const SKIN_UI = {
     home: "modern",
   },
   aqua: {
+    font: '"Helvetica Neue", Helvetica, Arial, sans-serif',
     clock: { size: 44, weight: 300, style: { color: "rgba(255,255,255,0.95)", textShadow: "0 -1px 0 rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.25)" } },
     status: {
       className: "font-normal text-white border-b border-white/15",
@@ -109,7 +110,7 @@ export const SKIN_UI = {
     home: "aqua",
   },
   iphoneos: {
-    font: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    font: 'Helvetica, "Helvetica Neue", Arial, sans-serif',
     clock: { size: 44, weight: 300, style: { textShadow: "0 -1px 0 rgba(0,0,0,0.6)" } },
     status: {
       className: "font-normal text-[12px]",
@@ -161,7 +162,7 @@ export const SKIN_UI = {
     home: "modern",
   },
   blackberry: {
-    font: '"Segoe UI", Tahoma, Arial, sans-serif',
+    font: '"BBAlpha Sans", "Open Sans", "Segoe UI", Tahoma, sans-serif',
     clock: { size: 36, weight: 500, style: { letterSpacing: "0.02em" } },
     status: {
       className: "font-normal text-[10px]",
@@ -231,7 +232,7 @@ export const SKIN_UI = {
     home: "android",
   },
   webos: {
-    font: '"Segoe UI", Gotham, Arial, sans-serif',
+    font: 'Gotham, Montserrat, "Segoe UI", Arial, sans-serif',
     clock: { size: 46, weight: 200 },
     status: { className: "font-normal text-[12px]", style: { background: "rgba(0,0,0,0.3)" } },
     dock: {
