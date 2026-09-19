@@ -1,9 +1,46 @@
-import React, { useState, useEffect } from "react";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, Grid2x2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Phone, PhoneOff, Mic, MicOff, Volume2, Grid2x2, ChevronUp } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
 
-export default function CallOverlay({ call, onAccept, onEnd }) {
+// swipe-up accept control for the "swipe" answer mode
+function SwipeToAnswer({ onAccept }) {
+  const [progress, setProgress] = useState(0);
+  const start = useRef(null);
+  const THRESHOLD = 90;
+
+  const onDown = (e) => { start.current = e.clientY; };
+  const onMove = (e) => {
+    if (start.current === null) return;
+    setProgress(Math.max(0, Math.min(1, (start.current - e.clientY) / THRESHOLD)));
+  };
+  const onUp = () => {
+    const released = progress;
+    start.current = null;
+    setProgress(0);
+    if (released >= 1) onAccept?.();
+  };
+
+  return (
+    <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+      onContextMenu={(e) => e.preventDefault()}
+      className="flex flex-col items-center gap-3 cursor-pointer touch-none select-none">
+      <span
+        className={cn("h-16 w-16 rounded-full bg-[#34C759] flex items-center justify-center animate-pulse",
+          "transition-transform")}
+        style={{ transform: `translateY(${-progress * 30}px)` }}>
+        <Phone size={26} className="text-black" />
+      </span>
+      <div className="flex flex-col items-center gap-1 text-white/70" style={{ transform: `translateY(${-progress * 24}px)` }}>
+        <ChevronUp size={20} />
+        <span className="h-1 w-20 rounded-full bg-current opacity-40" />
+      </div>
+      <p className="text-[11px] font-body uppercase tracking-widest text-white/60">Swipe up to answer</p>
+    </div>
+  );
+}
+
+export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap" }) {
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
   const [speaker, setSpeaker] = useState(false);
@@ -42,16 +79,26 @@ export default function CallOverlay({ call, onAccept, onEnd }) {
       </div>
 
       {phase === "incoming" ? (
-        <div className="flex items-center gap-16">
-          <button onClick={onEnd} className="flex flex-col items-center gap-2">
-            <span className="h-16 w-16 rounded-full bg-[#FF3B30] flex items-center justify-center"><PhoneOff size={26} className="text-white" /></span>
-            <span className="text-xs text-white/60">Decline</span>
-          </button>
-          <button onClick={onAccept} className="flex flex-col items-center gap-2">
-            <span className="h-16 w-16 rounded-full bg-[#34C759] flex items-center justify-center animate-pulse"><Phone size={26} className="text-black" /></span>
-            <span className="text-xs text-white/60">Accept</span>
-          </button>
-        </div>
+        answerMode === "swipe" ? (
+          <div className="flex flex-col items-center gap-8">
+            <SwipeToAnswer onAccept={onAccept} />
+            <button onClick={onEnd} className="flex flex-col items-center gap-2">
+              <span className="h-14 w-14 rounded-full bg-[#FF3B30] flex items-center justify-center"><PhoneOff size={24} className="text-white" /></span>
+              <span className="text-xs text-white/60">Decline</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-16">
+            <button onClick={onEnd} className="flex flex-col items-center gap-2">
+              <span className="h-16 w-16 rounded-full bg-[#FF3B30] flex items-center justify-center"><PhoneOff size={26} className="text-white" /></span>
+              <span className="text-xs text-white/60">Decline</span>
+            </button>
+            <button onClick={onAccept} className="flex flex-col items-center gap-2">
+              <span className="h-16 w-16 rounded-full bg-[#34C759] flex items-center justify-center animate-pulse"><Phone size={26} className="text-black" /></span>
+              <span className="text-xs text-white/60">Accept</span>
+            </button>
+          </div>
+        )
       ) : (
         <div className="flex flex-col items-center gap-6 w-full">
           <div className="grid grid-cols-3 gap-5 w-full max-w-[260px]">

@@ -23,6 +23,7 @@ const defaults = {
   contactsVer: 2,
   callLog: [],
   theme: "dark",
+  callAnswer: "tap",
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
   status: { battery: 75, signal: 4, wifi: 3 },

@@ -171,6 +171,24 @@ export default function SettingsApp({ config, update, onLock }) {
         )}
       </Section>
 
+      <Section title={t.answerCalls || "Answer Calls"}>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { id: "tap", label: t.answerTap || "Button Tap" },
+            { id: "swipe", label: t.answerSwipe || "Swipe Up" },
+          ].map((o) => (
+            <button key={o.id} onClick={() => update({ callAnswer: o.id })}
+              className={cn("rounded-lg border py-2.5 font-body text-sm transition",
+                (config.callAnswer || "tap") === o.id
+                  ? "border-amber text-amber bg-amber/10"
+                  : "border-white/10 text-white/60 hover:border-white/30")}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-white/40 font-body mt-2">How incoming calls are answered on this device.</p>
+      </Section>
+
       <LockSettings config={config} update={update} onLock={onLock} />
 
       <p className="text-center text-[10px] text-white/25 font-body uppercase tracking-widest pt-6 pb-8">Takeover OS · prop build 1.0</p>

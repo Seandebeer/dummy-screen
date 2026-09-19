@@ -258,7 +258,7 @@ export default function OS() {
         <PhoneFrame onHome={() => setApp(null)} light={(app === null || app === "messages") && config.theme === "light"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
-          <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
+          <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
         </PhoneFrame>
       </div>
@@ -275,7 +275,7 @@ export default function OS() {
             light={(app === null || app === "messages") && config.theme === "light"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
-            <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
+            <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
             {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>
         </div>
