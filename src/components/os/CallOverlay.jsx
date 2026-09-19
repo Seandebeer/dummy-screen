@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Phone, PhoneOff, Mic, MicOff, Volume2, Grid2x2 } from "lucide-react";
+import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
 
 export default function CallOverlay({ call, onAccept, onEnd }) {
@@ -26,8 +27,10 @@ export default function CallOverlay({ call, onAccept, onEnd }) {
     <div className="absolute inset-0 z-40 flex flex-col items-center justify-between py-16 px-6 text-white"
       style={{ background: "linear-gradient(180deg, #1a1d2e 0%, #0a0b14 100%)" }}>
       <div className="flex flex-col items-center mt-6">
-        <div className="h-28 w-28 rounded-full bg-white/10 flex items-center justify-center font-display text-4xl font-bold mb-4">
-          {name[0]?.toUpperCase() || "?"}
+        <div className="h-28 w-28 rounded-full bg-white/10 flex items-center justify-center font-display text-4xl font-bold mb-4 overflow-hidden">
+          {contact?.image
+            ? <Image src={contact.image} alt={name} className="h-full w-full" fittingType="fill" />
+            : (name[0]?.toUpperCase() || "?")}
         </div>
         <div className="font-display text-3xl font-semibold">{name}</div>
         <div className="text-white/50 font-body text-sm mt-1">

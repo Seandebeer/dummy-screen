@@ -9,6 +9,7 @@ import MessagesApp from "@/components/os/apps/MessagesApp";
 import EmailApp from "@/components/os/apps/EmailApp";
 import ClockApp from "@/components/os/apps/ClockApp";
 import CallOverlay from "@/components/os/CallOverlay";
+import AlarmOverlay from "@/components/os/AlarmOverlay";
 import MockApp from "@/components/os/apps/MockApp";
 import { allAppsById } from "@/lib/osApps";
 import useOsConfig from "@/hooks/useOsConfig";
@@ -25,9 +26,11 @@ export default function OS() {
   const fsHintTimer = useRef(null);
   const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
+  const [alarm, setAlarm] = useState(null);
   const [messageTo, setMessageTo] = useState(null);
   const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
+  const alarmRef = useRef(null);
   const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   // persistent call history — names resolve from the contact book by number
@@ -50,7 +53,7 @@ export default function OS() {
         if (!mounted) return;
         update((c) => {
           if (c.callLog?.length) return {};
-          const past = data.filter((x) => x.status === "completed").map((x) => ({
+          const past = data.filter((x) => x.status === "completed" && x.type.startsWith("call_")).map((x) => ({
             name: x.contact_name || "",
             number: x.contact_number || "",
             type: x.type === "call_incoming" ? "incoming" : "outgoing",
@@ -65,10 +68,12 @@ export default function OS() {
       if (!c || c.channel !== "stage-1") return;
       if (event.type === "create") {
         if (c.type === "call_incoming") {
-          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number }, commandId: c.id });
+          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id });
         } else if (c.type === "call_outgoing") {
-          setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number }, commandId: c.id, startTime: Date.now() });
+          setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, startTime: Date.now() });
           setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), 2200);
+        } else if (c.type === "alarm") {
+          setAlarm({ commandId: c.id });
         }
       } else if (event.type === "update") {
         // control deck ended the call remotely
@@ -77,13 +82,17 @@ export default function OS() {
           logCall({ name: cur.contact?.name, number: cur.contact?.number || "", type: callType(cur), time: fmtTime(Date.now()) });
           setCall(null);
         }
+        if (c.status === "completed" && alarmRef.current && c.id === alarmRef.current.commandId) {
+          setAlarm(null);
+        }
       }
     });
     return () => { mounted = false; unsub(); };
   }, []);
 
-  // keep ref in sync with current call
+  // keep refs in sync with current call / alarm
   useEffect(() => { callRef.current = call; }, [call]);
+  useEffect(() => { alarmRef.current = alarm; }, [alarm]);
 
   // keep the live status-bar clock fresh
   useEffect(() => {
@@ -159,6 +168,14 @@ export default function OS() {
     setCall(null);
   }, [logCall]);
 
+  const stopAlarm = useCallback(() => {
+    const cur = alarmRef.current;
+    if (cur?.commandId) {
+      base44.entities.Command.update(cur.commandId, { status: "completed" }).catch(() => {});
+    }
+    setAlarm(null);
+  }, []);
+
   const acceptCall = useCallback(() => {
     setCall((cur) => {
       if (cur?.commandId) base44.entities.Command.update(cur.commandId, { status: "active" }).catch(() => {});
@@ -207,9 +224,6 @@ export default function OS() {
             className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-muted-foreground transition">
             <Maximize2 size={14} /> <span className="hidden sm:inline">Fullscreen</span>
           </button>
-          <div className="flex items-center gap-2 text-xs font-body text-signal">
-            <span className="h-2 w-2 rounded-full bg-signal led-pulse" /> SYNC LIVE
-          </div>
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
@@ -217,6 +231,7 @@ export default function OS() {
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
+          {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
         </PhoneFrame>
       </div>
       {fullscreen && (
@@ -233,6 +248,7 @@ export default function OS() {
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
+            {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>
         </div>
       )}

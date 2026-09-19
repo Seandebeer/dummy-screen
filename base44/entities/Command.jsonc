@@ -12,13 +12,17 @@
         "call_incoming",
         "call_outgoing",
         "call_answered",
-        "call_end"
+        "call_end",
+        "alarm"
       ]
     },
     "contact_name": {
       "type": "string"
     },
     "contact_number": {
+      "type": "string"
+    },
+    "contact_image": {
       "type": "string"
     },
     "status": {

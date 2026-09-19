@@ -1,12 +1,12 @@
 import React from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { Phone, Plus, Radio, Home, Crosshair } from "lucide-react";
+import { RectangleVertical, Plus, Radio, Home, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/os", label: "OS", icon: Phone },
+  { to: "/os", label: "OS", icon: RectangleVertical },
   { to: "/vfx", label: "Key Screens", icon: Plus },
   { to: "/uimarkers", label: "UI Markers", icon: Crosshair },
   { to: "/control", label: "Control", icon: Radio },

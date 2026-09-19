@@ -1,33 +1,59 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { mockContacts } from "@/lib/osData";
+import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
+
+const CONTACT_KEY = "takeover-control-contact";
+const BLANK = { name: "", number: "", email: "", image: "" };
+
+const loadContact = () => {
+  try {
+    const s = JSON.parse(localStorage.getItem(CONTACT_KEY));
+    if (s) return { ...BLANK, ...s };
+  } catch {}
+  return BLANK;
+};
 
 export default function ControlPanel() {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [callState, setCallState] = useState("idle"); // idle | ringing | active | ended
   const [activeCmdId, setActiveCmdId] = useState(null);
-  const [contact, setContact] = useState(mockContacts[0]);
+  const [contact, setContact] = useState(loadContact);
+  const [alarmId, setAlarmId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef(null);
 
-  // load + subscribe to messages
+  const saveContact = (patch) => setContact((c) => {
+    const next = { ...c, ...patch };
+    localStorage.setItem(CONTACT_KEY, JSON.stringify(next));
+    return next;
+  });
+
+  // load messages + any pending alarm, keep live subscriptions
   useEffect(() => {
     let mounted = true;
     base44.entities.Message.filter({ thread_id: "stage-1" }, "created_date", 200)
       .then((d) => mounted && setMessages(d)).catch(() => {});
-    const unsub = base44.entities.Message.subscribe((e) => {
+    base44.entities.Command.filter({ channel: "stage-1", type: "alarm", status: "pending" }, "-created_date", 1)
+      .then((d) => { if (mounted && d.length) setAlarmId((a) => a || d[0].id); }).catch(() => {});
+    const unsubMsgs = base44.entities.Message.subscribe((e) => {
       if (e.type === "create") setMessages((m) => [...m, e.data]);
     });
-    return () => { mounted = false; unsub(); };
+    const unsubCmds = base44.entities.Command.subscribe((e) => {
+      if (e.data?.type !== "alarm") return;
+      if (e.type === "create" && e.data.status === "pending") setAlarmId(e.data.id);
+      if (e.type === "update" && e.data.status === "completed") setAlarmId((a) => (a === e.data.id ? null : a));
+    });
+    return () => { mounted = false; unsubMsgs(); unsubCmds(); };
   }, []);
 
-  // subscribe to command status updates (reflect phone answering/ending)
+  // subscribe to call command status updates (reflect phone answering/ending)
   useEffect(() => {
     const unsub = base44.entities.Command.subscribe((e) => {
-      if (e.type === "update" && e.data.id === activeCmdId) {
+      if (e.type === "update" && e.data.id === activeCmdId && e.data.type?.startsWith("call_")) {
         if (e.data.status === "active") setCallState("active");
         if (e.data.status === "completed") {
           setCallState("ended");
@@ -43,20 +69,30 @@ export default function ControlPanel() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  const triggerCall = async (type) => {
-    if (busy || callState !== "idle") return;
+  const onPic = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      saveContact({ image: file_url });
+    } catch {}
+    setUploading(false);
+  };
+
+  const triggerCall = async () => {
+    if (busy || callState !== "idle" || !contact.name.trim() || !contact.number.trim()) return;
     setBusy(true);
     try {
       const rec = await base44.entities.Command.create({
-        channel: "stage-1", type,
-        contact_name: contact.name, contact_number: contact.number, status: "pending",
+        channel: "stage-1", type: "call_incoming",
+        contact_name: contact.name.trim(), contact_number: contact.number.trim(),
+        ...(contact.image ? { contact_image: contact.image } : {}),
+        status: "pending",
       });
       setActiveCmdId(rec.id);
-      setCallState(type === "call_incoming" ? "ringing" : "active");
-      if (type === "call_outgoing") {
-        // OS auto-connects; reflect active shortly as fallback
-        setTimeout(() => setCallState((s) => s === "active" ? "active" : "active"), 100);
-      }
+      setCallState("ringing");
     } catch (e) {}
     setBusy(false);
   };
@@ -70,14 +106,40 @@ export default function ControlPanel() {
     setActiveCmdId(null);
   };
 
+  const triggerAlarm = async () => {
+    if (alarmId) return;
+    try {
+      const rec = await base44.entities.Command.create({ channel: "stage-1", type: "alarm", status: "pending" });
+      setAlarmId(rec.id);
+    } catch {}
+  };
+
+  const stopAlarm = async () => {
+    if (!alarmId) return;
+    const id = alarmId;
+    setAlarmId(null);
+    try { await base44.entities.Command.update(id, { status: "completed" }); } catch {}
+  };
+
   const sendMessage = async () => {
     if (!text.trim()) return;
     const body = text.trim();
     setText("");
     try {
-      await base44.entities.Message.create({ thread_id: "stage-1", sender: "control", text: body, sender_name: "Control" });
+      await base44.entities.Message.create({
+        thread_id: "stage-1", sender: "control", text: body,
+        sender_name: contact.name.trim() || "Control",
+      });
     } catch (e) { setText(body); }
   };
+
+  const resetMessages = async () => {
+    if (!window.confirm("Clear all messages on this channel?")) return;
+    setMessages([]);
+    try { await base44.entities.Message.deleteMany({ thread_id: "stage-1" }); } catch {}
+  };
+
+  const canCall = contact.name.trim() && contact.number.trim() && callState === "idle" && !busy;
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -113,17 +175,52 @@ export default function ControlPanel() {
         </div>
       </div>
 
-      {/* call trigger pad */}
+      {/* alarm trigger */}
       <div className="rounded-xl border border-border bg-surface p-4">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body mb-3">Call Trigger</div>
         <div className="flex items-center gap-2 mb-3">
-          <select value={contact.id} onChange={(e) => setContact(mockContacts.find((c) => c.id === +e.target.value))}
-            className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none">
-            {mockContacts.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.number}</option>)}
-          </select>
+          <AlarmClock size={16} className="text-amber" />
+          <span className="font-display font-semibold text-sm">Alarm Trigger</span>
+        </div>
+        <button onClick={alarmId ? stopAlarm : triggerAlarm}
+          className={cn("w-full flex items-center justify-center gap-2 rounded-lg border py-3 text-sm font-body font-semibold transition",
+            alarmId
+              ? "border-alert/40 bg-alert/10 text-alert hover:bg-alert/20"
+              : "border-amber/40 bg-amber/10 text-amber hover:bg-amber/20")}>
+          <AlarmClock size={18} />
+          {alarmId ? "Stop Alarm" : "Trigger Alarm"}
+        </button>
+      </div>
+
+      {/* call trigger — manual contact */}
+      <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">Call Trigger</div>
+          {contact.image && (
+            <button onClick={() => saveContact({ image: "" })}
+              className="text-[10px] font-body text-muted-foreground hover:text-alert transition">
+              Remove photo
+            </button>
+          )}
+        </div>
+        <div className="flex items-start gap-3 mb-3">
+          <label className="relative h-16 w-16 rounded-full bg-muted/40 border border-border overflow-hidden flex items-center justify-center cursor-pointer shrink-0">
+            {contact.image
+              ? <Image src={contact.image} alt="" className="h-full w-full" fittingType="fill" />
+              : <ImagePlus size={18} className="text-muted-foreground" />}
+            {uploading && <span className="absolute inset-0 bg-black/50 flex items-center justify-center text-[9px] text-white font-body">…</span>}
+            <input type="file" accept="image/*" className="hidden" onChange={onPic} />
+          </label>
+          <div className="flex-1 grid grid-cols-2 gap-2">
+            <input value={contact.name} onChange={(e) => saveContact({ name: e.target.value })} placeholder="Name"
+              className="bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
+            <input value={contact.number} onChange={(e) => saveContact({ number: e.target.value })} placeholder="Mock number"
+              className="bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
+            <input value={contact.email} onChange={(e) => saveContact({ email: e.target.value })} placeholder="Email (optional)"
+              className="col-span-2 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => triggerCall("call_incoming")} disabled={callState !== "idle" || busy}
+          <button onClick={triggerCall} disabled={!canCall}
             className="flex flex-col items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 py-3 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
             <PhoneIncoming size={20} />
             <span className="text-[11px] font-body">Call</span>
@@ -138,7 +235,13 @@ export default function ControlPanel() {
 
       {/* message console */}
       <div className="rounded-xl border border-border bg-surface p-4 flex-1 flex flex-col min-h-0">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body mb-3">Message Push Console</div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">Message Push Console</div>
+          <button onClick={resetMessages}
+            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
+            <Trash2 size={11} /> Reset
+          </button>
+        </div>
         <div ref={scrollRef} className="flex-1 overflow-auto no-scrollbar space-y-2 mb-3 min-h-[120px]">
           {messages.length === 0 && <div className="text-center text-muted-foreground text-xs py-6 font-body">No messages. Push one to the prop phone.</div>}
           {messages.map((m) => {
@@ -154,6 +257,9 @@ export default function ControlPanel() {
             );
           })}
         </div>
+        {contact.name.trim() && (
+          <div className="text-[10px] text-muted-foreground font-body mb-1.5">Sending as {contact.name.trim()}</div>
+        )}
         <div className="flex items-center gap-2">
           <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             placeholder="Type message to push…" className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />

@@ -8,8 +8,8 @@ const ROWS = 8;
 export default function UIMarkersApp({ config, update, onLockChange }) {
   const markers = config.uiMarkers || {};
   const assignments = markers.assignments || {};
-  const barRow = markers.barRow ?? 4;
-  const barCol = markers.barCol ?? 2;
+  const barRow = markers.barRow ?? 7;
+  const barCol = markers.barCol ?? 5;
   const barNumber = markers.barNumber ?? "";
   const barVNumber = markers.barVNumber ?? "";
 
@@ -99,7 +99,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     };
   }, [dragBar]);
 
-  // grid tracks — a fixed 40px band for each bar, 1fr everywhere else
+  // grid tracks — 1fr everywhere, so bars are exactly as thick as buttons
   const colTemplate = [];
   for (let c = 0; c <= COLS; c++) {
     if (c === barCol) colTemplate.push("1fr");
@@ -125,6 +125,27 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         onClick={locked ? undefined : () => toggleAssign(i)}
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
+          isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
+          !locked && assigned != null && "border-amber/60 text-amber",
+          !locked && "hover:border-white/40")}>
+        {assigned != null ? assigned : ""}
+      </button>
+    );
+  };
+
+  // smaller filler buttons that fill the gaps above / below the vertical bar
+  const smallButton = (id) => {
+    const assigned = assignments[id];
+    const isPressed = pressedBtn === id;
+    return (
+      <button key={id}
+        onPointerDown={locked ? () => setPressedBtn(id) : undefined}
+        onPointerUp={locked ? () => setPressedBtn(null) : undefined}
+        onPointerLeave={locked ? () => setPressedBtn(null) : undefined}
+        onPointerCancel={locked ? () => setPressedBtn(null) : undefined}
+        onClick={locked ? undefined : () => toggleAssign(id)}
+        onContextMenu={(e) => e.preventDefault()}
+        className={cn("flex-1 min-h-0 rounded-lg border flex items-center justify-center text-sm font-display select-none touch-none transition-colors",
           isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
           !locked && assigned != null && "border-amber/60 text-amber",
           !locked && "hover:border-white/40")}>
@@ -172,32 +193,47 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   );
 
+  // vertical bar spans the same 6 tracks as the horizontal bar (h-2/3),
+  // with three smaller buttons filling each gap above and below it
   const verticalBar = locked ? (
-    <div
-      style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }}
-      onPointerDown={() => setPressedBar("v")}
-      onPointerUp={() => setPressedBar(null)}
-      onPointerLeave={() => setPressedBar(null)}
-      onPointerCancel={() => setPressedBar(null)}
-      onContextMenu={(e) => e.preventDefault()}
-      className="flex items-center justify-center">
-      <div className={cn("w-full h-[70%] rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "v" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
-        {barVNumber}
+    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="flex flex-col gap-1">
+      <div className="flex-1 min-h-0 flex flex-col gap-1">
+        {["vt0", "vt1", "vt2"].map(smallButton)}
+      </div>
+      <div className="h-2/3 shrink-0"
+        onPointerDown={() => setPressedBar("v")}
+        onPointerUp={() => setPressedBar(null)}
+        onPointerLeave={() => setPressedBar(null)}
+        onPointerCancel={() => setPressedBar(null)}
+        onContextMenu={(e) => e.preventDefault()}>
+        <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+          pressedBar === "v" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
+          {barVNumber}
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 flex flex-col gap-1">
+        {["vb0", "vb1", "vb2"].map(smallButton)}
       </div>
     </div>
   ) : (
-    <div
-      style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }}
-      onPointerDown={(e) => onBarPointerDown(e, "v")}
-      onPointerUp={cancelDrag}
-      onPointerCancel={cancelDrag}
-      onClick={() => toggleBarNumber("barVNumber")}
-      onContextMenu={(e) => e.preventDefault()}
-      className={cn("flex items-center justify-center", dragBar === "v" ? "cursor-grabbing" : "cursor-grab")}>
-      <div className={cn("w-full h-[70%] rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "v" ? "bg-white/30 border-white/70" : "bg-amber/15 border-amber/50")}>
-        {barVNumber}
+    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="flex flex-col gap-1">
+      <div className="flex-1 min-h-0 flex flex-col gap-1">
+        {["vt0", "vt1", "vt2"].map(smallButton)}
+      </div>
+      <div
+        onPointerDown={(e) => onBarPointerDown(e, "v")}
+        onPointerUp={cancelDrag}
+        onPointerCancel={cancelDrag}
+        onClick={() => toggleBarNumber("barVNumber")}
+        onContextMenu={(e) => e.preventDefault()}
+        className={cn("h-2/3 shrink-0", dragBar === "v" ? "cursor-grabbing" : "cursor-grab")}>
+        <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+          dragBar === "v" ? "bg-white/30 border-white/70" : "bg-amber/15 border-amber/50")}>
+          {barVNumber}
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 flex flex-col gap-1">
+        {["vb0", "vb1", "vb2"].map(smallButton)}
       </div>
     </div>
   );

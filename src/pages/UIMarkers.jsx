@@ -17,9 +17,6 @@ export default function UIMarkers() {
             <ArrowLeft size={18} /> Deck
           </Link>
           <div className="font-display font-bold text-lg tracking-wide">UI MARKERS</div>
-          <div className="flex items-center gap-2 text-xs font-body text-signal">
-            <span className="h-2 w-2 rounded-full bg-signal led-pulse" /> SYNC LIVE
-          </div>
         </header>
       )}
       <div className="absolute inset-0">
