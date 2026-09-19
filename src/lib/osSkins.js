@@ -172,18 +172,13 @@ export const SKIN_UI = {
     home: "modern",
   },
   blackberry: {
-    font: '"BBAlpha Sans", "Open Sans", "Segoe UI", Tahoma, sans-serif',
+    font: '"Slate Pro", "Segoe UI", "Open Sans", Tahoma, sans-serif',
+    layout: "bb",
     clock: { size: 36, weight: 500, style: { letterSpacing: "0.02em" } },
-    status: {
-      className: "font-normal text-[10px]",
-      style: {
-        backgroundImage: "linear-gradient(180deg, #1c2838 0%, #0a121d 100%)",
-        borderBottom: "1px solid rgba(255,255,255,0.18)",
-      },
-    },
+    status: { className: "font-normal text-[13px] text-[#D1D5DB]" },
     dock: { hidden: true },
     lock: { method: "none", layout: "bb" },
-    home: "trackpad",
+    home: "webos",
   },
   winphone: {
     font: '"Segoe UI", "Segoe WP", Tahoma, sans-serif',

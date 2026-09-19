@@ -28,6 +28,7 @@ import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
 import { slimConfig } from "@/lib/osConfigStore";
 import LockScreen from "@/components/os/LockScreen";
 import WpTileHome from "@/components/os/WpTileHome";
+import Bb10Home from "@/components/os/Bb10Home";
 import SettingsApp from "@/components/os/apps/SettingsApp";
 import AppStoreApp from "@/components/os/apps/AppStoreApp";
 import { skinUi } from "@/lib/osSkins";
@@ -306,9 +307,9 @@ export default function OS() {
       case "appstore": return <AppStoreApp config={config} update={update} />;
       case null: {
         const ui = skinUi(config.skin);
-        return ui.layout === "tiles"
-          ? <WpTileHome config={config} update={update} onOpen={setApp} ui={ui} />
-          : <Homescreen onOpen={setApp} config={config} update={update} />;
+        if (ui.layout === "tiles") return <WpTileHome config={config} update={update} onOpen={setApp} ui={ui} />;
+        if (ui.layout === "bb") return <Bb10Home config={config} update={update} onOpen={setApp} ui={ui} />;
+        return <Homescreen onOpen={setApp} config={config} update={update} />;
       }
       default: return <MockApp app={allAppsById[app]} />;
     }

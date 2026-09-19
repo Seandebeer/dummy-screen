@@ -14,7 +14,7 @@ export const bgPresets = [
   { id: "iphoneos", name: "iPhone OS", dark: "linear-gradient(180deg, #1A222D 0%, #0B0E14 100%)", light: "linear-gradient(180deg, #e9e9ee 0%, #ffffff 100%)" },
   { id: "linen", name: "Linen", dark: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px), linear-gradient(180deg, #43434a 0%, #2a2a30 55%, #191a1f 100%)", light: "repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 4px), linear-gradient(180deg, #d8d5cc 0%, #efece4 100%)" },
   { id: "ios7", name: "OS 7", dark: "linear-gradient(180deg, #123253 0%, #0b1e38 50%, #050d1a 100%)", light: "linear-gradient(180deg, #a7c9ea 0%, #d6e7f8 60%, #ffffff 100%)" },
-  { id: "bb", name: "BlackBerry", dark: "linear-gradient(180deg, #101b2a 0%, #060b13 100%)", light: "linear-gradient(180deg, #c9d4e2 0%, #eef2f8 100%)" },
+  { id: "bb", name: "BlackBerry", dark: "#0A0F14", light: "linear-gradient(180deg, #c9d4e2 0%, #eef2f8 100%)" },
   { id: "wp", name: "Windows", dark: "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1.4px) 0 0 / 18px 18px, #111111", light: "#0a0a0a" },
   { id: "holo", name: "Holo", dark: "repeating-radial-gradient(circle at 78% 42%, rgba(95,166,229,0.09) 0 1px, transparent 1px 26px), radial-gradient(circle at 78% 42%, rgba(42,93,153,0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1420 0%, #090c10 55%, #05080c 100%)", light: "linear-gradient(180deg, #b8dbe8 0%, #e8f4f8 100%)" },
   { id: "material", name: "Material", dark: "linear-gradient(180deg, #263238 0%, #11181c 100%)", light: "linear-gradient(180deg, #cfe0e8 0%, #f2f6f8 100%)" },
