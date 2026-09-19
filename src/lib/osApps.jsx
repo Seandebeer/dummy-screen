@@ -1,5 +1,5 @@
 import {
-  Phone, MessageSquare, Mail, Clock, Contact, Settings,
+  Phone, MessageSquare, Mail, Clock, Contact, Settings, Crosshair,
   Cloud, Waves, Croissant, Atom, Bug, Cat, Moon, Radar, Droplets, Rocket,
   Flame, Sparkles, Carrot, Fish, Music, Footprints, Grid3x3, Tv, Egg, Leaf,
   Mountain, Zap, Pencil, FlaskConical, Megaphone, TreePine, Cherry, Orbit, Drum, Gamepad2,
@@ -14,6 +14,7 @@ export const coreApps = [
   { id: "clock", label: "Clock", Icon: Clock, bg: "#FF9F0A" },
   { id: "contacts", label: "Contacts", Icon: Contact, bg: "#5A5D6B" },
   { id: "settings", label: "Settings", Icon: Settings, bg: "#636366" },
+  { id: "uimarkers", label: "Markers", Icon: Crosshair, bg: "#8E8E93" },
 ];
 
 // mock ("downloaded") apps — each with its own tile style

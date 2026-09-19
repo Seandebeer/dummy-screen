@@ -13,7 +13,8 @@ export const bgPresets = [
 
 const defaults = {
   order: allApps.map((a) => a.id),
-  dock: ["phone", "messages", "email", "settings"],
+  dock: ["phone", "messages", "email", "settings", "uimarkers"],
+  uiMarkers: { assignments: {}, barRow: 4 },
   dialCodes: ["026", "034", "049"],
   dialCode: "026",
   contacts: makeDefaultContacts(["026", "034", "049"], "en"),
@@ -38,8 +39,9 @@ function loadConfig() {
       const order = saved.order.filter((id) => known.includes(id));
       known.forEach((id) => { if (!order.includes(id)) order.push(id); });
       const dock = Array.isArray(saved.dock)
-        ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
-        : defaults.dock;
+        ? saved.dock.filter((id) => known.includes(id)).slice(0, 5)
+        : [...defaults.dock];
+      if (saved.dockVer !== 2 && !dock.includes("uimarkers")) dock.push("uimarkers");
       const dialCodes = Array.isArray(saved.dialCodes) && saved.dialCodes.length
         ? saved.dialCodes.filter((c) => /^\d{3}$/.test(c)).slice(0, 3)
         : defaults.dialCodes;
@@ -49,7 +51,7 @@ function loadConfig() {
       if (saved.contactsVer !== 2 || saved.contactsLang !== language) {
         contacts = [...makeDefaultContacts(dialCodes, language), ...contacts.filter((c) => c.custom)];
       }
-      return { ...defaults, ...saved, order, dock, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
+      return { ...defaults, ...saved, order, dock, dockVer: 2, uiMarkers: { ...defaults.uiMarkers, ...(saved.uiMarkers || {}) }, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;
