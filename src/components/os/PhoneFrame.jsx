@@ -22,8 +22,8 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
             light ? "text-black" : "text-white"
           )}>
             <span className="font-body">{time}</span>
-            {/* notch */}
-            <div className="absolute left-1/2 top-2 -translate-x-1/2 h-6 w-24 rounded-full bg-black" />
+            {/* mock camera notch - hidden in fullscreen takeover (real device has its own) */}
+            {!bare && <div className="absolute left-1/2 top-2 -translate-x-1/2 h-6 w-24 rounded-full bg-black" />}
             <div className="flex items-center gap-2">
               {/* signal - tap to adjust strength */}
               <button

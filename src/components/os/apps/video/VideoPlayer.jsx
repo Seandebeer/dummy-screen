@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Check, ChevronLeft, Crop, Lock, Maximize2, Minimize2, Pause, Play,
+  Check, ChevronLeft, Crop, Lock, Pause, Play,
   Repeat, Shapes, SkipBack, SkipForward,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -33,7 +33,6 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
   const [time, setTime] = useState(0);
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
-  const [fs, setFs] = useState(false);
   const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
   const [vidRatio, setVidRatio] = useState(null);
   const [trim, setTrim] = useState({ start: video.trimStart || 0, end: video.trimEnd ?? video.duration });
@@ -136,18 +135,6 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
     } catch {}
   };
 
-  const toggleFs = async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await stageRef.current?.requestFullscreen();
-    } catch {}
-  };
-  useEffect(() => {
-    const onFs = () => setFs(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
-
   // the displayed video box - ratio frame, contained (fit) or the full stage
   const boxStyle = () => {
     const r = RATIOS[aspect];
@@ -199,9 +186,6 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
                 {index + 1} of {videos.length} · {fmtDur(trim.end - trim.start)} section
               </div>
             </div>
-            <button onClick={toggleFs} className="rounded-lg bg-white/10 p-1.5 text-white/80 hover:text-white">
-              {fs ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            </button>
             <button onClick={lockScreen} className="rounded-lg bg-white/10 p-1.5 text-white/80 hover:text-white">
               <Lock size={14} />
             </button>

@@ -305,7 +305,7 @@ export default function OS() {
 
   const rtl = config.language === "ar";
   const screen = locked
-    ? <div className="absolute inset-0 pt-9" dir={rtl ? "rtl" : "ltr"}><LockScreen config={config} update={update} onUnlock={handleUnlock} notifications={config.notifications || []} onOpenNotification={openNotification} /></div>
+    ? <div className="absolute inset-0" dir={rtl ? "rtl" : "ltr"}><LockScreen config={config} update={update} onUnlock={handleUnlock} notifications={config.notifications || []} onOpenNotification={openNotification} /></div>
     : app === null
       ? renderApp()
       : <div className="absolute inset-0 pt-9" dir={rtl ? "rtl" : "ltr"}>{renderApp()}</div>;

@@ -202,7 +202,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
               <span className="text-sm font-medium">{suggestion.name}</span>
             </button>
           )}
-          <textarea autoFocus={false} value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={6} placeholder="iMessage"
+          <textarea autoFocus={false} value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={6} placeholder="message"
             className={cn("w-full bg-transparent text-sm outline-none resize-none mt-3", dark ? "placeholder:text-white/30" : "placeholder:text-black/30")} />
         </div>
         <div className="flex items-center justify-center gap-2 px-4 pb-4">
