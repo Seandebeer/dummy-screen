@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Download, Loader2, LogOut, Save, Trash2, UserRound } from "lucide-react";
+import { Camera, Download, KeyRound, Loader2, LogOut, Share2, Trash2, UserRound } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
-import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
+import { useToast } from "@/components/ui/use-toast";
+import { applyOsConfig } from "@/lib/osConfigStore";
 
 export default function ProfilePanel() {
   const { user, isAuthenticated, isLoadingAuth, logout, checkUserAuth } = useAuth();
@@ -45,18 +46,30 @@ export default function ProfilePanel() {
     setBusy(false);
   };
 
-  const saveProfile = async () => {
-    const config = readCurrentOsConfig();
-    if (!config || busy) return;
-    const name = window.prompt("Name this layout profile:", user?.full_name || "My phone");
-    if (!name) return;
-    setBusy(true);
+  const [designation, setDesignation] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => { setDesignation(user?.designation || ""); }, [user?.designation]);
+
+  const saveDesignation = async () => {
+    const val = designation.trim();
+    if (val === (user?.designation || "")) return;
+    setSavingTitle(true);
+    try { await base44.auth.updateMe({ designation: val }); } finally { setSavingTitle(false); }
+  };
+
+  // share the app - the App Store / Google Play link lands here once published
+  const shareApp = async () => {
+    const storeUrl = null;
+    const text = storeUrl
+      ? `Get PropSync: ${storeUrl}`
+      : "PropSync - coming soon to the App Store and Google Play";
     try {
-      await base44.entities.OsProfile.create({ name: name.trim() || "My phone", config: JSON.stringify(slimConfig(config)) });
-      refresh();
-    } finally {
-      setBusy(false);
-    }
+      if (navigator.share) { await navigator.share({ title: "PropSync", text, ...(storeUrl ? { url: storeUrl } : {}) }); return; }
+      await navigator.clipboard.writeText(text);
+      toast({ description: "Copied - store links coming soon" });
+    } catch {}
   };
 
   const loadProfile = (p) => {
@@ -120,17 +133,34 @@ export default function ProfilePanel() {
         </button>
       </div>
 
-      <button onClick={saveProfile} disabled={busy}
-        className="flex items-center justify-center gap-2 rounded-lg border border-amber/40 bg-amber/10 py-2.5 text-xs font-body font-semibold text-amber hover:bg-amber/20 disabled:opacity-40 transition">
-        <Save size={14} /> Save this screen's OS layout as a profile
-      </button>
+      <div className="flex flex-col gap-2">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-body mb-1.5">Designation / Title</div>
+          <div className="flex items-center gap-2">
+            <input value={designation} onChange={(e) => setDesignation(e.target.value)} onBlur={saveDesignation}
+              placeholder="e.g. Prop Master"
+              className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-body outline-none focus:border-amber/50" />
+            {savingTitle && <Loader2 size={14} className="animate-spin text-muted-foreground shrink-0" />}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => navigate("/forgot-password")}
+            className="flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-xs font-body font-semibold text-muted-foreground hover:text-foreground transition">
+            <KeyRound size={14} /> Reset password
+          </button>
+          <button onClick={shareApp}
+            className="flex items-center justify-center gap-2 rounded-lg border border-signal/40 bg-signal/10 py-2.5 text-xs font-body font-semibold text-signal hover:bg-signal/20 transition">
+            <Share2 size={14} /> Share App
+          </button>
+        </div>
+      </div>
 
       <div>
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-body mb-2">Saved profiles</div>
         {profiles === null ? (
           <div className="py-4 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={16} /></div>
         ) : profiles.length === 0 ? (
-          <p className="py-3 text-center text-xs text-muted-foreground font-body">No profiles yet - save one above, then load it on any phone.</p>
+          <p className="py-3 text-center text-xs text-muted-foreground font-body">No saved profiles yet - load one on any phone.</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {profiles.map((p) => (
