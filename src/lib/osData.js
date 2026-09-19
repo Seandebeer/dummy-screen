@@ -21,16 +21,21 @@ export const initialsFor = (name) => {
   return words.slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 };
 
-// 100 localized default contacts — names follow the selected language
-export const makeDefaultContacts = (dialCode = "026", lang = "en") =>
+// stable pseudo-random 0..1 from a seed — numbers stay consistent across regenerations
+const seeded = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+// 100 localized default contacts — each number starts with one of the active
+// dial codes (first 3 digits); the rest of the number is deterministically randomized
+export const makeDefaultContacts = (codes = ["026", "034", "049"], lang = "en") =>
   makeNames(lang).map((name, i) => {
-    const suffix = `555 ${1000 + i}`;
+    const code = codes[Math.floor(seeded(i + 1) * codes.length)] ?? codes[0];
+    const rest = String(Math.floor(seeded(i + 997) * 10000000)).padStart(7, "0");
     return {
       id: `d${i}`,
       name,
-      suffix,
+      suffix: rest,
       custom: false,
-      number: contactNumber(dialCode, suffix),
+      number: `${code} ${rest.slice(0, 3)} ${rest.slice(3)}`,
       email: `user${String(i + 1).padStart(3, "0")}@setmail.co`,
       initials: initialsFor(name),
       color: AVATAR_COLORS[i % AVATAR_COLORS.length],

@@ -174,7 +174,7 @@ export default function OS() {
     switch (app) {
       case "phone": return <PhoneApp onCall={startLocalCall} recents={config.callLog || []} language={config.language} />;
       case "contacts": return (
-        <ContactsApp contacts={config.contacts} dialCode={config.dialCode} update={update}
+        <ContactsApp contacts={config.contacts} dialCode={config.dialCode} language={config.language} update={update}
           onCall={startLocalCall}
           onMessage={(c) => { setMessageTo(c); setApp("messages"); }}
           onEmail={(c) => { setEmailTo(c); setApp("email"); }} />

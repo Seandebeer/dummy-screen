@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Search, Plus, Phone, MessageSquare, Mail, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uiFor } from "@/lib/osLanguages";
 
 const inputCls = "w-full rounded-xl bg-white/10 px-4 py-2.5 text-sm outline-none border border-white/10 focus:border-[#0A84FF] placeholder:text-white/30";
 
-export default function ContactsApp({ contacts = [], dialCode = "026", update, onCall, onMessage, onEmail }) {
+export default function ContactsApp({ contacts = [], dialCode = "026", language = "en", update, onCall, onMessage, onEmail }) {
+  const t = uiFor(language);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -46,9 +48,9 @@ export default function ContactsApp({ contacts = [], dialCode = "026", update, o
     return (
       <div className="h-full bg-black text-white flex flex-col">
         <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-          <button onClick={() => setEditing(null)} className="text-sm text-[#0A84FF]">Cancel</button>
-          <span className="text-sm font-medium">{editing.id ? "Edit Contact" : "New Contact"}</span>
-          <button onClick={save} disabled={!editing.name.trim()} className="text-sm font-semibold text-[#0A84FF] disabled:text-white/25">Save</button>
+          <button onClick={() => setEditing(null)} className="text-sm text-[#0A84FF]">{t.cancel}</button>
+          <span className="text-sm font-medium">{editing.id ? t.editContact : t.newContact}</span>
+          <button onClick={save} disabled={!editing.name.trim()} className="text-sm font-semibold text-[#0A84FF] disabled:text-white/25">{t.save}</button>
         </div>
         <div className="flex-1 overflow-auto no-scrollbar px-5 py-5 space-y-4">
           <div className="flex flex-col items-center pb-2">
@@ -84,9 +86,9 @@ export default function ContactsApp({ contacts = [], dialCode = "026", update, o
     return (
       <div className="h-full bg-black text-white flex flex-col">
         <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-          <button onClick={() => setSelectedId(null)} className="flex items-center gap-1 text-sm text-[#0A84FF]">Contacts</button>
+          <button onClick={() => setSelectedId(null)} className="flex items-center gap-1 text-sm text-[#0A84FF]">{t.contacts}</button>
           <span className="text-sm font-medium truncate max-w-[45%]">{selected.name}</span>
-          <button onClick={() => startEdit(selected)} className="text-sm text-[#0A84FF]">Edit</button>
+          <button onClick={() => startEdit(selected)} className="text-sm text-[#0A84FF]">{t.edit}</button>
         </div>
         <div className="flex flex-col items-center py-8 border-b border-white/10">
           <div className="h-24 w-24 rounded-full flex items-center justify-center font-display text-3xl font-bold mb-3"
@@ -97,16 +99,16 @@ export default function ContactsApp({ contacts = [], dialCode = "026", update, o
         <div className="flex justify-center gap-6 py-5">
           <button onClick={() => onCall?.(selected)} className="flex flex-col items-center gap-1.5">
             <span className="h-14 w-14 rounded-full bg-[#34C759] flex items-center justify-center"><Phone size={22} className="text-black" /></span>
-            <span className="text-xs text-[#34C759]">call</span>
+            <span className="text-xs text-[#34C759]">{t.call}</span>
           </button>
           <button onClick={() => onMessage?.(selected)} className="flex flex-col items-center gap-1.5">
             <span className="h-14 w-14 rounded-full bg-[#34C759] flex items-center justify-center"><MessageSquare size={22} className="text-black" /></span>
-            <span className="text-xs text-[#34C759]">message</span>
+            <span className="text-xs text-[#34C759]">{t.message}</span>
           </button>
           <button onClick={() => onEmail?.(selected)} disabled={!selected.email}
             className="flex flex-col items-center gap-1.5 disabled:opacity-35">
             <span className="h-14 w-14 rounded-full bg-[#0A84FF] flex items-center justify-center"><Mail size={22} className="text-black" /></span>
-            <span className="text-xs text-[#0A84FF]">email</span>
+            <span className="text-xs text-[#0A84FF]">{t.email}</span>
           </button>
         </div>
         <div className="px-6 space-y-3 text-sm flex-1 overflow-auto no-scrollbar">
@@ -114,7 +116,7 @@ export default function ContactsApp({ contacts = [], dialCode = "026", update, o
           {selected.email && <div className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/40">email</span><span className="font-body">{selected.email}</span></div>}
           <div className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/40">notes</span><span className="text-white/70">Prop dept — primary</span></div>
         </div>
-        <button onClick={() => setSelectedId(null)} className="py-4 text-[#0A84FF] font-medium border-t border-white/10">Done</button>
+        <button onClick={() => setSelectedId(null)} className="py-4 text-[#0A84FF] font-medium border-t border-white/10">{t.done}</button>
       </div>
     );
   }
@@ -123,14 +125,14 @@ export default function ContactsApp({ contacts = [], dialCode = "026", update, o
     <div className="h-full bg-black text-white flex flex-col">
       <div className="px-4 pt-2 pb-3">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-2xl font-bold">Contacts</h2>
+          <h2 className="font-display text-2xl font-bold">{t.contacts}</h2>
           <button onClick={startAdd} className="flex items-center gap-1 rounded-full bg-[#0A84FF] px-3 py-1.5 text-xs font-semibold">
-            <Plus size={14} /> Add
+            <Plus size={14} /> {t.add}
           </button>
         </div>
         <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
           <Search size={16} className="text-white/40" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="bg-transparent outline-none text-sm flex-1 placeholder:text-white/30" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search} className="bg-transparent outline-none text-sm flex-1 placeholder:text-white/30" />
         </div>
       </div>
       <div className="flex-1 overflow-auto no-scrollbar px-4">
@@ -145,7 +147,7 @@ export default function ContactsApp({ contacts = [], dialCode = "026", update, o
               </div>
             </button>
           ))}
-          {filtered.length === 0 && <div className="text-center text-white/40 py-10 text-sm">No contacts</div>}
+          {filtered.length === 0 && <div className="text-center text-white/40 py-10 text-sm">{t.noContacts}</div>}
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { LayoutGrid } from "lucide-react";
 import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
+import { uiFor } from "@/lib/osLanguages";
 import IconTile from "./IconTile";
 import AppLibrary from "./AppLibrary";
 import ClockEditor from "./ClockEditor";
@@ -24,6 +25,7 @@ export default function Homescreen({ config, update, onOpen }) {
   const lastDrop = useRef(null);
 
   const light = config.theme === "light";
+  const t = uiFor(config.language);
   const now = new Date();
   const time = config.clock.mode === "custom" && config.clock.time
     ? config.clock.time
@@ -216,7 +218,7 @@ export default function Homescreen({ config, update, onOpen }) {
         <button onClick={() => setLibrary(true)}
           className={cn("absolute right-3.5 top-8 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-body uppercase tracking-wider backdrop-blur transition",
             light ? "bg-black/10 border-black/15 text-black/70 hover:bg-black/20" : "bg-white/10 border-white/15 text-white/80 hover:bg-white/20")}>
-          <LayoutGrid size={12} /> Apps
+          <LayoutGrid size={12} /> {t.apps}
         </button>
       </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { allApps } from "@/lib/osApps";
-import { makeDefaultContacts, remapContacts } from "@/lib/osData";
+import { makeDefaultContacts } from "@/lib/osData";
 
 const STORAGE_KEY = "takeover-os-config";
 
@@ -14,10 +14,12 @@ export const bgPresets = [
 const defaults = {
   order: allApps.map((a) => a.id),
   dock: ["phone", "messages", "email", "settings"],
+  dialCodes: ["026", "034", "049"],
   dialCode: "026",
-  contacts: makeDefaultContacts("026", "en"),
+  contacts: makeDefaultContacts(["026", "034", "049"], "en"),
   language: "en",
   contactsLang: "en",
+  contactsVer: 2,
   callLog: [],
   theme: "dark",
   clock: { mode: "live", time: "", date: "" },
@@ -38,17 +40,16 @@ function loadConfig() {
       const dock = Array.isArray(saved.dock)
         ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
         : defaults.dock;
-      const legacy = ["082", "083", "084"];
-      const dialCode = legacy.includes(saved.dialCode) ? "026" : (saved.dialCode || defaults.dialCode);
+      const dialCodes = Array.isArray(saved.dialCodes) && saved.dialCodes.length
+        ? saved.dialCodes.filter((c) => /^\d{3}$/.test(c)).slice(0, 3)
+        : defaults.dialCodes;
       const language = saved.language || "en";
-      let contacts = legacy.includes(saved.dialCode)
-        ? remapContacts(saved.contacts || defaults.contacts, dialCode)
-        : (saved.contacts || defaults.contacts);
+      let contacts = saved.contacts || defaults.contacts;
       // (re)generate the 100 localized defaults when the language changed or on legacy data
-      if (saved.contactsLang !== language) {
-        contacts = [...makeDefaultContacts(dialCode, language), ...contacts.filter((c) => c.custom)];
+      if (saved.contactsVer !== 2 || saved.contactsLang !== language) {
+        contacts = [...makeDefaultContacts(dialCodes, language), ...contacts.filter((c) => c.custom)];
       }
-      return { ...defaults, ...saved, order, dock, dialCode, language, contactsLang: language, contacts };
+      return { ...defaults, ...saved, order, dock, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;
