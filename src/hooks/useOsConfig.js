@@ -15,6 +15,7 @@ const defaults = {
   theme: "dark",
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
+  status: { battery: 75, signal: 4, wifi: 3 },
 };
 
 function loadConfig() {
@@ -37,6 +38,8 @@ export default function useOsConfig() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
   }, [config]);
 
-  const update = (patch) => setConfig((c) => ({ ...c, ...patch }));
+  const update = (patch) => setConfig((c) =>
+    typeof patch === "function" ? { ...c, ...patch(c) } : { ...c, ...patch }
+  );
   return { config, update };
 }

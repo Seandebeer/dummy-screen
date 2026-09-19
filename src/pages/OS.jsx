@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Radio } from "lucide-react";
+import { ArrowLeft, Radio, Maximize2, Minimize2 } from "lucide-react";
 import PhoneFrame from "@/components/os/PhoneFrame";
 import Homescreen from "@/components/os/Homescreen";
 import PhoneApp from "@/components/os/apps/PhoneApp";
@@ -17,6 +17,8 @@ import { base44 } from "@/api/base44Client";
 export default function OS() {
   const [app, setApp] = useState(null);
   const { config, update } = useOsConfig();
+  const [fullscreen, setFullscreen] = useState(false);
+  const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
   const [recents, setRecents] = useState([]);
   const callRef = useRef(null);
@@ -68,6 +70,36 @@ export default function OS() {
   // keep ref in sync with current call
   useEffect(() => { callRef.current = call; }, [call]);
 
+  // keep the live status-bar clock fresh
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 15000);
+    return () => clearInterval(t);
+  }, []);
+
+  // browser fullscreen exit (Esc) should also end the takeover
+  useEffect(() => {
+    const onFs = () => { if (!document.fullscreenElement) setFullscreen(false); };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const next = !fullscreen;
+    setFullscreen(next);
+    try {
+      if (next && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      } else if (!next && document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    } catch {}
+  };
+
+  const statusTime = config.clock.mode === "custom" && config.clock.time
+    ? config.clock.time
+    : fmtTime(Date.now());
+  const onStatusChange = (patch) => update({ status: { ...config.status, ...patch } });
+
   const endCall = useCallback(() => {
     setCall((cur) => {
       if (cur) {
@@ -110,16 +142,37 @@ export default function OS() {
           <ArrowLeft size={18} /> Deck
         </Link>
         <div className="font-display font-bold text-lg tracking-wide">OS SIMULATOR</div>
-        <div className="flex items-center gap-2 text-xs font-body text-signal">
-          <span className="h-2 w-2 rounded-full bg-signal led-pulse" /> SYNC LIVE
+        <div className="flex items-center gap-3">
+          <button onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-muted-foreground transition">
+            <Maximize2 size={14} /> <span className="hidden sm:inline">Fullscreen</span>
+          </button>
+          <div className="flex items-center gap-2 text-xs font-body text-signal">
+            <span className="h-2 w-2 rounded-full bg-signal led-pulse" /> SYNC LIVE
+          </div>
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame onHome={() => setApp(null)} light={app === null && config.theme === "light"}>
+        <PhoneFrame onHome={() => setApp(null)} light={app === null && config.theme === "light"}
+          time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {renderApp()}
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
         </PhoneFrame>
       </div>
+      {fullscreen && (
+        <div className="fixed inset-0 z-50 bg-black">
+          <button onClick={toggleFullscreen}
+            className="absolute top-4 right-4 z-50 flex items-center gap-1.5 rounded-lg border border-white/20 bg-black/60 px-3 py-1.5 text-xs font-body text-white backdrop-blur">
+            <Minimize2 size={14} /> Exit
+          </button>
+          <PhoneFrame bare onHome={() => setApp(null)}
+            light={app === null && config.theme === "light"}
+            time={statusTime} status={config.status} onStatusChange={onStatusChange}>
+            {renderApp()}
+            <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
+          </PhoneFrame>
+        </div>
+      )}
       <footer className="px-6 py-3 text-center text-[11px] text-muted-foreground font-body border-t border-border">
         Mock device · channel stage-1 · control deck can drive calls & messages
       </footer>

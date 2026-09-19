@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { LayoutGrid, Image as ImageIcon, Sun, Moon, Loader2 } from "lucide-react";
 import { allApps } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
@@ -15,9 +15,12 @@ export default function Homescreen({ config, update, onOpen }) {
   const [clockEdit, setClockEdit] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(false);
+  const [drag, setDrag] = useState(null);
   const fileRef = useRef(null);
-  const dragIndex = useRef(null);
-  const [draggingId, setDraggingId] = useState(null);
+  const dragRef = useRef(null);
+  const holdTimer = useRef(null);
+  const pointerStart = useRef(null);
+  const suppressClick = useRef(false);
 
   const light = config.theme === "light";
   const now = new Date();
@@ -29,6 +32,7 @@ export default function Homescreen({ config, update, onOpen }) {
     : now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
 
   const apps = config.order.map((id) => allApps.find((a) => a.id === id)).filter(Boolean);
+  const dragApp = drag ? allApps.find((a) => a.id === drag.id) : null;
   const hasImage = config.background.type === "image" && config.background.url;
   const preset = bgPresets.find((p) => p.id === (config.background.preset || "default")) || bgPresets[0];
 
@@ -38,6 +42,7 @@ export default function Homescreen({ config, update, onOpen }) {
 
   // tap on empty background to upload an image
   const onBackgroundTap = (e) => {
+    if (suppressClick.current) { suppressClick.current = false; return; }
     if (e.target.closest("button, a, input, select, textarea, label")) return;
     fileRef.current?.click();
   };
@@ -58,16 +63,80 @@ export default function Homescreen({ config, update, onOpen }) {
     }
   };
 
-  const handleDragEnter = (id) => {
-    const from = dragIndex.current;
-    if (from === null) return;
-    const to = config.order.indexOf(id);
-    if (from === to) return;
-    const next = [...config.order];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    dragIndex.current = to;
-    update({ order: next });
+  const setDragging = (id, x, y) => {
+    dragRef.current = { id, x, y };
+    setDrag({ id, x, y });
+  };
+
+  // live grid reorder while an icon is held & dragged
+  useEffect(() => {
+    if (!drag) return;
+    const move = (e) => {
+      const d = dragRef.current;
+      if (!d) return;
+      dragRef.current = { ...d, x: e.clientX, y: e.clientY };
+      setDrag({ ...d, x: e.clientX, y: e.clientY });
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const targetId = el?.closest?.("[data-app-id]")?.dataset?.appId;
+      if (targetId && targetId !== d.id) {
+        update((c) => {
+          const order = [...c.order];
+          const from = order.indexOf(d.id);
+          const to = order.indexOf(targetId);
+          if (from === -1 || to === -1) return {};
+          const [moved] = order.splice(from, 1);
+          order.splice(to, 0, moved);
+          return { order };
+        });
+      }
+    };
+    const stop = () => {
+      dragRef.current = null;
+      setDrag(null);
+    };
+    const blockScroll = (e) => e.preventDefault();
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+    document.addEventListener("touchmove", blockScroll, { passive: false });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+      document.removeEventListener("touchmove", blockScroll);
+    };
+  }, [drag && drag.id, update]);
+
+  const onTilePointerDown = (e, id) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    suppressClick.current = false;
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+    clearTimeout(holdTimer.current);
+    holdTimer.current = setTimeout(() => {
+      const start = pointerStart.current;
+      if (!start) return;
+      suppressClick.current = true;
+      setDragging(id, start.x, start.y);
+    }, 200);
+  };
+
+  const onTilePointerMove = (e) => {
+    const start = pointerStart.current;
+    if (!start || dragRef.current) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) {
+      clearTimeout(holdTimer.current);
+      pointerStart.current = null;
+    }
+  };
+
+  const cancelHold = () => {
+    clearTimeout(holdTimer.current);
+    pointerStart.current = null;
+  };
+
+  const onTileClick = (id) => {
+    if (suppressClick.current) { suppressClick.current = false; return; }
+    onOpen(id);
   };
 
   const toggleApp = (id) => {
@@ -103,20 +172,22 @@ export default function Homescreen({ config, update, onOpen }) {
       )}
 
       {/* app grid */}
-      <div className="relative flex-1 overflow-y-auto no-scrollbar" onDragOver={(e) => e.preventDefault()}>
+      <div className="relative flex-1 overflow-y-auto no-scrollbar">
         {apps.length === 0 ? (
           <p className={cn("pt-12 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps — open Apps to add some</p>
         ) : (
           <div className="grid grid-cols-4 gap-y-5 gap-x-3 px-5 content-start pt-3 pb-4">
             {apps.map((a) => (
-              <button key={a.id} draggable
-                onDragStart={() => { dragIndex.current = config.order.indexOf(a.id); setDraggingId(a.id); }}
-                onDragEnter={() => handleDragEnter(a.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnd={() => { dragIndex.current = null; setDraggingId(null); }}
-                onClick={() => onOpen(a.id)}
+              <button key={a.id}
+                data-app-id={a.id}
+                onPointerDown={(e) => onTilePointerDown(e, a.id)}
+                onPointerMove={onTilePointerMove}
+                onPointerUp={cancelHold}
+                onPointerCancel={cancelHold}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={() => onTileClick(a.id)}
                 className={cn("flex flex-col items-center gap-1.5 active:scale-95 transition select-none",
-                  draggingId === a.id && "opacity-40")}>
+                  drag?.id === a.id && "opacity-30")}>
                 <IconTile app={a} />
                 <span className={cn("text-[11px]", light ? "text-black/80" : "text-white/80")}>{a.label}</span>
               </button>
@@ -140,8 +211,18 @@ export default function Homescreen({ config, update, onOpen }) {
       )}
       <div className={cn("relative flex justify-center pb-4 text-[10px] font-body tracking-widest uppercase",
         light ? "text-black/30" : "text-white/30")}>
-        {hasImage ? "tap background to replace image" : "tap background to set image"} · drag icons to rearrange
+        hold &amp; drag icons to rearrange · {hasImage ? "tap background to replace image" : "tap background to set image"}
       </div>
+
+      {/* dragged icon ghost */}
+      {dragApp && (
+        <div className="fixed z-50 pointer-events-none" style={{ left: drag.x, top: drag.y, transform: "translate(-50%, -55%) scale(1.12)" }}>
+          <div className="flex flex-col items-center gap-1 opacity-90">
+            <IconTile app={dragApp} />
+            <span className={cn("text-[11px] font-body", light ? "text-black/80" : "text-white/80")}>{dragApp.label}</span>
+          </div>
+        </div>
+      )}
 
       {library && <AppLibrary order={config.order} onToggle={toggleApp} onClose={() => setLibrary(false)} />}
       {bgPanel && (
