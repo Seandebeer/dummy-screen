@@ -14,22 +14,22 @@
     --card-foreground: 0 0% 100%;
     --popover: 240 6% 11%;
     --popover-foreground: 0 0% 100%;
-    --primary: 211 100% 52%;
+    --primary: 212 92% 58%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 17%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 5% 17%;
     --muted-foreground: 240 4% 60%;
-    --accent: 211 100% 52%;
+    --accent: 212 92% 58%;
     --accent-foreground: 0 0% 100%;
     --destructive: 3 100% 61%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 5% 18%;
     --input: 240 5% 18%;
-    --ring: 211 100% 52%;
+    --ring: 212 92% 58%;
     --signal: 135 64% 50%;
     --alert: 3 100% 61%;
-    --amber: 211 100% 52%;
+    --amber: 212 92% 58%;
     --radius: 1rem;
     --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -82,7 +82,7 @@
   --muted-foreground: 225 10% 42%;
   --border: 220 13% 86%;
   --input: 220 13% 86%;
-  --ring: 211 100% 50%;
+  --ring: 212 92% 55%;
 }
 
 @layer base {
