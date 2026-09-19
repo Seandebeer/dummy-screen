@@ -20,7 +20,7 @@ export default function Home() {
     <div className="min-h-dvh bg-background grid-backdrop">
       <header className="border-b border-border px-8 py-4 flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-body">PropSync</div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-body">PropScreen</div>
           <h1 className="font-display font-bold text-2xl tracking-[0.2em] leading-none mt-1">HOME</h1>
         </div>
         <div className="flex items-center gap-3">
