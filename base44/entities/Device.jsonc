@@ -1,0 +1,33 @@
+{
+  "name": "Device",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "phone",
+        "tablet",
+        "screen",
+        "remote"
+      ],
+      "default": "phone"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "online",
+        "offline"
+      ],
+      "default": "offline"
+    },
+    "project_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

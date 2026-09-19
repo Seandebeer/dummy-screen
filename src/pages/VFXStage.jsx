@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getColor, trackingMarks } from "@/lib/vfxData";
+import { getColor, trackingMarks, vfxColors } from "@/lib/vfxData";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +65,15 @@ export default function VFXStage() {
               isLight ? "bg-black/60 text-white" : "bg-white/15 text-white")}>
               ← Exit
             </Link>
+            <div className="mt-3 flex flex-col gap-2">
+              {vfxColors.map((c) => (
+                <Link key={c.id} to={`/vfx?color=${c.id}&marks=${marksId}`}
+                  title={c.label}
+                  className={cn("h-6 w-6 rounded-full border-2 transition",
+                    colorId === c.id ? "border-amber" : "border-white/40 hover:border-white/80")}
+                  style={{ background: c.hex }} />
+              ))}
+            </div>
           </div>
           <div className="absolute bottom-6 inset-x-0 flex justify-center z-40 pointer-events-none">
             <div className={cn("px-4 py-2 rounded-full text-xs font-body backdrop-blur flex items-center gap-2",

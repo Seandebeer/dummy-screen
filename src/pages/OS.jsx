@@ -9,6 +9,8 @@ import MessagesApp from "@/components/os/apps/MessagesApp";
 import EmailApp from "@/components/os/apps/EmailApp";
 import ClockApp from "@/components/os/apps/ClockApp";
 import CallOverlay from "@/components/os/CallOverlay";
+import MockApp from "@/components/os/apps/MockApp";
+import { allAppsById } from "@/lib/osApps";
 import { base44 } from "@/api/base44Client";
 
 export default function OS() {
@@ -94,7 +96,8 @@ export default function OS() {
       case "messages": return <MessagesApp />;
       case "email": return <EmailApp />;
       case "clock": return <ClockApp />;
-      default: return <Homescreen onOpen={setApp} />;
+      case null: return <Homescreen onOpen={setApp} />;
+      default: return <MockApp app={allAppsById[app]} />;
     }
   };
 
