@@ -52,7 +52,7 @@ export default function Layout() {
   return (
     <div className="min-h-dvh flex bg-background">
       <nav className="w-16 shrink-0 border-r border-border bg-surface flex flex-col items-center py-6 gap-2">
-        <div className="mb-6 h-10 w-10 rounded-lg bg-amber flex items-center justify-center text-background font-display font-bold text-lg">T</div>
+        <div className="mb-6 h-10 w-10 rounded-xl bg-gradient-to-br from-amber to-amber/70 flex items-center justify-center text-background font-display font-bold text-lg shadow-lg shadow-amber/20">T</div>
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -69,7 +69,7 @@ export default function Layout() {
               <>
                 <item.icon size={20} />
                 {isActive && <span className="absolute -left-2 top-1/2 -translate-y-1/2 h-6 w-1 rounded-full bg-amber amber-pulse" />}
-                <span className="absolute left-14 whitespace-nowrap rounded bg-surface border border-border px-2 py-1 text-[11px] font-body opacity-0 group-hover:opacity-100 transition pointer-events-none">{item.label}</span>
+                <span className="absolute left-14 whitespace-nowrap rounded-lg bg-surface border border-border shadow-lg px-2.5 py-1.5 text-[11px] font-body opacity-0 group-hover:opacity-100 transition pointer-events-none">{item.label}</span>
               </>
             )}
           </NavLink>

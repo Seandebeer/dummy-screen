@@ -111,8 +111,12 @@ export default function VFXStage() {
     saveConfig({ kind: "screen", name: name.trim() || "Untitled", colorId, marksId, marks });
   };
 
-  const chip = "rounded-full backdrop-blur border";
-  const chipStyle = isLight ? "bg-black/60 text-white border-white/20" : "bg-white/15 text-white border-white/20";
+  // premium glass system shared by every floating control on the stage
+  const glass = "backdrop-blur-xl border shadow-2xl";
+  const glassStyle = isLight
+    ? "bg-black/55 text-white border-white/15 shadow-black/30"
+    : "bg-black/45 text-white border-white/15 shadow-black/50";
+  const actionBtn = "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-body tracking-wide transition hover:bg-white/15";
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" style={{ background: color.hex }}>
@@ -133,7 +137,7 @@ export default function VFXStage() {
       {/* lock / unlock banner */}
       {banner && (
         <div className="absolute inset-x-0 top-8 flex justify-center pointer-events-none z-50">
-          <div className={cn("px-4 py-2 rounded-full font-display font-bold text-sm tracking-widest", chip, chipStyle)}>
+          <div className={cn("px-5 py-2.5 rounded-full font-display font-bold text-xs tracking-[0.25em]", glass, glassStyle)}>
             {banner}
           </div>
         </div>
@@ -142,91 +146,94 @@ export default function VFXStage() {
       {/* unlocked controls */}
       {!locked && (
         <>
-          <div className="absolute top-4 left-4 z-40">
-            <Link to="/" className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-body", chip, chipStyle)}>
+          <div className="absolute top-5 left-5 z-40">
+            <Link to="/" className={cn("flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-display font-semibold uppercase tracking-[0.15em]", glass, glassStyle)}>
               ← Exit
             </Link>
-            <div className="mt-3 flex flex-col gap-2">
+
+            {/* chroma color swatches */}
+            <div className={cn("mt-4 flex flex-col gap-2 rounded-2xl p-2.5 w-max", glass, glassStyle)}>
               {marksId === "checkerboard" ? (
-                <span className={cn("px-3 py-1.5 text-[10px] font-body w-max", chip, chipStyle)}>
-                  Black &amp; white only
-                </span>
+                <span className="px-2 py-1 text-[10px] font-body tracking-wider">Black &amp; white only</span>
               ) : (
                 vfxColors.map((c) => (
                   <Link key={c.id} to={`/vfx?color=${c.id}&marks=${marksId}`}
                     title={c.label}
-                    className={cn("h-6 w-6 rounded-full border-2 transition",
-                      colorId === c.id ? "border-amber" : "border-white/40 hover:border-white/80")}
+                    className={cn("h-7 w-7 rounded-full border border-white/25 transition hover:scale-110",
+                      colorId === c.id ? "ring-2 ring-amber ring-offset-2 ring-offset-black/60" : "hover:border-white/60")}
                     style={{ background: c.hex }} />
                 ))
               )}
             </div>
 
             {/* add markers / save / reset customisation */}
-            {isPoint && (
-              <button onClick={addMarker}
-                className={cn("mt-3 flex items-center gap-1 px-2.5 py-1 text-[10px] font-body", chip, chipStyle)}>
-                <Plus size={11} /> Add
+            <div className={cn("mt-3 flex items-center gap-1 rounded-2xl p-1.5 w-max", glass, glassStyle)}>
+              {isPoint && (
+                <button onClick={addMarker} className={actionBtn}>
+                  <Plus size={12} /> Add
+                </button>
+              )}
+              <button onClick={saveScreen} className={actionBtn}>
+                <Save size={12} /> Save
               </button>
-            )}
-            <button onClick={saveScreen}
-              className={cn("mt-2 flex items-center gap-1 px-2.5 py-1 text-[10px] font-body", chip, chipStyle)}>
-              <Save size={11} /> Save
-            </button>
-            {marksId !== "none" && (
-              <button onClick={resetCustomisation}
-                className={cn("mt-2 flex items-center gap-1 px-2.5 py-1 text-[10px] font-body", chip, chipStyle)}>
-                <RotateCcw size={11} /> Reset
-              </button>
-            )}
+              {marksId !== "none" && (
+                <button onClick={resetCustomisation} className={actionBtn}>
+                  <RotateCcw size={12} /> Reset
+                </button>
+              )}
+            </div>
           </div>
 
           {/* vertical size / thickness sliders — right edge */}
           {marksId !== "none" && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-40 flex gap-2">
-              <div className={cn("flex flex-col items-center gap-2 rounded-2xl px-2.5 py-3", chip, chipStyle)}>
-                <span className="text-[9px] font-body">Size</span>
-                <Slider orientation="vertical" className="h-28" value={[marks.scale]} min={0.5} max={3} step={0.25}
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 z-40 flex gap-3">
+              <div className={cn("flex flex-col items-center gap-3 rounded-2xl px-3 py-4", glass, glassStyle)}>
+                <span className="text-[9px] font-body uppercase tracking-[0.2em]">Size</span>
+                <Slider orientation="vertical" className="h-32" value={[marks.scale]} min={0.5} max={3} step={0.25}
                   onValueChange={([v]) => update((m) => ({ scale: v }))} />
+                <span className="text-[9px] font-body opacity-70">{Number(marks.scale.toFixed(2))}×</span>
               </div>
               {marksId !== "checkerboard" && (
-                <div className={cn("flex flex-col items-center gap-2 rounded-2xl px-2.5 py-3", chip, chipStyle)}>
-                  <span className="text-[9px] font-body">Thick</span>
-                  <Slider orientation="vertical" className="h-28" value={[marks.thickness]} min={0.5} max={3} step={0.25}
+                <div className={cn("flex flex-col items-center gap-3 rounded-2xl px-3 py-4", glass, glassStyle)}>
+                  <span className="text-[9px] font-body uppercase tracking-[0.2em]">Thick</span>
+                  <Slider orientation="vertical" className="h-32" value={[marks.thickness]} min={0.5} max={3} step={0.25}
                     onValueChange={([v]) => update((m) => ({ thickness: v }))} />
+                  <span className="text-[9px] font-body opacity-70">{Number(marks.thickness.toFixed(2))}×</span>
                 </div>
               )}
             </div>
           )}
 
+          {/* tracking mark styles */}
+          <div className={cn("absolute top-5 right-5 z-40 flex flex-wrap justify-end gap-1 rounded-2xl p-1.5 max-w-[320px]", glass, glassStyle)}>
+            {trackingMarks.map((m) => (
+              <Link key={m.id} to={`/vfx?color=${colorId}&marks=${m.id}`}
+                className={cn("rounded-full px-3 py-1.5 text-[10px] font-body uppercase tracking-wider transition",
+                  marksId === m.id ? "bg-amber text-black font-semibold" : "hover:bg-white/15")}>
+                {m.name}
+              </Link>
+            ))}
+          </div>
+
           {isPoint && (
             <div className="absolute bottom-16 inset-x-0 flex justify-center z-40 pointer-events-none">
-              <div className={cn("px-3 py-1 rounded-full text-[10px] font-body", chip, chipStyle)}>
+              <div className={cn("px-3.5 py-1.5 rounded-full text-[10px] font-body tracking-wide", glass, glassStyle)}>
                 Hold &amp; drag to move · tap to remove
               </div>
             </div>
           )}
           <div className="absolute bottom-6 inset-x-0 flex justify-center z-40 pointer-events-none">
-            <div className={cn("px-4 py-2 rounded-full text-xs font-body flex items-center gap-2", chip, chipStyle)}>
+            <div className={cn("px-4 py-2 rounded-full text-[11px] font-body tracking-wide flex items-center gap-2", glass, glassStyle)}>
               <span className="h-1.5 w-1.5 rounded-full bg-amber amber-pulse" />
               3-Finger Tap to Lock / Unlock
             </div>
-          </div>
-          <div className="absolute top-4 right-4 z-40 flex flex-wrap justify-end gap-2 max-w-[280px]">
-            {trackingMarks.map((m) => (
-              <Link key={m.id} to={`/vfx?color=${colorId}&marks=${m.id}`}
-                className={cn("px-2.5 py-1 rounded-full text-[10px] font-body border",
-                  marksId === m.id ? "bg-amber text-black border-amber" : chipStyle)}>
-                {m.name}
-              </Link>
-            ))}
           </div>
         </>
       )}
 
       {locked && (
         <div className="absolute top-3 right-4 z-40 pointer-events-none">
-          <span className={cn("text-[10px] font-body tracking-widest opacity-60", isLight ? "text-black" : "text-white")}>LOCKED</span>
+          <span className={cn("text-[10px] font-body tracking-[0.25em] opacity-60", isLight ? "text-black" : "text-white")}>LOCKED</span>
         </div>
       )}
     </div>

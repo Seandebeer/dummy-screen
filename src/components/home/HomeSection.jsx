@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 export default function HomeSection({ icon: Icon, title, subtitle, children }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-border bg-surface">
-      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-2.5 p-4">
-        <span className="h-9 w-9 rounded-lg bg-amber/15 text-amber flex items-center justify-center">
+    <div className="rounded-2xl border border-border bg-surface shadow-sm transition hover:border-muted-foreground/25">
+      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-3 p-4">
+        <span className="h-10 w-10 rounded-xl bg-gradient-to-b from-amber/20 to-amber/10 text-amber flex items-center justify-center">
           <Icon size={18} />
         </span>
         <span className="flex-1 text-left">

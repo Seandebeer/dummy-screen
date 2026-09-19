@@ -12,9 +12,12 @@ export default function Home() {
   return (
     <div className="min-h-dvh bg-background grid-backdrop">
       <header className="border-b border-border px-8 py-4 flex items-center justify-between">
-        <h1 className="font-display font-bold text-2xl tracking-wide">HOME</h1>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-body">PropSync</div>
+          <h1 className="font-display font-bold text-2xl tracking-[0.2em] leading-none mt-1">HOME</h1>
+        </div>
         {deviceName && (
-          <span className="rounded-full border border-amber/40 bg-amber/10 px-2.5 py-1 text-[10px] font-body text-amber">{deviceName}</span>
+          <span className="rounded-full border border-amber/40 bg-amber/10 px-3 py-1.5 text-[10px] font-body text-amber">{deviceName}</span>
         )}
       </header>
 
