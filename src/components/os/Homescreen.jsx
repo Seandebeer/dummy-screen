@@ -306,9 +306,14 @@ export default function Homescreen({ config, update, onOpen }) {
       <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
         <button onClick={() => setClockEdit(true)} className="flex flex-col items-center">
           <div
-            className={cn("font-display text-[52px] leading-none tracking-[-0.02em]",
-              skin.id === "aqua" ? "font-bold" : skin.id === "android" ? "font-light" : "font-semibold")}
-            style={skin.id === "aqua" ? { textShadow: "0 1px 2px rgba(0,0,0,0.45)" } : undefined}>{time}</div>
+            className={cn("font-display text-[52px] leading-none tracking-[-0.02em] font-semibold",
+              skin.id === "android" && "font-light")}
+            style={skin.id === "aqua" ? {
+              fontSize: 44,
+              fontWeight: 300,
+              color: "rgba(255,255,255,0.95)",
+              textShadow: "0 -1px 0 rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.25)",
+            } : undefined}>{time}</div>
           <div className="text-[13px] mt-1 font-medium opacity-55">{date}</div>
         </button>
         <button onClick={() => setLibrary(true)}
@@ -372,8 +377,14 @@ export default function Homescreen({ config, update, onOpen }) {
       )}
 
       {/* dock - hold & drag apps in / out */}
-      <div className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 px-2 py-2.5",
-        skin.id === "aqua" && "rounded-2xl border border-white/40 bg-gradient-to-b from-[#e2e6ef]/95 to-[#9aa5ba]/95 shadow-[0_2px_8px_rgba(0,0,0,0.35)]",
+      <div
+        style={skin.id === "aqua" ? {
+          backgroundImage:
+            "repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 4px), linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.06) 8%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #3a3f4a 0%, #14161c 100%)",
+          borderTop: "1px solid rgba(255,255,255,0.35)",
+        } : undefined}
+        className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 px-2 py-2.5",
+        skin.id === "aqua" && "rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.45)]",
         skin.id === "android" && "rounded-[1.6rem] border border-white/10 bg-[#16212b]/80 backdrop-blur-2xl",
         skin.id === "modern" && "rounded-[1.9rem] backdrop-blur-2xl",
         skin.id === "modern" && (light ? "bg-white/35" : "bg-white/15"))}>

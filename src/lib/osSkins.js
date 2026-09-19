@@ -11,10 +11,9 @@ export const OS_SKINS = [
   {
     id: "aqua",
     name: "OS 5",
-    desc: "Early-2000s OS 5 - glossy pinstripes, silver dock, candy hardware.",
+    desc: "2011-era OS 5 - glossy icons, dark metal dock, soft wallpaper.",
     preset: "aqua",
-    preview:
-      "repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 5px), linear-gradient(180deg, #6ba3e0, #2f5c94)",
+    preview: "radial-gradient(120% 90% at 30% 15%, rgba(90,130,190,0.5), transparent 60%), linear-gradient(180deg, #0a1526, #050910)",
   },
   {
     id: "android",

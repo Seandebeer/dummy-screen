@@ -21,13 +21,13 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
             className={cn(
               "absolute top-0 inset-x-0 z-30 flex items-center justify-between px-7 pt-3.5 pb-1 text-[13px]",
               skin === "android" ? "font-normal text-[12px] pt-3" : "font-semibold",
-              skin === "aqua" ? "text-white border-b border-white/30" : light ? "text-black" : "text-white"
+              skin === "aqua" ? "text-white font-normal border-b border-white/15" : light ? "text-black" : "text-white"
             )}
             style={skin === "aqua" ? {
               backgroundImage:
-                "repeating-linear-gradient(90deg, rgba(255,255,255,0.22) 0 2px, transparent 2px 4px), linear-gradient(180deg, rgba(120,163,224,0.95), rgba(58,98,158,0.95))",
+                "linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 45%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #303236 0%, #0a0a0a 100%)",
             } : undefined}>
-            <span className="font-body">{time}</span>
+            <span className={cn("font-body", skin === "aqua" && "absolute left-1/2 -translate-x-1/2")}>{time}</span>
             {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
             {!bare && skin === "modern" && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
@@ -76,7 +76,9 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
           {onHome && (
             skin === "aqua" ? (
               <button onClick={onHome} aria-label="Home"
-                className="absolute bottom-2 left-1/2 -translate-x-1/2 h-3.5 w-16 rounded-full border border-black/25 bg-gradient-to-b from-[#dfe4ee] to-[#8f9ab0] shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_1px_2px_rgba(0,0,0,0.4)] transition" />
+                className="absolute bottom-1 left-1/2 -translate-x-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-b from-[#2a2c30] to-[#0d0e10] shadow-[inset_0_1px_1px_rgba(255,255,255,0.25),0_1px_3px_rgba(0,0,0,0.5)] transition">
+                <span className="h-2 w-2 rounded-[2px] border border-white/70 bg-white/10" />
+              </button>
             ) : skin === "android" ? (
               <button onClick={onHome} aria-label="Home"
                 className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1 w-24 rounded-full bg-white/70 hover:bg-white transition" />

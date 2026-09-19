@@ -149,7 +149,19 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   /* OS interface skins: icon shape follows the device's chosen era */
-  [data-os-skin="aqua"] .app-icon-tile { border-radius: 18%; }
+  [data-os-skin="aqua"] .app-icon-tile {
+    border-radius: 22%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+  /* 2011-era gloss: strong top-light sheen over the icon */
+  [data-os-skin="aqua"] .app-icon-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.18) 46%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 52%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28);
+  }
   [data-os-skin="android"] .app-icon-tile { border-radius: 9999px; }
   /* the mock device screen renders with the system font stack for a real phone feel */
   .os-sf {
