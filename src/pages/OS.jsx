@@ -13,6 +13,7 @@ import MockApp from "@/components/os/apps/MockApp";
 import { allAppsById } from "@/lib/osApps";
 import useOsConfig from "@/hooks/useOsConfig";
 import LockScreen from "@/components/os/LockScreen";
+import SettingsApp from "@/components/os/apps/SettingsApp";
 import { base44 } from "@/api/base44Client";
 
 export default function OS() {
@@ -132,6 +133,7 @@ export default function OS() {
       case "messages": return <MessagesApp />;
       case "email": return <EmailApp />;
       case "clock": return <ClockApp />;
+      case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
       case null: return <Homescreen onOpen={setApp} config={config} update={update} />;
       default: return <MockApp app={allAppsById[app]} />;
     }

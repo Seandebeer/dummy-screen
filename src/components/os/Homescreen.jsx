@@ -1,22 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LayoutGrid, Image as ImageIcon, Sun, Moon, Loader2 } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { allApps } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import IconTile from "./IconTile";
 import AppLibrary from "./AppLibrary";
-import BackgroundPanel from "./BackgroundPanel";
 import ClockEditor from "./ClockEditor";
-import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
 export default function Homescreen({ config, update, onOpen }) {
   const [library, setLibrary] = useState(false);
-  const [bgPanel, setBgPanel] = useState(false);
   const [clockEdit, setClockEdit] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(false);
   const [drag, setDrag] = useState(null);
-  const fileRef = useRef(null);
   const dragRef = useRef(null);
   const holdTimer = useRef(null);
   const pointerStart = useRef(null);
@@ -39,29 +33,6 @@ export default function Homescreen({ config, update, onOpen }) {
   const backgroundStyle = hasImage
     ? { backgroundImage: `url(${config.background.url})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: preset[light ? "light" : "dark"] };
-
-  // tap on empty background to upload an image
-  const onBackgroundTap = (e) => {
-    if (suppressClick.current) { suppressClick.current = false; return; }
-    if (e.target.closest("button, a, input, select, textarea, label")) return;
-    fileRef.current?.click();
-  };
-
-  const onFile = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-      update({ background: { type: "image", preset: preset.id, url: file_url } });
-      setUploadError(false);
-    } catch {
-      setUploadError(true);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const setDragging = (id, x, y) => {
     dragRef.current = { id, x, y };
@@ -151,9 +122,8 @@ export default function Homescreen({ config, update, onOpen }) {
     light ? "bg-black/10 border-black/15 text-black/70 hover:bg-black/20" : "bg-white/10 border-white/15 text-white/80 hover:bg-white/20");
 
   return (
-    <div className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle} onClick={onBackgroundTap}>
+    <div className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
       {!hasImage && <div className="grid-backdrop absolute inset-0 opacity-30 pointer-events-none" />}
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
 
       {/* clock — tap to edit */}
       <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
@@ -196,22 +166,9 @@ export default function Homescreen({ config, update, onOpen }) {
         )}
       </div>
 
-      {/* editor toolbar */}
-      <div className="relative flex justify-center gap-2 pb-3">
+      {/* app library */}
+      <div className="relative flex justify-center pb-4">
         <button onClick={() => setLibrary(true)} className={pill}><LayoutGrid size={13} /> Apps</button>
-        <button onClick={() => setBgPanel(true)} className={pill}>
-          {uploading ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />} Background
-        </button>
-        <button onClick={() => update({ theme: light ? "dark" : "light" })} className={pill}>
-          {light ? <Moon size={13} /> : <Sun size={13} />} {light ? "Dark" : "Light"}
-        </button>
-      </div>
-      {uploadError && (
-        <div className="relative text-center text-[10px] text-[#FF453A] font-body pb-1">image upload failed — try again</div>
-      )}
-      <div className={cn("relative flex justify-center pb-4 text-[10px] font-body tracking-widest uppercase",
-        light ? "text-black/30" : "text-white/30")}>
-        hold &amp; drag icons to rearrange · {hasImage ? "tap background to replace image" : "tap background to set image"}
       </div>
 
       {/* dragged icon ghost */}
@@ -225,16 +182,6 @@ export default function Homescreen({ config, update, onOpen }) {
       )}
 
       {library && <AppLibrary order={config.order} onToggle={toggleApp} onClose={() => setLibrary(false)} />}
-      {bgPanel && (
-        <BackgroundPanel
-          background={config.background}
-          uploading={uploading}
-          onPickPreset={(id) => update({ background: { type: "preset", preset: id, url: "" } })}
-          onUpload={() => fileRef.current?.click()}
-          onRemoveImage={() => update({ background: { type: "preset", preset: preset.id, url: "" } })}
-          onClose={() => setBgPanel(false)}
-        />
-      )}
     </div>
   );
 }
