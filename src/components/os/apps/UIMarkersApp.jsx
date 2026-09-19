@@ -1,7 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Lock, RotateCcw, Save } from "lucide-react";
+import { Check, Lock, Palette, RotateCcw, Save, Shapes } from "lucide-react";
 import { saveConfig } from "@/lib/savedConfigs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TrackingMarks } from "@/components/vfx/TrackingMarks";
+import { defaultLayoutFor } from "@/hooks/useScreenMarks";
+import { vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
+
+const MARK_STYLES = [
+  { id: "cross", label: "Cross" },
+  { id: "circles", label: "Targets" },
+  { id: "squares", label: "Squares" },
+  { id: "brackets", label: "Brackets" },
+  { id: "diamond", label: "Diamond" },
+];
 
 const COLS = 5;
 const ROWS = 8;
@@ -14,6 +26,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const vStart = Math.max(1, Math.min(ROWS - 4, markers.barVRow ?? 1));
   const barNumber = markers.barNumber ?? "";
   const barVNumber = markers.barVNumber ?? "";
+  const bgColor = markers.bgColor ?? null;
+  const markStyle = markers.markStyle ?? "none";
 
   // colors follow the mock OS theme (Settings - Themes)
   const light = config.theme === "light";
@@ -70,6 +84,15 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     if (!name) return;
     saveConfig({ kind: "markers", name: name.trim() || "Untitled", uiMarkers: markers });
   };
+
+  // tracking marks: auto contrast against the background
+  const isLightHex = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    if (!m) return false;
+    const n = parseInt(m[1], 16);
+    return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
+  };
+  const markColor = bgColor ? (isLightHex(bgColor) ? "#000000" : "#FFFFFF") : (light ? "#000000" : "#FFFFFF");
 
   // 3-finger tap to unlock
   useEffect(() => {
@@ -229,11 +252,67 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   );
 
   return (
-    <div className={cn("relative h-full overflow-hidden", light ? "bg-[#f2f2f7] text-black" : "bg-[#0b0b0f] text-white")}>
+    <div className={cn("relative h-full overflow-hidden", light ? "text-black" : "text-white")}
+      style={bgColor ? { background: bgColor } : (light ? { background: "#f2f2f7" } : { background: "#0b0b0f" })}>
       {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
         <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button title="Background colour"
+                  className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
+                  <Palette size={11} />
+                  <span className="h-2.5 w-2.5 rounded-full border border-current"
+                    style={bgColor ? { background: bgColor } : (light ? { background: "#0b0b0f" } : { background: "#f2f2f7" })} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="end" className="w-44 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
+                <button onClick={() => saveMarkers({ bgColor: null })}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10">
+                  <span className="h-4 w-4 rounded-full border border-white/25"
+                    style={{ background: light ? "#f2f2f7" : "#0b0b0f" }} />
+                  Theme default
+                  {!bgColor && <Check size={12} className="ml-auto text-amber" />}
+                </button>
+                {vfxColors.map((c) => (
+                  <button key={c.id} onClick={() => saveMarkers({ bgColor: c.hex })}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10">
+                    <span className="h-4 w-4 rounded-full border border-white/25" style={{ background: c.hex }} />
+                    {c.label}
+                    {bgColor === c.hex && <Check size={12} className="ml-auto text-amber" />}
+                  </button>
+                ))}
+                <label className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10 cursor-pointer">
+                  <input type="color" value={bgColor || "#00A651"}
+                    onChange={(e) => saveMarkers({ bgColor: e.target.value })}
+                    className="h-4 w-4 shrink-0 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
+                  Custom colour
+                </label>
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button title="Tracking marks"
+                  className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
+                  <Shapes size={11} /> Marks
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="end" className="w-36 p-1.5 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
+                <button onClick={() => saveMarkers({ markStyle: "none" })}
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider transition hover:bg-white/10">
+                  None
+                  {markStyle === "none" && <Check size={12} className="text-amber" />}
+                </button>
+                {MARK_STYLES.map((s) => (
+                  <button key={s.id} onClick={() => saveMarkers({ markStyle: s.id })}
+                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider transition hover:bg-white/10">
+                    {s.label}
+                    {markStyle === s.id && <Check size={12} className="text-amber" />}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
             <button onClick={saveLayout}
               className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
               <Save size={11} /> Save
@@ -265,6 +344,13 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         {verticalBar}
         {columnFillers}
       </div>
+      {/* tracking marks overlay - follows the chosen background */}
+      {markStyle !== "none" && (
+        <div className="absolute inset-0 pointer-events-none">
+          <TrackingMarks type={markStyle} color={markColor} opacity={0.85} size={0.7}
+            markers={defaultLayoutFor(markStyle)} />
+        </div>
+      )}
       {locked && hint && (
         <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
           <span className={cn("px-3 py-1 rounded-full text-[10px] font-body backdrop-blur", light ? "text-black/50 bg-black/5" : "text-white/50 bg-white/10")}>
