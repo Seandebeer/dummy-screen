@@ -7,7 +7,7 @@ const pt = (id, kind, x, y) => ({ id, kind, x, y });
 // default marker layout for a point style - four corners (+ center for some)
 export const defaultLayoutFor = (style) => {
   const corners = [
-    ["tl", 12, 12], ["tr", 88, 12], ["bl", 12, 88], ["br", 88, 88],
+    ["tl", 16, 16], ["tr", 84, 16], ["bl", 16, 84], ["br", 84, 84],
   ].map(([s, x, y]) => pt(`${style}-${s}`, style, x, y));
   if (style === "squares") return corners;
   return [...corners, pt(`${style}-c`, style === "brackets" ? "diamond" : style, 50, 50)];
