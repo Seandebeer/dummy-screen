@@ -326,7 +326,7 @@ export const categories = [
   },
 ];
 
-const TILE_TYPES = ["flat", "duo", "gloss", "dark", "stripes", "mono", "outline", "ring", "dots", "glass"];
+const TILE_TYPES = ["flat", "duo", "gloss", "dark", "glass", "duo"];
 const DUO_TINTS = ["#A78BFA", "#22C55E", "#60A5FA", "#F472B6", "#FCD34D", "#94A3B8", "#D946EF", "#FF9F0A"];
 
 const luminance = (hex) => {
@@ -339,7 +339,7 @@ const tileFor = (bg, seed) => {
   const L = luminance(bg);
   let pool = TILE_TYPES;
   if (L > 0.62) pool = ["gloss"];
-  else if (L < 0.25) pool = TILE_TYPES.filter((t) => t !== "outline" && t !== "dark");
+  else if (L < 0.25) pool = TILE_TYPES.filter((t) => t !== "dark");
   const type = pool[seed % pool.length];
   const tile = { type };
   if (["duo", "stripes", "dots", "ring"].includes(type)) tile.bg2 = DUO_TINTS[(seed + type.length) % DUO_TINTS.length];

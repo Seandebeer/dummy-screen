@@ -19,11 +19,11 @@ function tileStyle(app) {
     case "duo":
       return { style: { background: `linear-gradient(180deg, ${bg}, ${t.bg2})` }, fg };
     case "stripes":
-      return { style: { background: `repeating-linear-gradient(45deg, ${bg} 0 9px, ${t.bg2} 9px 18px)` }, fg };
+      return { style: { background: `repeating-linear-gradient(135deg, ${bg} 0 12px, ${t.bg2}AA 12px 24px)` }, fg };
     case "dots":
-      return { style: { background: `radial-gradient(${t.bg2} 2.5px, transparent 3px), ${bg}`, backgroundSize: "13px 13px" }, fg };
+      return { style: { background: `radial-gradient(${t.bg2}99 2px, transparent 2.6px), ${bg}`, backgroundSize: "15px 15px" }, fg };
     case "ring":
-      return { style: { background: `repeating-radial-gradient(circle at 30% 25%, ${bg} 0 4px, ${t.bg2} 4px 8px)` }, fg };
+      return { style: { background: `repeating-radial-gradient(circle at 30% 25%, ${bg} 0 5px, ${t.bg2}80 5px 9px)` }, fg };
     case "gloss":
       return { style: { background: `linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 45%, rgba(255,255,255,0) 60%), ${bg}` }, fg };
     case "mono":
@@ -31,7 +31,7 @@ function tileStyle(app) {
     case "dark":
       return { style: { background: "linear-gradient(145deg, #1c1c1e, #0a0a0a)" }, fg: bg };
     case "outline":
-      return { style: { background: `${bg}1f`, border: `2px solid ${bg}` }, fg: t.fg || bg };
+      return { style: { background: `${bg}14`, border: `1.5px solid ${bg}` }, fg: t.fg || bg };
     case "glass":
       return { style: { background: `linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0) 60%), ${bg}` }, fg: "#fff" };
     default: // core apps - clean flat native icon
@@ -49,7 +49,10 @@ export default function IconTile({ app, size = "md" }) {
       className={cn("relative flex items-center justify-center overflow-hidden", s.box, RADIUS)}
       style={style}
     >
-      <Icon size={s.icon} style={{ color: fg }} />
+      {/* polished glass finish: soft top sheen + fine inner highlight */}
+      <span className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_0_0_0.5px_rgba(255,255,255,0.12)]" />
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />
+      <Icon size={s.icon} style={{ color: fg }} className="relative drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.3)]" />
     </span>
   );
 }
