@@ -3,7 +3,7 @@ import { EyeOff } from "lucide-react";
 import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import IconTile from "./IconTile";
-import { skinOf } from "@/lib/osSkins";
+import { skinUi } from "@/lib/osSkins";
 import { formatBadge, normalizeBadge } from "@/lib/osNotifications";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ export default function Homescreen({ config, update, onOpen }) {
   const lastDrop = useRef(null);
 
   const light = config.theme === "light";
-  const skin = skinOf(config);
+  const ui = skinUi(config.skin);
   const now = new Date();
   const time = config.clock.mode === "custom" && config.clock.time
     ? config.clock.time
@@ -287,20 +287,14 @@ export default function Homescreen({ config, update, onOpen }) {
   );
 
   return (
-    <div ref={rootRef} dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
+    <div ref={rootRef} dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={{ ...backgroundStyle, fontFamily: ui.font }}>
 
       {/* clock - tap to edit · apps library top-right */}
       <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
         <button onClick={() => setClockEdit(true)} className="flex flex-col items-center">
           <div
-            className={cn("font-display text-[52px] leading-none tracking-[-0.02em] font-semibold",
-              skin.id === "android" && "font-light")}
-            style={skin.id === "aqua" ? {
-              fontSize: 44,
-              fontWeight: 300,
-              color: "rgba(255,255,255,0.95)",
-              textShadow: "0 -1px 0 rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.25)",
-            } : undefined}>{time}</div>
+            className="font-display text-[52px] leading-none tracking-[-0.02em]"
+            style={{ fontSize: ui.clock.size, fontWeight: ui.clock.weight, fontFamily: ui.font, ...ui.clock.style }}>{time}</div>
           <div className="text-[13px] mt-1 font-medium opacity-55">{date}</div>
         </button>
       </div>
@@ -360,16 +354,9 @@ export default function Homescreen({ config, update, onOpen }) {
 
       {/* dock - hold & drag apps in / out */}
       <div
-        style={skin.id === "aqua" ? {
-          backgroundImage:
-            "repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 4px), linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.06) 8%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #3a3f4a 0%, #14161c 100%)",
-          borderTop: "1px solid rgba(255,255,255,0.35)",
-        } : undefined}
+        style={ui.dock?.style}
         className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 px-2 py-2.5",
-        skin.id === "aqua" && "rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.45)]",
-        skin.id === "android" && "rounded-[1.6rem] border border-white/10 bg-[#16212b]/80 backdrop-blur-2xl",
-        skin.id === "modern" && "rounded-[1.9rem] backdrop-blur-2xl",
-        skin.id === "modern" && (light ? "bg-white/35" : "bg-white/15"))}>
+          ui.dock?.className, light ? ui.dock?.light : ui.dock?.dark)}>
         {DOCK_SLOTS.map((slot) => {
           const appId = dockIds[slot];
           const app = appId ? allAppsById[appId] : null;

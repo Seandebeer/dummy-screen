@@ -11,6 +11,14 @@ export const bgPresets = [
   { id: "mono", name: "Mono", dark: "#0a0a0a", light: "#f2f2f7" },
   { id: "aqua", name: "OS 5", dark: "radial-gradient(120% 90% at 30% 15%, rgba(90,130,190,0.28), transparent 60%), radial-gradient(90% 70% at 80% 85%, rgba(40,70,120,0.3), transparent 60%), linear-gradient(180deg, #0a1526 0%, #050910 100%)", light: "radial-gradient(120% 90% at 30% 15%, rgba(120,160,215,0.35), transparent 60%), linear-gradient(180deg, #cfe0f5 0%, #eaf2fc 60%, #ffffff 100%)" },
   { id: "droid", name: "Tint", dark: "linear-gradient(160deg, #101418 0%, #14202a 55%, #0a0e12 100%)", light: "linear-gradient(160deg, #d3e4f5 0%, #cfe8d8 55%, #f4f7fa 100%)" },
+  { id: "iphoneos", name: "iPhone OS", dark: "linear-gradient(180deg, #0d0e12 0%, #000000 100%)", light: "linear-gradient(180deg, #e9e9ee 0%, #ffffff 100%)" },
+  { id: "linen", name: "Linen", dark: "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px), linear-gradient(180deg, #43434a 0%, #2a2a30 55%, #191a1f 100%)", light: "repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 4px), linear-gradient(180deg, #d8d5cc 0%, #efece4 100%)" },
+  { id: "ios7", name: "OS 7", dark: "linear-gradient(180deg, #123253 0%, #0b1e38 50%, #050d1a 100%)", light: "linear-gradient(180deg, #a7c9ea 0%, #d6e7f8 60%, #ffffff 100%)" },
+  { id: "bb", name: "BlackBerry", dark: "linear-gradient(180deg, #101b2a 0%, #060b13 100%)", light: "linear-gradient(180deg, #c9d4e2 0%, #eef2f8 100%)" },
+  { id: "wp", name: "Windows", dark: "#000000", light: "#0a0a0a" },
+  { id: "holo", name: "Holo", dark: "linear-gradient(180deg, #090c10 0%, #020306 100%)", light: "linear-gradient(180deg, #b8dbe8 0%, #e8f4f8 100%)" },
+  { id: "material", name: "Material", dark: "linear-gradient(180deg, #263238 0%, #11181c 100%)", light: "linear-gradient(180deg, #cfe0e8 0%, #f2f6f8 100%)" },
+  { id: "webos", name: "webOS", dark: "linear-gradient(180deg, #06070d 0%, #10141f 100%)", light: "linear-gradient(180deg, #cfd6e4 0%, #eef1f8 100%)" },
 ];
 
 const defaults = {
