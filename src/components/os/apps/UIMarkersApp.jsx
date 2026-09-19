@@ -14,6 +14,7 @@ const MARK_STYLES = [
   { id: "squares", label: "Squares" },
   { id: "brackets", label: "Brackets" },
   { id: "diamond", label: "Diamond" },
+  { id: "triangle", label: "Triangle" },
 ];
 
 const COLS = 5;

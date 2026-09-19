@@ -22,6 +22,7 @@ const buildDefaults = () => ({
   circles: defaultLayoutFor("circles"),
   squares: defaultLayoutFor("squares"),
   brackets: defaultLayoutFor("brackets"),
+  triangle: defaultLayoutFor("triangle"),
 });
 
 const defaults = { scale: 1, thickness: 1, markColor: null, bgColor: null, bgImage: null, layouts: buildDefaults() };

@@ -19,6 +19,7 @@ export const MARK_STYLES = [
   { id: "squares", label: "Squares" },
   { id: "brackets", label: "Brackets" },
   { id: "diamond", label: "Diamond" },
+  { id: "triangle", label: "Triangle" },
 ];
 
 export const MARK_COLORS = ["#FFFFFF", "#000000", "#FF3B30", "#34C759", "#0A84FF", "#FF9F0A"];

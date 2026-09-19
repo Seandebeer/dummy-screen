@@ -18,6 +18,7 @@ const MARKER_KINDS = [
   { id: "squares", label: "Squares" },
   { id: "brackets", label: "Brackets" },
   { id: "diamond", label: "Diamond" },
+  { id: "triangle", label: "Triangle" },
 ];
 
 const MARK_COLORS = [

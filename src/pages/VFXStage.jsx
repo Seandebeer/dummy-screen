@@ -6,7 +6,7 @@ import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import useScreenMarks, { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import StageToolbar from "@/components/vfx/StageToolbar";
 
-const POINT_STYLES = ["cross", "circles", "squares", "brackets"];
+const POINT_STYLES = ["cross", "circles", "squares", "brackets", "triangle"];
 
 export default function VFXStage() {
   const [params] = useSearchParams();

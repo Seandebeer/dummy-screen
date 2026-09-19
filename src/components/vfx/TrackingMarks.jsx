@@ -70,6 +70,13 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
       const d = 44 * size;
       return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />);
     }
+    if (kind === "triangle") {
+      const s = 52 * size;
+      return spin(0, <svg className="absolute" width={s} height={s} viewBox="0 0 24 24"
+        fill="none" style={{ transform: "translate(-50%, -50%)" }}>
+        <path d="M12 2.5 L22 21 H2 Z" stroke={fill} strokeWidth={4.5 * thickness} strokeLinejoin="round" />
+      </svg>);
+    }
     if (kind === "brackets") {
       const L = 40 * size;
       const th = Math.max(3, 14 * thickness);

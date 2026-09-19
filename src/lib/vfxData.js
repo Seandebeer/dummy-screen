@@ -15,6 +15,7 @@ export const trackingMarks = [
   { id: "squares", name: "Square" },
   { id: "dots", name: "Dots" },
   { id: "brackets", name: "Brackets" },
+  { id: "triangle", name: "Triangle" },
 ];
 
 export const getColor = (id) => vfxColors.find((c) => c.id === id) || vfxColors[0];
