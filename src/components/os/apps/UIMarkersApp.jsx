@@ -138,9 +138,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         onClick={locked ? undefined : () => toggleAssign(key)}
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
-          isPressed ? "border-white/50 marker-pulse" : "border-white/10",
-          !locked && assigned != null && "text-white/90",
-          !locked && "hover:border-white/30")}>
+          isPressed ? "border-foreground/50 marker-pulse" : "border-foreground/10",
+          !locked && assigned != null && "text-foreground/90",
+          !locked && "hover:border-foreground/30")}>
         {assigned != null ? assigned : ""}
       </button>
     );
@@ -167,7 +167,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onContextMenu={(e) => e.preventDefault()}
       className="flex items-center justify-center">
       <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "h" ? "border-white/50 marker-pulse" : "border-white/10")}>
+        pressedBar === "h" ? "border-foreground/50 marker-pulse" : "border-foreground/10")}>
         {barNumber}
       </div>
     </div>
@@ -181,7 +181,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onContextMenu={(e) => e.preventDefault()}
       className={cn("flex items-center justify-center", dragBar === "h" ? "cursor-grabbing" : "cursor-grab")}>
       <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "h" ? "border-white/50" : "border-white/10")}>
+        dragBar === "h" ? "border-foreground/50" : "border-foreground/10")}>
         {barNumber}
       </div>
     </div>
@@ -205,7 +205,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        pressedBar === "v" ? "border-white/50 marker-pulse" : "border-white/10")}>
+        pressedBar === "v" ? "border-foreground/50 marker-pulse" : "border-foreground/10")}>
       {barVNumber}
     </div>
   ) : (
@@ -216,27 +216,27 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onClick={() => toggleBarNumber("barVNumber")}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "v" ? "border-white/50 cursor-grabbing" : "border-white/10 cursor-grab")}>
+        dragBar === "v" ? "border-foreground/50 cursor-grabbing" : "border-foreground/10 cursor-grab")}>
       {barVNumber}
     </div>
   );
 
   return (
-    <div className="relative h-full bg-[#0b0b0f] overflow-hidden">
+    <div className="relative h-full bg-background overflow-hidden">
       {/* floating edit HUD — hidden when locked, never affects the grid layout */}
       {!locked && (
         <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
             <button onClick={saveLayout}
-              className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 text-[10px] font-body text-white/70 hover:text-white transition">
+              className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
               <Save size={11} /> Save
             </button>
             <button onClick={resetNumbers}
-              className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 text-[10px] font-body text-white/70 hover:text-white transition">
+              className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
               <RotateCcw size={11} /> Reset
             </button>
             <button onClick={lock}
-              className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 text-[10px] font-body text-white/70 hover:text-white transition">
+              className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
               <Lock size={11} /> Lock
             </button>
           </div>
@@ -252,7 +252,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       </div>
       {locked && hint && (
         <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
-          <span className="px-3 py-1 rounded-full text-[10px] font-body text-white/70 bg-white/10 backdrop-blur">
+          <span className="px-3 py-1 rounded-full text-[10px] font-body text-muted-foreground bg-muted backdrop-blur">
             3-finger tap to unlock
           </span>
         </div>
