@@ -86,6 +86,7 @@ export const SKIN_UI = {
     clock: { size: 52, weight: 600 },
     status: { className: "font-semibold" },
     dock: { className: "rounded-[1.9rem] backdrop-blur-2xl", light: "bg-white/35", dark: "bg-white/15" },
+    lock: { method: "none" },
     home: "modern",
   },
   aqua: {
@@ -107,6 +108,7 @@ export const SKIN_UI = {
         borderTop: "1px solid rgba(255,255,255,0.35)",
       },
     },
+    lock: { method: "slide", layout: "ios" },
     home: "aqua",
   },
   iphoneos: {
@@ -130,6 +132,7 @@ export const SKIN_UI = {
         boxShadow: "0 -2px 8px rgba(0,0,0,0.55)",
       },
     },
+    lock: { method: "slide", layout: "ios" },
     home: "aqua",
   },
   ios6: {
@@ -152,6 +155,7 @@ export const SKIN_UI = {
         borderTop: "1px solid rgba(255,255,255,0.32)",
       },
     },
+    lock: { method: "slide", layout: "ios" },
     home: "aqua",
   },
   ios7: {
@@ -159,6 +163,7 @@ export const SKIN_UI = {
     clock: { size: 50, weight: 200 },
     status: { className: "font-normal text-[12px]", style: { background: "rgba(0,0,0,0.12)" } },
     dock: { className: "rounded-[1.4rem] backdrop-blur-2xl", light: "bg-white/40", dark: "bg-white/15" },
+    lock: { method: "slide", layout: "ios7" },
     home: "modern",
   },
   blackberry: {
@@ -172,6 +177,7 @@ export const SKIN_UI = {
       },
     },
     dock: { hidden: true },
+    lock: { method: "none", layout: "bb" },
     home: "trackpad",
   },
   winphone: {
@@ -179,6 +185,7 @@ export const SKIN_UI = {
     clock: { size: 64, weight: 200, style: { letterSpacing: "-0.01em" } },
     status: { className: "font-normal text-[10px] pt-2.5" },
     dock: { hidden: true, arrow: "wp" },
+    lock: { method: "none", layout: "wp" },
     home: "wp",
   },
   holo: {
@@ -192,6 +199,7 @@ export const SKIN_UI = {
       },
     },
     dock: { drawer: "center" },
+    lock: { method: "ring", layout: "holo" },
     home: "holo",
   },
   material: {
@@ -202,6 +210,7 @@ export const SKIN_UI = {
       style: { backgroundImage: "linear-gradient(180deg, #2c3944 0%, #171f25 100%)" },
     },
     dock: { drawer: "center" },
+    lock: { method: "none" },
     home: "holo",
   },
   android: {
@@ -209,6 +218,7 @@ export const SKIN_UI = {
     clock: { size: 52, weight: 300 },
     status: { className: "font-normal text-[12px] pt-3" },
     dock: { drawer: "center" },
+    lock: { method: "none" },
     home: "android",
   },
   webos: {
@@ -220,6 +230,7 @@ export const SKIN_UI = {
       className: "mx-0 rounded-none px-2 pb-1.5",
       style: { backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.5) 100%)" },
     },
+    lock: { method: "none" },
     home: "webos",
   },
 };

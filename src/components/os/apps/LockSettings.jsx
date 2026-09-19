@@ -1,15 +1,18 @@
 import React, { useState, useRef } from "react";
-import { Hash, Grid3x3, ScanFace, Fingerprint, Upload, Trash2, Loader2, Check, LockOpen } from "lucide-react";
+import { Hash, Grid3x3, ScanFace, Fingerprint, Upload, Trash2, Loader2, Check, Sparkles, ChevronsRight, CircleDot, ChevronUp } from "lucide-react";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
 const METHODS = [
+  { id: "none", label: "Skin Default", hint: "era-accurate for this skin", Icon: Sparkles },
+  { id: "slide", label: "Slide to Unlock", hint: "drag the slider right", Icon: ChevronsRight },
+  { id: "ring", label: "Unlock Ring", hint: "drag the lock into the ring", Icon: CircleDot },
   { id: "passcode", label: "Passcode", hint: "4-digit keypad", Icon: Hash },
   { id: "pattern", label: "Pattern", hint: "connect-the-dots", Icon: Grid3x3 },
   { id: "face", label: "Face Scan", hint: "scan animation", Icon: ScanFace },
   { id: "fingerprint", label: "Fingerprint", hint: "press & hold sensor", Icon: Fingerprint },
-  { id: "none", label: "None", hint: "swipe up to unlock", Icon: LockOpen },
+  { id: "swipe", label: "Swipe Up", hint: "always swipe up", Icon: ChevronUp },
 ];
 
 const DEFAULT_LOCK = { type: "none", background: { type: "preset", preset: "default", url: "" } };

@@ -5,13 +5,19 @@ import PatternPad from "./PatternPad";
 import FaceScan from "./FaceScan";
 import FingerprintSensor from "./FingerprintSensor";
 import SwipeUpUnlock from "./SwipeUpUnlock";
+import SlideToUnlock from "./SlideToUnlock";
+import RingUnlock from "./RingUnlock";
 import LockNotifications from "./LockNotifications";
 import { bgPresets } from "@/hooks/useOsConfig";
+import { skinUi } from "@/lib/osSkins";
 import { cn } from "@/lib/utils";
 
 export default function LockScreen({ config, update, onUnlock, notifications = [], onOpenNotification }) {
   const lock = config.lockscreen || {};
-  const method = lock.type || "none";
+  const ui = skinUi(config.skin);
+  const lk = ui.lock || {};
+  // "Skin Default" resolves to this skin's era-accurate unlock method
+  const method = lock.type && lock.type !== "none" ? lock.type : (lk.method || "none");
   const light = config.theme === "light";
 
   const [entry, setEntry] = useState("");
@@ -99,42 +105,136 @@ export default function LockScreen({ config, update, onUnlock, notifications = [
         ? stage === "unlock" ? "Draw Pattern" : stage === "set" ? "Draw a Pattern" : "Confirm Pattern"
         : method === "face" ? "Face Scan" : "Fingerprint";
 
+  const textColor = light ? "text-black/85" : "text-white";
+  const rootStyle = { ...backgroundStyle, ...(ui.font ? { fontFamily: ui.font } : {}) };
+
+  // heading + dots + error message for keypad / pattern methods
+  const authStatus = ["passcode", "pattern", "face", "fingerprint"].includes(method) ? (
+    <div className={cn("relative flex flex-col items-center gap-3 mt-6 w-full", textColor)}>
+      <div className="text-[13px] font-body opacity-80">{heading}</div>
+      {method === "passcode" && (
+        <div key={shake} className={cn("flex items-center gap-4 h-4", shake > 0 && "shake")}>
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className={cn("h-3 w-3 rounded-full border transition",
+              i < entry.length
+                ? light ? "bg-black/80 border-black/80" : "bg-white border-white"
+                : light ? "border-black/30" : "border-white/40")} />
+          ))}
+        </div>
+      )}
+      <div className="h-4 text-[11px] font-body text-[#FF453A]">{message}</div>
+    </div>
+  ) : null;
+
+  const methodUi =
+    method === "passcode" ? <PasscodePad light={light} onPress={press} onDelete={() => setEntry((e) => e.slice(0, -1))} />
+      : method === "pattern" ? <PatternPad light={light} clearKey={shake} onComplete={completePattern} />
+      : method === "face" ? <FaceScan light={light} onUnlock={onUnlock} />
+      : method === "fingerprint" ? <FingerprintSensor light={light} onUnlock={onUnlock} />
+      : method === "slide" ? <SlideToUnlock light={light} flat={lk.layout === "ios7"} onUnlock={onUnlock} />
+      : method === "ring" ? <RingUnlock onUnlock={onUnlock} />
+      : <SwipeUpUnlock light={light} onUnlock={onUnlock} />;
+
+  const notifs = <LockNotifications notifications={notifications} light={light} onOpen={onOpenNotification} />;
+
+  // iPhone OS 1 - iOS 6: dark clock bar up top, slider at the bottom
+  if (lk.layout === "ios") {
+    return (
+      <div className="h-full flex flex-col relative overflow-hidden" style={rootStyle}>
+        <div className="pt-10 pb-5 px-6 text-center text-white"
+          style={{ backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)" }}>
+          <div className="text-[14px] font-medium text-white/85">{date}</div>
+          <div className="font-display text-[64px] leading-[1.05] tracking-[-0.02em] mt-0.5"
+            style={{ textShadow: "0 -1px 0 rgba(0,0,0,0.5)" }}>{time}</div>
+        </div>
+        {notifs}
+        {authStatus}
+        <div className="relative mt-auto mb-9 px-4">{methodUi}</div>
+      </div>
+    );
+  }
+
+  // iOS 7: huge thin type, flat slider
+  if (lk.layout === "ios7") {
+    return (
+      <div className="h-full flex flex-col relative overflow-hidden" style={rootStyle}>
+        <div className={cn("pt-11 px-6 text-center", textColor)}>
+          <div className="font-display font-extralight text-[70px] leading-[1] tracking-[-0.02em]">{time}</div>
+          <div className="text-[13px] font-light opacity-75 mt-1.5">{date}</div>
+        </div>
+        {notifs}
+        {authStatus}
+        <div className="relative mt-auto mb-9 px-4">{methodUi}</div>
+      </div>
+    );
+  }
+
+  // Windows Phone: giant left-aligned clock, slide up at the bottom
+  if (lk.layout === "wp") {
+    return (
+      <div className="h-full flex flex-col relative overflow-hidden" style={rootStyle}>
+        <div className={cn("pt-11 px-6", textColor)}>
+          <div className="font-extralight text-[68px] leading-[0.95] tracking-tight">{time}</div>
+          <div className="text-[15px] font-light opacity-75 mt-2">{date}</div>
+        </div>
+        {notifs}
+        {authStatus}
+        <div className="relative mt-auto mb-8">{methodUi}</div>
+      </div>
+    );
+  }
+
+  // Android Holo: ring unlock in the centre
+  if (lk.layout === "holo") {
+    return (
+      <div className="h-full flex flex-col items-center relative overflow-hidden" style={rootStyle}>
+        <div className={cn("pt-11 text-center", textColor)}>
+          <div className="font-extralight text-[56px] leading-none">{time}</div>
+          <div className="text-[12px] opacity-60 mt-1.5">{date}</div>
+        </div>
+        {notifs}
+        {authStatus}
+        <div className="relative flex-1 flex items-center justify-center w-full">{methodUi}</div>
+        <div className="h-8" />
+      </div>
+    );
+  }
+
+  // BlackBerry: banner strip with clock, swipe up below
+  if (lk.layout === "bb") {
+    return (
+      <div className="h-full flex flex-col relative overflow-hidden" style={rootStyle}>
+        <div className="pt-9 px-3">
+          <div className="rounded-[4px] px-3 py-2 text-white"
+            style={{
+              backgroundImage: "linear-gradient(180deg, #223148 0%, #0c1725 100%)",
+              border: "1px solid rgba(255,255,255,0.18)",
+            }}>
+            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-white/75">
+              <span className="flex items-center gap-1"><Lock size={10} /> locked</span>
+              <span>{time}</span>
+            </div>
+            <div className="text-[11px] text-white/55 mt-0.5">{date}</div>
+          </div>
+        </div>
+        {notifs}
+        {authStatus}
+        <div className="relative mt-auto mb-6 w-full flex justify-center">{methodUi}</div>
+      </div>
+    );
+  }
+
+  // default (modern / Material / webOS): centered clock + swipe up
   return (
-    <div className="h-full flex flex-col items-center relative overflow-hidden" style={backgroundStyle}>
-      <div className={cn("relative flex flex-col items-center pt-12", light ? "text-black/85" : "text-white")}>
+    <div className="h-full flex flex-col items-center relative overflow-hidden" style={rootStyle}>
+      <div className={cn("relative flex flex-col items-center pt-12", textColor)}>
         <Lock size={14} className="opacity-70 mb-5" />
         <div className="text-[15px] font-medium opacity-70">{date}</div>
         <div className="font-display text-[72px] leading-[1.02] tracking-[-0.03em] mt-0.5">{time}</div>
       </div>
-
-      <LockNotifications notifications={notifications} light={light} onOpen={onOpenNotification} />
-
-      <div className={cn("relative flex flex-col items-center gap-3 mt-8 w-full", light ? "text-black/85" : "text-white")}>
-        {method !== "none" && <div className="text-[13px] font-body opacity-80">{heading}</div>}
-        {method === "passcode" && (
-          <div key={shake} className={cn("flex items-center gap-4 h-4", shake > 0 && "shake")}>
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className={cn("h-3 w-3 rounded-full border transition",
-                i < entry.length
-                  ? light ? "bg-black/80 border-black/80" : "bg-white border-white"
-                  : light ? "border-black/30" : "border-white/40")} />
-            ))}
-          </div>
-        )}
-        <div className="h-4 text-[11px] font-body text-[#FF453A]">{message}</div>
-      </div>
-
-      <div className="relative mt-auto mb-6 w-full flex justify-center">
-        {method === "passcode" && (
-          <PasscodePad light={light} onPress={press} onDelete={() => setEntry((e) => e.slice(0, -1))} />
-        )}
-        {method === "pattern" && (
-          <PatternPad light={light} clearKey={shake} onComplete={completePattern} />
-        )}
-        {method === "face" && <FaceScan light={light} onUnlock={onUnlock} />}
-        {method === "fingerprint" && <FingerprintSensor light={light} onUnlock={onUnlock} />}
-        {method === "none" && <SwipeUpUnlock light={light} onUnlock={onUnlock} />}
-      </div>
+      {notifs}
+      {authStatus}
+      <div className="relative mt-auto mb-6 w-full flex justify-center">{methodUi}</div>
     </div>
   );
 }
