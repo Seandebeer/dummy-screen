@@ -81,27 +81,51 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
             className={cn("absolute top-0 inset-x-0 z-30 flex items-center justify-between px-7 pt-3.5 pb-1 text-[13px]",
               light ? "text-black" : "text-white", st.className)}
             style={st.style}>
+            {st.carrier && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={edit ? () => onStatusChange({ signal: (s.signal + 1) % 5 }) : undefined}
+                  title="Signal strength"
+                  className="flex h-[11px] items-end gap-[2px]"
+                >
+                  {[4, 6, 8, 11].map((h, i) => (
+                    <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
+                  ))}
+                </button>
+                <button
+                  onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
+                  title="Carrier"
+                  className="text-[13px] font-body"
+                >
+                  {s.signal === 0 ? "-" : (s.network || "5G")}
+                </button>
+              </div>
+            )}
             <span className={cn("font-body", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>{time}</span>
             {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
             {!bare && skin === "modern" && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
               {/* signal - tap to adjust strength */}
-              <button
-                onClick={edit ? () => onStatusChange({ signal: (s.signal + 1) % 5 }) : undefined}
-                title="Signal strength"
-                className="flex h-[11px] items-end gap-[2px]"
-              >
-                {[4, 6, 8, 11].map((h, i) => (
-                  <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
-                ))}
-              </button>
-              <button
-                onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
-                title="Network type"
-                className="text-[10px] font-body"
-              >
-                {s.signal === 0 ? "-" : (s.network || "5G")}
-              </button>
+              {!st.carrier && (
+                <>
+                  <button
+                    onClick={edit ? () => onStatusChange({ signal: (s.signal + 1) % 5 }) : undefined}
+                    title="Signal strength"
+                    className="flex h-[11px] items-end gap-[2px]"
+                  >
+                    {[4, 6, 8, 11].map((h, i) => (
+                      <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
+                    ))}
+                  </button>
+                  <button
+                    onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
+                    title="Network type"
+                    className="text-[10px] font-body"
+                  >
+                    {s.signal === 0 ? "-" : (s.network || "5G")}
+                  </button>
+                </>
+              )}
               {/* wifi - tap to adjust strength */}
               <button
                 onClick={edit ? () => onStatusChange({ wifi: (s.wifi + 1) % 4 }) : undefined}
@@ -128,6 +152,7 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
                 </div>
                 <div className={cn("h-1 w-0.5 rounded-r", lowBattery ? "bg-[#FF3B30]" : "bg-current")} />
               </button>
+              {st.batteryPct && <span className="text-[11px] font-body">{s.battery}%</span>}
             </div>
           </div>
           {/* screen content */}

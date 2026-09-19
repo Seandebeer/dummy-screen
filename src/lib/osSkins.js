@@ -93,19 +93,22 @@ export const SKIN_UI = {
     font: '"Helvetica Neue", Helvetica, Arial, sans-serif',
     clock: { size: 44, weight: 300, style: { color: "rgba(255,255,255,0.95)", textShadow: "0 -1px 0 rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.25)" } },
     status: {
-      className: "font-normal text-white border-b border-white/15",
+      className: "font-normal text-white",
       timeCenter: true,
+      carrier: true,
+      batteryPct: true,
       style: {
-        backgroundImage:
-          "linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 45%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #303236 0%, #0a0a0a 100%)",
+        backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.14) 100%)",
       },
     },
     dock: {
-      className: "rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.45)]",
+      className: "rounded-xl",
+      labels: true,
       style: {
         backgroundImage:
-          "repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 4px), linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.06) 8%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #3a3f4a 0%, #14161c 100%)",
-        borderTop: "1px solid rgba(255,255,255,0.35)",
+          "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.07) 8%, rgba(255,255,255,0) 42%, rgba(255,255,255,0) 58%, rgba(255,255,255,0.07) 100%), linear-gradient(180deg, rgba(56,56,60,0.82) 0%, rgba(30,30,34,0.78) 100%)",
+        borderTop: "1px solid rgba(255,255,255,0.28)",
+        boxShadow: "0 -1px 8px rgba(0,0,0,0.22)",
       },
     },
     lock: { method: "slide", layout: "ios" },
@@ -125,6 +128,7 @@ export const SKIN_UI = {
     },
     dock: {
       className: "rounded-lg",
+      labels: true,
       style: {
         backgroundImage:
           "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.08) 10%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #3c3c42 0%, #131317 100%)",
@@ -139,20 +143,22 @@ export const SKIN_UI = {
     font: '"Helvetica Neue", Helvetica, Arial, sans-serif',
     clock: { size: 46, weight: 300, style: { textShadow: "0 -1px 0 rgba(0,0,0,0.65)" } },
     status: {
-      className: "font-normal text-[12px] text-white",
+      className: "font-normal text-[13px] text-white",
+      timeCenter: true,
+      carrier: true,
+      batteryPct: true,
       style: {
-        backgroundImage:
-          "repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 4px), linear-gradient(180deg, #3a3a40 0%, #141417 100%)",
-        borderBottom: "1px solid rgba(0,0,0,0.55)",
-        boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.12)",
+        backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.14) 100%)",
       },
     },
     dock: {
-      className: "rounded-lg",
+      className: "rounded-xl",
+      labels: true,
       style: {
         backgroundImage:
-          "repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 4px), linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 10%, rgba(255,255,255,0) 50%), linear-gradient(180deg, #26262c 0%, #0b0b0e 100%)",
-        borderTop: "1px solid rgba(255,255,255,0.32)",
+          "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.07) 8%, rgba(255,255,255,0) 42%, rgba(255,255,255,0) 58%, rgba(255,255,255,0.07) 100%), linear-gradient(180deg, rgba(56,56,60,0.82) 0%, rgba(30,30,34,0.78) 100%)",
+        borderTop: "1px solid rgba(255,255,255,0.28)",
+        boxShadow: "0 -1px 8px rgba(0,0,0,0.22)",
       },
     },
     lock: { method: "slide", layout: "ios" },

@@ -8,7 +8,7 @@ import { formatBadge, normalizeBadge } from "@/lib/osNotifications";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 16;
 const DOCK_SLOTS = [0, 1, 2, 3];
 const BADGE_APPS = ["phone", "messages", "email"];
 
@@ -283,7 +283,7 @@ export default function Homescreen({ config, update, onOpen }) {
         drag?.id === a.id && "opacity-30")}
     >
       {iconWithBadge(a)}
-      <span className={cn("text-[11px]", light ? "text-black/85" : "text-white/95")}>{a.label}</span>
+      <span className={cn("app-label text-[11px]", light ? "text-black/85" : "text-white/95")}>{a.label}</span>
     </button>
   );
 
@@ -383,8 +383,11 @@ export default function Homescreen({ config, update, onOpen }) {
                       onPointerCancel={cancelHold}
                       onContextMenu={(e) => e.preventDefault()}
                       onClick={() => onTileClick(app.id)}
-                      className={cn("touch-none active:scale-95 transition select-none", drag?.id === app.id && "opacity-30")}>
+                      className={cn("touch-none active:scale-95 transition select-none flex flex-col items-center gap-1", drag?.id === app.id && "opacity-30")}>
                       {iconWithBadge(app)}
+                      {ui.dock?.labels && (
+                        <span className={cn("app-label text-[11px]", light ? "text-black/85" : "text-white/95")}>{app.label}</span>
+                      )}
                     </button>
                   ) : (
                     <span className={cn("h-14 w-14 rounded-[23%] border border-dashed", light ? "border-black/15" : "border-white/15")} />
