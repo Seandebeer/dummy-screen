@@ -33,7 +33,9 @@ export default function ProjectsPanel() {
   };
 
   const remove = async (p) => {
-    await base44.entities.Project.delete(p.id);
+    try {
+      await base44.entities.Project.delete(p.id);
+    } catch {} // already deleted elsewhere — just refresh
     refresh();
   };
 
