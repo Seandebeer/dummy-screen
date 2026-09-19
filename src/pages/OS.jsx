@@ -12,7 +12,6 @@ import CalculatorApp from "@/components/os/apps/CalculatorApp";
 import CalendarApp from "@/components/os/apps/CalendarApp";
 import NotesApp from "@/components/os/apps/NotesApp";
 import CameraApp from "@/components/os/apps/CameraApp";
-import VideoApp from "@/components/os/apps/VideoApp";
 import CallOverlay from "@/components/os/CallOverlay";
 import AlarmOverlay from "@/components/os/AlarmOverlay";
 import MockApp from "@/components/os/apps/MockApp";
@@ -224,7 +223,6 @@ export default function OS() {
       case "calendar": return <CalendarApp />;
       case "notes": return <NotesApp />;
       case "camera": return <CameraApp />;
-      case "videos": return <VideoApp />;
       case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
       case null: return <Homescreen onOpen={setApp} config={config} update={update} />;
       default: return <MockApp app={allAppsById[app]} />;

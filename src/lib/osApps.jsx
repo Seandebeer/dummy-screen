@@ -1,6 +1,6 @@
 import {
   Phone, MessageSquare, Mail, Clock, Contact, Settings,
-  Calculator, CalendarDays, StickyNote, Aperture, Video,
+  Calculator, CalendarDays, StickyNote, Aperture,
 } from "lucide-react";
 import { mockApps, categories } from "@/lib/mockAppCatalog";
 
@@ -15,7 +15,6 @@ export const coreApps = [
   { id: "calendar", label: "Calendar", Icon: CalendarDays, bg: "#FF3B30" },
   { id: "notes", label: "Notes", Icon: StickyNote, bg: "#FFC800", tile: { type: "gloss", fg: "#7A5900" } },
   { id: "camera", label: "Camera", Icon: Aperture, bg: "#2C2C2E" },
-  { id: "videos", label: "Videos", Icon: Video, bg: "#1C1C1E" },
 ];
 
 // mock ("downloaded") apps live in the category catalog - 20 categories,

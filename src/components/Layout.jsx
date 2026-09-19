@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { RectangleVertical, Plus, Radio, Home, Crosshair } from "lucide-react";
+import { RectangleVertical, Plus, Radio, Home, Crosshair, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: "/os", label: "OS", icon: RectangleVertical },
   { to: "/vfx", label: "Key Screens", icon: Plus },
   { to: "/uimarkers", label: "UI Markers", icon: Crosshair },
+  { to: "/videos", label: "Videos", icon: Play },
   { to: "/control", label: "Control", icon: Radio },
 ];
 

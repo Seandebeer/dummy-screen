@@ -12,6 +12,7 @@ import Home from '@/pages/Home';
 import OS from '@/pages/OS';
 import VFXStage from '@/pages/VFXStage';
 import Control from '@/pages/Control';
+import Videos from '@/pages/Videos';
 import UIMarkers from '@/pages/UIMarkers';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -43,6 +44,7 @@ const AuthenticatedApp = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/control" element={<Control />} />
+        <Route path="/videos" element={<Videos />} />
       </Route>
       <Route path="/os" element={<OS />} />
       <Route path="/vfx" element={<VFXStage />} />
