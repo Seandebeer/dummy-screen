@@ -1,16 +1,9 @@
-import React from "react";
+import React, { useId } from "react";
 
-// composite VFX tracking-marker glyphs (circle / triangle / quadrant designs
-// from the reference sheet) drawn as SVG in a 100 x 100 viewbox, centred on
-// the marker point. Main shapes use the mark colour; cut-outs and detail
-// shapes auto-invert so they stay visible on top of it.
-
-const isLightHex = (hex) => {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
-  if (!m) return true;
-  const n = parseInt(m[1], 16);
-  return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
-};
+// composite VFX tracking-marker glyphs drawn as SVG in a 100 x 100 viewbox,
+// centred on the marker point. Every shape renders in the mark colour only -
+// detail shapes are punched out as true holes (masked), so a black marker
+// never shows white patches.
 
 // triangle pointing up (dir 1) / down (dir -1), centred on (cx, cy)
 const tri = (cx, cy, hw, h, dir) =>
@@ -25,9 +18,11 @@ const CORNERS = [[8, 8], [92, 8], [8, 92], [92, 92]];
 const TIPS = [[50, 6], [50, 94], [6, 50], [94, 50]];
 
 export default function CompositeGlyph({ kind, fill, size = 1, thickness = 1 }) {
-  const inv = isLightHex(fill) ? "#000000" : "#FFFFFF";
-  const st = Math.max(2, 5 * thickness);
+  const maskId = `hole${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  // stroke width in viewbox units: ~10px on the 48px glyph at thickness 1
+  const st = Math.max(2, 20 * thickness);
   let g = null;
+  let holes = null;
 
   if (kind === "circtriplus") {
     // circle + triangle outline + centre plus, plus signs at the corners
@@ -42,34 +37,32 @@ export default function CompositeGlyph({ kind, fill, size = 1, thickness = 1 }) 
     g = (<>
       <circle cx={50} cy={50} r={38} fill="none" stroke={fill} strokeWidth={st} />
       <path d={tri(50, 54, 21, 30, 1)} fill={fill} />
-      <circle cx={50} cy={52} r={5} fill={inv} />
       <circle cx={7} cy={7} r={5} fill={fill} />
       <path d={tri(93, 7, 4.5, 8, 1)} fill={fill} />
       <path d={tri(7, 93, 4.5, 8, -1)} fill={fill} />
       <circle cx={93} cy={93} r={5} fill={fill} />
     </>);
+    holes = <circle cx={50} cy={52} r={5} fill="#000" />;
   } else if (kind === "squaretri") {
-    // square + inverted circle + solid triangle with inverted triangle inside
+    // square + solid triangle with a punched-out triangle inside
     g = (<>
       <rect x={7} y={7} width={86} height={86} fill="none" stroke={fill} strokeWidth={st} />
-      <circle cx={50} cy={50} r={33} fill={inv} />
       <path d={tri(50, 52, 22, 30, 1)} fill={fill} />
-      <path d={tri(50, 56, 11, 15, -1)} fill={inv} />
+    </>);
+    holes = (<>
+      <path d={tri(50, 56, 11, 15, -1)} fill="#000" />
       {[[12, 12], [88, 12], [12, 88], [88, 88]].map(([x, y], i) => (
-        <rect key={i} x={x - 4.5} y={y - 4.5} width={9} height={9} fill={inv} />
-      ))}
-      {[[27, 27], [73, 27], [27, 73], [73, 73]].map(([x, y], i) => (
-        <Plus key={`p${i}`} x={x} y={y} l={9} w={3} color={inv} />
+        <rect key={i} x={x - 4.5} y={y - 4.5} width={9} height={9} fill="#000" />
       ))}
     </>);
   } else if (kind === "invtri") {
-    // downward solid triangle with smaller inverted triangle inside
+    // downward solid triangle with smaller triangle punched out inside
     g = (<>
       <circle cx={50} cy={50} r={38} fill="none" stroke={fill} strokeWidth={st} />
       <path d={tri(50, 50, 24, 34, -1)} fill={fill} />
-      <path d={tri(50, 52, 12, 17, 1)} fill={inv} />
       {CORNERS.map(([x, y], i) => <Plus key={i} x={x} y={y} l={11} w={3.5} color={fill} />)}
     </>);
+    holes = <path d={tri(50, 52, 12, 17, 1)} fill="#000" />;
   } else if (kind === "plusgrid") {
     // big solid plus with small plus signs at each tip
     g = (<>
@@ -90,14 +83,16 @@ export default function CompositeGlyph({ kind, fill, size = 1, thickness = 1 }) 
       <path d="M 50 50 L 50 88 A 38 38 0 0 1 12 50 Z" fill={fill} />
     </>);
   } else if (kind === "squads") {
-    // square framing a quadrant circle, inverted squares in the corners
+    // square framing a quadrant circle, punched-out squares in the corners
     g = (<>
       <rect x={8} y={8} width={84} height={84} fill="none" stroke={fill} strokeWidth={st} />
       <circle cx={50} cy={50} r={27} fill="none" stroke={fill} strokeWidth={st} />
       <path d="M 50 50 L 50 23 A 27 27 0 0 1 77 50 Z" fill={fill} />
       <path d="M 50 50 L 50 77 A 27 27 0 0 1 23 50 Z" fill={fill} />
+    </>);
+    holes = (<>
       {[[13, 13], [87, 13], [13, 87], [87, 87]].map(([x, y], i) => (
-        <rect key={i} x={x - 4.5} y={y - 4.5} width={9} height={9} fill={inv} />
+        <rect key={i} x={x - 4.5} y={y - 4.5} width={9} height={9} fill="#000" />
       ))}
     </>);
   } else if (kind === "crosshair") {
@@ -110,11 +105,19 @@ export default function CompositeGlyph({ kind, fill, size = 1, thickness = 1 }) 
   }
 
   if (!g) return null;
-  const s = 56 * size;
+  const s = 48 * size;
   return (
     <svg className="absolute" width={s} height={s} viewBox="0 0 100 100"
       style={{ transform: "translate(-50%, -50%)" }}>
-      {g}
+      {holes && (
+        <defs>
+          <mask id={maskId}>
+            <rect x="0" y="0" width="100" height="100" fill="#fff" />
+            {holes}
+          </mask>
+        </defs>
+      )}
+      <g mask={holes ? `url(#${maskId})` : undefined}>{g}</g>
     </svg>
   );
 }

@@ -51,14 +51,14 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
 
     if (kind === "cross") {
       const arm = 48 * size;
-      const th = 14 * thickness;
+      const th = 10 * thickness;
       return spin(0, <>
         <div className="absolute" style={{ width: arm, height: th, background: fill, transform: "translate(-50%, -50%)" }} />
         <div className="absolute" style={{ width: th, height: arm, background: fill, transform: "translate(-50%, -50%)" }} />
       </>);
     }
     if (kind === "circles") {
-      const d = 46 * size;
+      const d = 48 * size;
       return spin(0,
         <div className="absolute rounded-full flex items-center justify-center"
           style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }}>
@@ -71,22 +71,22 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
       return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%)" }} />);
     }
     if (kind === "diamond") {
-      const d = 44 * size;
+      const d = 48 * size;
       return spin(0, <div className="absolute" style={{ width: d, height: d, border: `${10 * thickness}px solid ${fill}`, transform: "translate(-50%, -50%) rotate(45deg)" }} />);
     }
     if (kind === "triangle") {
-      const s = 52 * size;
+      const s = 48 * size;
       return spin(0, <svg className="absolute" width={s} height={s} viewBox="0 0 24 24"
         fill="none" style={{ transform: "translate(-50%, -50%)" }}>
-        <path d="M12 2.5 L22 21 H2 Z" stroke={fill} strokeWidth={4.5 * thickness} strokeLinejoin="round" />
+        <path d="M12 2.5 L22 21 H2 Z" stroke={fill} strokeWidth={5 * thickness} strokeLinejoin="round" />
       </svg>);
     }
     if (COMPOSITE_IDS.has(kind)) {
       return spin(0, <CompositeGlyph kind={kind} fill={fill} size={size} thickness={thickness} />);
     }
     if (kind === "brackets") {
-      const L = 40 * size;
-      const th = Math.max(3, 14 * thickness);
+      const L = 48 * size;
+      const th = 10 * thickness;
       // canonical corner opens toward the bottom-right; orient per quadrant
       const dx = m.x <= 50 ? 1 : -1;
       const dy = m.y <= 50 ? 1 : -1;
