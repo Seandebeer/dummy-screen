@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { Sun, Moon, Upload, Trash2, Loader2, Lock } from "lucide-react";
+import { Sun, Moon, Upload, Trash2, Loader2 } from "lucide-react";
+import LockSettings from "./LockSettings";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
@@ -81,13 +82,7 @@ export default function SettingsApp({ config, update, onLock }) {
         {uploadError && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed — try again</p>}
       </Section>
 
-      <Section title="Passcode">
-        <button onClick={() => { update({ passcode: "" }); onLock?.(); }} className="flex w-full items-center gap-3">
-          <Lock size={18} className="text-[#FF9F0A]" />
-          <span className="flex-1 text-left text-sm">Reset Passcode</span>
-          <span className="text-[11px] text-white/40 font-body uppercase tracking-wider">re-lock</span>
-        </button>
-      </Section>
+      <LockSettings config={config} update={update} onLock={onLock} />
 
       <p className="text-center text-[10px] text-white/25 font-body uppercase tracking-widest pt-6 pb-8">Takeover OS · prop build 1.0</p>
     </div>

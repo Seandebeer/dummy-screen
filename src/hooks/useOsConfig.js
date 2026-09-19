@@ -17,6 +17,8 @@ const defaults = {
   background: { type: "preset", preset: "default", url: "" },
   status: { battery: 75, signal: 4, wifi: 3 },
   passcode: "",
+  pattern: "",
+  lockscreen: { type: "passcode", background: { type: "preset", preset: "default", url: "" } },
 };
 
 function loadConfig() {

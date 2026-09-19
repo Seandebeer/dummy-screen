@@ -69,6 +69,11 @@
   }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .scan-line { animation: scan-sweep 1.4s ease-in-out infinite; }
+  @keyframes scan-sweep {
+    0%, 100% { transform: translateY(-38px); }
+    50% { transform: translateY(38px); }
+  }
   .shake { animation: shake 0.4s ease-in-out; }
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
