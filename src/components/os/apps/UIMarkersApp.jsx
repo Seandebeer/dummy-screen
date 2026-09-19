@@ -3,7 +3,7 @@ import { Lock, RotateCcw, Save } from "lucide-react";
 import { saveConfig } from "@/lib/savedConfigs";
 import { cn } from "@/lib/utils";
 
-const COLS = 4;
+const COLS = 5;
 const ROWS = 8;
 
 export default function UIMarkersApp({ config, update, onLockChange }) {
@@ -155,7 +155,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
 
   const horizontalBar = locked ? (
     <div
-      style={{ gridColumn: `1 / ${barCol + 1}`, gridRow: barRow + 1 }}
+      style={{ gridColumn: "1 / -1", gridRow: barRow + 1 }}
       onPointerDown={() => setPressedBar("h")}
       onPointerUp={() => setPressedBar(null)}
       onPointerLeave={() => setPressedBar(null)}
@@ -169,7 +169,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   ) : (
     <div
-      style={{ gridColumn: `1 / ${barCol + 1}`, gridRow: barRow + 1 }}
+      style={{ gridColumn: "1 / -1", gridRow: barRow + 1 }}
       onPointerDown={(e) => onBarPointerDown(e, "h")}
       onPointerUp={cancelDrag}
       onPointerCancel={cancelDrag}
@@ -183,20 +183,17 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   );
 
-  // vertical bar — flush to the top edge of its column, running down to the
-  // row just above the horizontal bar; every cell it leaves open is a button
-  const vEnd = Math.max(2, barRow + 1);
+  // vertical bar — fixed length of 6 small buttons, flush to the top edge of
+  // its column; every cell the bars leave open holds a standard button, and a
+  // cell covered by a bar never holds a small one
   const columnFillers = [];
-  for (let t = vEnd; t <= ROWS + 1; t++) {
+  for (let t = 7; t <= ROWS + 1; t++) {
+    if (t === barRow + 1) continue;
     columnFillers.push(cellButton(`vc-${t}`, { gridColumn: barCol + 1, gridRow: t }));
-  }
-  const rowFillers = [];
-  for (let t = barCol + 2; t <= COLS + 1; t++) {
-    rowFillers.push(cellButton(`hc-${t}`, { gridColumn: t, gridRow: barRow + 1 }));
   }
 
   const verticalBar = locked ? (
-    <div style={{ gridColumn: barCol + 1, gridRow: `1 / ${vEnd}` }}
+    <div style={{ gridColumn: barCol + 1, gridRow: "1 / 7" }}
       onPointerDown={() => setPressedBar("v")}
       onPointerUp={() => setPressedBar(null)}
       onPointerLeave={() => setPressedBar(null)}
@@ -207,7 +204,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       {barVNumber}
     </div>
   ) : (
-    <div style={{ gridColumn: barCol + 1, gridRow: `1 / ${vEnd}` }}
+    <div style={{ gridColumn: barCol + 1, gridRow: "1 / 7" }}
       onPointerDown={(e) => onBarPointerDown(e, "v")}
       onPointerUp={cancelDrag}
       onPointerCancel={cancelDrag}
@@ -247,7 +244,6 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         {horizontalBar}
         {verticalBar}
         {columnFillers}
-        {rowFillers}
       </div>
       {locked && hint && (
         <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
