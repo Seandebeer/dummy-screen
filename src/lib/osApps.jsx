@@ -1,6 +1,6 @@
 import {
   Phone, MessageSquare, Mail, Clock, Contact, Settings,
-  Calculator, CalendarDays, StickyNote, Aperture,
+  Calculator, CalendarDays, StickyNote, Aperture, Music,
 } from "lucide-react";
 import { mockApps, categories } from "@/lib/mockAppCatalog";
 
@@ -9,6 +9,7 @@ export const coreApps = [
   { id: "messages", label: "Messages", Icon: MessageSquare, bg: "#34C759" },
   { id: "email", label: "Mail", Icon: Mail, bg: "#0A84FF" },
   { id: "clock", label: "Clock", Icon: Clock, bg: "#FF9F0A" },
+  { id: "music", label: "Music", Icon: Music, bg: "#FC3C44" },
   { id: "contacts", label: "Contacts", Icon: Contact, bg: "#5A5D6B" },
   { id: "settings", label: "Settings", Icon: Settings, bg: "#636366" },
   { id: "calculator", label: "Calculator", Icon: Calculator, bg: "#1C1C1E" },
