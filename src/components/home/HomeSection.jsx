@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 export default function HomeSection({ icon: Icon, title, subtitle, children }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-border bg-surface shadow-sm transition hover:border-muted-foreground/25">
-      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-3 p-4">
-        <span className="h-10 w-10 rounded-xl bg-gradient-to-b from-amber/20 to-amber/10 text-amber flex items-center justify-center">
+    <div className="rounded-2xl border border-border/70 bg-surface/80 shadow-[0_8px_28px_rgba(0,0,0,0.25)] backdrop-blur-xl transition hover:border-amber/30">
+      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-3.5 p-4">
+        <span className="h-10 w-10 rounded-xl bg-gradient-to-b from-amber/20 to-amber/5 ring-1 ring-inset ring-amber/20 text-amber flex items-center justify-center">
           <Icon size={18} />
         </span>
         <span className="flex-1 text-left">
@@ -16,7 +16,7 @@ export default function HomeSection({ icon: Icon, title, subtitle, children }) {
         </span>
         <ChevronDown size={18} className={cn("text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
-      {open && <div className="px-4 pb-4 pt-1 border-t border-border">{children}</div>}
+      {open && <div className="px-4 pb-4 pt-1 border-t border-border/60">{children}</div>}
     </div>
   );
 }

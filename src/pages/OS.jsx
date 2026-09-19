@@ -314,11 +314,11 @@ export default function OS() {
 
   return (
     <div className="min-h-dvh bg-background grid-backdrop flex flex-col">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-surface/30 backdrop-blur-xl">
         <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-body">
           <ArrowLeft size={18} /> Back
         </Link>
-        <div className="font-display font-bold text-lg tracking-wide">OS SIMULATOR</div>
+        <div className="font-display font-bold text-lg tracking-[0.08em]">OS SIMULATOR</div>
         <div className="flex items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
@@ -401,7 +401,7 @@ export default function OS() {
           </PhoneFrame>
         </div>
       )}
-      <footer className="px-6 py-3 text-center text-[11px] text-muted-foreground font-body border-t border-border">
+      <footer className="px-6 py-3 text-center text-[11px] text-muted-foreground font-body border-t border-border/60">
         Mock device · channel stage-1 · control deck can drive calls & messages
       </footer>
     </div>

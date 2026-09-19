@@ -18,19 +18,19 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-background grid-backdrop">
-      <header className="border-b border-border px-8 py-4 flex items-center justify-between">
+      <header className="border-b border-border/60 px-6 sm:px-8 py-5 flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-body">PropScreen</div>
-          <h1 className="font-display font-bold text-2xl tracking-[0.2em] leading-none mt-1">HOME</h1>
+          <div className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground/80 font-body">PropScreen</div>
+          <h1 className="font-display font-bold text-2xl tracking-[0.18em] leading-none mt-1.5">HOME</h1>
         </div>
         <div className="flex items-center gap-3">
           {deviceName && (
-            <span className="hidden sm:inline-block rounded-full border border-amber/40 bg-amber/10 px-3 py-1.5 text-[10px] font-body text-amber">{deviceName}</span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber/30 bg-amber/10 px-3 py-1.5 text-[10px] font-medium font-body text-amber"><span className="h-1.5 w-1.5 rounded-full bg-amber led-pulse" />{deviceName}</span>
           )}
           <Sheet>
             <SheetTrigger asChild>
               <button title="Profile & saved layouts"
-                className="h-10 w-10 rounded-full overflow-hidden border border-amber/40 bg-amber/15 flex items-center justify-center transition hover:border-amber">
+                className="h-10 w-10 rounded-full overflow-hidden border border-amber/30 bg-amber/10 flex items-center justify-center transition hover:border-amber hover:bg-amber/20">
                 {isAuthenticated && user?.image ? (
                   <Image src={user.image} alt="" className="h-full w-full" fittingType="fill" />
                 ) : isAuthenticated ? (
@@ -53,7 +53,7 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
+      <div className="p-5 sm:p-8 max-w-[1280px] mx-auto flex flex-col gap-5">
         <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync">
           <DevicesPanel />
         </HomeSection>

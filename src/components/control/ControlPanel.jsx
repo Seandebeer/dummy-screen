@@ -149,7 +149,7 @@ export default function ControlPanel() {
       <QrConnect />
 
       {/* connection panel */}
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Radio size={16} className="text-signal" />
@@ -181,7 +181,7 @@ export default function ControlPanel() {
       </div>
 
       {/* on-screen contact - the identity used for calls and messages */}
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">On-Screen Contact</div>
@@ -214,7 +214,7 @@ export default function ControlPanel() {
       </div>
 
       {/* call trigger */}
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4">
         <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body mb-3">Call Trigger</div>
         <div className="grid grid-cols-2 gap-2">
           <button onClick={triggerCall} disabled={!canCall}
@@ -231,7 +231,7 @@ export default function ControlPanel() {
       </div>
 
       {/* message console */}
-      <div className="rounded-xl border border-border bg-surface p-4 flex-1 flex flex-col min-h-0">
+      <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4 flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">Message Push Console</div>
           <button onClick={resetMessages}
@@ -268,7 +268,7 @@ export default function ControlPanel() {
       </div>
 
       {/* alarm trigger */}
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4">
         <div className="flex items-center gap-2 mb-3">
           <AlarmClock size={16} className="text-amber" />
           <span className="font-display font-semibold text-sm">Alarm Trigger</span>

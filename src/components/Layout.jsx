@@ -22,7 +22,7 @@ export default function Layout() {
         <main className="pb-20">
           <Outlet />
         </main>
-        <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-surface/95 backdrop-blur">
+        <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-surface/70 backdrop-blur-2xl">
           <div className="flex items-stretch justify-around">
             {navItems.map((item) => (
               <NavLink
@@ -31,7 +31,7 @@ export default function Layout() {
                 end={item.to === "/"}
                 className={({ isActive }) =>
                   cn(
-                    "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-body transition",
+                    "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium font-body transition",
                     isActive ? "text-amber" : "text-muted-foreground"
                   )
                 }
@@ -39,7 +39,7 @@ export default function Layout() {
                 {({ isActive }) => (
                   <>
                     <item.icon size={20} className={cn(isActive && "drop-shadow-[0_0_6px_hsl(var(--amber))]")} />
-                    <span className="uppercase tracking-wider">{item.label}</span>
+                    <span className="tracking-wide">{item.label}</span>
                   </>
                 )}
               </NavLink>
@@ -53,7 +53,7 @@ export default function Layout() {
   return (
     <div className="min-h-dvh flex bg-background">
       <nav className="w-16 shrink-0 border-r border-border bg-surface flex flex-col items-center py-6 gap-2">
-        <div className="mb-6 h-10 w-10 rounded-xl bg-gradient-to-br from-amber to-amber/70 flex items-center justify-center text-background font-display font-bold text-lg shadow-lg shadow-amber/20">T</div>
+        <div className="mb-6 h-10 w-10 rounded-2xl bg-gradient-to-b from-amber to-amber/60 flex items-center justify-center text-background font-display font-bold text-lg shadow-lg shadow-amber/25">T</div>
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -61,8 +61,8 @@ export default function Layout() {
             end={item.to === "/"}
             className={({ isActive }) =>
               cn(
-                "group relative flex h-11 w-11 items-center justify-center rounded-lg transition",
-                isActive ? "bg-amber/15 text-amber" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                "group relative flex h-11 w-11 items-center justify-center rounded-xl transition",
+                isActive ? "bg-amber/15 text-amber" : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
               )
             }
           >
@@ -70,7 +70,7 @@ export default function Layout() {
               <>
                 <item.icon size={20} />
                 {isActive && <span className="absolute -left-2 top-1/2 -translate-y-1/2 h-6 w-1 rounded-full bg-amber amber-pulse" />}
-                <span className="absolute left-14 whitespace-nowrap rounded-lg bg-surface border border-border shadow-lg px-2.5 py-1.5 text-[11px] font-body opacity-0 group-hover:opacity-100 transition pointer-events-none">{item.label}</span>
+                <span className="absolute left-14 whitespace-nowrap rounded-lg border border-border bg-popover shadow-xl px-2.5 py-1.5 text-[11px] font-body opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition pointer-events-none">{item.label}</span>
               </>
             )}
           </NavLink>
