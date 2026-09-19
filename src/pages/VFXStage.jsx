@@ -14,9 +14,16 @@ export default function VFXStage() {
   const colorId = params.get("color") || "green";
   const marksId = params.get("marks") || "cross";
   const color = getColor(colorId);
-  const isLight = ["white", "green", "grey"].includes(colorId);
-
   const { marks, update } = useScreenMarks();
+
+  // light backgrounds get black auto-marks / grid lines
+  const isLightHex = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    if (!m) return false;
+    const n = parseInt(m[1], 16);
+    return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
+  };
+  const isLight = !marks.bgImage && (marks.bgColor ? isLightHex(marks.bgColor) : ["white", "green", "grey"].includes(colorId));
   const isPoint = POINT_STYLES.includes(marksId);
   const layout = isPoint ? (marks.layouts[marksId] ?? defaultLayoutFor(marksId)) : [];
   // which marker kind the "+" button adds - follows the current style
@@ -123,6 +130,8 @@ export default function VFXStage() {
     scale: 1,
     thickness: 1,
     markColor: null,
+    bgColor: null,
+    bgImage: null,
     layouts: { ...m.layouts, [marksId]: defaultLayoutFor(marksId) },
   }));
 
@@ -133,7 +142,10 @@ export default function VFXStage() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" style={{ background: color.hex }}>
+    <div className="fixed inset-0 z-50 overflow-hidden"
+      style={marks.bgImage
+        ? { backgroundImage: `url("${marks.bgImage}")`, backgroundSize: "cover", backgroundPosition: "center" }
+        : { background: marks.bgColor || color.hex }}>
       <TrackingMarks type={marksId} color={marks.markColor || (isLight ? "#000000" : "#FFFFFF")}
         opacity={marksId === "checkerboard" ? 1 : 0.85}
         size={marks.scale} thickness={marks.thickness}
@@ -170,11 +182,13 @@ export default function VFXStage() {
           <StageToolbar
             colorId={colorId} marksId={marksId} isPoint={isPoint} marks={marks}
             addKind={addKind} onSelectAddKind={setAddKind} onRotateAll={rotateAll}
-            onSelectColor={(id) => navigate(`/vfx?color=${id}&marks=${marksId}`)}
+            onSelectColor={(id) => { update((m) => ({ bgColor: null })); navigate(`/vfx?color=${id}&marks=${marksId}`); }}
             onSelectMarks={(id) => navigate(`/vfx?color=${colorId}&marks=${id}`)}
             onScale={(v) => update((m) => ({ scale: v }))}
             onThick={(v) => update((m) => ({ thickness: v }))}
             onMarkColor={(v) => update((m) => ({ markColor: v }))}
+            onBgColor={(v) => update((m) => ({ bgColor: v }))}
+            onBgImage={(v) => update((m) => ({ bgImage: v }))}
             onAdd={addMarker} onSave={saveScreen} onReset={resetCustomisation}
           />
         </>

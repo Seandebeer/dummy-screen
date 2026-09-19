@@ -24,7 +24,7 @@ const buildDefaults = () => ({
   brackets: defaultLayoutFor("brackets"),
 });
 
-const defaults = { scale: 1, thickness: 1, markColor: null, layouts: buildDefaults() };
+const defaults = { scale: 1, thickness: 1, markColor: null, bgColor: null, bgImage: null, layouts: buildDefaults() };
 
 function load() {
   try {
