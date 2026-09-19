@@ -216,7 +216,7 @@ export default function OS() {
     <div className="min-h-dvh bg-background grid-backdrop flex flex-col">
       <header className="flex items-center justify-between px-6 py-4 border-b border-border">
         <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-body">
-          <ArrowLeft size={18} /> Deck
+          <ArrowLeft size={18} /> Back
         </Link>
         <div className="font-display font-bold text-lg tracking-wide">OS SIMULATOR</div>
         <div className="flex items-center gap-3">
