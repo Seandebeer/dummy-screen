@@ -10,7 +10,7 @@ export default function UIMarkers() {
 
   return (
     <div className="relative h-dvh bg-background overflow-hidden">
-      {/* page HUD floats over the stage and disappears when locked — the grid never moves */}
+      {/* page HUD floats over the stage and disappears when locked - the grid never moves */}
       {!locked && (
         <header className="absolute top-0 inset-x-0 z-10 flex items-center px-6 py-4 pointer-events-none">
           <Link to="/" className="pointer-events-auto flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-body">

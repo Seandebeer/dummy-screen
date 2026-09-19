@@ -12,7 +12,7 @@ export default function CameraApp() {
   const [photos, setPhotos] = useState(getPhotos);
   const [viewing, setViewing] = useState(null);
 
-  // live camera only while capturing — stopping the stream turns the lens off
+  // live camera only while capturing - stopping the stream turns the lens off
   useEffect(() => {
     if (mode !== "camera") return undefined;
     let alive = true;
@@ -65,7 +65,7 @@ export default function CameraApp() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center gap-2 text-center px-8">
               <Images size={24} className="text-white/30" />
-              <div className="text-xs font-body text-white/50">No photos yet — capture from the camera</div>
+              <div className="text-xs font-body text-white/50">No photos yet - capture from the camera</div>
             </div>
           )}
         </div>

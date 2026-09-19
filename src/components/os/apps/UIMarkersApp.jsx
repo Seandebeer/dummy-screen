@@ -33,7 +33,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     },
   }));
 
-  // next free number across buttons, bars and fillers — never repeats
+  // next free number across buttons, bars and fillers - never repeats
   const nextNumber = () => {
     const used = [...Object.values(assignments), Number(barNumber), Number(barVNumber)]
       .filter((n) => Number.isInteger(n) && n > 0);
@@ -112,7 +112,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     };
   }, [dragBar]);
 
-  // grid tracks — 1fr everywhere, so bars are exactly as thick as buttons
+  // grid tracks - 1fr everywhere, so bars are exactly as thick as buttons
   const colTemplate = [];
   for (let c = 0; c <= COLS; c++) {
     if (c === barCol) colTemplate.push("1fr");
@@ -124,7 +124,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     if (r < ROWS) rowTemplate.push("1fr");
   }
 
-  // one shared renderer for every standard grid cell — main buttons and the
+  // one shared renderer for every standard grid cell - main buttons and the
   // cells around the bars, so there is never a gap anywhere on the grid
   const cellButton = (key, style) => {
     const assigned = assignments[key];
@@ -187,7 +187,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   );
 
-  // vertical bar — fixed length of 6 small buttons, flush to the top edge of
+  // vertical bar - fixed length of 6 small buttons, flush to the top edge of
   // its column; every cell the bars leave open holds a standard button, and a
   // cell covered by a bar never holds a small one
   const columnFillers = [];
@@ -223,7 +223,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
 
   return (
     <div className="relative h-full bg-background overflow-hidden">
-      {/* floating edit HUD — hidden when locked, never affects the grid layout */}
+      {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
         <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
@@ -242,7 +242,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
           </div>
         </div>
       )}
-      {/* fixed full-screen grid — button size & position never change between modes */}
+      {/* fixed full-screen grid - button size & position never change between modes */}
       <div ref={containerRef} className="absolute inset-0 grid p-1"
         style={{ gridTemplateColumns: colTemplate.join(" "), gridTemplateRows: rowTemplate.join(" "), gap: "4px" }}>
         {Array.from({ length: ROWS * COLS }, (_, i) => markerButton(Math.floor(i / COLS), i % COLS))}

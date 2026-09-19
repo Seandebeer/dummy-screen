@@ -4,7 +4,7 @@ const KEY = "takeover-screen-marks";
 
 const pt = (id, kind, x, y) => ({ id, kind, x, y });
 
-// default marker layout for a point style — four corners (+ center for some)
+// default marker layout for a point style - four corners (+ center for some)
 export const defaultLayoutFor = (style) => {
   const corners = [
     ["tl", 8, 8], ["tr", 92, 8], ["bl", 8, 92], ["br", 92, 92],

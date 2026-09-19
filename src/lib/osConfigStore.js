@@ -9,7 +9,7 @@ export const readCurrentOsConfig = () => {
   }
 };
 
-// strip heavy generated data — default contacts regenerate on load,
+// strip heavy generated data - default contacts regenerate on load,
 // so a profile only carries the owner's real customisations
 export const slimConfig = (config) => ({
   ...config,

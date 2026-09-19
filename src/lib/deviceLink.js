@@ -20,7 +20,7 @@ export async function ensureDeviceOnline(createIfNeeded) {
     try {
       await base44.entities.Device.update(id, { status: "online" });
       return id;
-    } catch {} // device was deleted — recreate if allowed
+    } catch {} // device was deleted - recreate if allowed
   }
   if (!createIfNeeded) return null;
   try {
@@ -40,7 +40,7 @@ export async function saveDevice(name, slimmedConfig) {
     try {
       await base44.entities.Device.update(id, payload);
       return id;
-    } catch {} // device was deleted — recreate below
+    } catch {} // device was deleted - recreate below
   }
   try {
     const rec = await base44.entities.Device.create(payload);

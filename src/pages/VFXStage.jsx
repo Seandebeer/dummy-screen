@@ -20,7 +20,7 @@ export default function VFXStage() {
   const { marks, update } = useScreenMarks();
   const isPoint = POINT_STYLES.includes(marksId);
   const layout = isPoint ? (marks.layouts[marksId] ?? defaultLayoutFor(marksId)) : [];
-  // which marker kind the "+" button adds — follows the current style
+  // which marker kind the "+" button adds - follows the current style
   const [addKind, setAddKind] = useState("cross");
   useEffect(() => { if (isPoint) setAddKind(marksId); }, [isPoint, marksId]);
 
@@ -75,7 +75,7 @@ export default function VFXStage() {
     holdTimer.current = setTimeout(() => { pendingId.current = null; setDragId(id); }, 250);
   };
 
-  // move the held marker — snaps to a 5% grid
+  // move the held marker - snaps to a 5% grid
   useEffect(() => {
     if (!dragId) return;
     const move = (e) => {

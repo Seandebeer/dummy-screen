@@ -23,7 +23,7 @@ export const coreApps = [
   { id: "camera", label: "Camera", Icon: Aperture, bg: "#2C2C2E" },
 ];
 
-// mock ("downloaded") apps — each with its own tile style
+// mock ("downloaded") apps - each with its own tile style
 export const mockApps = [
   { id: "nimbus", label: "Nimbus", Icon: Cloud, bg: "#5E5CE6", tile: { type: "duo", bg2: "#A78BFA" } },
   { id: "snacc", label: "Snacc", Icon: Croissant, bg: "#FF9F0A", tile: { type: "flat" } },

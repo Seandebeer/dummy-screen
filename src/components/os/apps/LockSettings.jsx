@@ -95,7 +95,7 @@ export default function LockSettings({ config, update, onLock }) {
             </button>
           )}
         </div>
-        {error && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed — try again</p>}
+        {error && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed - try again</p>}
       </div>
     </div>
   );

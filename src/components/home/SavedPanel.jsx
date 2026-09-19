@@ -28,7 +28,7 @@ export default function SavedPanel() {
   if (saved.length === 0) {
     return (
       <div className="py-6 text-center text-muted-foreground text-xs font-body">
-        Nothing saved yet — save a marker configuration or a key screen.
+        Nothing saved yet - save a marker configuration or a key screen.
       </div>
     );
   }

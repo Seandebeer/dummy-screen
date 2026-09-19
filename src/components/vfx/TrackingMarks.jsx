@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 // tracking marker overlays for the key screens stage.
 // point styles (cross / circles / squares / brackets) render individually
 // positioned markers that can be moved, added and removed in edit mode.
-// patterns (dots / checkerboard) fill the screen — checkerboard is always black & white.
+// patterns (dots / checkerboard) fill the screen - checkerboard is always black & white.
 export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 1, thickness = 1, markers = [], onMarkerDown, dragId }) {
   const fill = color;
 
@@ -14,7 +14,7 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
     <div className="absolute inset-0 pointer-events-none" style={{ opacity, ...style }} />
   );
 
-  // checkerboard — alternating black & white squares (black & white only)
+  // checkerboard - alternating black & white squares (black & white only)
   if (type === "checkerboard") {
     const s = 128 * size;
     return pattern({
@@ -25,7 +25,7 @@ export function TrackingMarks({ type, color = "#FFFFFF", opacity = 0.85, size = 
     });
   }
 
-  // dot pattern — small dots across the whole screen
+  // dot pattern - small dots across the whole screen
   if (type === "dots") {
     return pattern({
       backgroundImage: `radial-gradient(${fill} ${3 * thickness}px, transparent ${3 * thickness}px)`,

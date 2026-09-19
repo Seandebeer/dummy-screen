@@ -11,9 +11,9 @@ export default function ClockEditor({ clock, onSave, onClose }) {
         <span className="text-white/80 text-[10px] font-body uppercase tracking-wider">Set clock display</span>
         <button onClick={onClose} className="text-white/50 hover:text-white"><X size={14} /></button>
       </div>
-      <input value={time} onChange={(e) => setTime(e.target.value)} placeholder="Time — e.g. 9:41"
+      <input value={time} onChange={(e) => setTime(e.target.value)} placeholder="Time - e.g. 9:41"
         className="rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-sm text-white outline-none placeholder:text-white/25" />
-      <input value={date} onChange={(e) => setDate(e.target.value)} placeholder="Date — e.g. Friday, June 6"
+      <input value={date} onChange={(e) => setDate(e.target.value)} placeholder="Date - e.g. Friday, June 6"
         className="rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/25" />
       <div className="flex gap-2">
         <button onClick={() => onSave({ mode: "custom", time: time.trim(), date: date.trim() })}

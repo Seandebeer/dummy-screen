@@ -9,7 +9,7 @@ export default function AlarmOverlay({ onDismiss }) {
     return () => clearInterval(t);
   }, []);
 
-  // ringing beep loop — browsers may block audio without a prior gesture; fail silently
+  // ringing beep loop - browsers may block audio without a prior gesture; fail silently
   useEffect(() => {
     let ctx, timer;
     try {

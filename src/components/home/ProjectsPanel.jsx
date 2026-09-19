@@ -30,7 +30,7 @@ export default function ProjectsPanel() {
 
   const projectDevices = (p) => devices.filter((d) => d.project_id === p.id);
 
-  // tap a device to bring up its OS — loads its saved layout if it has one
+  // tap a device to bring up its OS - loads its saved layout if it has one
   const openDevice = (d) => {
     if (d.config) {
       try { applyOsConfig(JSON.parse(d.config)); } catch {}
@@ -54,7 +54,7 @@ export default function ProjectsPanel() {
   const remove = async (p) => {
     try {
       await base44.entities.Project.delete(p.id);
-    } catch {} // already deleted elsewhere — just refresh
+    } catch {} // already deleted elsewhere - just refresh
     refresh();
   };
 
@@ -86,7 +86,7 @@ export default function ProjectsPanel() {
       {projects === null ? (
         <div className="py-10 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={20} /></div>
       ) : projects.length === 0 ? (
-        <p className="py-8 text-center text-xs text-muted-foreground font-body">No projects yet — add one above.</p>
+        <p className="py-8 text-center text-xs text-muted-foreground font-body">No projects yet - add one above.</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
           {projects.map((p) => (

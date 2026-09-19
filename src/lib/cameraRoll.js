@@ -10,7 +10,7 @@ export const getPhotos = () => {
   }
 };
 
-// keep within localStorage limits — drop oldest photos if the quota is hit
+// keep within localStorage limits - drop oldest photos if the quota is hit
 const store = (photos) => {
   const attempts = [photos, photos.slice(0, 8), photos.slice(0, 4)];
   for (const list of attempts) {

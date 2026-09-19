@@ -114,7 +114,7 @@ export default function ContactsApp({ contacts = [], dialCode = "026", language 
         <div className="px-6 space-y-3 text-sm flex-1 overflow-auto no-scrollbar">
           <div className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/40">mobile</span><span className="font-body">{selected.number}</span></div>
           {selected.email && <div className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/40">email</span><span className="font-body">{selected.email}</span></div>}
-          <div className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/40">notes</span><span className="text-white/70">Prop dept — primary</span></div>
+          <div className="flex justify-between border-b border-white/10 pb-2"><span className="text-white/40">notes</span><span className="text-white/70">Prop dept - primary</span></div>
         </div>
         <button onClick={() => setSelectedId(null)} className="py-4 text-[#0A84FF] font-medium border-t border-white/10">{t.done}</button>
       </div>

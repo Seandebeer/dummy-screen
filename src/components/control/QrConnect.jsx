@@ -69,7 +69,7 @@ export default function QrConnect() {
             <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             {!supported && (
               <div className="absolute inset-0 flex items-center justify-center text-center px-6 text-[11px] font-body text-white/70 bg-black/70">
-                QR scanning isn't supported in this browser — have the device scan the code with its own camera instead.
+                QR scanning isn't supported in this browser - have the device scan the code with its own camera instead.
               </div>
             )}
           </div>
@@ -88,7 +88,7 @@ export default function QrConnect() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-muted-foreground font-body mb-2">
-              Point a prop device's camera at this code — its mock OS opens instantly, it appears online in Devices, and this deck can remote-control it (calls, alarms, messages).
+              Point a prop device's camera at this code - its mock OS opens instantly, it appears online in Devices, and this deck can remote-control it (calls, alarms, messages).
             </p>
             <button onClick={() => { setStatus(""); setSupported(true); setScanning(true); }}
               className="flex items-center gap-1.5 rounded-lg border border-amber/40 bg-amber/10 px-3 py-2 text-xs font-body text-amber hover:bg-amber/20 transition">

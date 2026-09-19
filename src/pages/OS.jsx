@@ -39,7 +39,7 @@ export default function OS() {
   const alarmRef = useRef(null);
   const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-  // persistent call history — names resolve from the contact book by number
+  // persistent call history - names resolve from the contact book by number
   const logCall = useCallback((entry) => {
     update((c) => {
       const known = (c.contacts || []).find((k) => k.number && k.number === entry.number);
@@ -167,7 +167,7 @@ export default function OS() {
   // save this screen's OS layout as a character's device (appears in Devices)
   const saveAsDevice = async () => {
     const fallback = localStorage.getItem("takeover-device-name") || "Character's phone";
-    const name = window.prompt("Save as character's device — name:", fallback);
+    const name = window.prompt("Save as character's device - name:", fallback);
     if (!name || !name.trim()) return;
     await saveDevice(name.trim(), slimConfig(config));
   };

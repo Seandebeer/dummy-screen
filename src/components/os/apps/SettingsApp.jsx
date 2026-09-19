@@ -117,7 +117,7 @@ export default function SettingsApp({ config, update, onLock }) {
             </button>
           )}
         </div>
-        {uploadError && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed — try again</p>}
+        {uploadError && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed - try again</p>}
       </Section>
 
       <Section title={t.dialCodes}>
@@ -141,7 +141,7 @@ export default function SettingsApp({ config, update, onLock }) {
             Apply
           </button>
         </div>
-        <p className="text-[11px] text-white/40 font-body mt-2">Up to 3 codes stay active — mock numbers start with an active code, the rest is random.</p>
+        <p className="text-[11px] text-white/40 font-body mt-2">Up to 3 codes stay active - mock numbers start with an active code, the rest is random.</p>
       </Section>
 
       <Section title={t.language}>

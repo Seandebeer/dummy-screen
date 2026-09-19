@@ -24,7 +24,7 @@ export const LANGUAGES = [
 
 export const uiFor = (lang) => LANGUAGES.find((l) => l.code === lang)?.ui || LANGUAGES[0].ui;
 
-// per-language name pools — 20 given + 20 family names each
+// per-language name pools - 20 given + 20 family names each
 const POOLS = {
   en: {
     first: ["James", "Sarah", "Michael", "Emma", "David", "Olivia", "Daniel", "Sophia", "Matthew", "Ava", "Christopher", "Mia", "Andrew", "Isabella", "Joshua", "Amelia", "Ethan", "Harper", "Ryan", "Evelyn"],

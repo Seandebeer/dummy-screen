@@ -180,7 +180,7 @@ export default function ControlPanel() {
         </div>
       </div>
 
-      {/* on-screen contact — the identity used for calls and messages */}
+      {/* on-screen contact - the identity used for calls and messages */}
       <div className="rounded-xl border border-border bg-surface p-4">
         <div className="flex items-center justify-between mb-3">
           <div>

@@ -51,7 +51,7 @@ export default function LockScreen({ config, update, onUnlock }) {
   const submitPasscode = (code) => {
     if (stage === "unlock") {
       if (code === config.passcode) onUnlock();
-      else fail("Wrong passcode — try again");
+      else fail("Wrong passcode - try again");
     } else if (stage === "set") {
       setFirst(code);
       setStage("confirm");
@@ -62,7 +62,7 @@ export default function LockScreen({ config, update, onUnlock }) {
     } else {
       setStage("set");
       setFirst("");
-      fail("Passcodes didn't match — try again");
+      fail("Passcodes didn't match - try again");
     }
   };
 
@@ -77,7 +77,7 @@ export default function LockScreen({ config, update, onUnlock }) {
   const completePattern = (code) => {
     if (stage === "unlock") {
       if (code === config.pattern) onUnlock();
-      else fail("Wrong pattern — try again");
+      else fail("Wrong pattern - try again");
     } else if (stage === "set") {
       setFirst(code);
       setStage("confirm");
@@ -87,7 +87,7 @@ export default function LockScreen({ config, update, onUnlock }) {
     } else {
       setStage("set");
       setFirst("");
-      fail("Patterns didn't match — try again");
+      fail("Patterns didn't match - try again");
     }
   };
 

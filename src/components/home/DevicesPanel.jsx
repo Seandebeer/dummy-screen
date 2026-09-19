@@ -64,7 +64,7 @@ export default function DevicesPanel() {
     refresh();
   };
 
-  // each device carries its own saved OS layout — snapshot this screen's
+  // each device carries its own saved OS layout - snapshot this screen's
   // current config onto the device, or load the device's layout back here
   const saveLayout = async (d) => {
     const config = readCurrentOsConfig();
@@ -116,7 +116,7 @@ export default function DevicesPanel() {
       {devices === null ? (
         <div className="py-10 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={20} /></div>
       ) : devices.length === 0 ? (
-        <p className="py-8 text-center text-xs text-muted-foreground font-body">No devices yet — add one above.</p>
+        <p className="py-8 text-center text-xs text-muted-foreground font-body">No devices yet - add one above.</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
           {devices.map((d) => (

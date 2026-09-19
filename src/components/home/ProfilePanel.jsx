@@ -130,7 +130,7 @@ export default function ProfilePanel() {
         {profiles === null ? (
           <div className="py-4 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={16} /></div>
         ) : profiles.length === 0 ? (
-          <p className="py-3 text-center text-xs text-muted-foreground font-body">No profiles yet — save one above, then load it on any phone.</p>
+          <p className="py-3 text-center text-xs text-muted-foreground font-body">No profiles yet - save one above, then load it on any phone.</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {profiles.map((p) => (

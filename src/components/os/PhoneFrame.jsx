@@ -25,7 +25,7 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
             {/* notch */}
             <div className="absolute left-1/2 top-2 -translate-x-1/2 h-6 w-24 rounded-full bg-black" />
             <div className="flex items-center gap-2">
-              {/* signal — tap to adjust strength */}
+              {/* signal - tap to adjust strength */}
               <button
                 onClick={edit ? () => onStatusChange({ signal: (s.signal + 1) % 5 }) : undefined}
                 title="Signal strength"
@@ -35,8 +35,8 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
                   <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
                 ))}
               </button>
-              <span className="text-[10px]">{s.signal === 0 ? "—" : "5G"}</span>
-              {/* wifi — tap to adjust strength */}
+              <span className="text-[10px]">{s.signal === 0 ? "-" : "5G"}</span>
+              {/* wifi - tap to adjust strength */}
               <button
                 onClick={edit ? () => onStatusChange({ wifi: (s.wifi + 1) % 4 }) : undefined}
                 title="Wi-Fi strength"
@@ -48,7 +48,7 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
                   <circle cx="8" cy="10" r="1.3" fill="currentColor" opacity={s.wifi >= 1 ? 1 : 0.25} />
                 </svg>
               </button>
-              {/* battery — tap to adjust level */}
+              {/* battery - tap to adjust level */}
               <button
                 onClick={edit ? () => onStatusChange({ battery: BATTERY_STEPS[(BATTERY_STEPS.indexOf(s.battery) + 1) % BATTERY_STEPS.length] }) : undefined}
                 title="Battery level"

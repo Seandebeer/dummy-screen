@@ -209,7 +209,7 @@ export default function Homescreen({ config, update, onOpen }) {
     <div dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
       {!hasImage && <div className="grid-backdrop absolute inset-0 opacity-30 pointer-events-none" />}
 
-      {/* clock — tap to edit · apps library top-right */}
+      {/* clock - tap to edit · apps library top-right */}
       <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
         <button onClick={() => setClockEdit(true)} className="flex flex-col items-center">
           <div className="font-display text-5xl font-bold tracking-tight">{time}</div>
@@ -230,7 +230,7 @@ export default function Homescreen({ config, update, onOpen }) {
         </div>
       )}
 
-      {/* paged app grid — swipe left / right */}
+      {/* paged app grid - swipe left / right */}
       <div
         className="relative flex-1 overflow-hidden"
         onPointerDown={onViewportDown}
@@ -248,7 +248,7 @@ export default function Homescreen({ config, update, onOpen }) {
           {pages.map((pageApps, pi) => (
             <div key={pi} className="h-full w-full shrink-0 px-5 pt-1.5">
               {pageApps.length === 0 ? (
-                <p className={cn("pt-10 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps — open Apps to add some</p>
+                <p className={cn("pt-10 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps - open Apps to add some</p>
               ) : (
                 <div className="grid grid-cols-4 gap-y-4 gap-x-3 content-start">
                   {pageApps.map((a) => (
@@ -274,7 +274,7 @@ export default function Homescreen({ config, update, onOpen }) {
         </div>
       )}
 
-      {/* dock — hold & drag apps in / out */}
+      {/* dock - hold & drag apps in / out */}
       <div className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 rounded-[1.9rem] border px-2 py-3 backdrop-blur-md",
         light ? "bg-black/10 border-black/10" : "bg-white/10 border-white/10")}>
         {DOCK_SLOTS.map((slot) => {
