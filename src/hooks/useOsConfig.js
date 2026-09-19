@@ -35,6 +35,8 @@ const defaults = {
   pattern: "",
   lockscreen: { type: "none", background: { type: "preset", preset: "default", url: "" } },
   lockVer: 2,
+  badges: { messages: 0, mail: 0, phone: 0 },
+  notifications: [],
 };
 
 function loadConfig() {
@@ -83,7 +85,7 @@ function loadConfig() {
         uiMarkers.barVRow = defaults.uiMarkers.barVRow;
         uiMarkers.layoutVer = 3;
       }
-      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
+      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, badges: { ...defaults.badges, ...(saved.badges || {}) }, notifications: Array.isArray(saved.notifications) ? saved.notifications : [], dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;

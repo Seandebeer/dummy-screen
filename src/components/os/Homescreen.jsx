@@ -4,12 +4,14 @@ import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { uiFor } from "@/lib/osLanguages";
 import IconTile from "./IconTile";
+import { formatBadge, normalizeBadge } from "@/lib/osNotifications";
 import AppLibrary from "./AppLibrary";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 const DOCK_SLOTS = [0, 1, 2, 3];
+const BADGE_APPS = ["phone", "messages", "email"];
 
 export default function Homescreen({ config, update, onOpen }) {
   const [library, setLibrary] = useState(false);
@@ -166,7 +168,43 @@ export default function Homescreen({ config, update, onOpen }) {
   const onTileClick = (id) => {
     if (suppressClick.current) { suppressClick.current = false; return; }
     onOpen(id);
+  }
+
+  // unread badges on the phone / messages / mail icons - hold the number to
+  // set it manually (0 - 1,000,000)
+  const badgeKey = (id) => (id === "email" ? "mail" : id);
+  const badgeCount = (id) => (config.badges || {})[badgeKey(id)] || 0;
+  const badgeHold = useRef(null);
+  const cancelBadgeHold = () => clearTimeout(badgeHold.current);
+  const onBadgeDown = (e, app) => {
+    e.stopPropagation();
+    clearTimeout(badgeHold.current);
+    badgeHold.current = setTimeout(() => {
+      suppressClick.current = true;
+      const raw = window.prompt(`Unread number for ${app.label} (0 - 1,000,000):`, badgeCount(app.id));
+      if (raw === null) return;
+      update((c) => ({ badges: { ...(c.badges || {}), [badgeKey(app.id)]: normalizeBadge(raw) } }));
+    }, 550);
   };
+  const iconWithBadge = (app) => {
+    const badge = BADGE_APPS.includes(app.id) ? badgeCount(app.id) : 0;
+    return (
+      <span className="relative block">
+        <IconTile app={app} />
+        {badge > 0 && (
+          <span
+            onPointerDown={(e) => onBadgeDown(e, app)}
+            onPointerUp={cancelBadgeHold}
+            onPointerLeave={cancelBadgeHold}
+            onPointerCancel={cancelBadgeHold}
+            onContextMenu={(e) => e.preventDefault()}
+            className="absolute -top-1 -right-2 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#FF3B30] px-1 text-[10px] font-semibold font-body text-white shadow-md">
+            {formatBadge(badge)}
+          </span>
+        )}
+      </span>
+    );
+  };;
 
   // page swiping
   const onViewportDown = (e) => { swipeStart.current = { x: e.clientX, active: false }; };
@@ -210,7 +248,7 @@ export default function Homescreen({ config, update, onOpen }) {
       className={cn("flex flex-col items-center gap-1.5 active:scale-95 transition select-none",
         drag?.id === a.id && "opacity-30")}
     >
-      <IconTile app={a} />
+      {iconWithBadge(a)}
       <span className={cn("text-[11px]", light ? "text-black/80" : "text-white/80")}>{a.label}</span>
     </button>
   );
@@ -302,7 +340,7 @@ export default function Homescreen({ config, update, onOpen }) {
                   onContextMenu={(e) => e.preventDefault()}
                   onClick={() => onTileClick(app.id)}
                   className={cn("active:scale-95 transition select-none", drag?.id === app.id && "opacity-30")}>
-                  <IconTile app={app} />
+                  {iconWithBadge(app)}
                 </button>
               ) : (
                 <span className={cn("h-14 w-14 rounded-2xl border border-dashed", light ? "border-black/15" : "border-white/15")} />

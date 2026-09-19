@@ -20,6 +20,7 @@ import MusicApp from "@/components/os/apps/MusicApp";
 import { allAppsById } from "@/lib/osApps";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
 import MarkAdjust from "@/components/os/MarkAdjust";
+import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
 import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
@@ -38,20 +39,42 @@ export default function OS() {
   const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
   const [alarm, setAlarm] = useState(null);
+  const [banner, setBanner] = useState(null);
   const [messageTo, setMessageTo] = useState(null);
   const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
   const alarmRef = useRef(null);
   const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+  const lockedRef = useRef(locked);
+  const contactsRef = useRef(config.contacts);
+  const bannerTimer = useRef(null);
+  useEffect(() => { lockedRef.current = locked; }, [locked]);
+  useEffect(() => { contactsRef.current = config.contacts; }, [config.contacts]);
+
+  // drop-down banner for new notifications while the phone is unlocked
+  const showBanner = useCallback((notif) => {
+    setBanner(notif);
+    clearTimeout(bannerTimer.current);
+    bannerTimer.current = setTimeout(() => setBanner(null), 6000);
+  }, []);
+
   // persistent call history - names resolve from the contact book by number
   const logCall = useCallback((entry) => {
-    update((c) => {
-      const known = (c.contacts || []).find((k) => k.number && k.number === entry.number);
-      const name = (known && known.name) || entry.name || entry.number || "Unknown";
-      return { callLog: [{ ...entry, name }, ...(c.callLog || [])].slice(0, 100) };
-    });
-  }, [update]);
+    const known = (contactsRef.current || []).find((k) => k.number && k.number === entry.number);
+    const name = (known && known.name) || entry.name || entry.number || "Unknown";
+    const notif = entry.type === "missed"
+      ? { id: `missed-${Date.now()}`, app: "phone", title: name, body: "Missed call", time: entry.time || fmtTime(Date.now()) }
+      : null;
+    update((c) => ({
+      callLog: [{ ...entry, name }, ...(c.callLog || [])].slice(0, 100),
+      ...(notif && {
+        notifications: [notif, ...(c.notifications || [])].slice(0, 5),
+        badges: { ...(c.badges || {}), phone: Math.min(1000000, ((c.badges || {}).phone || 0) + 1) },
+      }),
+    }));
+    if (notif && !lockedRef.current) showBanner(notif);
+  }, []);
 
   const callType = (cur) =>
     cur.phase === "incoming" ? "missed" : (cur.direction === "in" ? "incoming" : "outgoing");
@@ -99,6 +122,26 @@ export default function OS() {
       }
     });
     return () => { mounted = false; unsub(); };
+  }, []);
+
+  // control-deck messages: unread badge + lock-screen / banner notification
+  useEffect(() => {
+    const unsub = base44.entities.Message.subscribe((event) => {
+      if (event.type !== "create") return;
+      const m = event.data;
+      if (!m || m.sender === "phone") return;
+      const contact = (contactsRef.current || []).find((x) => String(x.id) === String(m.thread_id));
+      const title = m.thread_id === "stage-1"
+        ? (m.sender_name && m.sender_name !== "Control" ? m.sender_name : "Control Deck")
+        : (contact?.name || m.sender_name || m.thread_id || "New message");
+      const notif = { id: m.id, app: "messages", title, body: m.text || "", threadId: m.thread_id, time: fmtTime(Date.now()) };
+      update((c) => ({
+        notifications: [notif, ...(c.notifications || [])].slice(0, 5),
+        badges: { ...(c.badges || {}), messages: Math.min(1000000, ((c.badges || {}).messages || 0) + 1) },
+      }));
+      if (!lockedRef.current) showBanner(notif);
+    });
+    return unsub;
   }, []);
 
   // keep refs in sync with current call / alarm
@@ -218,6 +261,25 @@ export default function OS() {
     setCall({ phase: "active", direction: "out", contact, startTime: Date.now(), commandId: null });
   };
 
+  // opening a notification unlocks and jumps straight to the thread / app
+  const openNotification = useCallback((n) => {
+    setBanner(null);
+    setLocked(false);
+    update((c) => (c.notifications?.length ? { notifications: [] } : {}));
+    if (n?.app === "phone") setApp("phone");
+    else if (n?.app === "mail") setApp("email");
+    else {
+      if (n?.threadId) setMessageTo({ id: String(n.threadId), name: n.title });
+      setApp("messages");
+    }
+  }, []);
+
+  // unlocking clears the lock-screen notification list
+  const handleUnlock = useCallback(() => {
+    setLocked(false);
+    update((c) => (c.notifications?.length ? { notifications: [] } : {}));
+  }, []);
+
   const renderApp = () => {
     switch (app) {
       case "phone": return <PhoneApp onCall={startLocalCall} recents={config.callLog || []} language={config.language} />;
@@ -243,7 +305,7 @@ export default function OS() {
 
   const rtl = config.language === "ar";
   const screen = locked
-    ? <div className="absolute inset-0 pt-9" dir={rtl ? "rtl" : "ltr"}><LockScreen config={config} update={update} onUnlock={() => setLocked(false)} /></div>
+    ? <div className="absolute inset-0 pt-9" dir={rtl ? "rtl" : "ltr"}><LockScreen config={config} update={update} onUnlock={handleUnlock} notifications={config.notifications || []} onOpenNotification={openNotification} /></div>
     : app === null
       ? renderApp()
       : <div className="absolute inset-0 pt-9" dir={rtl ? "rtl" : "ltr"}>{renderApp()}</div>;
@@ -328,6 +390,10 @@ export default function OS() {
             {screen}
             <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
               color={osMarks.color || (config.theme === "light" ? "#000000" : "#FFFFFF")} />
+            {banner && !locked && (
+              <NotificationBanner notif={banner} light={config.theme === "light"}
+                onOpen={openNotification} onDismiss={() => setBanner(null)} />
+            )}
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
             {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>

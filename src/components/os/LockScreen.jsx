@@ -5,10 +5,11 @@ import PatternPad from "./PatternPad";
 import FaceScan from "./FaceScan";
 import FingerprintSensor from "./FingerprintSensor";
 import SwipeUpUnlock from "./SwipeUpUnlock";
+import LockNotifications from "./LockNotifications";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { cn } from "@/lib/utils";
 
-export default function LockScreen({ config, update, onUnlock }) {
+export default function LockScreen({ config, update, onUnlock, notifications = [], onOpenNotification }) {
   const lock = config.lockscreen || {};
   const method = lock.type || "none";
   const light = config.theme === "light";
@@ -106,6 +107,8 @@ export default function LockScreen({ config, update, onUnlock }) {
         <div className="font-display text-6xl font-bold tracking-tight">{time}</div>
         <div className="text-sm mt-1 opacity-60">{date}</div>
       </div>
+
+      <LockNotifications notifications={notifications} light={light} onOpen={onOpenNotification} />
 
       <div className={cn("relative flex flex-col items-center gap-3 mt-8 w-full", light ? "text-black/85" : "text-white")}>
         {method !== "none" && <div className="text-[13px] font-body opacity-80">{heading}</div>}
