@@ -352,7 +352,7 @@ export default function OS() {
               </div>
               <MarkAdjust size={osMarks.size} thickness={osMarks.thickness} rot={osMarks.rot}
                 onChange={(p) => setOsMarks((m) => ({ ...m, ...p }))} />
-              <p className="px-2.5 pt-1.5 text-[8px] font-body text-muted-foreground">Hold &amp; drag to move · double-tap to rotate</p>
+              <p className="px-2.5 pt-1.5 text-[8px] font-body text-muted-foreground">Hold &amp; drag to move · tap to rotate · double-tap to delete</p>
             </PopoverContent>
           </Popover>
           <button onClick={saveAsDevice}

@@ -42,7 +42,6 @@ export default function VFXStage() {
   const [banner, setBanner] = useState(null);
   const [dragId, setDragId] = useState(null);
   const lastTap = useRef({ id: null, t: 0 });
-  const removeTimer = useRef(null);
   const bannerTimer = useRef(null);
   const holdTimer = useRef(null);
   const pendingId = useRef(null);
@@ -103,7 +102,7 @@ export default function VFXStage() {
     return () => window.removeEventListener("pointermove", move);
   }, [dragId, marksId]);
 
-  // release: end a drag; a double-tap rotates 45°, a single tap removes
+  // release: end a drag; a tap rotates 45°, a double-tap deletes the marker
   useEffect(() => {
     const up = () => {
       clearTimeout(holdTimer.current);
@@ -113,12 +112,11 @@ export default function VFXStage() {
       if (!tapped) return;
       const now = Date.now();
       if (lastTap.current.id === tapped && now - lastTap.current.t < 350) {
-        clearTimeout(removeTimer.current);
         lastTap.current = { id: null, t: 0 };
-        rotateMarker(tapped);
+        updateLayout((list) => list.filter((m) => m.id !== tapped));
       } else {
         lastTap.current = { id: tapped, t: now };
-        removeTimer.current = setTimeout(() => updateLayout((list) => list.filter((m) => m.id !== tapped)), 350);
+        rotateMarker(tapped);
       }
     };
     window.addEventListener("pointerup", up);
@@ -126,7 +124,6 @@ export default function VFXStage() {
     return () => {
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
-      clearTimeout(removeTimer.current);
     };
   }, [dragId, marksId]);
 
@@ -184,7 +181,7 @@ export default function VFXStage() {
           {isPoint && (
             <div className="absolute bottom-36 inset-x-0 flex justify-center z-40 pointer-events-none">
               <div className="px-3.5 py-1.5 rounded-full text-[10px] font-body tracking-wide bg-black/55 text-white border border-white/15 shadow-2xl backdrop-blur-xl">
-                Hold &amp; drag to move · double-tap to rotate · tap to remove
+                Hold &amp; drag to move · tap to rotate · double-tap to delete
               </div>
             </div>
           )}

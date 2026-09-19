@@ -161,7 +161,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     saveMarkers((mm) => ({ markLayouts: { ...(mm.markLayouts || {}), [markStyle]: layout } }));
   }, [markStyle, locked]);
 
-  // release: end a drag; double-tap rotates the mark 45°
+  // release: end a drag; a tap rotates the mark 45°, a double-tap deletes it
   useEffect(() => {
     if (locked || markStyle === "none") return;
     const up = () => {
@@ -173,9 +173,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       const now = Date.now();
       if (lastMarkTap.current.id === tapped && now - lastMarkTap.current.t < 350) {
         lastMarkTap.current = { id: null, t: 0 };
-        updateMarkLayout((list) => list.map((m) => (m.id !== tapped ? m : { ...m, rot: ((m.rot || 0) + 45) % 360 })));
+        updateMarkLayout((list) => list.filter((m) => m.id !== tapped));
       } else {
         lastMarkTap.current = { id: tapped, t: now };
+        updateMarkLayout((list) => list.map((m) => (m.id !== tapped ? m : { ...m, rot: ((m.rot || 0) + 45) % 360 })));
       }
     };
     window.addEventListener("pointerup", up);

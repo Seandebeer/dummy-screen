@@ -4,7 +4,7 @@ import { defaultLayoutFor } from "@/hooks/useScreenMarks";
 
 // tracking-mark overlay for the video player - works the same way as the
 // UI marker marks: pick a style, hold & drag to move (snapped to the same
-// 5 x 8 grid), double-tap to rotate 45 degrees
+// 5 x 8 grid), tap to rotate 45 degrees, double-tap to delete
 const COLS = 5;
 const ROWS = 8;
 // grid lines plus the centre-line exception, so the middle marker can sit
@@ -68,7 +68,7 @@ export default function VideoMarks({ marks, onChange, locked, color = "#FFFFFF" 
     return () => window.removeEventListener("pointermove", move);
   }, [dragMark, style]);
 
-  // release: end a drag; a double-tap rotates the mark 45 degrees
+  // release: end a drag; a tap rotates the mark 45 degrees, a double-tap deletes it
   useEffect(() => {
     const up = () => {
       clearTimeout(holdTimer.current);
@@ -79,9 +79,10 @@ export default function VideoMarks({ marks, onChange, locked, color = "#FFFFFF" 
       const now = Date.now();
       if (lastTap.current.id === tapped && now - lastTap.current.t < 350) {
         lastTap.current = { id: null, t: 0 };
-        updateLayout((list) => list.map((m) => (m.id !== tapped ? m : { ...m, rot: ((m.rot || 0) + 45) % 360 })));
+        updateLayout((list) => list.filter((m) => m.id !== tapped));
       } else {
         lastTap.current = { id: tapped, t: now };
+        updateLayout((list) => list.map((m) => (m.id !== tapped ? m : { ...m, rot: ((m.rot || 0) + 45) % 360 })));
       }
     };
     window.addEventListener("pointerup", up);

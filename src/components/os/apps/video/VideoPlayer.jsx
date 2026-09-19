@@ -266,7 +266,7 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
                   </div>
                   <MarkAdjust size={marks.size} thickness={marks.thickness} rot={marks.rot}
                     onChange={(p) => setMarksPersist((m) => ({ ...m, ...p }))} />
-                  <p className="px-2.5 pt-1.5 text-[8px] font-body text-white/35">Hold &amp; drag to move · double-tap to rotate</p>
+                  <p className="px-2.5 pt-1.5 text-[8px] font-body text-white/35">Hold &amp; drag to move · tap to rotate · double-tap to delete</p>
                 </PopoverContent>
               </Popover>
             </div>
