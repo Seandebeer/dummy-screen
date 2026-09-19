@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { APP_THEMES, getAppTheme, setAppTheme } from "@/lib/appTheme";
+import { DEVICE_EVENT } from "@/lib/deviceLink";
 
 const NAME_KEY = "takeover-device-name";
 
@@ -19,6 +20,7 @@ export default function AppSettingsPanel({ onNameChange }) {
   const saveName = (v) => {
     setName(v);
     localStorage.setItem(NAME_KEY, v);
+    try { window.dispatchEvent(new Event(DEVICE_EVENT)); } catch {}
     onNameChange?.(v);
   };
 

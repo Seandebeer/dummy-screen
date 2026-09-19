@@ -3,6 +3,7 @@ import { Outlet, NavLink } from "react-router-dom";
 import { RectangleVertical, Plus, Radio, Home, Crosshair, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import ActiveDeviceBadge from "@/components/ActiveDeviceBadge";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home },
@@ -23,6 +24,7 @@ export default function Layout() {
           <Outlet />
         </main>
         <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-surface/70 backdrop-blur-2xl">
+          <div className="flex justify-center pt-1.5"><ActiveDeviceBadge /></div>
           <div className="flex items-stretch justify-around">
             {navItems.map((item) => (
               <NavLink
@@ -75,6 +77,9 @@ export default function Layout() {
             )}
           </NavLink>
         ))}
+        <div className="mt-auto flex w-full justify-center px-1.5">
+          <ActiveDeviceBadge />
+        </div>
       </nav>
       <main className="flex-1 min-w-0 overflow-auto">
         <Outlet />

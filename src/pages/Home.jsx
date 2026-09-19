@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Smartphone, Clapperboard, Settings2, Bookmark, User as UserIcon } from "lucide-react";
 import HomeSection from "@/components/home/HomeSection";
 import ProjectsPanel from "@/components/home/ProjectsPanel";
@@ -11,7 +11,6 @@ import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function Home() {
-  const [deviceName, setDeviceName] = useState(() => localStorage.getItem("takeover-device-name") || "");
   const { user, isAuthenticated } = useAuth();
   const initials = (user?.full_name || user?.email || "?")
     .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
@@ -24,9 +23,6 @@ export default function Home() {
           <h1 className="font-display font-bold text-3xl tracking-[-0.02em] leading-none mt-1.5">Home</h1>
         </div>
         <div className="flex items-center gap-3">
-          {deviceName && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber/30 bg-amber/10 px-3 py-1.5 text-[10px] font-medium font-body text-amber"><span className="h-1.5 w-1.5 rounded-full bg-amber led-pulse" />{deviceName}</span>
-          )}
           <Sheet>
             <SheetTrigger asChild>
               <button title="Profile & saved layouts"
@@ -61,7 +57,7 @@ export default function Home() {
           <DevicesPanel />
         </HomeSection>
         <HomeSection icon={Settings2} title="Settings" subtitle="Deck & mock OS preferences">
-          <AppSettingsPanel onNameChange={setDeviceName} />
+          <AppSettingsPanel />
         </HomeSection>
         <HomeSection icon={Bookmark} title="Saved" subtitle="Saved marker & screen configurations">
           <SavedPanel />

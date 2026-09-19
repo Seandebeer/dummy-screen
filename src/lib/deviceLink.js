@@ -3,6 +3,10 @@ import { base44 } from "@/api/base44Client";
 const KEY = "takeover-device-id";
 const NAME_KEY = "takeover-device-name";
 
+// fired whenever the linked device (or its name) changes, so badges
+// across the app can refresh without a reload
+export const DEVICE_EVENT = "takeover-device-changed";
+
 const link = (id) => { try { localStorage.setItem(KEY, id); } catch {} };
 
 // adopt a device whose layout was just loaded - later saves from this
@@ -10,6 +14,7 @@ const link = (id) => { try { localStorage.setItem(KEY, id); } catch {} };
 export const linkDevice = (id, name) => {
   link(id);
   if (name) { try { localStorage.setItem(NAME_KEY, name); } catch {} }
+  try { window.dispatchEvent(new Event(DEVICE_EVENT)); } catch {}
 };
 
 export const getLinkedDeviceId = () => {
