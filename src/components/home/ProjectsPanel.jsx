@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { FolderKanban, Plus, Trash2, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { applyOsConfig } from "@/lib/osConfigStore";
 
 export default function ProjectsPanel() {
   const [projects, setProjects] = useState(null);
   const [devices, setDevices] = useState([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
 
   const refresh = useCallback(() => {
     base44.entities.Project.list("-created_date", 100)
@@ -26,6 +29,14 @@ export default function ProjectsPanel() {
   }, [refresh]);
 
   const projectDevices = (p) => devices.filter((d) => d.project_id === p.id);
+
+  // tap a device to bring up its OS — loads its saved layout if it has one
+  const openDevice = (d) => {
+    if (d.config) {
+      try { applyOsConfig(JSON.parse(d.config)); } catch {}
+    }
+    navigate("/os");
+  };
 
   const add = async (e) => {
     e.preventDefault();
@@ -91,12 +102,13 @@ export default function ProjectsPanel() {
                 {projectDevices(p).length === 0 ? (
                   <span className="text-[10px] text-muted-foreground/70 font-body">No devices assigned</span>
                 ) : projectDevices(p).map((d) => (
-                  <span key={d.id} className="flex items-center gap-2 text-xs font-body">
+                  <button key={d.id} onClick={() => openDevice(d)} title="Open this device's OS"
+                    className="w-full flex items-center gap-2 text-xs font-body text-left rounded-md py-0.5 px-1 -mx-1 hover:bg-muted/60 transition cursor-pointer">
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0",
                       d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40")} />
                     <span className="truncate text-foreground/80">{d.name}</span>
                     <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{d.kind}</span>
-                  </span>
+                  </button>
                 ))}
               </div>
             </li>
