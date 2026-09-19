@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 export default function LockScreen({ config, update, onUnlock }) {
   const lock = config.lockscreen || {};
-  const method = lock.type || "passcode";
+  const method = lock.type || "none";
   const light = config.theme === "light";
 
   const [entry, setEntry] = useState("");

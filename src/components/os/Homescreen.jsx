@@ -9,7 +9,7 @@ import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 24;
-const DOCK_SLOTS = [0, 1, 2, 3, 4];
+const DOCK_SLOTS = [0, 1, 2, 3];
 
 export default function Homescreen({ config, update, onOpen }) {
   const [library, setLibrary] = useState(false);

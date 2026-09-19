@@ -12,7 +12,7 @@ const METHODS = [
   { id: "none", label: "None", hint: "swipe up to unlock", Icon: LockOpen },
 ];
 
-const DEFAULT_LOCK = { type: "passcode", background: { type: "preset", preset: "default", url: "" } };
+const DEFAULT_LOCK = { type: "none", background: { type: "preset", preset: "default", url: "" } };
 
 export default function LockSettings({ config, update, onLock }) {
   const [uploading, setUploading] = useState(false);

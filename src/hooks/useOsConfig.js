@@ -13,7 +13,7 @@ export const bgPresets = [
 
 const defaults = {
   order: allApps.map((a) => a.id),
-  dock: ["phone", "messages", "email", "settings", "uimarkers"],
+  dock: ["phone", "messages", "email", "settings"],
   uiMarkers: { assignments: {}, barRow: 4 },
   dialCodes: ["026", "034", "049"],
   dialCode: "026",
@@ -28,7 +28,8 @@ const defaults = {
   status: { battery: 75, signal: 4, wifi: 3 },
   passcode: "",
   pattern: "",
-  lockscreen: { type: "passcode", background: { type: "preset", preset: "default", url: "" } },
+  lockscreen: { type: "none", background: { type: "preset", preset: "default", url: "" } },
+  lockVer: 2,
 };
 
 function loadConfig() {
@@ -39,9 +40,8 @@ function loadConfig() {
       const order = saved.order.filter((id) => known.includes(id));
       known.forEach((id) => { if (!order.includes(id)) order.push(id); });
       const dock = Array.isArray(saved.dock)
-        ? saved.dock.filter((id) => known.includes(id)).slice(0, 5)
+        ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
         : [...defaults.dock];
-      if (saved.dockVer !== 2 && !dock.includes("uimarkers")) dock.push("uimarkers");
       const dialCodes = Array.isArray(saved.dialCodes) && saved.dialCodes.length
         ? saved.dialCodes.filter((c) => /^\d{3}$/.test(c)).slice(0, 3)
         : defaults.dialCodes;
@@ -51,7 +51,10 @@ function loadConfig() {
       if (saved.contactsVer !== 2 || saved.contactsLang !== language) {
         contacts = [...makeDefaultContacts(dialCodes, language), ...contacts.filter((c) => c.custom)];
       }
-      return { ...defaults, ...saved, order, dock, dockVer: 2, uiMarkers: { ...defaults.uiMarkers, ...(saved.uiMarkers || {}) }, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
+      const lockscreen = saved.lockVer === 2
+        ? (saved.lockscreen || defaults.lockscreen)
+        : { ...(saved.lockscreen || defaults.lockscreen), type: "none" };
+      return { ...defaults, ...saved, order, dock, lockVer: 2, lockscreen, uiMarkers: { ...defaults.uiMarkers, ...(saved.uiMarkers || {}) }, dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;
