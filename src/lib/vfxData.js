@@ -10,7 +10,7 @@ export const vfxColors = [
 export const trackingMarks = [
   { id: "none", name: "None" },
   { id: "cross", name: "Cross" },
-  { id: "circles", name: "Circle" },
+  { id: "circles", name: "Target" },
   { id: "checkerboard", name: "Checker", bwOnly: true },
   { id: "squares", name: "Square" },
   { id: "dots", name: "Dots" },

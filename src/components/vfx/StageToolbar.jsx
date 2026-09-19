@@ -13,7 +13,7 @@ const panel = "border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2x
 
 const MARKER_KINDS = [
   { id: "cross", label: "Cross" },
-  { id: "circles", label: "Circles" },
+  { id: "circles", label: "Targets" },
   { id: "squares", label: "Squares" },
   { id: "brackets", label: "Brackets" },
   { id: "diamond", label: "Diamond" },
