@@ -4,6 +4,7 @@ import { FolderKanban, Plus, Trash2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { applyOsConfig } from "@/lib/osConfigStore";
+import { linkDevice } from "@/lib/deviceLink";
 
 export default function ProjectsPanel() {
   const [projects, setProjects] = useState(null);
@@ -33,7 +34,10 @@ export default function ProjectsPanel() {
   // tap a device to bring up its OS - loads its saved layout if it has one
   const openDevice = (d) => {
     if (d.config) {
-      try { applyOsConfig(JSON.parse(d.config)); } catch {}
+      try {
+        applyOsConfig(JSON.parse(d.config));
+        linkDevice(d.id, d.name);
+      } catch {}
     }
     navigate("/os");
   };

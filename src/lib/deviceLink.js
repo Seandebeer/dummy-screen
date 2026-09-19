@@ -5,6 +5,13 @@ const NAME_KEY = "takeover-device-name";
 
 const link = (id) => { try { localStorage.setItem(KEY, id); } catch {} };
 
+// adopt a device whose layout was just loaded - later saves from this
+// screen then update that device's record instead of creating a new one
+export const linkDevice = (id, name) => {
+  link(id);
+  if (name) { try { localStorage.setItem(NAME_KEY, name); } catch {} }
+};
+
 export const getLinkedDeviceId = () => {
   try { return localStorage.getItem(KEY) || null; } catch { return null; }
 };

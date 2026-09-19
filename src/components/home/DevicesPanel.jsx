@@ -4,6 +4,7 @@ import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Save } from "lucide
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
+import { linkDevice } from "@/lib/deviceLink";
 
 const kinds = [
   { id: "phone", label: "Phone" },
@@ -76,6 +77,7 @@ export default function DevicesPanel() {
   const loadLayout = (d) => {
     try {
       applyOsConfig(JSON.parse(d.config));
+      linkDevice(d.id, d.name);
       navigate("/os");
     } catch {}
   };
