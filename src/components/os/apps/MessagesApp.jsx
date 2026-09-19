@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
+import { Image } from "@/components/ui/image";
 
 const READ_KEY = "takeover-os-msg-read";
 
@@ -63,9 +64,15 @@ export default function MessagesApp({ contacts = [], initialTo }) {
   }, [messages.length, view]);
 
   const nameFor = (tid) => {
-    if (tid === "stage-1") return "Control Deck";
+    if (tid === "stage-1") return controlIdentity().name;
     const c = contacts.find((x) => String(x.id) === String(tid));
     return c ? c.name : tid;
+  };
+  // the identity the control deck last used (name + photo) shows on this OS
+  const controlIdentity = () => {
+    const last = threadMsgs("stage-1").filter((m) => m.sender === "control").slice(-1)[0];
+    const name = last?.sender_name?.trim();
+    return { name: name && name !== "Control" ? name : "Control Deck", image: last?.contact_image || "" };
   };
   const contactFor = (tid) => contacts.find((x) => String(x.id) === String(tid));
   const colorFor = (tid) => contactFor(tid)?.color || "#B9C1CB";
@@ -226,6 +233,7 @@ export default function MessagesApp({ contacts = [], initialTo }) {
           const name = nameFor(tid);
           const snippet = last ? last.text : "No messages yet";
           const c = contactFor(tid);
+          const ctrl = tid === "stage-1" ? controlIdentity() : null;
           return (
             <button key={tid}
               onClick={() => (editMode ? deleteThread(tid) : setView({ type: "thread", id: tid }))}
@@ -235,8 +243,10 @@ export default function MessagesApp({ contacts = [], initialTo }) {
               ) : (
                 <span className={cn("h-2 w-2 rounded-full shrink-0", isUnread(tid) ? "bg-[#007AFF]" : "bg-transparent")} />
               )}
-              <span className="h-11 w-11 rounded-full flex items-center justify-center font-semibold text-sm shrink-0" style={{ background: colorFor(tid), color: tid === "stage-1" && !c ? "#fff" : "#000" }}>
-                {tid === "stage-1" && !c ? "C" : (c?.initials || name.slice(0, 2).toUpperCase())}
+              <span className="h-11 w-11 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 overflow-hidden" style={{ background: colorFor(tid), color: tid === "stage-1" && !c ? "#fff" : "#000" }}>
+                {ctrl?.image ? (
+                  <Image src={ctrl.image} alt="" className="h-full w-full" fittingType="fill" />
+                ) : tid === "stage-1" && !c ? "C" : (c?.initials || name.slice(0, 2).toUpperCase())}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">

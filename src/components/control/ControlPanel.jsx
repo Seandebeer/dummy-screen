@@ -130,6 +130,7 @@ export default function ControlPanel() {
       await base44.entities.Message.create({
         thread_id: "stage-1", sender: "control", text: body,
         sender_name: contact.name.trim() || "Control",
+        contact_image: contact.image || "",
       });
     } catch (e) { setText(body); }
   };
@@ -144,6 +145,9 @@ export default function ControlPanel() {
 
   return (
     <div className="flex flex-col gap-4 h-full">
+      {/* quick connect via QR */}
+      <QrConnect />
+
       {/* connection panel */}
       <div className="rounded-xl border border-border bg-surface p-4">
         <div className="flex items-center justify-between mb-3">
@@ -176,29 +180,13 @@ export default function ControlPanel() {
         </div>
       </div>
 
-      {/* quick connect via QR */}
-      <QrConnect />
-
-      {/* alarm trigger */}
-      <div className="rounded-xl border border-border bg-surface p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <AlarmClock size={16} className="text-amber" />
-          <span className="font-display font-semibold text-sm">Alarm Trigger</span>
-        </div>
-        <button onClick={alarmId ? stopAlarm : triggerAlarm}
-          className={cn("w-full flex items-center justify-center gap-2 rounded-lg border py-3 text-sm font-body font-semibold transition",
-            alarmId
-              ? "border-alert/40 bg-alert/10 text-alert hover:bg-alert/20"
-              : "border-amber/40 bg-amber/10 text-amber hover:bg-amber/20")}>
-          <AlarmClock size={18} />
-          {alarmId ? "Stop Alarm" : "Trigger Alarm"}
-        </button>
-      </div>
-
-      {/* call trigger — manual contact */}
+      {/* on-screen contact — the identity used for calls and messages */}
       <div className="rounded-xl border border-border bg-surface p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">Call Trigger</div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">On-Screen Contact</div>
+            <div className="text-[10px] text-muted-foreground/80 font-body mt-0.5">Displayed on the actor's OS when calling or messaging</div>
+          </div>
           {contact.image && (
             <button onClick={() => saveContact({ image: "" })}
               className="text-[10px] font-body text-muted-foreground hover:text-alert transition">
@@ -223,6 +211,11 @@ export default function ControlPanel() {
               className="col-span-2 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
           </div>
         </div>
+      </div>
+
+      {/* call trigger */}
+      <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body mb-3">Call Trigger</div>
         <div className="grid grid-cols-2 gap-2">
           <button onClick={triggerCall} disabled={!canCall}
             className="flex flex-col items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 py-3 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
@@ -272,6 +265,22 @@ export default function ControlPanel() {
             <Send size={16} />
           </button>
         </div>
+      </div>
+
+      {/* alarm trigger */}
+      <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <AlarmClock size={16} className="text-amber" />
+          <span className="font-display font-semibold text-sm">Alarm Trigger</span>
+        </div>
+        <button onClick={alarmId ? stopAlarm : triggerAlarm}
+          className={cn("w-full flex items-center justify-center gap-2 rounded-lg border py-3 text-sm font-body font-semibold transition",
+            alarmId
+              ? "border-alert/40 bg-alert/10 text-alert hover:bg-alert/20"
+              : "border-amber/40 bg-amber/10 text-amber hover:bg-amber/20")}>
+          <AlarmClock size={18} />
+          {alarmId ? "Stop Alarm" : "Trigger Alarm"}
+        </button>
       </div>
     </div>
   );

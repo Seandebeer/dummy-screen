@@ -19,6 +19,9 @@
     "sender_name": {
       "type": "string",
       "default": "Control"
+    },
+    "contact_image": {
+      "type": "string"
     }
   },
   "required": [
