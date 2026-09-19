@@ -54,11 +54,11 @@ export default function Home() {
       </header>
 
       <div className="p-5 sm:p-8 max-w-[1280px] mx-auto flex flex-col gap-5">
-        <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync">
-          <DevicesPanel />
-        </HomeSection>
         <HomeSection icon={Clapperboard} title="Projects" subtitle="Production projects">
           <ProjectsPanel />
+        </HomeSection>
+        <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync">
+          <DevicesPanel />
         </HomeSection>
         <HomeSection icon={Settings2} title="Settings" subtitle="Deck & mock OS preferences">
           <AppSettingsPanel onNameChange={setDeviceName} />
