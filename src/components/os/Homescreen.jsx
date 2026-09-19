@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LayoutGrid, Search } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import IconTile from "./IconTile";
@@ -16,8 +16,6 @@ export default function Homescreen({ config, update, onOpen }) {
   const [drag, setDrag] = useState(null);
   const [page, setPage] = useState(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const dragRef = useRef(null);
   const holdTimer = useRef(null);
   const pointerStart = useRef(null);
@@ -188,10 +186,6 @@ export default function Homescreen({ config, update, onOpen }) {
     });
   };
 
-  const results = query.trim()
-    ? allApps.filter((a) => a.label.toLowerCase().includes(query.trim().toLowerCase()))
-    : allApps;
-
   const tileButton = (a) => (
     <button
       data-app-id={a.id}
@@ -278,15 +272,6 @@ export default function Homescreen({ config, update, onOpen }) {
         </div>
       )}
 
-      {/* search pill */}
-      <div className="relative px-4 pb-2.5">
-        <button onClick={() => setSearchOpen(true)}
-          className={cn("w-full flex items-center gap-2 rounded-full border px-4 py-2 text-sm backdrop-blur transition",
-            light ? "bg-black/10 border-black/10 text-black/70 hover:bg-black/20" : "bg-white/10 border-white/10 text-white/70 hover:bg-white/20")}>
-          <Search size={14} className="opacity-70" /> Search
-        </button>
-      </div>
-
       {/* dock — hold & drag apps in / out */}
       <div className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 rounded-[1.9rem] border px-2 py-3 backdrop-blur-md",
         light ? "bg-black/10 border-black/10" : "bg-white/10 border-white/10")}>
@@ -313,36 +298,6 @@ export default function Homescreen({ config, update, onOpen }) {
           );
         })}
       </div>
-
-      {/* search overlay */}
-      {searchOpen && (
-        <div className="absolute inset-0 z-30 flex flex-col" style={backgroundStyle}>
-          {!hasImage && <div className="grid-backdrop absolute inset-0 opacity-30 pointer-events-none" />}
-          <div className={cn("relative flex items-center gap-2 px-4 pt-10 pb-3", light ? "text-black" : "text-white")}>
-            <div className={cn("flex-1 flex items-center gap-2 rounded-full border px-4 py-2 backdrop-blur",
-              light ? "bg-black/10 border-black/10" : "bg-white/10 border-white/10")}>
-              <Search size={14} className="opacity-60" />
-              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search apps"
-                className="flex-1 bg-transparent outline-none text-sm placeholder:opacity-50" />
-            </div>
-            <button onClick={() => { setSearchOpen(false); setQuery(""); }} className="text-sm opacity-70">Cancel</button>
-          </div>
-          <div className="relative flex-1 overflow-auto no-scrollbar px-5 pt-2">
-            <div className="grid grid-cols-4 gap-y-4 gap-x-3 content-start">
-              {results.map((a) => (
-                <button key={a.id} onClick={() => { setSearchOpen(false); setQuery(""); onOpen(a.id); }}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition">
-                  <IconTile app={a} />
-                  <span className={cn("text-[11px]", light ? "text-black/80" : "text-white/80")}>{a.label}</span>
-                </button>
-              ))}
-            </div>
-            {results.length === 0 && (
-              <p className={cn("pt-10 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps found</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* dragged icon ghost */}
       {dragApp && (

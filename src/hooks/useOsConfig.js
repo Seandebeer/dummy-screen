@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { allApps } from "@/lib/osApps";
-import { makeDefaultContacts } from "@/lib/osData";
+import { makeDefaultContacts, remapContacts } from "@/lib/osData";
 
 const STORAGE_KEY = "takeover-os-config";
 
@@ -14,8 +14,8 @@ export const bgPresets = [
 const defaults = {
   order: allApps.map((a) => a.id),
   dock: ["phone", "messages", "email", "settings"],
-  dialCode: "082",
-  contacts: makeDefaultContacts("082"),
+  dialCode: "026",
+  contacts: makeDefaultContacts("026"),
   theme: "dark",
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
@@ -35,7 +35,12 @@ function loadConfig() {
       const dock = Array.isArray(saved.dock)
         ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
         : defaults.dock;
-      return { ...defaults, ...saved, order, dock };
+      const legacy = ["082", "083", "084"];
+      const dialCode = legacy.includes(saved.dialCode) ? "026" : (saved.dialCode || defaults.dialCode);
+      const contacts = legacy.includes(saved.dialCode)
+        ? remapContacts(saved.contacts || defaults.contacts, dialCode)
+        : (saved.contacts || defaults.contacts);
+      return { ...defaults, ...saved, order, dock, dialCode, contacts };
     }
   } catch {}
   return defaults;

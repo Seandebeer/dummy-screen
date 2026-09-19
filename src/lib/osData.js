@@ -1,4 +1,4 @@
-export const DIAL_CODES = ["082", "083", "084"];
+export const DIAL_CODES = ["026", "034", "049"];
 
 export const mockContacts = [
   { id: "c1", name: "Sarah Chen", suffix: "555 0142", email: "sarah.chen@setmail.co", initials: "SC", color: "#00E5FF" },
@@ -11,7 +11,7 @@ export const mockContacts = [
 
 export const contactNumber = (dialCode, suffix) => `${dialCode} ${suffix}`.trim();
 
-export const makeDefaultContacts = (dialCode = "082") =>
+export const makeDefaultContacts = (dialCode = "026") =>
   mockContacts.map((c) => ({ ...c, custom: false, number: contactNumber(dialCode, c.suffix) }));
 
 export const remapContacts = (contacts = [], dialCode) =>

@@ -18,6 +18,7 @@ function Section({ title, children }) {
 export default function SettingsApp({ config, update, onLock }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(false);
+  const [codeDraft, setCodeDraft] = useState("");
   const fileRef = useRef(null);
 
   const light = config.theme === "light";
@@ -89,12 +90,22 @@ export default function SettingsApp({ config, update, onLock }) {
             <button key={code}
               onClick={() => update((c) => ({ dialCode: code, contacts: remapContacts(c.contacts, code) }))}
               className={cn("flex-1 rounded-lg border py-2.5 font-body text-sm transition",
-                (config.dialCode || "082") === code
+                config.dialCode === code
                   ? "border-amber text-amber bg-amber/10"
                   : "border-white/10 text-white/60 hover:border-white/30")}>
               {code}
             </button>
           ))}
+        </div>
+        <div className="flex items-center gap-2 mt-3">
+          <input value={codeDraft} onChange={(e) => setCodeDraft(e.target.value.replace(/\D/g, "").slice(0, 3))}
+            inputMode="numeric" placeholder="Custom code"
+            className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 font-body text-sm outline-none focus:border-amber placeholder:text-white/25" />
+          <button disabled={codeDraft.length !== 3}
+            onClick={() => { update((c) => ({ dialCode: codeDraft, contacts: remapContacts(c.contacts, codeDraft) })); setCodeDraft(""); }}
+            className="rounded-lg bg-amber/15 border border-amber/40 text-amber text-xs font-semibold px-3 py-2 disabled:opacity-35 disabled:border-white/10 disabled:text-white/30">
+            Apply
+          </button>
         </div>
         <p className="text-[11px] text-white/40 font-body mt-2">Mock contacts start with this code until manually edited.</p>
       </Section>

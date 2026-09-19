@@ -65,7 +65,7 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
             </div>
           </div>
           {/* screen content */}
-          <div className="absolute inset-0 pt-9">{children}</div>
+          <div className="absolute inset-0">{children}</div>
           {/* home indicator */}
           {onHome && (
             <button

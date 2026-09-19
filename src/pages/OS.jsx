@@ -182,8 +182,10 @@ export default function OS() {
   };
 
   const screen = locked
-    ? <LockScreen config={config} update={update} onUnlock={() => setLocked(false)} />
-    : renderApp();
+    ? <div className="absolute inset-0 pt-9"><LockScreen config={config} update={update} onUnlock={() => setLocked(false)} /></div>
+    : app === null
+      ? renderApp()
+      : <div className="absolute inset-0 pt-9">{renderApp()}</div>;
 
   return (
     <div className="min-h-dvh bg-background grid-backdrop flex flex-col">

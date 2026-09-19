@@ -29,10 +29,10 @@
     --alert: 3 100% 59%;
     --amber: 41 100% 50%;
     --radius: 0.75rem;
-    --font-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-    --font-body: "JetBrains Mono", ui-monospace, monospace;
-    --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 }
 
