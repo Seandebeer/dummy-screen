@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export default function PhoneFrame({ children, onHome, statusBarDark = false, className }) {
+export default function PhoneFrame({ children, onHome, light = false, statusBarDark = false, className }) {
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   return (
@@ -12,7 +12,7 @@ export default function PhoneFrame({ children, onHome, statusBarDark = false, cl
           {/* status bar */}
           <div className={cn(
             "absolute top-0 inset-x-0 z-30 flex items-center justify-between px-7 pt-3 pb-1 text-[12px] font-semibold",
-            statusBarDark ? "text-white" : "text-white"
+            light ? "text-black" : "text-white"
           )}>
             <span className="font-body">{time}</span>
             {/* notch */}
@@ -21,10 +21,10 @@ export default function PhoneFrame({ children, onHome, statusBarDark = false, cl
               <span className="text-[10px]">●●●</span>
               <span className="text-[10px]">5G</span>
               <div className="flex items-center gap-0.5">
-                <div className="h-2.5 w-5 rounded-[2px] border border-white/70 relative">
-                  <div className="absolute inset-0.5 bg-white rounded-[1px]" style={{ width: "75%" }} />
+                <div className="h-2.5 w-5 rounded-[2px] border border-current relative">
+                  <div className="absolute inset-0.5 bg-current rounded-[1px]" style={{ width: "75%" }} />
                 </div>
-                <div className="h-1 w-0.5 bg-white/70 rounded-r" />
+                <div className="h-1 w-0.5 bg-current rounded-r" />
               </div>
             </div>
           </div>

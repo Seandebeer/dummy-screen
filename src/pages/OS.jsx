@@ -11,10 +11,12 @@ import ClockApp from "@/components/os/apps/ClockApp";
 import CallOverlay from "@/components/os/CallOverlay";
 import MockApp from "@/components/os/apps/MockApp";
 import { allAppsById } from "@/lib/osApps";
+import useOsConfig from "@/hooks/useOsConfig";
 import { base44 } from "@/api/base44Client";
 
 export default function OS() {
   const [app, setApp] = useState(null);
+  const { config, update } = useOsConfig();
   const [call, setCall] = useState(null);
   const [recents, setRecents] = useState([]);
   const callRef = useRef(null);
@@ -96,7 +98,7 @@ export default function OS() {
       case "messages": return <MessagesApp />;
       case "email": return <EmailApp />;
       case "clock": return <ClockApp />;
-      case null: return <Homescreen onOpen={setApp} />;
+      case null: return <Homescreen onOpen={setApp} config={config} update={update} />;
       default: return <MockApp app={allAppsById[app]} />;
     }
   };
@@ -113,7 +115,7 @@ export default function OS() {
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame onHome={() => setApp(null)}>
+        <PhoneFrame onHome={() => setApp(null)} light={app === null && config.theme === "light"}>
           {renderApp()}
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} />
         </PhoneFrame>
