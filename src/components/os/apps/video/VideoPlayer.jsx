@@ -6,6 +6,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Timeline from "./Timeline";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "./VideoMarks";
+import MarkAdjust from "@/components/os/MarkAdjust";
 import { fmtDur, updateVideo } from "@/lib/videoStore";
 import { cn } from "@/lib/utils";
 
@@ -243,7 +244,7 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
                     <Shapes size={14} /> Marks
                   </button>
                 </PopoverTrigger>
-                <PopoverContent side="top" align="center" className="w-36 border-white/15 bg-black/90 p-1.5 text-white shadow-2xl backdrop-blur-xl">
+                <PopoverContent side="top" align="center" className="w-44 border-white/15 bg-black/90 p-1.5 text-white shadow-2xl backdrop-blur-xl">
                   <button onClick={() => setMarksPersist((m) => ({ ...m, style: "none" }))}
                     className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider hover:bg-white/10">
                     None
@@ -263,6 +264,8 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
                         style={{ background: c }} aria-label={`Mark colour ${c}`} />
                     ))}
                   </div>
+                  <MarkAdjust size={marks.size} thickness={marks.thickness} rot={marks.rot}
+                    onChange={(p) => setMarksPersist((m) => ({ ...m, ...p }))} />
                   <p className="px-2.5 pt-1.5 text-[8px] font-body text-white/35">Hold &amp; drag to move · double-tap to rotate</p>
                 </PopoverContent>
               </Popover>

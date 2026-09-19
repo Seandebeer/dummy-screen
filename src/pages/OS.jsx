@@ -19,6 +19,7 @@ import MockApp from "@/components/os/apps/MockApp";
 import MusicApp from "@/components/os/apps/MusicApp";
 import { allAppsById } from "@/lib/osApps";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
+import MarkAdjust from "@/components/os/MarkAdjust";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
 import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
@@ -287,6 +288,8 @@ export default function OS() {
                   Auto
                 </button>
               </div>
+              <MarkAdjust size={osMarks.size} thickness={osMarks.thickness} rot={osMarks.rot}
+                onChange={(p) => setOsMarks((m) => ({ ...m, ...p }))} />
               <p className="px-2.5 pt-1.5 text-[8px] font-body text-muted-foreground">Hold &amp; drag to move · double-tap to rotate</p>
             </PopoverContent>
           </Popover>

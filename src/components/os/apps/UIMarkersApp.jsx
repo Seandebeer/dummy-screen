@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Check, Lock, Palette, RotateCcw, Save, Shapes } from "lucide-react";
 import { saveConfig } from "@/lib/savedConfigs";
+import MarkAdjust from "@/components/os/MarkAdjust";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import { defaultLayoutFor } from "@/hooks/useScreenMarks";
@@ -389,7 +390,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                   <Shapes size={11} /> Marks
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="bottom" align="end" className="w-36 p-1.5 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
+              <PopoverContent side="bottom" align="end" className="w-44 p-1.5 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
                 <button onClick={() => saveMarkers({ markStyle: "none" })}
                   className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider transition hover:bg-white/10">
                   None
@@ -402,6 +403,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                     {markStyle === s.id && <Check size={12} className="text-amber" />}
                   </button>
                 ))}
+                <MarkAdjust size={markers.markSize} thickness={markers.markThick} rot={markers.markRot}
+                  onChange={(p) => saveMarkers({
+                    ...(p.size !== undefined && { markSize: p.size }),
+                    ...(p.thickness !== undefined && { markThick: p.thickness }),
+                    ...(p.rot !== undefined && { markRot: p.rot }),
+                  })} />
               </PopoverContent>
             </Popover>
             <button onClick={saveLayout}
@@ -438,8 +445,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       {/* tracking marks overlay - follows the chosen background */}
       {markStyle !== "none" && (
         <>
-          <TrackingMarks type={markStyle} color={markColor} opacity={0.85} size={1.1} thickness={0.6}
-            markers={markLayout} dragId={dragMark}
+          <TrackingMarks type={markStyle} color={markColor} opacity={0.85}
+            size={markers.markSize ?? 1.1} thickness={markers.markThick ?? 0.6}
+            markers={markers.markRot ? markLayout.map((m) => ({ ...m, rot: (m.rot || 0) + markers.markRot })) : markLayout}
+            dragId={dragMark}
             onMarkerDown={!locked ? onMarkDown : undefined} />
           {/* temporary snap grid - lines sit in the button gaps */}
           {dragMark && (() => {

@@ -97,8 +97,10 @@ export default function VideoMarks({ marks, onChange, locked, color = "#FFFFFF" 
   return (
     // stops marker taps from bubbling into the stage's play/pause toggle
     <div ref={boxRef} className="pointer-events-none absolute inset-0 z-[5]" onClick={(e) => e.stopPropagation()}>
-      <TrackingMarks type={style} color={color} opacity={0.85} size={1.1} thickness={0.6}
-        markers={layout} dragId={dragMark}
+      <TrackingMarks type={style} color={color} opacity={0.85}
+        size={marks.size ?? 1.1} thickness={marks.thickness ?? 0.6}
+        markers={marks.rot ? layout.map((m) => ({ ...m, rot: (m.rot || 0) + marks.rot })) : layout}
+        dragId={dragMark}
         onMarkerDown={!locked ? onMarkDown : undefined} />
       {dragMark && (
         <div className="pointer-events-none absolute inset-0" style={{
