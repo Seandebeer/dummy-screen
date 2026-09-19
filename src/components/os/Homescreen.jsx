@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LayoutGrid } from "lucide-react";
+import { EyeOff, LayoutGrid } from "lucide-react";
 import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { uiFor } from "@/lib/osLanguages";
@@ -17,6 +17,8 @@ export default function Homescreen({ config, update, onOpen }) {
   const [library, setLibrary] = useState(false);
   const [clockEdit, setClockEdit] = useState(false);
   const [drag, setDrag] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const rootRef = useRef(null);
   const [page, setPage] = useState(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const dragRef = useRef(null);
@@ -57,6 +59,45 @@ export default function Homescreen({ config, update, onOpen }) {
     dragRef.current = { id, x, y };
     setDrag({ id, x, y });
   };
+
+  // pick up an icon for dragging - closes any open menu, cancels any swipe
+  const startDrag = (id, x, y) => {
+    suppressClick.current = true;
+    setMenu(null);
+    swipeStart.current = null;
+    setSwipeOffset(0);
+    setDragging(id, x, y);
+  };
+
+  // remove an app from the home screen + dock without opening the library
+  const hideApp = (id) => update((c) => ({
+    order: c.order.filter((x) => x !== id),
+    dock: (c.dock || []).filter((x) => x !== id),
+  }));
+
+  // hold an icon still to open its menu (hide it right on the home screen);
+  // moving while the menu is open picks the icon up and drags it instead
+  const openMenu = (id, px, py) => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenu({
+      id, px, py,
+      left: Math.min(Math.max(px - rect.left, 90), rect.width - 90),
+      top: Math.min(Math.max(py - rect.top - 86, 68), rect.height - 116),
+    });
+  };
+
+  useEffect(() => {
+    if (!menu) return;
+    const move = (e) => {
+      if (e.pointerType === "mouse" && e.buttons === 0) return;
+      if (Math.hypot(e.clientX - menu.px, e.clientY - menu.py) > 14) {
+        startDrag(menu.id, e.clientX, e.clientY);
+      }
+    };
+    window.addEventListener("pointermove", move);
+    return () => window.removeEventListener("pointermove", move);
+  }, [menu]);
 
   // live reorder + dock<->grid moves while an icon is held & dragged
   useEffect(() => {
@@ -141,23 +182,25 @@ export default function Homescreen({ config, update, onOpen }) {
   const onTilePointerDown = (e, id) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     suppressClick.current = false;
-    pointerStart.current = { x: e.clientX, y: e.clientY };
+    pointerStart.current = { id, x: e.clientX, y: e.clientY, t: Date.now() };
     clearTimeout(holdTimer.current);
     holdTimer.current = setTimeout(() => {
       const start = pointerStart.current;
       if (!start) return;
       suppressClick.current = true;
-      setDragging(id, start.x, start.y);
-    }, 200);
+      pointerStart.current = null;
+      openMenu(start.id, start.x, start.y);
+    }, 300);
   };
 
   const onTilePointerMove = (e) => {
     const start = pointerStart.current;
     if (!start || dragRef.current) return;
-    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) {
-      clearTimeout(holdTimer.current);
-      pointerStart.current = null;
-    }
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) <= 14) return;
+    clearTimeout(holdTimer.current);
+    pointerStart.current = null;
+    // a quick flick swipes pages; press, brief pause, then move = pick up & drag
+    if (Date.now() - start.t >= 180) startDrag(start.id, e.clientX, e.clientY);
   };
 
   const cancelHold = () => {
@@ -220,6 +263,7 @@ export default function Homescreen({ config, update, onOpen }) {
   const onViewportUp = () => {
     const s = swipeStart.current;
     swipeStart.current = null;
+    if (dragRef.current || menu) { setSwipeOffset(0); return; }
     if (!s || !s.active) { setSwipeOffset(0); return; }
     suppressClick.current = true;
     if (swipeOffset < -50 && page < pages.length - 1) setPage(page + 1);
@@ -245,7 +289,7 @@ export default function Homescreen({ config, update, onOpen }) {
       onPointerCancel={cancelHold}
       onContextMenu={(e) => e.preventDefault()}
       onClick={() => onTileClick(a.id)}
-      className={cn("flex flex-col items-center gap-1.5 active:scale-95 transition select-none",
+      className={cn("flex touch-none flex-col items-center gap-1.5 active:scale-95 transition select-none",
         drag?.id === a.id && "opacity-30")}
     >
       {iconWithBadge(a)}
@@ -254,7 +298,7 @@ export default function Homescreen({ config, update, onOpen }) {
   );
 
   return (
-    <div dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
+    <div ref={rootRef} dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
 
       {/* clock - tap to edit · apps library top-right */}
       <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
@@ -338,7 +382,7 @@ export default function Homescreen({ config, update, onOpen }) {
                   onPointerCancel={cancelHold}
                   onContextMenu={(e) => e.preventDefault()}
                   onClick={() => onTileClick(app.id)}
-                  className={cn("active:scale-95 transition select-none", drag?.id === app.id && "opacity-30")}>
+                  className={cn("touch-none active:scale-95 transition select-none", drag?.id === app.id && "opacity-30")}>
                   {iconWithBadge(app)}
                 </button>
               ) : (
@@ -358,6 +402,32 @@ export default function Homescreen({ config, update, onOpen }) {
           </div>
         </div>
       )}
+
+      {/* long-press menu: hide an app straight from the home screen */}
+      {menu && (() => {
+        const app = allAppsById[menu.id];
+        if (!app) return null;
+        return (
+          <>
+            <div className="absolute inset-0 z-40" onPointerDown={(e) => { e.stopPropagation(); setMenu(null); }} />
+            <div
+              className={cn("absolute z-50 -translate-x-1/2 w-44 overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl",
+                light ? "border-black/10 bg-white/85" : "border-white/15 bg-[#1c1c1e]/90")}
+              style={{ left: menu.left, top: menu.top }}>
+              <div className={cn("px-3 py-1.5 text-[10px] font-body truncate", light ? "text-black/45" : "text-white/45")}>{app.label}</div>
+              <button onClick={() => { hideApp(menu.id); setMenu(null); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-[12px] font-body transition hover:bg-white/10">
+                <EyeOff size={13} className={light ? "text-black/55" : "text-white/60"} /> Hide App
+              </button>
+              <button onClick={() => setMenu(null)}
+                className={cn("flex w-full items-center gap-2 border-t px-3 py-2 text-[12px] font-body transition hover:bg-white/10",
+                  light ? "border-black/10 text-black/65" : "border-white/10 text-white/65")}>
+                Cancel
+              </button>
+            </div>
+          </>
+        );
+      })()}
 
       {library && <AppLibrary order={config.order} onToggle={toggleApp} onClose={() => setLibrary(false)} />}
     </div>
