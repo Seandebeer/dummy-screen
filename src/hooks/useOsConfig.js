@@ -14,7 +14,7 @@ export const bgPresets = [
 const defaults = {
   order: allApps.map((a) => a.id),
   dock: ["phone", "messages", "email", "settings"],
-  uiMarkers: { assignments: {}, barRow: 7, barCol: 5, layoutVer: 1 },
+  uiMarkers: { assignments: {}, barRow: 7, barCol: 5, barVOffset: 0.5, layoutVer: 1 },
   dialCodes: ["026", "034", "049"],
   dialCode: "026",
   contacts: makeDefaultContacts(["026", "034", "049"], "en"),

@@ -12,6 +12,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const barCol = markers.barCol ?? 5;
   const barNumber = markers.barNumber ?? "";
   const barVNumber = markers.barVNumber ?? "";
+  const barVOffset = markers.barVOffset ?? 0.5;
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
@@ -86,7 +87,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       } else {
         const band = rect.width / (COLS + 1);
         const col = Math.max(0, Math.min(COLS, Math.floor((e.clientX - rect.left) / band)));
-        saveMarkers((m) => (m.barCol === col ? {} : { barCol: col }));
+        const offset = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+        saveMarkers((m) => (m.barCol === col && m.barVOffset === offset ? {} : { barCol: col, barVOffset: offset }));
       }
     };
     window.addEventListener("pointermove", move);
@@ -125,27 +127,6 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         onClick={locked ? undefined : () => toggleAssign(i)}
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
-          isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
-          !locked && assigned != null && "border-amber/60 text-amber",
-          !locked && "hover:border-white/40")}>
-        {assigned != null ? assigned : ""}
-      </button>
-    );
-  };
-
-  // smaller filler buttons that fill the gaps above / below the vertical bar
-  const smallButton = (id) => {
-    const assigned = assignments[id];
-    const isPressed = pressedBtn === id;
-    return (
-      <button key={id}
-        onPointerDown={locked ? () => setPressedBtn(id) : undefined}
-        onPointerUp={locked ? () => setPressedBtn(null) : undefined}
-        onPointerLeave={locked ? () => setPressedBtn(null) : undefined}
-        onPointerCancel={locked ? () => setPressedBtn(null) : undefined}
-        onClick={locked ? undefined : () => toggleAssign(id)}
-        onContextMenu={(e) => e.preventDefault()}
-        className={cn("flex-1 min-h-0 rounded-lg border flex items-center justify-center text-sm font-display select-none touch-none transition-colors",
           isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
           !locked && assigned != null && "border-amber/60 text-amber",
           !locked && "hover:border-white/40")}>
@@ -193,14 +174,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   );
 
-  // vertical bar spans the same 6 tracks as the horizontal bar (h-2/3),
-  // with three smaller buttons filling each gap above and below it
+  // vertical bar — same length as the horizontal one (h-2/3), draggable
+  // across columns and up / down within its column
   const verticalBar = locked ? (
-    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="flex flex-col gap-1">
-      <div className="flex-1 min-h-0 flex flex-col gap-1">
-        {["vt0", "vt1", "vt2"].map(smallButton)}
-      </div>
-      <div className="h-2/3 shrink-0"
+    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="relative">
+      <div className="absolute inset-x-0 h-2/3"
+        style={{ top: `${(barVOffset * 33.33).toFixed(2)}%` }}
         onPointerDown={() => setPressedBar("v")}
         onPointerUp={() => setPressedBar(null)}
         onPointerLeave={() => setPressedBar(null)}
@@ -211,29 +190,21 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
           {barVNumber}
         </div>
       </div>
-      <div className="flex-1 min-h-0 flex flex-col gap-1">
-        {["vb0", "vb1", "vb2"].map(smallButton)}
-      </div>
     </div>
   ) : (
-    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="flex flex-col gap-1">
-      <div className="flex-1 min-h-0 flex flex-col gap-1">
-        {["vt0", "vt1", "vt2"].map(smallButton)}
-      </div>
+    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="relative">
       <div
+        className={cn("absolute inset-x-0 h-2/3", dragBar === "v" ? "cursor-grabbing" : "cursor-grab")}
+        style={{ top: `${(barVOffset * 33.33).toFixed(2)}%` }}
         onPointerDown={(e) => onBarPointerDown(e, "v")}
         onPointerUp={cancelDrag}
         onPointerCancel={cancelDrag}
         onClick={() => toggleBarNumber("barVNumber")}
-        onContextMenu={(e) => e.preventDefault()}
-        className={cn("h-2/3 shrink-0", dragBar === "v" ? "cursor-grabbing" : "cursor-grab")}>
+        onContextMenu={(e) => e.preventDefault()}>
         <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
           dragBar === "v" ? "bg-white/30 border-white/70" : "bg-amber/15 border-amber/50")}>
           {barVNumber}
         </div>
-      </div>
-      <div className="flex-1 min-h-0 flex flex-col gap-1">
-        {["vb0", "vb1", "vb2"].map(smallButton)}
       </div>
     </div>
   );
@@ -242,8 +213,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     <div className="relative h-full bg-[#0b0b0f] overflow-hidden">
       {/* floating edit HUD — hidden when locked, never affects the grid layout */}
       {!locked && (
-        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-between pointer-events-none">
-          <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider text-white/50 font-body bg-white/10 backdrop-blur pointer-events-auto">UI Markers · Edit</span>
+        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
             <button onClick={resetNumbers}
               className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 text-[10px] font-body text-white/70 hover:text-white transition">
