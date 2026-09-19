@@ -368,7 +368,7 @@ export default function OS() {
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame onHome={() => setApp(null)} light={(app === null || app === "messages") && config.theme === "light"}
+        <PhoneFrame className="os-sf" onHome={() => setApp(null)} light={(app === null || app === "messages") && config.theme === "light"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
@@ -386,7 +386,7 @@ export default function OS() {
               </div>
             </div>
           )}
-          <PhoneFrame bare onHome={() => setApp(null)}
+          <PhoneFrame bare className="os-sf" onHome={() => setApp(null)}
             light={(app === null || app === "messages") && config.theme === "light"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}

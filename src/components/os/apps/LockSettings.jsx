@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const METHODS = [
   { id: "passcode", label: "Passcode", hint: "4-digit keypad", Icon: Hash },
   { id: "pattern", label: "Pattern", hint: "connect-the-dots", Icon: Grid3x3 },
-  { id: "face", label: "Face ID", hint: "scan animation", Icon: ScanFace },
+  { id: "face", label: "Face Scan", hint: "scan animation", Icon: ScanFace },
   { id: "fingerprint", label: "Fingerprint", hint: "press & hold sensor", Icon: Fingerprint },
   { id: "none", label: "None", hint: "swipe up to unlock", Icon: LockOpen },
 ];

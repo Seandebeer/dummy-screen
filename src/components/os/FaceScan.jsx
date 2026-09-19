@@ -37,7 +37,7 @@ export default function FaceScan({ light, onUnlock }) {
         )}
       </button>
       <p className={cn("text-[11px] font-body uppercase tracking-widest", light ? "text-black/60" : "text-white/60")}>
-        {scanning ? "Scanning…" : "Face ID · Tap to unlock"}
+        {scanning ? "Scanning…" : "Face Scan · Tap to unlock"}
       </p>
     </div>
   );

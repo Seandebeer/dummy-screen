@@ -249,19 +249,18 @@ export default function Homescreen({ config, update, onOpen }) {
         drag?.id === a.id && "opacity-30")}
     >
       {iconWithBadge(a)}
-      <span className={cn("text-[11px]", light ? "text-black/80" : "text-white/80")}>{a.label}</span>
+      <span className={cn("text-[11px]", light ? "text-black/85" : "text-white/95")}>{a.label}</span>
     </button>
   );
 
   return (
     <div dir={config.language === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col relative overflow-hidden" style={backgroundStyle}>
-      {!hasImage && <div className="grid-backdrop absolute inset-0 opacity-30 pointer-events-none" />}
 
       {/* clock - tap to edit · apps library top-right */}
       <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
         <button onClick={() => setClockEdit(true)} className="flex flex-col items-center">
-          <div className="font-display text-5xl font-bold tracking-tight">{time}</div>
-          <div className="text-[13px] mt-0.5 opacity-60">{date}</div>
+          <div className="font-display text-[52px] leading-none font-semibold tracking-[-0.02em]">{time}</div>
+          <div className="text-[13px] mt-1 font-medium opacity-55">{date}</div>
         </button>
         <button onClick={() => setLibrary(true)}
           className={cn("absolute right-3.5 top-8 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-body uppercase tracking-wider backdrop-blur transition",
@@ -299,7 +298,7 @@ export default function Homescreen({ config, update, onOpen }) {
               {pageApps.length === 0 ? (
                 <p className={cn("pt-10 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps - open Apps to add some</p>
               ) : (
-                <div className="grid grid-cols-4 gap-y-4 gap-x-3 content-start">
+                <div className="grid grid-cols-4 gap-y-5 gap-x-4 content-start">
                   {pageApps.map((a) => (
                     <div key={a.id} className="flex justify-center">{tileButton(a)}</div>
                   ))}
@@ -324,8 +323,8 @@ export default function Homescreen({ config, update, onOpen }) {
       )}
 
       {/* dock - hold & drag apps in / out */}
-      <div className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 rounded-[1.9rem] border px-2 py-3 backdrop-blur-md",
-        light ? "bg-black/10 border-black/10" : "bg-white/10 border-white/10")}>
+      <div className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 rounded-[1.9rem] px-2 py-2.5 backdrop-blur-2xl",
+        light ? "bg-white/35" : "bg-white/15")}>
         {DOCK_SLOTS.map((slot) => {
           const appId = dockIds[slot];
           const app = appId ? allAppsById[appId] : null;
@@ -343,7 +342,7 @@ export default function Homescreen({ config, update, onOpen }) {
                   {iconWithBadge(app)}
                 </button>
               ) : (
-                <span className={cn("h-14 w-14 rounded-2xl border border-dashed", light ? "border-black/15" : "border-white/15")} />
+                <span className={cn("h-14 w-14 rounded-[23%] border border-dashed", light ? "border-black/15" : "border-white/15")} />
               )}
             </div>
           );
@@ -355,7 +354,7 @@ export default function Homescreen({ config, update, onOpen }) {
         <div className="fixed z-50 pointer-events-none" style={{ left: drag.x, top: drag.y, transform: "translate(-50%, -55%) scale(1.12)" }}>
           <div className="flex flex-col items-center gap-1 opacity-90">
             <IconTile app={dragApp} />
-            <span className={cn("text-[11px] font-body", light ? "text-black/80" : "text-white/80")}>{dragApp.label}</span>
+            <span className={cn("text-[11px] font-body", light ? "text-black/85" : "text-white/95")}>{dragApp.label}</span>
           </div>
         </div>
       )}

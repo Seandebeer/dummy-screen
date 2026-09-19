@@ -97,15 +97,14 @@ export default function LockScreen({ config, update, onUnlock, notifications = [
       ? stage === "unlock" ? "Enter Passcode" : stage === "set" ? "Choose a Passcode" : "Confirm Passcode"
       : method === "pattern"
         ? stage === "unlock" ? "Draw Pattern" : stage === "set" ? "Draw a Pattern" : "Confirm Pattern"
-        : method === "face" ? "Face ID" : "Fingerprint";
+        : method === "face" ? "Face Scan" : "Fingerprint";
 
   return (
     <div className="h-full flex flex-col items-center relative overflow-hidden" style={backgroundStyle}>
-      {!hasImage && <div className="grid-backdrop absolute inset-0 opacity-30 pointer-events-none" />}
-      <div className={cn("relative flex flex-col items-center pt-10", light ? "text-black/85" : "text-white")}>
-        <Lock size={20} className="opacity-60 mb-3" />
-        <div className="font-display text-6xl font-bold tracking-tight">{time}</div>
-        <div className="text-sm mt-1 opacity-60">{date}</div>
+      <div className={cn("relative flex flex-col items-center pt-12", light ? "text-black/85" : "text-white")}>
+        <Lock size={14} className="opacity-70 mb-5" />
+        <div className="text-[15px] font-medium opacity-70">{date}</div>
+        <div className="font-display text-[72px] leading-[1.02] tracking-[-0.03em] mt-0.5">{time}</div>
       </div>
 
       <LockNotifications notifications={notifications} light={light} onOpen={onOpenNotification} />

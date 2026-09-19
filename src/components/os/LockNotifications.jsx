@@ -11,8 +11,8 @@ export default function LockNotifications({ notifications = [], light, onOpen })
         const meta = NOTIF_APPS[n.app] || NOTIF_APPS.messages;
         return (
           <button key={n.id} onClick={() => onOpen?.(n)}
-            className={cn("w-full flex items-start gap-2.5 rounded-2xl px-3 py-2.5 text-left border shadow-lg backdrop-blur-md",
-              light ? "bg-white/75 border-black/10" : "bg-white/15 border-white/20")}>
+            className={cn("w-full flex items-start gap-2.5 rounded-[1.4rem] px-3.5 py-3 text-left shadow-lg backdrop-blur-2xl",
+              light ? "bg-white/70" : "bg-white/12")}>
             <span className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
               <meta.Icon size={18} className="text-white" />
             </span>

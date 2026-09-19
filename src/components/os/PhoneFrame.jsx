@@ -18,12 +18,12 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
         <div className={cn("relative h-full w-full overflow-hidden bg-black", bare ? "rounded-none" : "rounded-[2.5rem]", className)}>
           {/* status bar */}
           <div className={cn(
-            "absolute top-0 inset-x-0 z-30 flex items-center justify-between px-7 pt-3 pb-1 text-[12px] font-semibold",
+            "absolute top-0 inset-x-0 z-30 flex items-center justify-between px-7 pt-3.5 pb-1 text-[13px] font-semibold",
             light ? "text-black" : "text-white"
           )}>
             <span className="font-body">{time}</span>
-            {/* mock camera notch - hidden in fullscreen takeover (real device has its own) */}
-            {!bare && <div className="absolute left-1/2 top-2 -translate-x-1/2 h-6 w-24 rounded-full bg-black" />}
+            {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
+            {!bare && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
               {/* signal - tap to adjust strength */}
               <button
