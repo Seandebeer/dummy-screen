@@ -3,17 +3,16 @@ import { Lock, RotateCcw, Save } from "lucide-react";
 import { saveConfig } from "@/lib/savedConfigs";
 import { cn } from "@/lib/utils";
 
-const COLS = 5;
+const COLS = 4;
 const ROWS = 8;
 
 export default function UIMarkersApp({ config, update, onLockChange }) {
   const markers = config.uiMarkers || {};
   const assignments = markers.assignments || {};
-  const barRow = markers.barRow ?? 7;
-  const barCol = markers.barCol ?? 5;
+  const barRow = Math.max(0, Math.min(ROWS, markers.barRow ?? 7));
+  const barCol = Math.max(1, Math.min(COLS, markers.barCol ?? COLS));
   const barNumber = markers.barNumber ?? "";
   const barVNumber = markers.barVNumber ?? "";
-  const barVOffset = Math.min(markers.barVOffset ?? 1 / 9, 1 / 9);
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
@@ -95,10 +94,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         saveMarkers((m) => (m.barRow === row ? {} : { barRow: row }));
       } else {
         const band = rect.width / (COLS + 1);
-        const col = Math.max(0, Math.min(COLS, Math.floor((e.clientX - rect.left) / band)));
-        // bar follows the finger vertically, clamped so it never covers the filler buttons
-        const top = Math.max(0, Math.min(1 / 9, (e.clientY - rect.top) / rect.height - 1 / 3));
-        saveMarkers((m) => (m.barCol === col && m.barVOffset === top ? {} : { barCol: col, barVOffset: top }));
+        const col = Math.max(1, Math.min(COLS, Math.floor((e.clientX - rect.left) / band)));
+        saveMarkers((m) => (m.barCol === col ? {} : { barCol: col }));
       }
     };
     window.addEventListener("pointermove", move);
@@ -123,18 +120,18 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     if (r < ROWS) rowTemplate.push("1fr");
   }
 
-  const markerButton = (r, c) => {
-    const i = r * COLS + c;
-    const assigned = assignments[i];
-    const isPressed = pressedBtn === i;
+  // one shared renderer for every standard grid cell — main buttons and the
+  // cells around the bars, so there is never a gap anywhere on the grid
+  const cellButton = (key, style) => {
+    const assigned = assignments[key];
+    const isPressed = pressedBtn === key;
     return (
-      <button key={i}
-        style={{ gridColumn: c + (c >= barCol ? 1 : 0) + 1, gridRow: r + (r >= barRow ? 1 : 0) + 1 }}
-        onPointerDown={locked ? () => setPressedBtn(i) : undefined}
+      <button key={key} style={style}
+        onPointerDown={locked ? () => setPressedBtn(key) : undefined}
         onPointerUp={locked ? () => setPressedBtn(null) : undefined}
         onPointerLeave={locked ? () => setPressedBtn(null) : undefined}
         onPointerCancel={locked ? () => setPressedBtn(null) : undefined}
-        onClick={locked ? undefined : () => toggleAssign(i)}
+        onClick={locked ? undefined : () => toggleAssign(key)}
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
           isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
@@ -145,6 +142,11 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     );
   };
 
+  const markerButton = (r, c) => cellButton(r * COLS + c, {
+    gridColumn: c + (c >= barCol ? 1 : 0) + 1,
+    gridRow: r + (r >= barRow ? 1 : 0) + 1,
+  });
+
   // tap anywhere on a bar (edit mode) → next number appears, tap again to clear
   const toggleBarNumber = (key) => {
     if (suppressClick.current) { suppressClick.current = false; return; }
@@ -153,7 +155,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
 
   const horizontalBar = locked ? (
     <div
-      style={{ gridColumn: "1 / -1", gridRow: barRow + 1 }}
+      style={{ gridColumn: `1 / ${barCol + 1}`, gridRow: barRow + 1 }}
       onPointerDown={() => setPressedBar("h")}
       onPointerUp={() => setPressedBar(null)}
       onPointerLeave={() => setPressedBar(null)}
@@ -167,7 +169,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   ) : (
     <div
-      style={{ gridColumn: "1 / -1", gridRow: barRow + 1 }}
+      style={{ gridColumn: `1 / ${barCol + 1}`, gridRow: barRow + 1 }}
       onPointerDown={(e) => onBarPointerDown(e, "h")}
       onPointerUp={cancelDrag}
       onPointerCancel={cancelDrag}
@@ -181,64 +183,39 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     </div>
   );
 
-  // vertical bar — same length as the horizontal one (h-2/3), sitting one row
-  // from the top edge; two smaller numbered buttons fill the gap below it
-  const smallButton = (id) => {
-    const assigned = assignments[id];
-    const isPressed = pressedBtn === id;
-    return (
-      <button key={id}
-        onPointerDown={locked ? () => setPressedBtn(id) : undefined}
-        onPointerUp={locked ? () => setPressedBtn(null) : undefined}
-        onPointerLeave={locked ? () => setPressedBtn(null) : undefined}
-        onPointerCancel={locked ? () => setPressedBtn(null) : undefined}
-        onClick={locked ? undefined : () => toggleAssign(id)}
-        onContextMenu={(e) => e.preventDefault()}
-        className={cn("flex-1 min-h-0 rounded-lg border flex items-center justify-center text-sm font-display select-none touch-none transition-colors",
-          isPressed ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15",
-          !locked && assigned != null && "border-amber/60 text-amber",
-          !locked && "hover:border-white/40")}>
-        {assigned != null ? assigned : ""}
-      </button>
-    );
-  };
+  // vertical bar — flush to the top edge of its column, running down to the
+  // row just above the horizontal bar; every cell it leaves open is a button
+  const vEnd = Math.max(2, barRow + 1);
+  const columnFillers = [];
+  for (let t = vEnd; t <= ROWS + 1; t++) {
+    columnFillers.push(cellButton(`vc-${t}`, { gridColumn: barCol + 1, gridRow: t }));
+  }
+  const rowFillers = [];
+  for (let t = barCol + 2; t <= COLS + 1; t++) {
+    rowFillers.push(cellButton(`hc-${t}`, { gridColumn: t, gridRow: barRow + 1 }));
+  }
 
   const verticalBar = locked ? (
-    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="relative">
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1" style={{ height: "22.22%" }}>
-        {["v0", "v1"].map(smallButton)}
-      </div>
-      <div className="absolute inset-x-0 h-2/3"
-        style={{ top: `${(barVOffset * 100).toFixed(2)}%` }}
-        onPointerDown={() => setPressedBar("v")}
-        onPointerUp={() => setPressedBar(null)}
-        onPointerLeave={() => setPressedBar(null)}
-        onPointerCancel={() => setPressedBar(null)}
-        onContextMenu={(e) => e.preventDefault()}>
-        <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-          pressedBar === "v" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
-          {barVNumber}
-        </div>
-      </div>
+    <div style={{ gridColumn: barCol + 1, gridRow: `1 / ${vEnd}` }}
+      onPointerDown={() => setPressedBar("v")}
+      onPointerUp={() => setPressedBar(null)}
+      onPointerLeave={() => setPressedBar(null)}
+      onPointerCancel={() => setPressedBar(null)}
+      onContextMenu={(e) => e.preventDefault()}
+      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+        pressedBar === "v" ? "bg-white/30 border-white/70 marker-pulse" : "bg-white/10 border-white/15")}>
+      {barVNumber}
     </div>
   ) : (
-    <div style={{ gridColumn: barCol + 1, gridRow: "1 / -1" }} className="relative">
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1" style={{ height: "22.22%" }}>
-        {["v0", "v1"].map(smallButton)}
-      </div>
-      <div
-        className={cn("absolute inset-x-0 h-2/3", dragBar === "v" ? "cursor-grabbing" : "cursor-grab")}
-        style={{ top: `${(barVOffset * 100).toFixed(2)}%` }}
-        onPointerDown={(e) => onBarPointerDown(e, "v")}
-        onPointerUp={cancelDrag}
-        onPointerCancel={cancelDrag}
-        onClick={() => toggleBarNumber("barVNumber")}
-        onContextMenu={(e) => e.preventDefault()}>
-        <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-          dragBar === "v" ? "bg-white/30 border-white/70" : "bg-amber/15 border-amber/50")}>
-          {barVNumber}
-        </div>
-      </div>
+    <div style={{ gridColumn: barCol + 1, gridRow: `1 / ${vEnd}` }}
+      onPointerDown={(e) => onBarPointerDown(e, "v")}
+      onPointerUp={cancelDrag}
+      onPointerCancel={cancelDrag}
+      onClick={() => toggleBarNumber("barVNumber")}
+      onContextMenu={(e) => e.preventDefault()}
+      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+        dragBar === "v" ? "bg-white/30 border-white/70 cursor-grabbing" : "bg-amber/15 border-amber/50 cursor-grab")}>
+      {barVNumber}
     </div>
   );
 
@@ -269,6 +246,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         {Array.from({ length: ROWS * COLS }, (_, i) => markerButton(Math.floor(i / COLS), i % COLS))}
         {horizontalBar}
         {verticalBar}
+        {columnFillers}
+        {rowFillers}
       </div>
       {locked && hint && (
         <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
