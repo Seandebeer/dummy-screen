@@ -10,8 +10,8 @@ export const OS_SKINS = [
   },
   {
     id: "aqua",
-    name: "Apple 2000s",
-    desc: "Early-2000s Aqua - glossy pinstripes, silver dock, candy hardware.",
+    name: "OS 5",
+    desc: "Early-2000s OS 5 - glossy pinstripes, silver dock, candy hardware.",
     preset: "aqua",
     preview:
       "repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 5px), linear-gradient(180deg, #6ba3e0, #2f5c94)",
