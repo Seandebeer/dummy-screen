@@ -2,6 +2,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 const BATTERY_STEPS = [5, 25, 50, 75, 100];
+const NETWORKS = ["5G", "LTE", "4G", "3G", "H", "EDGE", "No Service"];
 
 export default function PhoneFrame({ children, onHome, light = false, time: timeProp, status, onStatusChange, bare = false, className, skin = "modern" }) {
   const now = new Date();
@@ -41,7 +42,13 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
                   <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
                 ))}
               </button>
-              <span className="text-[10px]">{s.signal === 0 ? "-" : "5G"}</span>
+              <button
+                onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
+                title="Network type"
+                className="text-[10px] font-body"
+              >
+                {s.signal === 0 ? "-" : (s.network || "5G")}
+              </button>
               {/* wifi - tap to adjust strength */}
               <button
                 onClick={edit ? () => onStatusChange({ wifi: (s.wifi + 1) % 4 }) : undefined}

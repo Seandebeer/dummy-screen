@@ -33,7 +33,7 @@ const defaults = {
   callAnswer: "tap",
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
-  status: { battery: 75, signal: 4, wifi: 3 },
+  status: { battery: 75, signal: 4, wifi: 3, network: "5G" },
   passcode: "",
   pattern: "",
   lockscreen: { type: "none", background: { type: "preset", preset: "default", url: "" } },
