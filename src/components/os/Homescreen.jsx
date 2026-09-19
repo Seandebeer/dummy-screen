@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { EyeOff } from "lucide-react";
+import { ArrowUp, ChevronRight, EyeOff, LayoutGrid } from "lucide-react";
 import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import IconTile from "./IconTile";
@@ -37,7 +37,8 @@ export default function Homescreen({ config, update, onOpen }) {
     : now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
 
   const dockIds = config.dock || [];
-  const gridIds = config.order.filter((id) => !dockIds.includes(id));
+  // skins without a dock (BlackBerry, Windows Phone) show dock apps in the grid
+  const gridIds = ui.dock?.hidden ? config.order : config.order.filter((id) => !dockIds.includes(id));
   const apps = gridIds.map((id) => allApps.find((a) => a.id === id)).filter(Boolean);
   const pages = [];
   for (let i = 0; i < apps.length; i += PAGE_SIZE) pages.push(apps.slice(i, i + PAGE_SIZE));
@@ -353,33 +354,61 @@ export default function Homescreen({ config, update, onOpen }) {
       )}
 
       {/* dock - hold & drag apps in / out */}
-      <div
-        style={ui.dock?.style}
-        className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 px-2 py-2.5",
-          ui.dock?.className, light ? ui.dock?.light : ui.dock?.dark)}>
-        {DOCK_SLOTS.map((slot) => {
-          const appId = dockIds[slot];
-          const app = appId ? allAppsById[appId] : null;
-          return (
-            <div key={slot} data-dock-slot={slot} className="flex-1 flex justify-center">
-              {app ? (
-                <button
-                  onPointerDown={(e) => onTilePointerDown(e, app.id)}
-                  onPointerMove={onTilePointerMove}
-                  onPointerUp={cancelHold}
-                  onPointerCancel={cancelHold}
-                  onContextMenu={(e) => e.preventDefault()}
-                  onClick={() => onTileClick(app.id)}
-                  className={cn("touch-none active:scale-95 transition select-none", drag?.id === app.id && "opacity-30")}>
-                  {iconWithBadge(app)}
-                </button>
-              ) : (
-                <span className={cn("h-14 w-14 rounded-[23%] border border-dashed", light ? "border-black/15" : "border-white/15")} />
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {ui.dock?.hidden ? (
+        // Windows Phone: no dock - just the arrow into the app list
+        ui.dock.arrow === "wp" ? (
+          <div className="relative mb-4 flex justify-center">
+            <button onClick={() => onOpen("appstore")} aria-label="App list"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-white/10 backdrop-blur-sm transition hover:bg-white/20">
+              <ChevronRight size={16} className="text-white/85" />
+            </button>
+          </div>
+        ) : null
+      ) : (
+        <div
+          style={ui.dock?.style}
+          className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 px-2 py-2.5",
+            ui.dock?.className, light ? ui.dock?.light : ui.dock?.dark)}>
+          {DOCK_SLOTS.map((slot) => {
+            const appId = dockIds[slot];
+            const app = appId ? allAppsById[appId] : null;
+            return (
+              <React.Fragment key={slot}>
+                <div data-dock-slot={slot} className="flex-1 flex justify-center">
+                  {app ? (
+                    <button
+                      onPointerDown={(e) => onTilePointerDown(e, app.id)}
+                      onPointerMove={onTilePointerMove}
+                      onPointerUp={cancelHold}
+                      onPointerCancel={cancelHold}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onClick={() => onTileClick(app.id)}
+                      className={cn("touch-none active:scale-95 transition select-none", drag?.id === app.id && "opacity-30")}>
+                      {iconWithBadge(app)}
+                    </button>
+                  ) : (
+                    <span className={cn("h-14 w-14 rounded-[23%] border border-dashed", light ? "border-black/15" : "border-white/15")} />
+                  )}
+                </div>
+                {/* Android hotseat: all-apps drawer sits between the app pairs */}
+                {ui.dock?.drawer === "center" && slot === 1 && (
+                  <button onClick={() => onOpen("appstore")} aria-label="All apps"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20">
+                    <LayoutGrid size={20} className="text-white/85" />
+                  </button>
+                )}
+              </React.Fragment>
+            );
+          })}
+          {/* webOS quick launch: launcher arrow on the far right */}
+          {ui.dock?.drawer === "end" && (
+            <button onClick={() => onOpen("appstore")} aria-label="Launcher"
+              className="flex h-10 w-10 shrink-0 items-center justify-center transition">
+              <ArrowUp size={20} className="text-white/85" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* dragged icon ghost */}
       {dragApp && (

@@ -171,21 +171,14 @@ export const SKIN_UI = {
         borderBottom: "1px solid rgba(255,255,255,0.18)",
       },
     },
-    dock: {
-      className: "rounded-md",
-      style: {
-        backgroundImage: "linear-gradient(180deg, #22334a 0%, #101a28 100%)",
-        borderTop: "1px solid rgba(255,255,255,0.22)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)",
-      },
-    },
+    dock: { hidden: true },
     home: "trackpad",
   },
   winphone: {
     font: '"Segoe UI", "Segoe WP", Tahoma, sans-serif',
     clock: { size: 64, weight: 200, style: { letterSpacing: "-0.01em" } },
     status: { className: "font-normal text-[10px] pt-2.5" },
-    dock: { className: "rounded-none", style: { background: "#1BA1E2" } },
+    dock: { hidden: true, arrow: "wp" },
     home: "wp",
   },
   holo: {
@@ -198,14 +191,7 @@ export const SKIN_UI = {
         borderBottom: "1px solid rgba(51,181,229,0.5)",
       },
     },
-    dock: {
-      className: "rounded-none",
-      style: {
-        backgroundImage: "linear-gradient(180deg, rgba(51,181,229,0.14) 0%, rgba(0,0,0,0.4) 100%)",
-        borderTop: "1px solid rgba(51,181,229,0.5)",
-        boxShadow: "0 -2px 12px rgba(51,181,229,0.15)",
-      },
-    },
+    dock: { drawer: "center" },
     home: "holo",
   },
   material: {
@@ -215,20 +201,14 @@ export const SKIN_UI = {
       className: "font-normal text-[12px]",
       style: { backgroundImage: "linear-gradient(180deg, #2c3944 0%, #171f25 100%)" },
     },
-    dock: {
-      className: "rounded-2xl",
-      style: { background: "rgba(38,50,56,0.94)", boxShadow: "0 4px 14px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.4)" },
-    },
+    dock: { drawer: "center" },
     home: "holo",
   },
   android: {
     font: 'Roboto, "Helvetica Neue", Arial, sans-serif',
     clock: { size: 52, weight: 300 },
     status: { className: "font-normal text-[12px] pt-3" },
-    dock: {
-      className: "rounded-[1.6rem] border border-white/10 backdrop-blur-2xl",
-      style: { background: "rgba(22,33,43,0.8)" },
-    },
+    dock: { drawer: "center" },
     home: "android",
   },
   webos: {
@@ -236,8 +216,9 @@ export const SKIN_UI = {
     clock: { size: 46, weight: 200 },
     status: { className: "font-normal text-[12px]", style: { background: "rgba(0,0,0,0.3)" } },
     dock: {
-      className: "rounded-[2rem] backdrop-blur-2xl",
-      style: { background: "rgba(18,22,34,0.55)", border: "1px solid rgba(255,255,255,0.14)" },
+      drawer: "end",
+      className: "mx-0 rounded-none px-2 pb-1.5",
+      style: { backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.5) 100%)" },
     },
     home: "webos",
   },
