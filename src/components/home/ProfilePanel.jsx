@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
 
 export default function ProfilePanel() {
-  const { user, isAuthenticated, isLoadingAuth, logout } = useAuth();
+  const { user, isAuthenticated, isLoadingAuth, logout, checkUserAuth } = useAuth();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -40,6 +40,7 @@ export default function ProfilePanel() {
       const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       await base44.auth.updateMe({ image: file_url });
       setAvatar(file_url);
+      checkUserAuth?.(); // refresh the avatar in the Home top bar too
     } catch {}
     setBusy(false);
   };

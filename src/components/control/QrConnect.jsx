@@ -3,7 +3,7 @@ import { QrCode, ScanLine, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 // any prop device can scan this to open its mock OS instantly
-const osLink = () => `${window.location.origin}/os`;
+const osLink = () => `${window.location.origin}/os?connect=1`;
 const qrSrc = () => `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(osLink())}`;
 
 export default function QrConnect() {
@@ -88,7 +88,7 @@ export default function QrConnect() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-muted-foreground font-body mb-2">
-              Point any prop device's camera at this code to open its mock OS instantly — no setup needed.
+              Point a prop device's camera at this code — its mock OS opens instantly, it appears online in Devices, and this deck can remote-control it (calls, alarms, messages).
             </p>
             <button onClick={() => { setStatus(""); setSupported(true); setScanning(true); }}
               className="flex items-center gap-1.5 rounded-lg border border-amber/40 bg-amber/10 px-3 py-2 text-xs font-body text-amber hover:bg-amber/20 transition">

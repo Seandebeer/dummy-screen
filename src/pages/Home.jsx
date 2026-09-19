@@ -6,9 +6,15 @@ import DevicesPanel from "@/components/home/DevicesPanel";
 import AppSettingsPanel from "@/components/home/AppSettingsPanel";
 import SavedPanel from "@/components/home/SavedPanel";
 import ProfilePanel from "@/components/home/ProfilePanel";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { Image } from "@/components/ui/image";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Home() {
   const [deviceName, setDeviceName] = useState(() => localStorage.getItem("takeover-device-name") || "");
+  const { user, isAuthenticated } = useAuth();
+  const initials = (user?.full_name || user?.email || "?")
+    .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
 
   return (
     <div className="min-h-dvh bg-background grid-backdrop">
@@ -17,15 +23,37 @@ export default function Home() {
           <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-body">PropSync</div>
           <h1 className="font-display font-bold text-2xl tracking-[0.2em] leading-none mt-1">HOME</h1>
         </div>
-        {deviceName && (
-          <span className="rounded-full border border-amber/40 bg-amber/10 px-3 py-1.5 text-[10px] font-body text-amber">{deviceName}</span>
-        )}
+        <div className="flex items-center gap-3">
+          {deviceName && (
+            <span className="hidden sm:inline-block rounded-full border border-amber/40 bg-amber/10 px-3 py-1.5 text-[10px] font-body text-amber">{deviceName}</span>
+          )}
+          <Sheet>
+            <SheetTrigger asChild>
+              <button title="Profile & saved layouts"
+                className="h-10 w-10 rounded-full overflow-hidden border border-amber/40 bg-amber/15 flex items-center justify-center transition hover:border-amber">
+                {isAuthenticated && user?.image ? (
+                  <Image src={user.image} alt="" className="h-full w-full" fittingType="fill" />
+                ) : isAuthenticated ? (
+                  <span className="font-display font-bold text-xs text-amber">{initials}</span>
+                ) : (
+                  <UserIcon size={18} className="text-amber" />
+                )}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw] p-0">
+              <SheetHeader className="px-5 pt-5 pb-3 border-b border-border">
+                <SheetTitle className="font-display font-bold text-base text-left">Profile</SheetTitle>
+                <SheetDescription className="sr-only">Sign in and manage your saved OS layouts</SheetDescription>
+              </SheetHeader>
+              <div className="p-4 h-[calc(100dvh-88px)] overflow-y-auto">
+                <ProfilePanel />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </header>
 
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
-        <HomeSection icon={UserIcon} title="Profile" subtitle="Sign in & carry your OS layouts between devices">
-          <ProfilePanel />
-        </HomeSection>
         <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync">
           <DevicesPanel />
         </HomeSection>

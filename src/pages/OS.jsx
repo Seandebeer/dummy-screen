@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Radio, Maximize2 } from "lucide-react";
+import { ArrowLeft, Maximize2, Save } from "lucide-react";
 import PhoneFrame from "@/components/os/PhoneFrame";
 import Homescreen from "@/components/os/Homescreen";
 import PhoneApp from "@/components/os/apps/PhoneApp";
@@ -17,6 +17,8 @@ import AlarmOverlay from "@/components/os/AlarmOverlay";
 import MockApp from "@/components/os/apps/MockApp";
 import { allAppsById } from "@/lib/osApps";
 import useOsConfig from "@/hooks/useOsConfig";
+import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
+import { slimConfig } from "@/lib/osConfigStore";
 import LockScreen from "@/components/os/LockScreen";
 import SettingsApp from "@/components/os/apps/SettingsApp";
 import { base44 } from "@/api/base44Client";
@@ -104,6 +106,12 @@ export default function OS() {
     return () => clearInterval(t);
   }, []);
 
+  // opened via QR (?connect=1): register this screen as an online,
+  // remotely-controllable device
+  useEffect(() => {
+    ensureDeviceOnline(new URLSearchParams(window.location.search).get("connect") === "1");
+  }, []);
+
   // clear cross-app compose targets once the user leaves the app
   useEffect(() => { if (app !== "messages" && messageTo) setMessageTo(null); }, [app]);
   useEffect(() => { if (app !== "email" && emailTo) setEmailTo(null); }, [app]);
@@ -155,6 +163,14 @@ export default function OS() {
       window.removeEventListener("keydown", onKey);
     };
   }, [fullscreen, exitFullscreen]);
+
+  // save this screen's OS layout as a character's device (appears in Devices)
+  const saveAsDevice = async () => {
+    const fallback = localStorage.getItem("takeover-device-name") || "Character's phone";
+    const name = window.prompt("Save as character's device — name:", fallback);
+    if (!name || !name.trim()) return;
+    await saveDevice(name.trim(), slimConfig(config));
+  };
 
   const statusTime = config.clock.mode === "custom" && config.clock.time
     ? config.clock.time
@@ -228,6 +244,10 @@ export default function OS() {
         </Link>
         <div className="font-display font-bold text-lg tracking-wide">OS SIMULATOR</div>
         <div className="flex items-center gap-3">
+          <button onClick={saveAsDevice}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-muted-foreground transition">
+            <Save size={14} /> <span className="hidden sm:inline">Save as Device</span>
+          </button>
           <button onClick={toggleFullscreen}
             className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-muted-foreground transition">
             <Maximize2 size={14} /> <span className="hidden sm:inline">Fullscreen</span>
