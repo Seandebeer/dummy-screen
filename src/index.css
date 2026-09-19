@@ -148,6 +148,9 @@
   }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  /* OS interface skins: icon shape follows the device's chosen era */
+  [data-os-skin="aqua"] .app-icon-tile { border-radius: 18%; }
+  [data-os-skin="android"] .app-icon-tile { border-radius: 9999px; }
   /* the mock device screen renders with the system font stack for a real phone feel */
   .os-sf {
     --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

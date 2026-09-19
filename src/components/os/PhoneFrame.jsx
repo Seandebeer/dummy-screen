@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 const BATTERY_STEPS = [5, 25, 50, 75, 100];
 
-export default function PhoneFrame({ children, onHome, light = false, time: timeProp, status, onStatusChange, bare = false, className }) {
+export default function PhoneFrame({ children, onHome, light = false, time: timeProp, status, onStatusChange, bare = false, className, skin = "modern" }) {
   const now = new Date();
   const time = timeProp || now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const s = { battery: 75, signal: 4, wifi: 3, ...(status || {}) };
@@ -15,15 +15,21 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
       {/* bezel */}
       <div className={cn("absolute inset-0 overflow-hidden bg-[#05060a]",
         bare ? "rounded-none p-0 border-0 shadow-none" : "rounded-[3rem] p-[10px] shadow-2xl border border-[#242936]")}>
-        <div className={cn("relative h-full w-full overflow-hidden bg-black", bare ? "rounded-none" : "rounded-[2.5rem]", className)}>
+        <div data-os-skin={skin} className={cn("relative h-full w-full overflow-hidden bg-black", bare ? "rounded-none" : "rounded-[2.5rem]", className)}>
           {/* status bar */}
-          <div className={cn(
-            "absolute top-0 inset-x-0 z-30 flex items-center justify-between px-7 pt-3.5 pb-1 text-[13px] font-semibold",
-            light ? "text-black" : "text-white"
-          )}>
+          <div
+            className={cn(
+              "absolute top-0 inset-x-0 z-30 flex items-center justify-between px-7 pt-3.5 pb-1 text-[13px]",
+              skin === "android" ? "font-normal text-[12px] pt-3" : "font-semibold",
+              skin === "aqua" ? "text-white border-b border-white/30" : light ? "text-black" : "text-white"
+            )}
+            style={skin === "aqua" ? {
+              backgroundImage:
+                "repeating-linear-gradient(90deg, rgba(255,255,255,0.22) 0 2px, transparent 2px 4px), linear-gradient(180deg, rgba(120,163,224,0.95), rgba(58,98,158,0.95))",
+            } : undefined}>
             <span className="font-body">{time}</span>
             {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
-            {!bare && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
+            {!bare && skin === "modern" && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
               {/* signal - tap to adjust strength */}
               <button
@@ -68,11 +74,16 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
           <div className="absolute inset-0">{children}</div>
           {/* home indicator */}
           {onHome && (
-            <button
-              onClick={onHome}
-              className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1.5 w-28 rounded-full bg-white/80 hover:bg-white transition"
-              aria-label="Home"
-            />
+            skin === "aqua" ? (
+              <button onClick={onHome} aria-label="Home"
+                className="absolute bottom-2 left-1/2 -translate-x-1/2 h-3.5 w-16 rounded-full border border-black/25 bg-gradient-to-b from-[#dfe4ee] to-[#8f9ab0] shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_1px_2px_rgba(0,0,0,0.4)] transition" />
+            ) : skin === "android" ? (
+              <button onClick={onHome} aria-label="Home"
+                className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1 w-24 rounded-full bg-white/70 hover:bg-white transition" />
+            ) : (
+              <button onClick={onHome} aria-label="Home"
+                className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1.5 w-28 rounded-full bg-white/80 hover:bg-white transition" />
+            )
           )}
         </div>
       </div>

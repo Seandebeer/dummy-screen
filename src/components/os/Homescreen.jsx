@@ -4,6 +4,7 @@ import { allApps, allAppsById } from "@/lib/osApps";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { uiFor } from "@/lib/osLanguages";
 import IconTile from "./IconTile";
+import { skinOf } from "@/lib/osSkins";
 import { formatBadge, normalizeBadge } from "@/lib/osNotifications";
 import AppLibrary from "./AppLibrary";
 import ClockEditor from "./ClockEditor";
@@ -29,6 +30,7 @@ export default function Homescreen({ config, update, onOpen }) {
   const lastDrop = useRef(null);
 
   const light = config.theme === "light";
+  const skin = skinOf(config);
   const t = uiFor(config.language);
   const now = new Date();
   const time = config.clock.mode === "custom" && config.clock.time
@@ -303,7 +305,10 @@ export default function Homescreen({ config, update, onOpen }) {
       {/* clock - tap to edit · apps library top-right */}
       <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white")}>
         <button onClick={() => setClockEdit(true)} className="flex flex-col items-center">
-          <div className="font-display text-[52px] leading-none font-semibold tracking-[-0.02em]">{time}</div>
+          <div
+            className={cn("font-display text-[52px] leading-none tracking-[-0.02em]",
+              skin.id === "aqua" ? "font-bold" : skin.id === "android" ? "font-light" : "font-semibold")}
+            style={skin.id === "aqua" ? { textShadow: "0 1px 2px rgba(0,0,0,0.45)" } : undefined}>{time}</div>
           <div className="text-[13px] mt-1 font-medium opacity-55">{date}</div>
         </button>
         <button onClick={() => setLibrary(true)}
@@ -367,8 +372,11 @@ export default function Homescreen({ config, update, onOpen }) {
       )}
 
       {/* dock - hold & drag apps in / out */}
-      <div className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 rounded-[1.9rem] px-2 py-2.5 backdrop-blur-2xl",
-        light ? "bg-white/35" : "bg-white/15")}>
+      <div className={cn("relative mx-4 mb-3 flex items-center justify-around gap-1 px-2 py-2.5",
+        skin.id === "aqua" && "rounded-2xl border border-white/40 bg-gradient-to-b from-[#e2e6ef]/95 to-[#9aa5ba]/95 shadow-[0_2px_8px_rgba(0,0,0,0.35)]",
+        skin.id === "android" && "rounded-[1.6rem] border border-white/10 bg-[#16212b]/80 backdrop-blur-2xl",
+        skin.id === "modern" && "rounded-[1.9rem] backdrop-blur-2xl",
+        skin.id === "modern" && (light ? "bg-white/35" : "bg-white/15"))}>
         {DOCK_SLOTS.map((slot) => {
           const appId = dockIds[slot];
           const app = appId ? allAppsById[appId] : null;

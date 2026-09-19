@@ -1,10 +1,11 @@
 import React, { useState, useRef } from "react";
-import { Upload, Trash2, Loader2, ChevronDown } from "lucide-react";
+import { Upload, Trash2, Loader2, ChevronDown, Check } from "lucide-react";
 import LockSettings from "./LockSettings";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { DIAL_CODES, makeDefaultContacts } from "@/lib/osData";
 import { LANGUAGES, uiFor } from "@/lib/osLanguages";
 import { OS_THEMES } from "@/lib/osThemes";
+import { OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +77,33 @@ export default function SettingsApp({ config, update, onLock }) {
       <div className="px-5 pt-6 pb-2">
         <h2 className="font-display font-bold text-2xl">{t.settings}</h2>
       </div>
+
+      <Section title="Interface">
+        <div className="flex flex-col gap-2">
+          {OS_SKINS.map((sk) => {
+            const active = (config.skin || "modern") === sk.id;
+            return (
+              <button key={sk.id}
+                onClick={() => update((c) => ({
+                  skin: sk.id,
+                  background: (c.background?.type || "preset") === "image"
+                    ? c.background
+                    : { type: "preset", preset: sk.preset, url: "" },
+                }))}
+                className={cn("flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition",
+                  active ? "border-amber bg-amber/10" : "border-white/10 hover:border-white/30")}>
+                <span className="h-10 w-10 shrink-0 rounded-xl border border-white/20" style={{ background: sk.preview }} />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold">{sk.name}</span>
+                  <span className="block text-[11px] text-white/50 font-body">{sk.desc}</span>
+                </span>
+                {active && <Check size={16} className="ml-auto shrink-0 text-amber" />}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-white/40 font-body mt-2">Restyles the status bar, dock, icons and home button of this device.</p>
+      </Section>
 
       <Section title={t.themes}>
         <div className="grid grid-cols-4 gap-2">

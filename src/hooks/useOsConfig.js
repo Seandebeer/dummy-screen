@@ -9,6 +9,8 @@ export const bgPresets = [
   { id: "midnight", name: "Midnight", dark: "linear-gradient(160deg, #0b1030 0%, #1a1040 55%, #02030a 100%)", light: "linear-gradient(160deg, #c9d4ff 0%, #e4e9ff 55%, #ffffff 100%)" },
   { id: "sunset", name: "Sunset", dark: "linear-gradient(160deg, #2b1a3d 0%, #6b2c56 55%, #14090f 100%)", light: "linear-gradient(160deg, #ffd9a0 0%, #ffb1c9 55%, #fff5ea 100%)" },
   { id: "mono", name: "Mono", dark: "#0a0a0a", light: "#f2f2f7" },
+  { id: "aqua", name: "Aqua", dark: "repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 3px, transparent 3px 7px), linear-gradient(180deg, #2f5c94 0%, #1d3a63 60%, #0e1c30 100%)", light: "repeating-linear-gradient(90deg, rgba(255,255,255,0.5) 0 2px, transparent 2px 5px), linear-gradient(180deg, #cfe0f5 0%, #eaf2fc 60%, #ffffff 100%)" },
+  { id: "droid", name: "Tint", dark: "linear-gradient(160deg, #101418 0%, #14202a 55%, #0a0e12 100%)", light: "linear-gradient(160deg, #d3e4f5 0%, #cfe8d8 55%, #f4f7fa 100%)" },
 ];
 
 const defaults = {
@@ -27,6 +29,7 @@ const defaults = {
   contactsVer: 2,
   callLog: [],
   theme: "dark",
+  skin: "modern",
   callAnswer: "tap",
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },

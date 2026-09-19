@@ -46,7 +46,7 @@ export default function IconTile({ app, size = "md" }) {
   const { style, fg } = tileStyle(app);
   return (
     <span
-      className={cn("relative flex items-center justify-center overflow-hidden", s.box, RADIUS)}
+      className={cn("app-icon-tile relative flex items-center justify-center overflow-hidden", s.box, RADIUS)}
       style={style}
     >
       {/* polished glass finish: soft top sheen + fine inner highlight */}
