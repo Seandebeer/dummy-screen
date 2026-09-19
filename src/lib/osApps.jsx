@@ -21,6 +21,15 @@ export const coreApps = [
 // 10 apps each, browsable and addable from the App Library
 export { mockApps, categories };
 
+// default home screen - the functional apps fill page 1, a few generic
+// downloaded apps spill onto page 2
+export const defaultHomeOrder = [
+  ...coreApps.map((a) => a.id),
+  "ping", "buzz", "visage", "flixiq", "waveform", "questly",
+  "headlines24", "skycast", "findit", "zippyride", "wandermap",
+  "recipebox", "flexr", "walletto",
+];
+
 export const allApps = [...coreApps, ...mockApps];
 
 export const allAppsById = Object.fromEntries(allApps.map((a) => [a.id, a]));
