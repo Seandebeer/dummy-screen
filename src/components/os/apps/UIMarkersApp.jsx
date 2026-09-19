@@ -232,10 +232,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     <div className={cn("relative h-full overflow-hidden", light ? "bg-[#f2f2f7] text-black" : "bg-[#0b0b0f] text-white")}>
       {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
-        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-between pointer-events-none">
-          <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-body backdrop-blur", light ? "text-black/50 bg-black/5" : "text-white/50 bg-white/10")}>
-            Tap to number · hold &amp; drag to rearrange
-          </span>
+        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
             <button onClick={saveLayout}
               className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
@@ -250,6 +247,14 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
               <Lock size={11} /> Lock
             </button>
           </div>
+        </div>
+      )}
+      {/* edit-mode instructions - bottom, out of the way of the nav buttons */}
+      {!locked && (
+        <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center pointer-events-none">
+          <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-body backdrop-blur", light ? "text-black/40 bg-black/5" : "text-white/40 bg-white/10")}>
+            Tap to number · hold &amp; drag to rearrange
+          </span>
         </div>
       )}
       {/* fixed full-screen grid - button size & position never change between modes */}
