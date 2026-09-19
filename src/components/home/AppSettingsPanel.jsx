@@ -1,13 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { APP_THEMES, getAppTheme, setAppTheme } from "@/lib/appTheme";
 
 const NAME_KEY = "takeover-device-name";
 
 export default function AppSettingsPanel({ onNameChange }) {
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "");
   const [awake, setAwake] = useState(false);
+  const [appTheme, setThemeState] = useState(getAppTheme);
   const wakeRef = useRef(null);
+
+  const chooseTheme = (id) => {
+    setAppTheme(id);
+    setThemeState(id);
+  };
 
   const saveName = (v) => {
     setName(v);
@@ -50,6 +57,22 @@ export default function AppSettingsPanel({ onNameChange }) {
         </div>
         <input value={name} onChange={(e) => saveName(e.target.value)} placeholder="e.g. Hero phone"
           className="w-40 rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
+      </div>
+
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border">
+        <div>
+          <div className="text-sm font-body">App theme</div>
+          <div className="text-[11px] text-muted-foreground font-body">Colours for the whole control app</div>
+        </div>
+        <div className="flex gap-1.5">
+          {APP_THEMES.map((t) => (
+            <button key={t.id} onClick={() => chooseTheme(t.id)}
+              className={("rounded-lg border px-3 py-2 text-xs font-display font-semibold transition ") +
+                (appTheme === t.id ? "border-amber bg-amber/15 text-amber" : "border-border text-muted-foreground hover:text-foreground")}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-4 py-3 border-b border-border">

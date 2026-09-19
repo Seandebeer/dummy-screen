@@ -36,6 +36,53 @@
   }
 }
 
+[data-app-theme="black"] {
+  --background: 230 25% 3%;
+  --surface: 225 24% 8%;
+  --card: 225 24% 8%;
+  --popover: 225 24% 8%;
+  --secondary: 223 20% 14%;
+  --muted: 223 20% 13%;
+  --muted-foreground: 223 14% 62%;
+  --border: 223 20% 14%;
+  --input: 223 20% 14%;
+}
+
+[data-app-theme="grey"] {
+  --background: 225 10% 20%;
+  --foreground: 0 0% 100%;
+  --surface: 225 10% 26%;
+  --surface-foreground: 0 0% 100%;
+  --card: 225 10% 26%;
+  --card-foreground: 0 0% 100%;
+  --popover: 225 10% 26%;
+  --popover-foreground: 0 0% 100%;
+  --secondary: 225 10% 32%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 225 10% 30%;
+  --muted-foreground: 225 8% 75%;
+  --border: 225 10% 34%;
+  --input: 225 10% 34%;
+}
+
+[data-app-theme="white"] {
+  --background: 0 0% 100%;
+  --foreground: 225 20% 12%;
+  --surface: 220 14% 96%;
+  --surface-foreground: 225 20% 12%;
+  --card: 220 14% 96%;
+  --card-foreground: 225 20% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 225 20% 12%;
+  --secondary: 220 14% 92%;
+  --secondary-foreground: 225 20% 12%;
+  --muted: 220 14% 93%;
+  --muted-foreground: 225 10% 42%;
+  --border: 220 13% 86%;
+  --input: 220 13% 86%;
+  --ring: 41 100% 40%;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
