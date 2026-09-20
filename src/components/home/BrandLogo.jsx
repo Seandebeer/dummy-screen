@@ -14,7 +14,7 @@ export default function BrandLogo() {
         fittingType="fit"
         className="h-14 w-[201px]"
       />
-      <div className="text-[10px] font-body uppercase tracking-[0.25em] text-muted-foreground mt-1">
+      <div className="text-[10px] font-body uppercase tracking-[0.25em] text-muted-foreground mt-0 ml-8">
         props mastertool
       </div>
     </div>
