@@ -57,7 +57,7 @@ export default function LockSettings({ config, update, onLock, bare = false }) {
 
   return (
     <div className={bare ? "" : "px-5 pt-2"}>
-      <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">Lock Screen Background</div>
+      <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">Lock Screen</div>
       <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3.5">
         <div className="grid grid-cols-4 gap-2 mb-3">
           {bgPresets.map((p) => (
