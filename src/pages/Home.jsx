@@ -38,7 +38,6 @@ export default function Home() {
       <header className="border-b border-border/60 px-6 sm:px-8 py-5 flex items-center justify-between">
         <div>
           <BrandLogo />
-          <h1 className="font-display font-bold text-3xl tracking-[-0.02em] leading-none mt-1.5">Home</h1>
         </div>
         <div className="flex items-center gap-3">
           <Sheet>
