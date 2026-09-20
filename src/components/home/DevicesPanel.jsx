@@ -137,9 +137,10 @@ export default function DevicesPanel({ project }) {
             {project ? `${visible.length} ${visible.length === 1 ? "device" : "devices"}` : ""}
           </p>
         </div>
+        {project && (
         <Popover open={addOpen} onOpenChange={setAddOpen}>
           <PopoverTrigger asChild>
-            <button title="Add device" hidden={!project}
+            <button title="Add device"
               className="h-8 w-8 rounded-lg bg-signal/15 text-signal flex items-center justify-center hover:bg-signal/30 transition">
               <Plus size={17} />
             </button>
@@ -186,6 +187,7 @@ export default function DevicesPanel({ project }) {
             </form>
           </PopoverContent>
         </Popover>
+        )}
       </div>
 
       {devices === null ? (
