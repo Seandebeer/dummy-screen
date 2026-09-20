@@ -33,7 +33,7 @@ import MarkAdjust from "@/components/os/MarkAdjust";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
-import { ensureDeviceOnline, getDeviceName } from "@/lib/deviceLink";
+import { ensureDeviceOnline } from "@/lib/deviceLink";
 import SaveDeviceSheet from "@/components/os/SaveDeviceSheet";
 import LockScreen from "@/components/os/LockScreen";
 import ClockEditor from "@/components/os/ClockEditor";
@@ -60,7 +60,6 @@ export default function OS() {
   const [banner, setBanner] = useState(null);
   const [clockEdit, setClockEdit] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [deviceName, setDeviceName] = useState(getDeviceName);
   const [callSpeaker, setCallSpeaker] = useState(false);
   const [ear, setEar] = useState(false);
   const voiceRef = useRef(null);
@@ -426,7 +425,6 @@ export default function OS() {
           <ArrowLeft size={18} /> Back
         </Link>
         <div className="text-center min-w-0">
-          <div className="font-display font-semibold text-[17px] tracking-[-0.01em] leading-tight truncate max-w-[180px] sm:max-w-[240px]">{deviceName}</div>
           <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
             {skinName} · {config.theme === "light" ? "Light" : "Dark"} theme
           </div>
@@ -498,8 +496,7 @@ export default function OS() {
         </PhoneFrame>
       </div>
       {saveOpen && (
-        <SaveDeviceSheet config={config} onClose={() => setSaveOpen(false)}
-          onSaved={(n) => n && setDeviceName(n)} />
+        <SaveDeviceSheet config={config} onClose={() => setSaveOpen(false)} />
       )}
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-black">
