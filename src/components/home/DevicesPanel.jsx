@@ -33,6 +33,8 @@ export default function DevicesPanel({ project }) {
   const fileRef = useRef(null);
   const [detailsOpen, setDetailsOpen] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
+  const [savedFlash, setSavedFlash] = useState(null);
+  const flashTimer = useRef(null);
   const navigate = useNavigate();
 
   const hasDetails = (d) => Boolean(d.make || d.model || d.colour || d.serial || d.photo);
@@ -97,6 +99,10 @@ export default function DevicesPanel({ project }) {
     const config = readCurrentOsConfig();
     if (!config) return;
     await base44.entities.Device.update(d.id, { config: JSON.stringify(slimConfig(config)) });
+    // a quick "Saved" flash under the save icon - not a permanent label
+    setSavedFlash(d.id);
+    clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setSavedFlash(null), 1600);
     refresh();
   };
 
@@ -220,17 +226,21 @@ export default function DevicesPanel({ project }) {
                             <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
                               {d.kind}
                               {[d.make, d.model, d.colour].filter(Boolean).length > 0 ? ` · ${[d.make, d.model, d.colour].filter(Boolean).join(" ")}` : ""}
-                              {d.config ? " · layout saved" : ""}
                             </div>
                           </button>
                           <button onClick={() => setDetailsOpen(detailsOpen === d.id ? null : d.id)} title="Device info"
                             className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
                             <Info size={15} />
                           </button>
-                          <button onClick={() => saveLayout(d)} title="Save this screen's OS layout to the device"
-                            className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
-                            <Save size={15} />
-                          </button>
+                          <span className="relative flex flex-col items-center">
+                            <button onClick={() => saveLayout(d)} title="Save this screen's OS layout to the device"
+                              className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
+                              <Save size={15} />
+                            </button>
+                            {savedFlash === d.id && (
+                              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-0.5 text-[9px] font-body uppercase tracking-wide text-signal whitespace-nowrap">Saved</span>
+                            )}
+                          </span>
                           {d.config && (
                             <button onClick={() => loadLayout(d)} title="Load this device's layout onto this screen"
                               className="text-amber/80 hover:text-amber transition opacity-60 group-hover:opacity-100">
