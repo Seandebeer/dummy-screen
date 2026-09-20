@@ -25,9 +25,9 @@ export const bgPresets = [
 
 const defaults = {
   order: [...defaultHomeOrder],
-  orderVer: 2,
-  dock: ["phone", "messages", "email", "settings"],
-  dockVer: 2,
+  orderVer: 3,
+  dock: ["phone", "browser", "messages", "music"],
+  dockVer: 3,
   uiMarkers: { assignments: {}, barRow: 7, barCol: 5, barVRow: 2, layoutVer: 3 },
   osMarks: { style: "none", layouts: {} },
   osMarksVer: 1,
@@ -66,7 +66,7 @@ function loadConfig() {
       // gather the functional apps on the first page (once) - everything
       // else gets added from the App Library
       // core apps added after a layout was saved (e.g. Music) land on page 1
-      const order = saved.orderVer === 2
+      const order = saved.orderVer === 3
         ? [
           ...coreApps.filter((a) => !saved.order.includes(a.id)).map((a) => a.id),
           ...saved.order.filter((id) => known.includes(id)),
@@ -75,8 +75,8 @@ function loadConfig() {
       let dock = Array.isArray(saved.dock)
         ? saved.dock.filter((id) => known.includes(id)).slice(0, 4)
         : [...defaults.dock];
-      // one-time refresh: the Videos app moved out of the OS dock
-      if ((saved.dockVer || 0) < 2) dock = [...defaults.dock];
+      // one-time refresh: Apple-style dock (Phone, Browser, Messages, Music)
+      if ((saved.dockVer || 0) < 3) dock = [...defaults.dock];
       const dialCodes = Array.isArray(saved.dialCodes) && saved.dialCodes.length
         ? saved.dialCodes.filter((c) => /^\d{3}$/.test(c)).slice(0, 3)
         : defaults.dialCodes;
@@ -104,7 +104,7 @@ function loadConfig() {
         uiMarkers.barVRow = defaults.uiMarkers.barVRow;
         uiMarkers.layoutVer = 3;
       }
-      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, badges: { ...defaults.badges, ...(saved.badges || {}) }, notifications: Array.isArray(saved.notifications) ? saved.notifications : [],
+      return { ...defaults, ...saved, order, orderVer: 3, dock, dockVer: 3, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, badges: { ...defaults.badges, ...(saved.badges || {}) }, notifications: Array.isArray(saved.notifications) ? saved.notifications : [],
       socials: { ...defaults.socials, ...(saved.socials || {}) },
       webdeck: { ...defaults.webdeck, ...(saved.webdeck || {}) },
       news: { ...defaults.news, ...(saved.news || {}) },

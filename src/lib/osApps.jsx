@@ -37,13 +37,29 @@ export const coreApps = [
 // 10 apps each, browsable and addable from the App Library
 export { mockApps, categories };
 
-// default home screen - the functional apps fill page 1, a few generic
-// downloaded apps spill onto page 2
+// default home screen - laid out the way Apple / Samsung ship their phones:
+// the dock carries the daily drivers (Phone, Browser, Messages, Music), and
+// page 1 groups the functional apps into category rows; page 2 holds the
+// generic downloaded apps in matching category rows (4 icons per row)
 export const defaultHomeOrder = [
-  ...coreApps.map((a) => a.id),
-  "ping", "buzz", "visage", "flixiq", "waveform", "questly",
-  "headlines24", "skycast", "findit", "zippyride", "wandermap",
-  "recipebox", "flexr", "walletto",
+  // page 1 · row 1: video calls, schedule & capture (FaceTime / Calendar / Photos / Camera)
+  "videocall", "calendar", "photos", "camera",
+  // page 1 · row 2: productivity (Mail / Notes / Contacts / Clock)
+  "email", "notes", "contacts", "clock",
+  // page 1 · row 3: utilities (Maps / App Store / Health / Calculator)
+  "maps", "appstore", "fitness", "calculator",
+  // page 1 · row 4: social & entertainment
+  "facepage", "photogram", "vidtube", "quicktok",
+  // page 1 · row 5: info & settings (Settings stays in the bottom row)
+  "webdeck", "news", "property", "settings",
+  // page 2 · row 1: social & streaming
+  "ping", "buzz", "visage", "flixiq",
+  // page 2 · row 2: media & daily info
+  "waveform", "questly", "headlines24", "skycast",
+  // page 2 · row 3: shopping, rides, travel & food
+  "findit", "zippyride", "wandermap", "recipebox",
+  // page 2 · row 4: health & finance
+  "flexr", "walletto",
 ];
 
 export const allApps = [...coreApps, ...mockApps];
