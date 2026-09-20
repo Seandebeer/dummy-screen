@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save } from "lucide-react";
+import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save, ImageUp, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,6 +22,13 @@ export default function DevicesPanel({ project }) {
   const [kind, setKind] = useState("phone");
   const [busy, setBusy] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [colour, setColour] = useState("");
+  const [serial, setSerial] = useState("");
+  const [photo, setPhoto] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
   const [detailsOpen, setDetailsOpen] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
   const navigate = useNavigate();
@@ -48,14 +55,30 @@ export default function DevicesPanel({ project }) {
     if (!name.trim() || busy) return;
     setBusy(true);
     try {
-      await base44.entities.Device.create({ name: name.trim(), kind, status: "offline", project_id: project?.id || null });
+      await base44.entities.Device.create({
+        name: name.trim(), kind, status: "offline", project_id: project?.id || null,
+        make: make.trim(), model: model.trim(), colour: colour.trim(), serial: serial.trim(), photo,
+      });
       setName("");
       setKind("phone");
+      setMake(""); setModel(""); setColour(""); setSerial(""); setPhoto("");
       setAddOpen(false);
       refresh();
     } finally {
       setBusy(false);
     }
+  };
+
+  const onFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      setPhoto(file_url);
+    } catch {}
+    setUploading(false);
   };
 
   const toggleStatus = async (d) => {
@@ -114,7 +137,7 @@ export default function DevicesPanel({ project }) {
               <Plus size={17} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-60 p-3">
+          <PopoverContent align="end" className="w-72 p-3">
             <form onSubmit={add} className="flex flex-col gap-2">
               <input
                 value={name}
@@ -126,6 +149,29 @@ export default function DevicesPanel({ project }) {
                 className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs font-body outline-none">
                 {kinds.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
               </select>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="Make (e.g. Apple)"
+                  className="rounded-lg bg-muted/40 border border-border px-2.5 py-1.5 text-xs font-body outline-none focus:border-signal/50" />
+                <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Model (e.g. iPhone 1)"
+                  className="rounded-lg bg-muted/40 border border-border px-2.5 py-1.5 text-xs font-body outline-none focus:border-signal/50" />
+                <input value={colour} onChange={(e) => setColour(e.target.value)} placeholder="Colour"
+                  className="rounded-lg bg-muted/40 border border-border px-2.5 py-1.5 text-xs font-body outline-none focus:border-signal/50" />
+                <input value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Serial number"
+                  className="rounded-lg bg-muted/40 border border-border px-2.5 py-1.5 text-xs font-body outline-none focus:border-signal/50" />
+              </div>
+              <div className="flex items-center gap-2 pt-0.5">
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="flex items-center gap-1.5 rounded-lg bg-muted/40 border border-border px-2.5 py-1.5 text-[11px] font-body text-foreground/80 disabled:opacity-50">
+                  {uploading ? <Loader2 size={13} className="animate-spin" /> : <ImageUp size={13} />}
+                  {photo ? "Replace photo" : "Upload photo"}
+                </button>
+                {photo && (
+                  <span className="text-[10px] font-body text-signal flex items-center gap-1">
+                    <Check size={11} /> Added
+                  </span>
+                )}
+              </div>
               <button type="submit" disabled={busy || !name.trim()}
                 className="rounded-lg bg-signal text-background px-3 py-2 text-sm font-display font-semibold disabled:opacity-40 flex items-center justify-center gap-1.5">
                 {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Add device
