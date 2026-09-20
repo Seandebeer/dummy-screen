@@ -44,6 +44,7 @@ import AppStoreApp from "@/components/os/apps/AppStoreApp";
 import { skinUi, OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
 import { startPhoneVoice } from "@/lib/voiceLink";
+import { scheduleDeviceSync } from "@/lib/cloudSync";
 
 export default function OS() {
   const [app, setApp] = useState(null);
@@ -231,6 +232,10 @@ export default function OS() {
     const t = setInterval(() => setTick((n) => n + 1), 15000);
     return () => clearInterval(t);
   }, []);
+
+  // every OS change (contacts, settings, pages, social content) syncs to the
+  // shared cloud library for the team - debounced, queued while offline
+  useEffect(() => { scheduleDeviceSync(); }, [config]);
 
   // opened via QR (?connect=1): register this screen as an online,
   // remotely-controllable device

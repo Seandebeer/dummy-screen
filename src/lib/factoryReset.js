@@ -1,5 +1,6 @@
 import { base44 } from "@/api/base44Client";
 import { getLinkedDeviceId } from "@/lib/deviceLink";
+import { clearDeviceSync } from "@/lib/cloudSync";
 
 // localStorage keys holding this mock device's own data
 const KEYS = [
@@ -17,6 +18,7 @@ const DBS = ["propsync-music", "propsync-camroll"];
 // Items saved to the general Saved card on Home are untouched, but pages
 // saved to the linked character's device are cleared from that record.
 export async function factoryReset() {
+  clearDeviceSync();
   for (const k of KEYS) {
     try { localStorage.removeItem(k); } catch {}
   }

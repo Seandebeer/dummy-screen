@@ -19,9 +19,11 @@ export const slimConfig = (config) => ({
 // apply a saved profile to this screen; removing the contacts version markers
 // makes the OS regenerate localized defaults and merge the custom ones back in
 export const applyOsConfig = (config) => {
-  const { contactsVer, contactsLang, ...rest } = config || {};
+  const { contactsVer, contactsLang, _notes, _calendar, ...rest } = config || {};
   try {
     localStorage.setItem(OS_KEY, JSON.stringify(rest));
+    if (_notes) { try { localStorage.setItem("takeover-os-notes", JSON.stringify(_notes)); } catch {} }
+    if (_calendar) { try { localStorage.setItem("takeover-os-calendar", JSON.stringify(_calendar)); } catch {} }
     return true;
   } catch {
     return false;

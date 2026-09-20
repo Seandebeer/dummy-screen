@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { scheduleDeviceSync } from "@/lib/cloudSync";
 
 const KEY = "takeover-os-calendar";
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
@@ -25,7 +26,7 @@ export default function CalendarApp() {
   const [events, setEvents] = useState(loadEvents);
   const [draft, setDraft] = useState("");
 
-  const persist = (next) => { setEvents(next); saveEvents(next); };
+  const persist = (next) => { setEvents(next); saveEvents(next); scheduleDeviceSync(); };
   const first = new Date(cursor.y, cursor.m, 1).getDay();
   const days = new Date(cursor.y, cursor.m + 1, 0).getDate();
   const cells = [...Array(first).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];

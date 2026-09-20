@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users, LayoutGrid } from "lucide-react";
-import { listSaved, deleteConfig } from "@/lib/savedConfigs";
+import { listSaved, deleteConfig, mergeCloudEntries } from "@/lib/savedConfigs";
+import { syncNow, SYNC_EVENT } from "@/lib/cloudSync";
+import SyncBadge from "@/components/home/SyncBadge";
 import { applyPage } from "@/lib/savedPages";
 
 const CATEGORIES = ["All", "UI Markers", "Key Screens", "Socials", "Websites", "Apps"];
@@ -22,6 +24,24 @@ export default function SavedPanel() {
   const [saved, setSaved] = useState(listSaved);
   const [cat, setCat] = useState("All");
   const navigate = useNavigate();
+
+  // load the shared cloud library (falls back to the local copy with no
+  // signal), and refresh whenever a sync lands or the queue changes
+  useEffect(() => {
+    let alive = true;
+    syncNow().then((entries) => {
+      if (alive && entries) setSaved(mergeCloudEntries(entries));
+    });
+    const onSync = (e) => {
+      if (e.detail?.entries) setSaved(mergeCloudEntries(e.detail.entries));
+      else setSaved(listSaved());
+    };
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => {
+      alive = false;
+      window.removeEventListener(SYNC_EVENT, onSync);
+    };
+  }, []);
 
   const open = (s) => {
     if (s.kind === "markers") {
@@ -50,7 +70,10 @@ export default function SavedPanel() {
     <div className="pt-1">
       {/* category dropdown */}
       <div className="flex items-center justify-between pb-1 pt-2">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Category</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">Category</span>
+          <SyncBadge />
+        </div>
         <div className="relative">
           <select
             value={cat}

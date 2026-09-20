@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
+import { scheduleDeviceSync } from "@/lib/cloudSync";
 
 const KEY = "takeover-os-notes";
 
@@ -20,7 +21,7 @@ export default function NotesApp() {
   const [activeId, setActiveId] = useState(null);
   const active = notes.find((n) => n.id === activeId) || null;
 
-  const persist = (next) => { setNotes(next); saveNotes(next); };
+  const persist = (next) => { setNotes(next); saveNotes(next); scheduleDeviceSync(); };
   const newNote = () => {
     const note = { id: `n-${Date.now()}`, body: "", updated: Date.now() };
     persist([note, ...notes]);

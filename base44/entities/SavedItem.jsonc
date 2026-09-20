@@ -1,0 +1,32 @@
+{
+  "name": "SavedItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "app": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "item_key": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "name",
+    "item_key",
+    "payload"
+  ]
+}
