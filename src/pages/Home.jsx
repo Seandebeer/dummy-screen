@@ -1,8 +1,7 @@
-import React, { useState } from "react";
-import { Smartphone, Clapperboard, Settings2, Bookmark, User as UserIcon } from "lucide-react";
+import React from "react";
+import { Clapperboard, Settings2, Bookmark, User as UserIcon } from "lucide-react";
 import HomeSection from "@/components/home/HomeSection";
 import ProjectsPanel from "@/components/home/ProjectsPanel";
-import DevicesPanel from "@/components/home/DevicesPanel";
 import AppSettingsPanel from "@/components/home/AppSettingsPanel";
 import SavedPanel from "@/components/home/SavedPanel";
 import ProfilePanel from "@/components/home/ProfilePanel";
@@ -12,7 +11,6 @@ import { useAuth } from "@/lib/AuthContext";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
-  const [selectedProject, setSelectedProject] = useState(null);
   const initials = (user?.full_name || user?.email || "?")
     .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
 
@@ -51,11 +49,8 @@ export default function Home() {
       </header>
 
       <div className="p-5 sm:p-8 max-w-[1280px] mx-auto flex flex-col gap-5">
-        <HomeSection icon={Clapperboard} title="Projects" subtitle="Production projects">
-          <ProjectsPanel selected={selectedProject?.id || null} onSelect={setSelectedProject} />
-        </HomeSection>
-        <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync">
-          <DevicesPanel project={selectedProject} />
+        <HomeSection icon={Clapperboard} title="Projects" subtitle="Production projects & devices">
+          <ProjectsPanel />
         </HomeSection>
         <HomeSection icon={Settings2} title="Settings" subtitle="Deck & mock OS preferences">
           <AppSettingsPanel />

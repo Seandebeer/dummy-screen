@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { FolderKanban, Plus, Trash2, Loader2, Users, ChevronDown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { applyOsConfig } from "@/lib/osConfigStore";
-import { linkDevice } from "@/lib/deviceLink";
 import ProjectTeam from "@/components/home/ProjectTeam";
+import ProjectDevices from "@/components/home/ProjectDevices";
 
-export default function ProjectsPanel({ selected, onSelect }) {
+export default function ProjectsPanel() {
   const [projects, setProjects] = useState(null);
   const [devices, setDevices] = useState([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [teamOpen, setTeamOpen] = useState(null);
+  const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -50,21 +48,9 @@ export default function ProjectsPanel({ selected, onSelect }) {
     return () => { unsub(); unsubDevices(); };
   }, [refresh]);
 
-  const projectDevices = (p) => devices.filter((d) => d.project_id === p.id);
-
   // only projects this user has access to - their own or shared with them
   const visibleProjects = (projects || []).filter((p) => myAccess(p) === "owner" || myAccess(p) === "editor" || myAccess(p) === "viewer");
-
-  // tap a device to bring up its OS - loads its saved layout if it has one
-  const openDevice = (d) => {
-    if (d.config) {
-      try {
-        applyOsConfig(JSON.parse(d.config));
-        linkDevice(d.id, d.name);
-      } catch {}
-    }
-    navigate("/os");
-  };
+  const deviceCount = (p) => devices.filter((d) => d.project_id === p.id).length;
 
   const add = async (e) => {
     e.preventDefault();
@@ -120,12 +106,12 @@ export default function ProjectsPanel({ selected, onSelect }) {
           {visibleProjects.map((p) => (
             <li key={p.id} className="group rounded-lg border border-border bg-muted/30 px-3 py-2.5">
               <div className="flex items-center gap-3">
-                <button onClick={() => onSelect(selected === p.id ? null : p)}
+                <button onClick={() => setSelected(selected === p.id ? null : p.id)}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left">
                   <span className="h-2 w-2 rounded-full bg-amber/70 shrink-0" />
                   <span className="flex-1 text-sm font-body truncate">{p.name}</span>
                   <span className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground font-body">
-                    {projectDevices(p).length} {projectDevices(p).length === 1 ? "device" : "devices"}
+                    {deviceCount(p)} {deviceCount(p) === 1 ? "device" : "devices"}
                   </span>
                   <ChevronDown size={13} className={cn("shrink-0 text-muted-foreground transition-transform", selected === p.id && "rotate-180")} />
                 </button>
@@ -148,20 +134,8 @@ export default function ProjectsPanel({ selected, onSelect }) {
                 )}
               </div>
               {selected === p.id && (
-                <div className="mt-1.5 pl-5 flex flex-col gap-1">
-                  {projectDevices(p).length === 0 ? (
-                    <span className="text-[10px] text-muted-foreground/70 font-body">No devices linked - assign devices to this project in Devices</span>
-                  ) : projectDevices(p).map((d) => (
-                    <button key={d.id} onClick={() => openDevice(d)} disabled={myAccess(p) === "viewer"}
-                      title={myAccess(p) === "viewer" ? "View only - editing access required" : "Open this device's OS"}
-                      className="w-full flex items-center gap-2 text-xs font-body text-left rounded-md py-0.5 px-1 -mx-1 hover:bg-muted/60 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0",
-                        d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40")} />
-                      <span className="truncate text-foreground/80">{d.name}</span>
-                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{d.kind}</span>
-                    </button>
-                  ))}
-                </div>
+                <ProjectDevices project={p} devices={devices} projects={projects}
+                  readOnly={myAccess(p) === "viewer"} onChange={refresh} />
               )}
               {teamOpen === p.id && (
                 <div className="mt-2 pt-2 border-t border-border/60">
