@@ -74,7 +74,12 @@ export default function ProjectsPanel({ selected, onSelect }) {
     }
   };
 
+  // devices live inside their project - deleting the project removes them too.
+  // layouts saved as favourites (Saved) are separate and stay put.
   const remove = async (p) => {
+    try {
+      await base44.entities.Device.deleteMany({ project_id: p.id });
+    } catch {}
     try {
       await base44.entities.Project.delete(p.id);
     } catch {} // already deleted elsewhere - just refresh
@@ -178,7 +183,13 @@ export default function ProjectsPanel({ selected, onSelect }) {
         open={Boolean(confirmDel)}
         onOpenChange={(o) => !o && setConfirmDel(null)}
         name={confirmDel?.name}
-        onConfirm={() => { remove(confirmDel); setConfirmDel(null); }}
+        description="This can't be undone. Its devices will be removed too - layouts saved as favourites stay in Saved."
+        onConfirm={() => {
+          const p = confirmDel;
+          remove(p);
+          if (selected === p.id) onSelect(null);
+          setConfirmDel(null);
+        }}
       />
     </div>
   );

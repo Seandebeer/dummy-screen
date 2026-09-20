@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // a proper-sized delete confirmation - replaces the tiny inline "Delete? Yes/No" text
-export default function ConfirmDeleteDialog({ open, onOpenChange, name, onConfirm }) {
+export default function ConfirmDeleteDialog({ open, onOpenChange, name, onConfirm, description }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-sm">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-display">Delete {name}?</AlertDialogTitle>
-          <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+          <AlertDialogDescription>{description || "This can't be undone."}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
