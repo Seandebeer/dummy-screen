@@ -28,8 +28,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const barRow = Math.max(0, Math.min(ROWS, markers.barRow ?? ROWS - 1));
   const barCol = Math.max(1, Math.min(COLS, markers.barCol ?? COLS));
   const vStart = Math.max(1, Math.min(ROWS - 4, markers.barVRow ?? 1));
-  const barNumber = markers.barNumber ?? "";
-  const barVNumber = markers.barVNumber ?? "";
+  const barNumsOf = (v) => (Array.isArray(v) ? v : v ? [Number(v)] : []);
+  const barNumber = barNumsOf(markers.barNumber);
+  const barVNumber = barNumsOf(markers.barVNumber);
   const bgColor = markers.bgColor ?? null;
   const markStyle = markers.markStyle ?? "none";
 
@@ -54,6 +55,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const [pressedBtn, setPressedBtn] = useState(null);
   const [pressedBar, setPressedBar] = useState(null);
   const [dragBar, setDragBar] = useState(null); // "h" | "v"
+  const barMoved = useRef(false);
+  const barStart = useRef({ x: 0, y: 0 });
   const containerRef = useRef(null);
   const holdTimer = useRef(null);
   const suppressClick = useRef(false);
@@ -81,7 +84,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const nextNumber = () => {
     const used = [
       ...Object.values(assignments).flatMap((v) => (Array.isArray(v) ? v : v != null ? [v] : [])),
-      Number(barNumber), Number(barVNumber),
+      ...barNumber, ...barVNumber,
     ].filter((n) => Number.isInteger(n) && n > 0);
     return used.length ? Math.max(...used) + 1 : 1;
   };
@@ -97,12 +100,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     const entries = [];
     Object.entries(next.assignments).forEach(([key, v]) =>
       (Array.isArray(v) ? v : v != null ? [v] : []).forEach((n) => entries.push({ key, n })));
-    [["barNumber", Number(next.barNumber)], ["barVNumber", Number(next.barVNumber)]]
-      .forEach(([key, n]) => { if (n > 0) entries.push({ key, n }); });
+    [["barNumber", next.barNumber], ["barVNumber", next.barVNumber]].forEach(([key, v]) =>
+      barNumsOf(v).forEach((n) => entries.push({ key, n })));
     entries.sort((a, b) => a.n - b.n);
     const out = { assignments: {} };
     entries.forEach((e, i) => {
-      if (e.key === "barNumber" || e.key === "barVNumber") out[e.key] = String(i + 1);
+      if (e.key === "barNumber" || e.key === "barVNumber") (out[e.key] ??= []).push(i + 1);
       else (out.assignments[e.key] ??= []).push(i + 1);
     });
     return out;
@@ -233,12 +236,17 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const onBarPointerDown = (e, which) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     clearTimeout(holdTimer.current);
+    barStart.current = { x: e.clientX, y: e.clientY };
+    barMoved.current = false;
     holdTimer.current = setTimeout(() => { suppressClick.current = true; setDragBar(which); }, 250);
   };
 
   const cancelDrag = () => {
     clearTimeout(holdTimer.current);
+    const which = dragBar;
     setDragBar(null);
+    // a hold that never moved clears the bar's numbers instead of dragging it
+    if (which && !barMoved.current) clearBarNumber(which === "h" ? "barNumber" : "barVNumber");
   };
 
   useEffect(() => {
@@ -246,6 +254,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     const move = (e) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
+      if (Math.hypot(e.clientX - barStart.current.x, e.clientY - barStart.current.y) > 6) barMoved.current = true;
       if (dragBar === "h") {
         const band = rect.height / (ROWS + 1);
         const row = Math.max(0, Math.min(ROWS, Math.floor((e.clientY - rect.top) / band)));
@@ -319,17 +328,21 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     gridRow: r + (r >= barRow ? 1 : 0) + 1,
   });
 
-  // tap anywhere on a bar (edit mode) → next number appears, tap again to
-  // clear; everything after it renumbers to close the gap
+  // tap a bar → add another number (multiple allowed)
   const toggleBarNumber = (key) => {
     if (suppressClick.current) { suppressClick.current = false; return; }
+    saveMarkers((m) => ({ [key]: [...barNumsOf(m[key]), nextNumber()] }));
+  };
+
+  // hold a bar without moving → clear its numbers; the rest renumber
+  const clearBarNumber = (key) => {
     saveMarkers((m) => {
-      if (!m[key]) return { [key]: String(nextNumber()) };
+      if (!barNumsOf(m[key]).length) return {};
       const seq = renumber({
         assignments: m.assignments || {},
         barNumber: m.barNumber || "",
         barVNumber: m.barVNumber || "",
-        [key]: "",
+        [key]: [],
       });
       return { assignments: seq.assignments, barNumber: seq.barNumber, barVNumber: seq.barVNumber };
     });
@@ -344,9 +357,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
       className="flex items-center justify-center">
-      <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        barNumber ? (pressedBar === "h" ? `${strongLine} marker-pulse` : line) : "border-transparent")}>
-        {barNumber}
+      <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center font-display",
+        barNumber.length ? (pressedBar === "h" ? `${strongLine} marker-pulse` : line) : "border-transparent",
+        barNumber.length > 1 ? "text-[13px] leading-tight" : "text-base")}>
+        {barNumber.join(" ")}
       </div>
     </div>
   ) : (
@@ -358,9 +372,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onClick={() => toggleBarNumber("barNumber")}
       onContextMenu={(e) => e.preventDefault()}
       className={cn("flex items-center justify-center", dragBar === "h" ? "cursor-grabbing" : "cursor-grab")}>
-      <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        dragBar === "h" ? strongLine : line)}>
-        {barNumber}
+      <div className={cn("w-full h-full rounded-xl border touch-none select-none transition-colors flex items-center justify-center font-display",
+        dragBar === "h" ? strongLine : line,
+        barNumber.length > 1 ? "text-[13px] leading-tight" : "text-base")}>
+        {barNumber.join(" ")}
       </div>
     </div>
   );
@@ -382,9 +397,13 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerLeave={() => setPressedBar(null)}
       onPointerCancel={() => setPressedBar(null)}
       onContextMenu={(e) => e.preventDefault()}
-      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
-        barVNumber ? (pressedBar === "v" ? `${strongLine} marker-pulse` : line) : "border-transparent")}>
-      {barVNumber}
+      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center font-display",
+        barVNumber.length ? (pressedBar === "v" ? `${strongLine} marker-pulse` : line) : "border-transparent")}>
+      {barVNumber.length > 1 ? (
+        <div className="flex flex-col items-center leading-tight text-[13px]">
+          {barVNumber.map((n) => <span key={n}>{n}</span>)}
+        </div>
+      ) : barVNumber[0] ?? ""}
     </div>
   ) : (
     <div style={{ gridColumn: barCol + 1, gridRow: `${vStart} / ${vStart + 6}` }}
@@ -393,9 +412,13 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       onPointerCancel={cancelDrag}
       onClick={() => toggleBarNumber("barVNumber")}
       onContextMenu={(e) => e.preventDefault()}
-      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center text-base font-display",
+      className={cn("rounded-xl border touch-none select-none transition-colors flex items-center justify-center font-display",
         dragBar === "v" ? `${strongLine} cursor-grabbing` : `${line} cursor-grab`)}>
-      {barVNumber}
+      {barVNumber.length > 1 ? (
+        <div className="flex flex-col items-center leading-tight text-[13px]">
+          {barVNumber.map((n) => <span key={n}>{n}</span>)}
+        </div>
+      ) : barVNumber[0] ?? ""}
     </div>
   );
 
