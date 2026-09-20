@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X, Check, CheckCheck, Clock, Reply, Trash2 } from "lucide-react";
+import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X, Check, CheckCheck, Clock, Reply, Trash2, Smile, Plus, Sticker, Images } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { Image } from "@/components/ui/image";
 import MediaViewer from "@/components/os/apps/messages/MediaViewer";
+import EmojiPicker from "@/components/os/apps/messages/EmojiPicker";
+import GalleryPicker from "@/components/os/apps/messages/GalleryPicker";
+import GifPicker from "@/components/os/apps/messages/GifPicker";
+import { uploadRollItem } from "@/lib/sendMedia";
 import { getLinkedDeviceId, getScreenId } from "@/lib/deviceLink";
 
 const READ_KEY = "takeover-os-msg-read";
@@ -58,6 +62,11 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState("");
   const [mediaView, setMediaView] = useState(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [trayOpen, setTrayOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
+  const [sending, setSending] = useState(false);
   const pressTimer = useRef(null);
   const scrollRef = useRef(null);
 
@@ -153,6 +162,38 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
     try {
       await base44.entities.Message.create({ thread_id: threadChannel(view.id), sender: "phone", text: body, sender_name: "Phone", read: true });
     } catch { setText(body); }
+  };
+
+  // send a photo / clip from the device gallery into the open thread
+  const sendRollItem = async (item) => {
+    setGalleryOpen(false);
+    setSending(true);
+    try {
+      const url = await uploadRollItem(item);
+      if (url) {
+        await base44.entities.Message.create({
+          thread_id: threadChannel(view.id), sender: "phone", text: text.trim(),
+          media: url, media_type: item.type === "video" ? "video" : "photo",
+          sender_name: "Phone", read: true,
+        });
+        setText("");
+      }
+    } catch {}
+    setSending(false);
+  };
+
+  // send a GIF from the picker as an image message
+  const sendGif = async (url) => {
+    setGifOpen(false);
+    setSending(true);
+    try {
+      await base44.entities.Message.create({
+        thread_id: threadChannel(view.id), sender: "phone", text: text.trim(),
+        media: url, media_type: "photo", sender_name: "Phone", read: true,
+      });
+      setText("");
+    } catch {}
+    setSending(false);
   };
 
   // script the other side of the conversation: create as phone first, then
@@ -305,22 +346,60 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
             );
           })}
         </div>
-        <div className={cn("flex items-center gap-2 px-3 py-2.5 border-t", dark ? "border-white/10" : "border-black/10")}>
-          {canEdit && (
-            <button onClick={sendIncoming} disabled={!text.trim()} title="Add their reply to the thread"
-              className={cn("h-9 w-9 shrink-0 rounded-full flex items-center justify-center border disabled:opacity-30",
-                dark ? "border-white/15" : "border-black/15")}>
-              <Reply size={15} className="text-[#007AFF]" />
-            </button>
+        <div className="relative">
+          {showEmoji && (
+            <EmojiPicker dark={dark} onPick={(e) => setText((t) => t + e)} />
           )}
-          <input value={text} onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendThread()}
-            placeholder="Text message" className={cn("flex-1 rounded-full border px-4 py-2 text-sm outline-none", dark ? "border-white/15 placeholder:text-white/30" : "border-black/15 placeholder:text-black/30")} />
-          <button onClick={sendThread} disabled={!text.trim()}
-            className="h-9 w-9 rounded-full bg-[#007AFF] flex items-center justify-center disabled:opacity-30">
-            <Send size={16} className="text-white" />
-          </button>
+          {trayOpen && (
+            <div className={cn("absolute bottom-14 inset-x-3 z-30 flex gap-2 rounded-2xl border p-2 shadow-2xl",
+              dark ? "border-white/10 bg-[#1C1C1E]" : "border-black/10 bg-white")}>
+              <button onClick={() => { setTrayOpen(false); setGalleryOpen(true); }}
+                className={cn("flex flex-1 flex-col items-center gap-1 rounded-xl py-2.5 active:bg-black/10")}>
+                <Images size={18} className="text-[#007AFF]" />
+                <span className="text-[10px] font-medium">Photos</span>
+              </button>
+              <button onClick={() => { setTrayOpen(false); setGifOpen(true); }}
+                className={cn("flex flex-1 flex-col items-center gap-1 rounded-xl py-2.5 active:bg-black/10")}>
+                <Sticker size={18} className="text-[#007AFF]" />
+                <span className="text-[10px] font-medium">GIFs</span>
+              </button>
+            </div>
+          )}
+          <div className={cn("flex items-center gap-2 px-3 py-2.5 border-t", dark ? "border-white/10" : "border-black/10")}>
+            {canEdit && (
+              <button onClick={sendIncoming} disabled={!text.trim()} title="Add their reply to the thread"
+                className={cn("h-9 w-9 shrink-0 rounded-full flex items-center justify-center border disabled:opacity-30",
+                  dark ? "border-white/15" : "border-black/15")}>
+                <Reply size={15} className="text-[#007AFF]" />
+              </button>
+            )}
+            <button onClick={() => { setShowEmoji((v) => !v); setTrayOpen(false); }} title="Emoji"
+              className={cn("h-9 w-9 shrink-0 rounded-full flex items-center justify-center",
+                showEmoji && (dark ? "bg-white/10" : "bg-black/10"))}>
+              <Smile size={17} className="text-[#007AFF]" />
+            </button>
+            <input value={text} onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendThread()}
+              placeholder="Text message" className={cn("flex-1 rounded-full border px-4 py-2 text-sm outline-none", dark ? "border-white/15 placeholder:text-white/30" : "border-black/15 placeholder:text-black/30")} />
+            <button onClick={() => { setTrayOpen((v) => !v); setShowEmoji(false); }} title="Photos and GIFs"
+              className={cn("h-9 w-9 shrink-0 rounded-full flex items-center justify-center",
+                trayOpen && (dark ? "bg-white/10" : "bg-black/10"))}>
+              <Plus size={17} className="text-[#007AFF]" />
+            </button>
+            <button onClick={sendThread} disabled={!text.trim()}
+              className="h-9 w-9 rounded-full bg-[#007AFF] flex items-center justify-center disabled:opacity-30">
+              <Send size={16} className="text-white" />
+            </button>
+          </div>
+          {sending && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-14 z-30 flex justify-center">
+              <span className={cn("rounded-full px-3 py-1 text-[11px] shadow-lg",
+                dark ? "bg-[#1C1C1E] text-white/80" : "bg-white text-black/70")}>Sending…</span>
+            </div>
+          )}
         </div>
+        {galleryOpen && <GalleryPicker dark={dark} onClose={() => setGalleryOpen(false)} onPick={sendRollItem} />}
+        {gifOpen && <GifPicker dark={dark} onClose={() => setGifOpen(false)} onPick={sendGif} />}
         {mediaView && <MediaViewer url={mediaView.media} type={mediaView.media_type} onClose={() => setMediaView(null)} />}
       </div>
     );

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Aperture, ChevronLeft, Film, Images, Play, RefreshCw, Trash2, X } from "lucide-react";
-import { addPhoto, addVideo, deletePhoto, getClip, getPhotos } from "@/lib/cameraRoll";
+import { Aperture, Film, Images, RefreshCw } from "lucide-react";
+import { addPhoto, addVideo, getPhotos } from "@/lib/cameraRoll";
 import ClipsGallery from "@/components/os/apps/camera/ClipsGallery";
+import PhotosApp from "@/components/os/apps/PhotosApp";
 import { cn } from "@/lib/utils";
 
 export default function CameraApp() {
@@ -18,8 +19,6 @@ export default function CameraApp() {
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
   const [photos, setPhotos] = useState(getPhotos);
-  const [viewing, setViewing] = useState(null);
-  const [clipUrl, setClipUrl] = useState(null);
 
   // live camera only while capturing - stopping the stream turns the lens off
   useEffect(() => {
@@ -44,23 +43,6 @@ export default function CameraApp() {
       streamRef.current = null;
     };
   }, [facing, mode]);
-
-  // resolve a recorded clip from IndexedDB while it's being viewed
-  useEffect(() => {
-    if (viewing?.type !== "video") return undefined;
-    let url = null;
-    let dead = false;
-    getClip(viewing.id).then((rec) => {
-      if (dead || !rec?.blob) return;
-      url = URL.createObjectURL(rec.blob);
-      setClipUrl(url);
-    });
-    return () => {
-      dead = true;
-      if (url) URL.revokeObjectURL(url);
-      setClipUrl(null);
-    };
-  }, [viewing?.id]);
 
   const capture = () => {
     const v = videoRef.current;
@@ -133,63 +115,10 @@ export default function CameraApp() {
     );
   }
 
+  // the camera roll is the Apple-style Photos gallery, shared with the
+  // standalone Photos app on the home screen
   if (mode === "roll") {
-    return (
-      <div className="relative h-full flex flex-col bg-black text-white">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-          <button onClick={() => setMode("camera")} className="flex items-center gap-1 text-sm font-body text-amber">
-            <ChevronLeft size={16} /> Camera
-          </button>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setMode("clips")} className="flex items-center gap-1 text-xs font-body text-amber">
-              <Film size={13} /> Clips
-            </button>
-            <div className="text-xs font-body text-white/60">{photos.length} item{photos.length === 1 ? "" : "s"}</div>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto no-scrollbar p-1">
-          {photos.length ? (
-            <div className="grid grid-cols-3 gap-1">
-              {photos.map((p) => (
-                <button key={p.id} onClick={() => setViewing(p)} className="relative aspect-square overflow-hidden rounded-lg">
-                  <img src={p.type === "video" ? p.poster : p.url} alt="Captured" className="h-full w-full object-cover" />
-                  {p.type === "video" && (
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-                      <span className="rounded-full bg-black/55 p-1.5"><Play size={12} /></span>
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center gap-2 text-center px-8">
-              <Images size={24} className="text-white/30" />
-              <div className="text-xs font-body text-white/50">No photos or videos yet - capture from the camera</div>
-            </div>
-          )}
-        </div>
-        {viewing && (
-          <div className="absolute inset-0 z-10 bg-black/95 flex flex-col">
-            <div className="flex items-center justify-between px-3 py-2">
-              <button onClick={() => setViewing(null)} className="h-9 w-9 flex items-center justify-center rounded-full bg-white/10"><X size={16} /></button>
-              <button onClick={() => { setPhotos(deletePhoto(viewing.id)); setViewing(null); }}
-                className="h-9 w-9 flex items-center justify-center rounded-full bg-white/10 text-red-400"><Trash2 size={16} /></button>
-            </div>
-            <div className="flex-1 flex items-center justify-center p-2">
-              {viewing.type === "video" ? (
-                clipUrl ? (
-                  <video src={clipUrl} controls autoPlay playsInline className="max-h-full w-full rounded-xl" />
-                ) : (
-                  <div className="text-xs font-body text-white/50">Loading clip…</div>
-                )
-              ) : (
-                <img src={viewing.url} alt="Captured" className="max-h-full max-w-full rounded-xl" />
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+    return <PhotosApp onBack={() => setMode("camera")} />;
   }
 
   return (

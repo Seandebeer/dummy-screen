@@ -19,6 +19,7 @@ import AlarmOverlay from "@/components/os/AlarmOverlay";
 import MockApp from "@/components/os/apps/MockApp";
 import MusicApp from "@/components/os/apps/MusicApp";
 import MapsApp from "@/components/os/apps/MapsApp";
+import PhotosApp from "@/components/os/apps/PhotosApp";
 import FacepageApp from "@/components/os/apps/social/FacepageApp";
 import PhotogramApp from "@/components/os/apps/social/PhotogramApp";
 import VidTubeApp from "@/components/os/apps/social/VidTubeApp";
@@ -536,6 +537,7 @@ export default function OS() {
       case "videocall": return <VideoCallApp config={config} update={update} remote={videoCall} onRemoteEnd={endVideoCall} />;
       case "music": return <MusicApp />;
       case "maps": return <MapsApp />;
+      case "photos": return <PhotosApp contacts={config.contacts} light={config.theme === "light"} />;
       case "facepage": return <FacepageApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "photogram": return <PhotogramApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "vidtube": return <VidTubeApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
