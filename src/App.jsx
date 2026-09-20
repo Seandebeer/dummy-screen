@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
+import MyAccess from '@/pages/MyAccess';
 import OS from '@/pages/OS';
 import VFXStage from '@/pages/VFXStage';
 import Control from '@/pages/Control';
@@ -43,6 +44,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/my-access" element={<MyAccess />} />
         <Route path="/control" element={<Control />} />
         <Route path="/videos" element={<Videos />} />
       </Route>

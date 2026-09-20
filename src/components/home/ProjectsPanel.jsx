@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { applyOsConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
 import ProjectTeam from "@/components/home/ProjectTeam";
+import { myAccess } from "@/lib/projectAccess";
 
 export default function ProjectsPanel() {
   const [projects, setProjects] = useState(null);
@@ -20,15 +21,6 @@ export default function ProjectsPanel() {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
-  // this user's role on a project: owner (account holder), editor or viewer
-  const myAccess = (p) => {
-    if (!user) return "loading";
-    if (user.role === "admin" || p.created_by_id === user.id) return "owner";
-    const me = (user.email || "").toLowerCase();
-    if ((p.editors || []).includes(me)) return "editor";
-    if ((p.viewers || []).includes(me)) return "viewer";
-    return "none";
-  };
 
   const refresh = useCallback(() => {
     base44.entities.Project.list("-created_date", 100)
@@ -115,19 +107,19 @@ export default function ProjectsPanel() {
               <div className="flex items-center gap-3">
                 <span className="h-2 w-2 rounded-full bg-amber/70 shrink-0" />
                 <span className="flex-1 text-sm font-body truncate">{p.name}</span>
-                {(myAccess(p) === "editor" || myAccess(p) === "viewer") && (
+                {(myAccess(p, user) === "editor" || myAccess(p, user) === "viewer") && (
                   <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[9px] font-body uppercase tracking-wider",
-                    myAccess(p) === "editor" ? "bg-signal/15 text-signal" : "bg-muted text-muted-foreground")}>
-                    {myAccess(p) === "editor" ? "Editor" : "View only"}
+                    myAccess(p, user) === "editor" ? "bg-signal/15 text-signal" : "bg-muted text-muted-foreground")}>
+                    {myAccess(p, user) === "editor" ? "Editor" : "View only"}
                   </span>
                 )}
-                {myAccess(p) === "owner" && (
+                {myAccess(p, user) === "owner" && (
                   <button onClick={() => setTeamOpen(teamOpen === p.id ? null : p.id)} title="Manage team"
                     className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
                     <Users size={15} />
                   </button>
                 )}
-                {myAccess(p) === "owner" && (
+                {myAccess(p, user) === "owner" && (
                   <button onClick={() => remove(p)} className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
                     <Trash2 size={15} />
                   </button>
@@ -137,8 +129,8 @@ export default function ProjectsPanel() {
                 {projectDevices(p).length === 0 ? (
                   <span className="text-[10px] text-muted-foreground/70 font-body">No devices assigned</span>
                 ) : projectDevices(p).map((d) => (
-                  <button key={d.id} onClick={() => openDevice(d)} disabled={myAccess(p) === "viewer"}
-                    title={myAccess(p) === "viewer" ? "View only - editing access required" : "Open this device's OS"}
+                  <button key={d.id} onClick={() => openDevice(d)} disabled={myAccess(p, user) === "viewer"}
+                    title={myAccess(p, user) === "viewer" ? "View only - editing access required" : "Open this device's OS"}
                     className="w-full flex items-center gap-2 text-xs font-body text-left rounded-md py-0.5 px-1 -mx-1 hover:bg-muted/60 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0",
                       d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40")} />
