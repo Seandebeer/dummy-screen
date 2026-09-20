@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
@@ -7,6 +7,7 @@ import QrConnect from "@/components/control/QrConnect";
 import VideoCallCard from "@/components/control/VideoCallCard";
 import DeviceContactPicker from "@/components/control/DeviceContactPicker";
 import { getScreenId } from "@/lib/deviceLink";
+import { allApps, allAppsById } from "@/lib/osApps";
 import { cn } from "@/lib/utils";
 
 const CONTACT_KEY = "takeover-control-contact";
@@ -38,6 +39,13 @@ export default function ControlPanel() {
     try { return localStorage.getItem("takeover-target-device") || ""; } catch { return ""; }
   });
   const [devices, setDevices] = useState(null);
+  // the phone's mic + speaker state for the call trigger (deck-driven)
+  const [phoneMic, setPhoneMic] = useState(true);
+  const [phoneSpeaker, setPhoneSpeaker] = useState(false);
+  // notification banner trigger state
+  const [notifScreen, setNotifScreen] = useState("lock"); // lock | home
+  const [notifApp, setNotifApp] = useState("messages");
+  const [notifText, setNotifText] = useState("");
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -140,7 +148,7 @@ export default function ControlPanel() {
         channel, type: "call_incoming",
         contact_name: contact.name.trim(), contact_number: contact.number.trim(),
         ...(contact.image ? { contact_image: contact.image } : {}),
-        payload: JSON.stringify({ photoMode, source: getScreenId() }),
+        payload: JSON.stringify({ photoMode, micOn: phoneMic, speakerOn: phoneSpeaker, source: getScreenId() }),
         status: "pending",
       });
       setActiveCmdId(rec.id);
@@ -150,6 +158,26 @@ export default function ControlPanel() {
       voiceRef.current = startControlVoice(rec.id, setVoice);
     } catch (e) {}
     setBusy(false);
+  };
+
+  // mid-call: push the phone's mic / speaker state to the ringing / active call
+  const pushCallAudio = (patch) => {
+    if (!activeCmdId) return;
+    try {
+      base44.entities.Command.update(activeCmdId, {
+        payload: JSON.stringify({ photoMode, micOn: phoneMic, speakerOn: phoneSpeaker, source: getScreenId(), ...patch }),
+      }).catch(() => {});
+    } catch {}
+  };
+  const togglePhoneMic = () => {
+    const v = !phoneMic;
+    setPhoneMic(v);
+    pushCallAudio({ micOn: v });
+  };
+  const togglePhoneSpeaker = () => {
+    const v = !phoneSpeaker;
+    setPhoneSpeaker(v);
+    pushCallAudio({ speakerOn: v });
   };
 
   const endCall = async () => {
@@ -200,6 +228,17 @@ export default function ControlPanel() {
   };
 
   const canCall = contact.name.trim() && contact.number.trim() && callState === "idle" && !busy;
+
+  const triggerNotification = async () => {
+    if (!notifText.trim()) return;
+    try {
+      await base44.entities.Command.create({
+        channel, type: "notification", status: "pending",
+        payload: JSON.stringify({ screen: notifScreen, app: notifApp, body: notifText.trim(), source: getScreenId() }),
+      });
+      setNotifText("");
+    } catch {}
+  };
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -308,6 +347,22 @@ export default function ControlPanel() {
             ))}
           </div>
         </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-body text-muted-foreground">On the phone</span>
+          <button onClick={togglePhoneMic}
+            className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
+              phoneMic ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+            {phoneMic ? <Mic size={13} /> : <MicOff size={13} />} {phoneMic ? "Mic on" : "Mic off"}
+          </button>
+          <button onClick={togglePhoneSpeaker}
+            className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
+              phoneSpeaker ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+            <Volume2 size={13} /> {phoneSpeaker ? "Speaker on" : "Speaker off"}
+          </button>
+          {(phoneMic || phoneSpeaker) && (
+            <span className="text-[9px] font-body text-muted-foreground/70">applies live during the call</span>
+          )}
+        </div>
         <div className={cn("mt-2 text-[10px] font-body",
           voice === "mic-on" ? "text-signal" : "text-muted-foreground")}>
           {voice === "mic-on"
@@ -357,6 +412,57 @@ export default function ControlPanel() {
             className="h-9 w-9 rounded-lg bg-signal text-background flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition">
             <Send size={16} />
           </button>
+        </div>
+      </div>
+
+      {/* notification banner trigger */}
+      <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Bell size={16} className="text-signal" />
+          <span className="font-display font-semibold text-sm">Notification Banner</span>
+        </div>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-body text-muted-foreground">Show on</span>
+          <div className="flex gap-1">
+            {["lock", "home"].map((s) => (
+              <button key={s} onClick={() => setNotifScreen(s)}
+                className={cn("rounded-lg border px-2 py-1 text-[10px] font-body transition",
+                  notifScreen === s ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+                {s === "lock" ? "Lock screen" : "Home screen"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mb-2">
+          <div className="text-[10px] font-body text-muted-foreground mb-1.5">App icon</div>
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+            {allApps.filter((a) => a.Icon).map((a) => (
+              <button key={a.id} onClick={() => setNotifApp(a.id)} title={a.label}
+                className={cn("h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition",
+                  notifApp === a.id ? "border-signal ring-1 ring-signal" : "border-border opacity-60 hover:opacity-100")}
+                style={{ background: a.bg }}>
+                {a.Icon ? <a.Icon size={16} className="text-white" /> : null}
+              </button>
+            ))}
+          </div>
+          <div className="text-[9px] font-body text-muted-foreground/70 mt-1">
+            {allAppsById[notifApp]?.label || notifApp}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input value={notifText} onChange={(e) => setNotifText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && triggerNotification()}
+            placeholder="Banner text…"
+            className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />
+          <button onClick={triggerNotification} disabled={!notifText.trim()}
+            className="flex h-9 items-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
+            <Bell size={13} /> Push
+          </button>
+        </div>
+        <div className="mt-2 text-[10px] font-body text-muted-foreground">
+          {notifScreen === "lock"
+            ? "Appears as a notification card on the phone's lock screen"
+            : "Drops down as a banner over the phone's home screen"}
         </div>
       </div>
 

@@ -66,6 +66,7 @@ export default function OS() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [deviceName, setDeviceName] = useState(getDeviceName);
   const [callSpeaker, setCallSpeaker] = useState(false);
+  const [callMuted, setCallMuted] = useState(false);
   const [videoCall, setVideoCall] = useState(null);
 
   // the header names a device only once it's saved to a project - a linked
@@ -151,12 +152,31 @@ export default function OS() {
       if (event.type === "create" && parseJson(c.payload).source === getScreenId()) return;
       if (event.type === "create") {
         if (c.type === "call_incoming") {
-          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, photoMode: parseJson(c.payload).photoMode });
+          const p = parseJson(c.payload);
+          // the deck can start the phone's mic muted / speaker on
+          if (typeof p.micOn === "boolean") setCallMuted(!p.micOn);
+          if (typeof p.speakerOn === "boolean") setCallSpeaker(p.speakerOn);
+          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, photoMode: p.photoMode });
         } else if (c.type === "call_outgoing") {
           setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, startTime: Date.now() });
           setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
         } else if (c.type === "alarm") {
           setAlarm({ commandId: c.id });
+        } else if (c.type === "notification") {
+          // deck-pushed banner: a card on the lock screen, or a drop-down on home
+          const p = parseJson(c.payload);
+          const notif = {
+            id: `push-${c.id}`,
+            app: p.app || "messages",
+            title: allAppsById[p.app]?.label || "Notification",
+            body: p.body || "",
+            time: fmtTime(Date.now()),
+          };
+          if (p.screen === "home") {
+            if (!lockedRef.current) showBanner(notif);
+          } else {
+            update((cfg) => ({ notifications: [notif, ...(cfg.notifications || [])].slice(0, 5) }));
+          }
         } else if (c.type === "video_call") {
           // a control-deck video call opens the app and rings until answered
           setLocked(false);
@@ -169,11 +189,18 @@ export default function OS() {
           });
         }
       } else if (event.type === "update") {
-        // control deck ended the call remotely
-        if (c.status === "completed" && callRef.current && c.id === callRef.current.commandId) {
-          const cur = callRef.current;
-          logCall({ name: cur.contact?.name, number: cur.contact?.number || "", type: callType(cur), time: fmtTime(Date.now()) });
-          setCall(null);
+        if (callRef.current && c.id === callRef.current.commandId) {
+          if (c.status === "completed") {
+            // control deck ended the call remotely
+            const cur = callRef.current;
+            logCall({ name: cur.contact?.name, number: cur.contact?.number || "", type: callType(cur), time: fmtTime(Date.now()) });
+            setCall(null);
+          } else {
+            // mid-call: the deck toggled the phone's mic / speaker
+            const p = parseJson(c.payload);
+            if (typeof p.micOn === "boolean") setCallMuted(!p.micOn);
+            if (typeof p.speakerOn === "boolean") setCallSpeaker(p.speakerOn);
+          }
         }
         if (c.status === "completed" && alarmRef.current && c.id === alarmRef.current.commandId) {
           setAlarm(null);
@@ -218,8 +245,8 @@ export default function OS() {
   useEffect(() => { alarmRef.current = alarm; }, [alarm]);
   useEffect(() => { videoCallRef.current = videoCall; }, [videoCall]);
 
-  // a new call always starts off speakerphone
-  useEffect(() => { if (!call) setCallSpeaker(false); }, [call]);
+  // a new call always starts off speakerphone, with the mic live
+  useEffect(() => { if (!call) { setCallSpeaker(false); setCallMuted(false); } }, [call]);
 
   // how long the other side rings before picking up (1-60s, from Settings)
   const ringDelayRef = useRef(4);
@@ -405,6 +432,7 @@ export default function OS() {
     update((c) => (c.notifications?.length ? { notifications: [] } : {}));
     if (n?.app === "phone") setApp("phone");
     else if (n?.app === "mail") setApp("email");
+    else if (n?.app && !n.threadId && allAppsById[n.app]) setApp(n.app);
     else {
       if (n?.threadId) setMessageTo({ id: String(n.threadId), name: n.title });
       setApp("messages");
@@ -543,11 +571,15 @@ export default function OS() {
               <ClockEditor clock={config.clock} onSave={(c) => { update({ clock: c }); setClockEdit(false); }} onClose={() => setClockEdit(false)} />
             </div>
           )}
-          <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} speaker={callSpeaker} onSpeakerChange={setCallSpeaker} />
+          <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} speaker={callSpeaker} onSpeakerChange={setCallSpeaker} muted={callMuted} onMutedChange={setCallMuted} />
           {ear && call?.phase === "active" && (
             <div className="absolute inset-0 z-[60] bg-black" onClick={() => setEar(false)} aria-label="Screen off - tap to wake" />
           )}
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
+          {banner && !locked && (
+            <NotificationBanner notif={banner} light={config.theme === "light"}
+              onOpen={openNotification} onDismiss={() => setBanner(null)} />
+          )}
         </PhoneFrame>
       </div>
       {saveOpen && (
@@ -572,7 +604,7 @@ export default function OS() {
               <NotificationBanner notif={banner} light={config.theme === "light"}
                 onOpen={openNotification} onDismiss={() => setBanner(null)} />
             )}
-            <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} speaker={callSpeaker} onSpeakerChange={setCallSpeaker} />
+            <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} speaker={callSpeaker} onSpeakerChange={setCallSpeaker} muted={callMuted} onMutedChange={setCallMuted} />
             {ear && call?.phase === "active" && (
               <div className="absolute inset-0 z-[60] bg-black" onClick={() => setEar(false)} aria-label="Screen off - tap to wake" />
             )}

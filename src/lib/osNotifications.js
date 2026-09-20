@@ -1,10 +1,15 @@
 import { Phone, MessageSquare, Mail } from "lucide-react";
+import { allApps } from "@/lib/osApps";
 
-// app metadata shared by notification cards & banners
+// app metadata shared by notification cards & banners - every app in the
+// library is a valid notification icon, on its own tile colour
 export const NOTIF_APPS = {
   messages: { Icon: MessageSquare, bg: "#34C759" },
   mail: { Icon: Mail, bg: "#0A84FF" },
   phone: { Icon: Phone, bg: "#34C759" },
+  ...Object.fromEntries(
+    allApps.filter((a) => a.Icon).map((a) => [a.id, { Icon: a.Icon, bg: a.bg || "#5E5CE6" }])
+  ),
 };
 
 export const MAX_BADGE = 1000000;

@@ -48,10 +48,13 @@ function SlideToAnswer({ onAccept }) {
   );
 }
 
-export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap", speaker, onSpeakerChange }) {
+export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap", speaker, onSpeakerChange, muted, onMutedChange }) {
   const [duration, setDuration] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [localMuted, setLocalMuted] = useState(false);
   const [localSpeaker, setLocalSpeaker] = useState(false);
+  // mic + speaker lift to the OS when given, so the control deck can drive them
+  const mic = typeof muted === "boolean" ? muted : localMuted;
+  const toggleMuted = () => onMutedChange ? onMutedChange(!muted) : setLocalMuted((m) => !m);
   // speaker is lifted to the OS when onSpeakerChange is given (proximity needs it)
   const spk = typeof speaker === "boolean" ? speaker : localSpeaker;
   const toggleSpeaker = () => onSpeakerChange ? onSpeakerChange(!speaker) : setLocalSpeaker((s) => !s);
@@ -133,9 +136,9 @@ export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap",
       ) : (
         <div className="relative flex flex-col items-center gap-6 w-full">
           <div className="grid grid-cols-3 gap-5 w-full max-w-[260px]">
-            <button onClick={() => setMuted((m) => !m)} className={cn("flex flex-col items-center gap-1.5")}>
-              <span className={cn("h-14 w-14 rounded-full flex items-center justify-center", muted ? "bg-white text-black" : "bg-white/15")}>
-                {muted ? <MicOff size={22} /> : <Mic size={22} />}
+            <button onClick={toggleMuted} className={cn("flex flex-col items-center gap-1.5")}>
+              <span className={cn("h-14 w-14 rounded-full flex items-center justify-center", mic ? "bg-white text-black" : "bg-white/15")}>
+                {mic ? <MicOff size={22} /> : <Mic size={22} />}
               </span>
               <span className="text-[11px] text-white/60">mute</span>
             </button>

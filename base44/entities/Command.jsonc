@@ -14,7 +14,8 @@
         "call_answered",
         "call_end",
         "alarm",
-        "video_call"
+        "video_call",
+        "notification"
       ]
     },
     "contact_name": {
