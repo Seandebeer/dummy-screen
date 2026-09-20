@@ -237,7 +237,7 @@ export default function ControlPanel() {
         </div>
         <button onClick={() => setPickerOpen(true)}
           className="mt-3 flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-body text-muted-foreground transition hover:border-signal/40 hover:text-foreground">
-          <Smartphone size={12} /> Choose from a device's contacts
+          <Smartphone size={12} /> Choose from contacts
         </button>
       </div>
 
