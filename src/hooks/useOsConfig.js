@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { allApps, coreApps, defaultHomeOrder } from "@/lib/osApps";
 import { makeDefaultContacts } from "@/lib/osData";
+import { makeDefaultSocials } from "@/lib/osSocial";
 
 const STORAGE_KEY = "takeover-os-config";
 
@@ -48,6 +49,7 @@ const defaults = {
   lockVer: 2,
   badges: { messages: 0, mail: 0, phone: 0 },
   notifications: [],
+  socials: makeDefaultSocials(),
 };
 
 function loadConfig() {
@@ -96,7 +98,9 @@ function loadConfig() {
         uiMarkers.barVRow = defaults.uiMarkers.barVRow;
         uiMarkers.layoutVer = 3;
       }
-      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, badges: { ...defaults.badges, ...(saved.badges || {}) }, notifications: Array.isArray(saved.notifications) ? saved.notifications : [], dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
+      return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, badges: { ...defaults.badges, ...(saved.badges || {}) }, notifications: Array.isArray(saved.notifications) ? saved.notifications : [],
+      socials: { ...defaults.socials, ...(saved.socials || {}) },
+      dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}
   return defaults;
