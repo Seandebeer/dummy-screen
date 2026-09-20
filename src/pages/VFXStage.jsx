@@ -41,27 +41,13 @@ export default function VFXStage() {
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
-  const [banner, setBanner] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [dragId, setDragId] = useState(null);
   const lastTap = useRef({ id: null, t: 0 });
-  const bannerTimer = useRef(null);
   const holdTimer = useRef(null);
   const pendingId = useRef(null);
 
-  const flash = useCallback((msg) => {
-    setBanner(msg);
-    clearTimeout(bannerTimer.current);
-    bannerTimer.current = setTimeout(() => setBanner(null), 1400);
-  }, []);
-
-  const toggleLock = useCallback(() => {
-    setLocked((l) => {
-      const next = !l;
-      flash(next ? "STAGE LOCKED" : "STAGE UNLOCKED");
-      return next;
-    });
-  }, [flash]);
+  const toggleLock = useCallback(() => setLocked((l) => !l), []);
 
   // brief unlock prompt whenever the stage locks
   useEffect(() => {
@@ -80,7 +66,6 @@ export default function VFXStage() {
     return () => {
       window.removeEventListener("touchstart", onTouch);
       window.removeEventListener("keydown", onKey);
-      clearTimeout(bannerTimer.current);
     };
   }, [toggleLock]);
 
@@ -176,15 +161,6 @@ export default function VFXStage() {
 
       {/* brief 3-finger unlock prompt */}
       {locked && hint && <ThreeFingerHint light={isLight} />}
-
-      {/* lock / unlock banner */}
-      {banner && (
-        <div className="absolute inset-x-0 top-8 flex justify-center pointer-events-none z-50">
-          <div className="px-5 py-2.5 rounded-full font-display font-bold text-xs tracking-[0.25em] bg-black/55 text-white border border-white/15 shadow-2xl backdrop-blur-xl">
-            {banner}
-          </div>
-        </div>
-      )}
 
       {/* unlocked: single tucked-away toolbar */}
       {!locked && (
