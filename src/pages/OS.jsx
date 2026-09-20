@@ -307,10 +307,10 @@ export default function OS() {
       case "camera": return <CameraApp />;
       case "music": return <MusicApp />;
       case "maps": return <MapsApp />;
-      case "facepage": return <FacepageApp config={config} update={update} />;
-      case "photogram": return <PhotogramApp config={config} update={update} />;
-      case "vidtube": return <VidTubeApp config={config} update={update} />;
-      case "quicktok": return <QuickTokApp config={config} update={update} />;
+      case "facepage": return <FacepageApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
+      case "photogram": return <PhotogramApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
+      case "vidtube": return <VidTubeApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
+      case "quicktok": return <QuickTokApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
       case "appstore": return <AppStoreApp config={config} update={update} />;
       case null: {

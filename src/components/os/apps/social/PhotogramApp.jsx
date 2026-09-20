@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Home as HomeIcon, Heart, MessageCircle, Send, Bookmark, User as UserIcon } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
 import { Avatar, Editable, EditToggle, Photo, fmtNum } from "./SocialBits";
@@ -9,11 +9,13 @@ import { cn } from "@/lib/utils";
 
 const RING = "conic-gradient(#feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5, #feda75)";
 
-export default function PhotogramApp({ config, update }) {
+export default function PhotogramApp({ config, update, locked, fullscreen }) {
   const { data, setData } = socialSlice(config, update, "photogram");
   const [tab, setTab] = useState("home"); // home | liked | profile
   const [editing, setEditing] = useState(false);
   const me = data.profile;
+  const canEdit = !locked && !fullscreen;
+  useEffect(() => { if (!canEdit && editing) setEditing(false); }, [canEdit]);
 
   const patchPost = (id, patch) => setData((d) => ({ posts: d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
   const removePost = (id) => setData((d) => ({ posts: d.posts.filter((p) => p.id !== id) }));
@@ -82,9 +84,9 @@ export default function PhotogramApp({ config, update }) {
   return (
     <div className="flex h-full flex-col bg-white text-[#262626]">
       <div className="flex items-center px-3 py-2">
-        <span className="text-[22px] font-display font-semibold italic tracking-tight">Photogram</span>
+        <span className="text-[22px] font-display font-semibold italic tracking-tight">Lume</span>
         <span className="ml-auto flex items-center gap-1">
-          <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />
+          {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />}
         </span>
       </div>
 

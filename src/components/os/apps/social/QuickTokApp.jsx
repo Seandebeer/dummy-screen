@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Heart, MessageCircle, Share2, Music2, User as UserIcon, Check, Plus, X, Home as HomeIcon } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
 import { Avatar, Editable, EditToggle, Photo, fmtNum } from "./SocialBits";
@@ -8,12 +8,14 @@ import { cn } from "@/lib/utils";
 // QuickTok - TikTok-style full-screen vertical feed with a profile grid.
 // Pencil toggles edit mode: captions, like counts, photos and profile fields.
 
-export default function QuickTokApp({ config, update }) {
+export default function QuickTokApp({ config, update, locked, fullscreen }) {
   const { data, setData } = socialSlice(config, update, "quicktok");
   const [tab, setTab] = useState("home"); // home | me
   const [feed, setFeed] = useState("foryou"); // foryou | following
   const [editing, setEditing] = useState(false);
   const me = data.profile;
+  const canEdit = !locked && !fullscreen;
+  useEffect(() => { if (!canEdit && editing) setEditing(false); }, [canEdit]);
 
   const patchPost = (id, patch) => setData((d) => ({ posts: d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
   const removePost = (id) => setData((d) => ({ posts: d.posts.filter((p) => p.id !== id) }));
@@ -49,9 +51,11 @@ export default function QuickTokApp({ config, update }) {
             <button onClick={() => setFeed("foryou")}
               className={feed === "foryou" ? "text-white" : "text-white/50"}>For You</button>
           </div>
-          <div className="absolute right-2 top-2 z-30">
-            <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/10 text-white" />
-          </div>
+          {canEdit && (
+            <div className="absolute right-2 top-2 z-30">
+              <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/10 text-white" />
+            </div>
+          )}
 
           <div className="h-full snap-y snap-mandatory overflow-y-auto no-scrollbar">
             {editing && (

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Home as HomeIcon, User as UserIcon, ThumbsUp, MessageCircle, Share2, Search, X } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
 import { Avatar, Editable, EditToggle, Photo } from "./SocialBits";
@@ -7,11 +7,13 @@ import { cn } from "@/lib/utils";
 // Facepage - Facebook-style feed & profile. Pencil toggles edit mode:
 // profile fields, post text, reaction counts and photos all become editable.
 
-export default function FacepageApp({ config, update }) {
+export default function FacepageApp({ config, update, locked, fullscreen }) {
   const { data, setData } = socialSlice(config, update, "facepage");
   const [tab, setTab] = useState("feed");
   const [editing, setEditing] = useState(false);
   const me = data.profile;
+  const canEdit = !locked && !fullscreen;
+  useEffect(() => { if (!canEdit && editing) setEditing(false); }, [canEdit]);
 
   const patchPost = (id, patch) => setData((d) => ({ posts: d.posts.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
   const removePost = (id) => setData((d) => ({ posts: d.posts.filter((p) => p.id !== id) }));
@@ -34,12 +36,12 @@ export default function FacepageApp({ config, update }) {
     <div className="flex h-full flex-col bg-[#F0F2F5] text-[#050505]">
       {/* blue wordmark header */}
       <div className="flex items-center gap-2 bg-[#1877F2] px-3 py-2">
-        <span className="text-[22px] font-bold lowercase tracking-tight text-white">facepage</span>
+        <span className="text-[20px] font-bold tracking-tight text-white">Grapevine</span>
         <span className="ml-auto flex items-center gap-1.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
             <Search size={15} className="text-white" />
           </span>
-          <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/15 text-white" />
+          {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/15 text-white" />}
         </span>
       </div>
 

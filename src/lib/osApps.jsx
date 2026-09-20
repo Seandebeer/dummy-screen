@@ -19,10 +19,10 @@ export const coreApps = [
   { id: "camera", label: "Camera", Icon: Aperture, bg: "#2C2C2E" },
   { id: "maps", label: "Maps", Icon: Map, bg: "#00C7BE" },
   { id: "appstore", label: "App Store", Icon: ShoppingBag, bg: "#0A84FF", tile: { type: "gloss" } },
-  { id: "facepage", label: "Facepage", Icon: ThumbsUp, bg: "#1877F2", tile: { type: "gloss" } },
-  { id: "photogram", label: "Photogram", Icon: Camera, bg: "#833AB4", tile: { type: "duo", bg2: "#FD1D1D" } },
-  { id: "vidtube", label: "VidTube", Icon: Play, bg: "#FF0000", tile: { type: "gloss" } },
-  { id: "quicktok", label: "QuickTok", Icon: Music2, bg: "#25F4EE", tile: { type: "dark" } },
+  { id: "facepage", label: "Grapevine", Icon: ThumbsUp, bg: "#1877F2", tile: { type: "gloss" } },
+  { id: "photogram", label: "Lume", Icon: Camera, bg: "#833AB4", tile: { type: "duo", bg2: "#FD1D1D" } },
+  { id: "vidtube", label: "Streamly", Icon: Play, bg: "#FF0000", tile: { type: "gloss" } },
+  { id: "quicktok", label: "Flickdeck", Icon: Music2, bg: "#25F4EE", tile: { type: "dark" } },
 ];
 
 // mock ("downloaded") apps live in the category catalog - 20 categories,

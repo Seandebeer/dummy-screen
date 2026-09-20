@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, Home as HomeIcon, Play, Search, ThumbsUp, ThumbsDown, Share2, Users } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
 import { Avatar, Editable, EditToggle, Photo, fmtNum } from "./SocialBits";
@@ -7,13 +7,15 @@ import { cn } from "@/lib/utils";
 // VidTube - YouTube-style home grid, watch page, subscriptions and channel
 // profile. Pencil toggles edit mode: titles, channels, views, thumbs, subs.
 
-export default function VidTubeApp({ config, update }) {
+export default function VidTubeApp({ config, update, locked, fullscreen }) {
   const { data, setData } = socialSlice(config, update, "vidtube");
   const [tab, setTab] = useState("home"); // home | watch | subs | you
   const [watchId, setWatchId] = useState(null);
   const [chip, setChip] = useState("All");
   const [editing, setEditing] = useState(false);
   const me = data.profile;
+  const canEdit = !locked && !fullscreen;
+  useEffect(() => { if (!canEdit && editing) setEditing(false); }, [canEdit]);
 
   const patchVideo = (id, patch) => setData((d) => ({ videos: d.videos.map((v) => (v.id === id ? { ...v, ...patch } : v)) }));
   const removeVideo = (id) => setData((d) => ({ videos: d.videos.filter((v) => v.id !== id) }));
@@ -75,12 +77,12 @@ export default function VidTubeApp({ config, update }) {
             <span className="flex h-[22px] w-[32px] items-center justify-center rounded-md bg-[#FF0000]">
               <Play size={13} className="fill-white text-white" />
             </span>
-            <span className="text-[18px] font-semibold tracking-tight">VidTube</span>
+            <span className="text-[18px] font-semibold tracking-tight">Streamly</span>
           </span>
         )}
         <span className="ml-auto flex items-center gap-1.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5"><Search size={16} /></span>
-          <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />
+          {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />}
         </span>
       </div>
 
