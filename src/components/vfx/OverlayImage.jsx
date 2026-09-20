@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 // shared image overlay for the VFX stage and the UI markers screen: upload a
 // reference image, set its opacity and quickly show/hide it.
-export const DEFAULT_OVERLAY = { url: null, opacity: 100, hidden: false, scale: 1, rot: 0, flip: false, flop: false };
+export const DEFAULT_OVERLAY = { url: null, opacity: 50, hidden: false, scale: 1, rot: 0, x: 0, y: 0, flip: false, flop: false };
 
 // the rendered overlay itself - drawn above the screen content, never interactive
 export function OverlayLayer({ overlay }) {
@@ -16,7 +16,7 @@ export function OverlayLayer({ overlay }) {
   return (
     <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden" style={{ opacity: o.opacity / 100 }}>
       <div className="absolute inset-0"
-        style={{ transform: `scale(${o.scale}) rotate(${o.rot}deg) scale(${o.flip ? -1 : 1}, ${o.flop ? -1 : 1})` }}>
+        style={{ transform: `translate(${o.x}%, ${o.y}%) scale(${o.scale}) rotate(${o.rot}deg) scale(${o.flip ? -1 : 1}, ${o.flop ? -1 : 1})` }}>
         <Image src={o.url} alt="Overlay reference" fittingType="fit"
           className="h-full w-full object-contain" />
       </div>
@@ -69,6 +69,22 @@ export function OverlayControl({ overlay, onChange }) {
             </div>
             <Slider value={[o.scale]} min={0.25} max={4} step={0.05}
               onValueChange={([v]) => onChange({ scale: v })} />
+          </div>
+          <div className="mt-3 px-2">
+            <div className="mb-1 flex items-center justify-between text-[9px] font-body uppercase tracking-[0.2em]">
+              <span>Position X</span>
+              <span className="text-white/60">{o.x}%</span>
+            </div>
+            <Slider value={[o.x]} min={-100} max={100} step={1}
+              onValueChange={([v]) => onChange({ x: v })} />
+          </div>
+          <div className="mt-3 px-2">
+            <div className="mb-1 flex items-center justify-between text-[9px] font-body uppercase tracking-[0.2em]">
+              <span>Position Y</span>
+              <span className="text-white/60">{o.y}%</span>
+            </div>
+            <Slider value={[o.y]} min={-100} max={100} step={1}
+              onValueChange={([v]) => onChange({ y: v })} />
           </div>
           <div className="mt-3 px-2">
             <div className="mb-1 flex items-center justify-between text-[9px] font-body uppercase tracking-[0.2em]">
