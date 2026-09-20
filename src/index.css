@@ -235,6 +235,10 @@
   [data-app-theme="white"] .home-header {
     background: hsl(42 30% 84%);
   }
+  /* grey theme: the same treatment, a step darker than the page */
+  [data-app-theme="grey"] .home-header {
+    background: hsl(225 10% 17%);
+  }
   .brand-logo-art { mix-blend-mode: screen; }
   [data-app-theme="white"] .brand-logo-art {
     mix-blend-mode: multiply;
