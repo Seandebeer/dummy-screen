@@ -125,22 +125,24 @@ export default function SaveTargetSheet({ title, defaultName, build, onClose }) 
             {projects === null ? (
               <div className="flex justify-center py-6 text-white/50"><Loader2 size={18} className="animate-spin" /></div>
             ) : projects.length === 0 ? (
-              <p className="py-2 text-center text-[11px] font-body text-white/40">
-                No projects yet - add one below.
-              </p>
+              <>
+                <p className="py-2 text-center text-[11px] font-body text-white/40">
+                  You have no projects yet - create one to save to a device.
+                </p>
+                <div className="flex gap-1.5 pt-1">
+                  <input value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="New project name"
+                    className="min-w-0 flex-1 rounded-xl bg-white/10 px-3.5 py-2.5 text-[13px] outline-none placeholder:text-white/30" />
+                  <button onClick={addProject} disabled={busy || !newProjectName.trim()}
+                    className="flex items-center gap-1 rounded-xl bg-[#0A84FF] px-3.5 text-[13px] font-semibold transition active:opacity-80 disabled:opacity-40">
+                    {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Add
+                  </button>
+                </div>
+              </>
             ) : projects.map((p) => (
               <Row key={p.id} icon={<FolderKanban size={16} />} label={p.name} sub="Open device list"
                 onClick={() => { setProject(p); setStep("device"); }} />
             ))}
-            <div className="flex gap-1.5 pt-1">
-              <input value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="New project name"
-                className="min-w-0 flex-1 rounded-xl bg-white/10 px-3.5 py-2.5 text-[13px] outline-none placeholder:text-white/30" />
-              <button onClick={addProject} disabled={busy || !newProjectName.trim()}
-                className="flex items-center gap-1 rounded-xl bg-[#0A84FF] px-3.5 text-[13px] font-semibold transition active:opacity-80 disabled:opacity-40">
-                {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Add
-              </button>
-            </div>
           </div>
         )}
 
@@ -149,9 +151,24 @@ export default function SaveTargetSheet({ title, defaultName, build, onClose }) 
             {devices === null ? (
               <div className="flex justify-center py-6 text-white/50"><Loader2 size={18} className="animate-spin" /></div>
             ) : devices.length === 0 ? (
-              <p className="py-2 text-center text-[11px] font-body text-white/40">
-                No devices in {project.name} yet - add one below.
-              </p>
+              <>
+                <p className="py-2 text-center text-[11px] font-body text-white/40">
+                  No devices in {project.name} yet - create one to save to it.
+                </p>
+                <div className="flex gap-1.5 pt-1">
+                  <input value={newDeviceName} onChange={(e) => setNewDeviceName(e.target.value)}
+                    placeholder="New device name"
+                    className="min-w-0 flex-1 rounded-xl bg-white/10 px-3.5 py-2.5 text-[13px] outline-none placeholder:text-white/30" />
+                  <select value={newKind} onChange={(e) => setNewKind(e.target.value)}
+                    className="rounded-xl bg-white/10 px-2 py-2.5 text-[12px] text-white/70 outline-none">
+                    {KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+                  </select>
+                  <button onClick={addDevice} disabled={busy || !newDeviceName.trim()}
+                    className="flex items-center gap-1 rounded-xl bg-[#0A84FF] px-3.5 text-[13px] font-semibold transition active:opacity-80 disabled:opacity-40">
+                    {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Add
+                  </button>
+                </div>
+              </>
             ) : devices.map((d) => {
               const meta = KINDS.find((k) => k.id === d.kind) || KINDS[0];
               return (
@@ -160,19 +177,6 @@ export default function SaveTargetSheet({ title, defaultName, build, onClose }) 
                   onClick={() => saveWith(d.id)} />
               );
             })}
-            <div className="flex gap-1.5 pt-1">
-              <input value={newDeviceName} onChange={(e) => setNewDeviceName(e.target.value)}
-                placeholder="New device name"
-                className="min-w-0 flex-1 rounded-xl bg-white/10 px-3.5 py-2.5 text-[13px] outline-none placeholder:text-white/30" />
-              <select value={newKind} onChange={(e) => setNewKind(e.target.value)}
-                className="rounded-xl bg-white/10 px-2 py-2.5 text-[12px] text-white/70 outline-none">
-                {KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-              </select>
-              <button onClick={addDevice} disabled={busy || !newDeviceName.trim()}
-                className="flex items-center gap-1 rounded-xl bg-[#0A84FF] px-3.5 text-[13px] font-semibold transition active:opacity-80 disabled:opacity-40">
-                {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Add
-              </button>
-            </div>
           </div>
         )}
       </div>
