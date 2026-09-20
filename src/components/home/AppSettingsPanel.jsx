@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { GraduationCap, HelpCircle, MessageSquareWarning, Share2 } from "lucide-react";
+import { GraduationCap, LifeBuoy, MessageSquareWarning, Share2 } from "lucide-react";
 import { APP_THEMES, getAppTheme, setAppTheme } from "@/lib/appTheme";
 import { APP_LANGUAGES, applyAppLanguage, getAppLanguage, setAppLanguage } from "@/lib/appLanguage";
 import { useToast } from "@/components/ui/use-toast";
-import HelpDialog from "@/components/home/HelpDialog";
+import SupportDialog from "@/components/home/SupportDialog";
 import BugReportDialog from "@/components/home/BugReportDialog";
 import TutorialDialog from "@/components/home/TutorialDialog";
 
 export default function AppSettingsPanel() {
   const [appTheme, setThemeState] = useState(getAppTheme);
   const [lang, setLangState] = useState(getAppLanguage);
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const { toast } = useToast();
@@ -84,12 +84,12 @@ export default function AppSettingsPanel() {
 
       <div className="flex items-center justify-between gap-4 py-3 border-b border-border">
         <div>
-          <div className="text-sm font-body">Help</div>
-          <div className="text-[11px] text-muted-foreground font-body">Quick guide to using PropSync</div>
+          <div className="text-sm font-body">Support</div>
+          <div className="text-[11px] text-muted-foreground font-body">Send a message to the dev team</div>
         </div>
-        <button onClick={() => setHelpOpen(true)}
+        <button onClick={() => setSupportOpen(true)}
           className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-display font-semibold text-muted-foreground hover:text-foreground transition">
-          <HelpCircle size={14} /> Open
+          <LifeBuoy size={14} /> Open
         </button>
       </div>
 
@@ -115,7 +115,7 @@ export default function AppSettingsPanel() {
         </button>
       </div>
 
-      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
       <BugReportDialog open={bugOpen} onOpenChange={setBugOpen} />
       <TutorialDialog open={tutorialOpen} onOpenChange={setTutorialOpen} />
     </div>

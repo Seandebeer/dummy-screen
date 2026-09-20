@@ -1,0 +1,38 @@
+{
+  "name": "SupportMessage",
+  "type": "object",
+  "properties": {
+    "subject": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "from_name": {
+      "type": "string"
+    },
+    "from_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "message"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
