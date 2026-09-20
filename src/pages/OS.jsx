@@ -32,6 +32,7 @@ import { allAppsById } from "@/lib/osApps";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
 import MarkAdjust from "@/components/os/MarkAdjust";
 import ThreeFingerHint from "@/components/os/ThreeFingerHint";
+import ThreeFingerPad from "@/components/os/ThreeFingerPad";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
@@ -103,6 +104,97 @@ export default function OS() {
     setBanners((b) => b.filter((n) => n.id !== id));
   }, []);
 
+  // trigger-driven takeover: any deck trigger locks this screen fullscreen
+  // with no hint - the pad is the only place a 3-finger tap lets it out
+  const [autoTakeover, setAutoTakeover] = useState(false);
+  const autoRef = useRef(false);
+  const enterTakeover = useCallback(() => {
+    autoRef.current = true;
+    setAutoTakeover(true);
+    clearTimeout(fsHintTimer.current);
+    setFsHint(false);
+    setFullscreen(true);
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch {}
+  }, []);
+  const exitTakeover = useCallback(() => {
+    autoRef.current = false;
+    setAutoTakeover(false);
+    setFullscreen(false);
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch {}
+  }, []);
+
+  // a control-deck trigger: take over the screen, then run the trigger itself
+  const applyCommand = useCallback((c) => {
+    const p = parseJson(c.payload);
+    if (c.type === "notification" && p.action === "reset") {
+      setBanners([]);
+      update((cfg) => ({ notifications: (cfg.notifications || []).filter((n) => !String(n.id).startsWith("push-")) }));
+      if (autoRef.current) exitTakeover();
+      return;
+    }
+    enterTakeover();
+    if (c.type === "call_incoming") {
+      // the deck can start the phone's mic muted / speaker on
+      if (typeof p.micOn === "boolean") setCallMuted(!p.micOn);
+      if (typeof p.speakerOn === "boolean") setCallSpeaker(p.speakerOn);
+      setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, photoMode: p.photoMode });
+    } else if (c.type === "call_outgoing") {
+      setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, startTime: Date.now() });
+      setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
+    } else if (c.type === "alarm") {
+      setAlarm({ commandId: c.id });
+    } else if (c.type === "notification") {
+      // deck-pushed banners stack below each other until reset clears them
+      const notif = {
+        id: `push-${c.id}`,
+        app: p.app || "messages",
+        title: allAppsById[p.app]?.label || "Notification",
+        body: p.body || "",
+        time: fmtTime(Date.now()),
+      };
+      if (p.screen === "home") {
+        if (!lockedRef.current) showBanner(notif);
+      } else {
+        update((cfg) => ({ notifications: [notif, ...(cfg.notifications || [])].slice(0, 20) }));
+      }
+    } else if (c.type === "video_call") {
+      // a control-deck video call opens the app and rings until answered
+      setLocked(false);
+      setApp("videocall");
+      setVideoCall({
+        id: c.id,
+        contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image },
+        payload: p,
+        channel: c.channel,
+      });
+    }
+  }, []);
+
+  // a deck message: unread badge + notification, and it takes over the screen
+  const applyDeckMessage = useCallback((m) => {
+    const own = getLinkedDeviceId();
+    const ownChannel = own ? `device-${own}` : null;
+    const contact = (contactsRef.current || []).find((x) => String(x.id) === String(m.thread_id));
+    const title = (m.thread_id === "stage-1" || m.thread_id === ownChannel)
+      ? (m.sender_name && m.sender_name !== "Control" ? m.sender_name : "Control Deck")
+      : (contact?.name || m.sender_name || m.thread_id || "New message");
+    const notif = { id: m.id, app: "messages", title, body: m.text || "", threadId: m.thread_id, time: fmtTime(Date.now()) };
+    update((c) => ({
+      notifications: [notif, ...(c.notifications || [])].slice(0, 5),
+      badges: { ...(c.badges || {}), messages: Math.min(1000000, ((c.badges || {}).messages || 0) + 1) },
+    }));
+    if (!lockedRef.current) showBanner(notif);
+    enterTakeover();
+  }, []);
+
   // persistent call history - names resolve from the contact book by number
   const logCall = useCallback((entry) => {
     const known = (contactsRef.current || []).find((k) => k.number && k.number === entry.number);
@@ -152,48 +244,7 @@ export default function OS() {
       // triggers pushed from this same screen (its own control deck) never echo back
       if (event.type === "create" && parseJson(c.payload).source === getScreenId()) return;
       if (event.type === "create") {
-        if (c.type === "call_incoming") {
-          const p = parseJson(c.payload);
-          // the deck can start the phone's mic muted / speaker on
-          if (typeof p.micOn === "boolean") setCallMuted(!p.micOn);
-          if (typeof p.speakerOn === "boolean") setCallSpeaker(p.speakerOn);
-          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, photoMode: p.photoMode });
-        } else if (c.type === "call_outgoing") {
-          setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, startTime: Date.now() });
-          setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
-        } else if (c.type === "alarm") {
-          setAlarm({ commandId: c.id });
-        } else if (c.type === "notification") {
-          // deck-pushed banners stack below each other until reset clears them
-          const p = parseJson(c.payload);
-          if (p.action === "reset") {
-            setBanners([]);
-            update((cfg) => ({ notifications: (cfg.notifications || []).filter((n) => !String(n.id).startsWith("push-")) }));
-          } else {
-            const notif = {
-              id: `push-${c.id}`,
-              app: p.app || "messages",
-              title: allAppsById[p.app]?.label || "Notification",
-              body: p.body || "",
-              time: fmtTime(Date.now()),
-            };
-            if (p.screen === "home") {
-              if (!lockedRef.current) showBanner(notif);
-            } else {
-              update((cfg) => ({ notifications: [notif, ...(cfg.notifications || [])].slice(0, 20) }));
-            }
-          }
-        } else if (c.type === "video_call") {
-          // a control-deck video call opens the app and rings until answered
-          setLocked(false);
-          setApp("videocall");
-          setVideoCall({
-            id: c.id,
-            contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image },
-            payload: parseJson(c.payload),
-            channel: c.channel,
-          });
-        }
+        applyCommand(c);
       } else if (event.type === "update") {
         if (callRef.current && c.id === callRef.current.commandId) {
           if (c.status === "completed") {
@@ -201,6 +252,8 @@ export default function OS() {
             const cur = callRef.current;
             logCall({ name: cur.contact?.name, number: cur.contact?.number || "", type: callType(cur), time: fmtTime(Date.now()) });
             setCall(null);
+            // the trigger finished - release the auto takeover lock
+            if (autoRef.current) exitTakeover();
           } else {
             // mid-call: the deck toggled the phone's mic / speaker
             const p = parseJson(c.payload);
@@ -210,11 +263,16 @@ export default function OS() {
         }
         if (c.status === "completed" && alarmRef.current && c.id === alarmRef.current.commandId) {
           setAlarm(null);
+          if (autoRef.current) exitTakeover();
         }
         // video call: apply mid-call content / toggle changes, or hang up
         if (c.type === "video_call" && videoCallRef.current?.id === c.id) {
-          if (c.status === "completed") setVideoCall(null);
-          else setVideoCall((cur) => (cur ? { ...cur, payload: parseJson(c.payload) } : cur));
+          if (c.status === "completed") {
+            setVideoCall(null);
+            if (autoRef.current) exitTakeover();
+          } else {
+            setVideoCall((cur) => (cur ? { ...cur, payload: parseJson(c.payload) } : cur));
+          }
         }
       }
     });
@@ -232,16 +290,7 @@ export default function OS() {
       const own = getLinkedDeviceId();
       const ownChannel = own ? `device-${own}` : null;
       if (m.thread_id !== "stage-1" && m.thread_id !== ownChannel) return;
-      const contact = (contactsRef.current || []).find((x) => String(x.id) === String(m.thread_id));
-      const title = (m.thread_id === "stage-1" || m.thread_id === ownChannel)
-        ? (m.sender_name && m.sender_name !== "Control" ? m.sender_name : "Control Deck")
-        : (contact?.name || m.sender_name || m.thread_id || "New message");
-      const notif = { id: m.id, app: "messages", title, body: m.text || "", threadId: m.thread_id, time: fmtTime(Date.now()) };
-      update((c) => ({
-        notifications: [notif, ...(c.notifications || [])].slice(0, 5),
-        badges: { ...(c.badges || {}), messages: Math.min(1000000, ((c.badges || {}).messages || 0) + 1) },
-      }));
-      if (!lockedRef.current) showBanner(notif);
+      applyDeckMessage(m);
     });
     return unsub;
   }, []);
@@ -324,18 +373,35 @@ export default function OS() {
     ensureDeviceOnline();
   }, []);
 
+  // sent here from another page by a takeover redirect: replay the trigger
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const cmdId = urlParams.get("takeover");
+    const msgId = urlParams.get("msg");
+    if (cmdId && cmdId !== "1") {
+      base44.entities.Command.get(cmdId).then((c) => c && applyCommand(c)).catch(() => {});
+    } else if (cmdId) {
+      enterTakeover();
+    }
+    if (msgId) {
+      base44.entities.Message.get(msgId).then((m) => m && applyDeckMessage(m)).catch(() => {});
+    }
+  }, []);
+
   // clear cross-app compose targets once the user leaves the app
   useEffect(() => { if (app !== "messages" && messageTo) setMessageTo(null); }, [app]);
   useEffect(() => { if (app !== "email" && emailTo) setEmailTo(null); }, [app]);
 
   // browser fullscreen exit (Esc) should also end the takeover
   useEffect(() => {
-    const onFs = () => { if (!document.fullscreenElement) setFullscreen(false); };
+    const onFs = () => { if (!document.fullscreenElement) { autoRef.current = false; setAutoTakeover(false); setFullscreen(false); } };
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
   const exitFullscreen = useCallback(() => {
+    autoRef.current = false;
+    setAutoTakeover(false);
     clearTimeout(fsHintTimer.current);
     setFsHint(false);
     setFullscreen(false);
@@ -346,6 +412,8 @@ export default function OS() {
 
   const toggleFullscreen = async () => {
     const next = !fullscreen;
+    autoRef.current = false;
+    setAutoTakeover(false);
     setFullscreen(next);
     if (next) {
       setFsHint(true);
@@ -366,7 +434,8 @@ export default function OS() {
   // clean-HUD takeover: 3-finger tap (or Esc / L) is the only way out
   useEffect(() => {
     if (!fullscreen) return;
-    const onTouch = (e) => { if (e.touches.length >= 3) exitFullscreen(); };
+    // in a trigger-driven takeover the pad is the only place 3 fingers work
+    const onTouch = (e) => { if (e.touches.length >= 3 && !autoRef.current) exitFullscreen(); };
     const onKey = (e) => { if (e.key === "Escape" || e.key.toLowerCase() === "l") exitFullscreen(); };
     window.addEventListener("touchstart", onTouch, { passive: true });
     window.addEventListener("keydown", onKey);
@@ -624,6 +693,7 @@ export default function OS() {
             )}
             {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>
+          {autoTakeover && <ThreeFingerPad onUnlock={exitTakeover} />}
         </div>
       )}
       <footer className="px-6 py-3 text-center text-[11px] text-muted-foreground font-body border-t border-border/60">
