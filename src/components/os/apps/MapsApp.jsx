@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Crosshair, Pause, Play, RotateCcw, Trash2 } from "lucide-react";
+import { Crosshair, Layers, Loader2, Pause, Play, RotateCcw, Search, Trash2, X } from "lucide-react";
 import MapCanvas from "./maps/MapCanvas";
 import {
   buildRoute, positionAt, compass, turnName, fmtDist, fmtTime,
@@ -21,6 +21,12 @@ export default function MapsApp() {
   const [dist, setDist] = useState(0);
   const [speedIdx, setSpeedIdx] = useState(1);
   const idRef = useRef(0);
+  // map chrome: basemap layer + place search (OpenStreetMap Nominatim)
+  const [layer, setLayer] = useState("map"); // map | satellite | terrain
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const [place, setPlace] = useState(null); // { pos, name, address }
 
   const points = useMemo(
     () => (origin ? [origin, ...stops.map((s) => s.pos)] : []),
@@ -82,6 +88,45 @@ export default function MapsApp() {
     );
   };
 
+  const search = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true);
+    setResults(null);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`
+      );
+      const data = await res.json();
+      setResults(data.map((r) => ({
+        pos: [Number(r.lat), Number(r.lon)],
+        name: (r.display_name.split(",")[0] || "").trim(),
+        address: r.display_name,
+      })));
+    } catch {
+      setResults([]);
+    }
+    setSearching(false);
+  };
+
+  const selectPlace = (p) => {
+    setPlace(p);
+    setResults(null);
+    setQuery("");
+  };
+
+  // routing to a search result: the first pin becomes the start, after that
+  // each one adds a stop to the existing trip
+  const onPlaceRoute = (pos) => {
+    setDist(0);
+    if (!origin) setOrigin(pos);
+    else setStops((s) => [...s, { id: ++idRef.current, pos }]);
+    setPlace(null);
+  };
+
+  const cycleLayer = () =>
+    setLayer((l) => (l === "map" ? "satellite" : l === "satellite" ? "terrain" : "map"));
+
   const clearAll = () => {
     setOrigin(null);
     setStops([]);
@@ -114,8 +159,8 @@ export default function MapsApp() {
 
   return (
     <div className="relative h-full w-full bg-black">
-      <MapCanvas center={center} zoom={13} origin={origin} stops={stops} me={me}
-        puck={route && dist > 0 ? pos : null}
+      <MapCanvas center={center} zoom={13} layer={layer} origin={origin} stops={stops} me={me}
+        puck={route && dist > 0 ? pos : null} place={place} onPlaceRoute={onPlaceRoute}
         onMapClick={onMapClick} onStopMove={onStopMove} onStopRemove={onStopRemove} />
 
       {/* top bar */}
@@ -124,6 +169,13 @@ export default function MapsApp() {
           Maps
         </div>
         <div className="flex gap-1.5">
+          <button onClick={cycleLayer} title="Change basemap"
+            className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-black/80 px-2.5 py-2 text-white/90 backdrop-blur">
+            <Layers size={14} />
+            <span className="text-[9px] font-semibold capitalize">
+              {layer === "map" ? "Map" : layer}
+            </span>
+          </button>
           <button onClick={locate} disabled={locating}
             className="pointer-events-auto rounded-full border border-white/10 bg-black/80 p-2 text-white/90 backdrop-blur disabled:opacity-50">
             <Crosshair size={14} className={locating ? "animate-spin" : ""} />
@@ -137,16 +189,52 @@ export default function MapsApp() {
         </div>
       </div>
 
+      {/* place search */}
+      <div className="absolute inset-x-2 top-12 z-[1000]">
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/80 px-3 py-2 shadow-xl backdrop-blur-xl">
+          {searching
+            ? <Loader2 size={14} className="shrink-0 animate-spin text-white/80" />
+            : <Search size={14} className="shrink-0 text-white/80" />}
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && search()}
+            placeholder="Search places…"
+            className="min-w-0 flex-1 bg-transparent text-[12px] font-medium text-white focus:outline-none placeholder:text-white/45"
+          />
+          {query && (
+            <button onClick={() => { setQuery(""); setResults(null); }} aria-label="Clear search"
+              className="shrink-0 text-white/60">
+              <X size={13} />
+            </button>
+          )}
+        </div>
+        {results && (
+          <div className="mt-1.5 overflow-hidden rounded-2xl border border-white/10 bg-black/90 backdrop-blur-xl">
+            {results.length === 0 && (
+              <div className="px-3 py-2.5 text-[11px] text-white/60">No places found</div>
+            )}
+            {results.map((r, i) => (
+              <button key={i} onClick={() => selectPlace(r)}
+                className={`flex w-full flex-col px-3 py-2 text-left active:bg-white/10 ${i > 0 ? "border-t border-white/10" : ""}`}>
+                <span className="truncate text-[12px] font-semibold text-white">{r.name}</span>
+                <span className="truncate text-[10px] text-white/55">{r.address}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* hints */}
       {!origin && (
-        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[92px] z-[1000] flex justify-center">
           <span className="rounded-full bg-black/75 px-3 py-1 text-[10px] font-medium text-white/85 backdrop-blur">
             Tap the map to set your start point
           </span>
         </div>
       )}
       {origin && stops.length === 0 && (
-        <div className="pointer-events-none absolute inset-x-0 top-14 z-[1000] flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[92px] z-[1000] flex justify-center">
           <span className="rounded-full bg-black/75 px-3 py-1 text-[10px] font-medium text-white/85 backdrop-blur">
             Tap to add stops · drag pins to adjust
           </span>
