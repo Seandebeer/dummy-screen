@@ -22,6 +22,7 @@ function Section({ title, children }) {
 export default function SettingsApp({ config, update, onLock, reset }) {
   const [uploading, setUploading] = useState(false);
   const [resetArmed, setResetArmed] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [uploadError, setUploadError] = useState(false);
   const [codeDraft, setCodeDraft] = useState("");
@@ -62,6 +63,7 @@ export default function SettingsApp({ config, update, onLock, reset }) {
       await factoryReset();
       reset();
       setResetArmed(false);
+      setConfirmReset(false);
       onLock();
     } finally {
       setResetting(false);
@@ -254,7 +256,7 @@ export default function SettingsApp({ config, update, onLock, reset }) {
                 className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-body text-white/70 hover:border-white/30 transition">
                 Cancel
               </button>
-              <button onClick={factoryResetDevice} disabled={resetting}
+              <button onClick={() => setConfirmReset(true)} disabled={resetting}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#FF453A] py-2.5 text-sm font-semibold text-white transition disabled:opacity-60">
                 {resetting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />} Erase Device
               </button>
@@ -267,6 +269,27 @@ export default function SettingsApp({ config, update, onLock, reset }) {
           </button>
         )}
       </Section>
+
+      {confirmReset && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 px-8">
+          <div className="w-full rounded-2xl bg-[#1c1c1e] p-5 text-center">
+            <h3 className="font-display text-[16px] font-semibold">Erase all content?</h3>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-white/55 font-body">
+              This removes every change on this device - pages, apps, settings and configurations. General saved items are kept. This cannot be undone.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button onClick={factoryResetDevice} disabled={resetting}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-[#FF453A] py-2.5 text-sm font-semibold text-white transition disabled:opacity-60">
+                {resetting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />} Erase
+              </button>
+              <button onClick={() => { setConfirmReset(false); setResetArmed(false); }}
+                className="rounded-xl bg-white/10 py-2.5 text-sm font-body text-white/80 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-center text-[10px] text-white/25 font-body uppercase tracking-widest pt-6 pb-8">Takeover OS · prop build 1.0</p>
     </div>
