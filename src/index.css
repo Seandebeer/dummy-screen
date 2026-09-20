@@ -230,6 +230,11 @@
   /* brand logo: white brush strokes on a transparent backdrop - the black
      jpeg background drops out via screen blend, and on the cream theme the
      artwork inverts to black strokes over a multiply-blended backdrop */
+  /* cream theme: the header sits a step darker than the page for tonal
+     contrast, sealed with a solid hairline edge */
+  [data-app-theme="white"] .home-header {
+    background: hsl(42 30% 84%);
+  }
   .brand-logo-art { mix-blend-mode: screen; }
   [data-app-theme="white"] .brand-logo-art {
     mix-blend-mode: multiply;
