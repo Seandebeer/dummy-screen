@@ -35,6 +35,11 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
   const chosen = projects?.find((p) => p.id === projectId) || null;
   const chosenDevice = devices?.find((d) => d.id === deviceId) || null;
 
+  // only devices inside projects this user can see - matches the Home panels
+  const projectDevices = (devices || [])
+    .filter((d) => (projects || []).some((p) => p.id === d.project_id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   const createProject = async () => {
     const pn = newProjectName.trim();
     if (!pn || busy) return;
@@ -143,12 +148,12 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
               className={cn("shrink-0 text-white/50 transition", deviceOpen && "rotate-180")} />
           </button>
           {target === "device" && deviceOpen && (
-            devices === null ? (
+            devices === null || projects === null ? (
               <div className="flex justify-center py-2 text-white/40"><Loader2 size={16} className="animate-spin" /></div>
-            ) : devices.filter((d) => d.project_id).length > 0 ? (
-              devices.filter((d) => d.project_id).map((d) => (
+            ) : projectDevices.length > 0 ? (
+              projectDevices.map((d) => (
                 <Row key={d.id} label={d.name}
-                  sub={projects?.find((p) => p.id === d.project_id)?.name}
+                  sub={projects.find((p) => p.id === d.project_id)?.name}
                   selected={deviceId === d.id}
                   onClick={() => { setDeviceId(d.id); setDeviceOpen(false); }} />
               ))
