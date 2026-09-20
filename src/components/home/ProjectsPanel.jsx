@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { FolderKanban, Plus, Trash2, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ProjectTeam from "@/components/home/ProjectTeam";
 
 export default function ProjectsPanel({ selected, onSelect }) {
   const [projects, setProjects] = useState(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
   const [user, setUser] = useState(null);
@@ -52,6 +54,7 @@ export default function ProjectsPanel({ selected, onSelect }) {
     try {
       await base44.entities.Project.create({ name: name.trim() });
       setName("");
+      setAddOpen(false);
       refresh();
     } finally {
       setBusy(false);
@@ -75,20 +78,29 @@ export default function ProjectsPanel({ selected, onSelect }) {
           <h3 className="font-display font-bold text-base leading-none">Projects</h3>
           <p className="text-[11px] text-muted-foreground font-body mt-1">{projects ? `${visibleProjects.length} active` : "loading…"}</p>
         </div>
+        <Popover open={addOpen} onOpenChange={setAddOpen}>
+          <PopoverTrigger asChild>
+            <button title="Add project"
+              className="h-8 w-8 rounded-lg bg-amber/15 text-amber flex items-center justify-center hover:bg-amber/30 transition">
+              <Plus size={17} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-60 p-3">
+            <form onSubmit={add} className="flex flex-col gap-2">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="New project name"
+                className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm font-body outline-none focus:border-amber/50"
+              />
+              <button type="submit" disabled={busy || !name.trim()}
+                className="rounded-lg bg-amber text-background px-3 py-2 text-sm font-display font-semibold disabled:opacity-40 flex items-center justify-center gap-1.5">
+                {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Add project
+              </button>
+            </form>
+          </PopoverContent>
+        </Popover>
       </div>
-
-      <form onSubmit={add} className="flex gap-2 mb-4">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New project name"
-          className="flex-1 rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm font-body outline-none focus:border-amber/50"
-        />
-        <button type="submit" disabled={busy || !name.trim()}
-          className="rounded-lg bg-amber text-background px-3 flex items-center gap-1 text-sm font-display font-semibold disabled:opacity-40">
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-        </button>
-      </form>
 
       {projects === null || !user ? (
         <div className="py-10 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={20} /></div>

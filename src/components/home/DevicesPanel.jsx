@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
 import DeviceDetails from "@/components/home/DeviceDetails";
@@ -20,6 +21,7 @@ export default function DevicesPanel({ project }) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState("phone");
   const [busy, setBusy] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
   const navigate = useNavigate();
@@ -49,6 +51,7 @@ export default function DevicesPanel({ project }) {
       await base44.entities.Device.create({ name: name.trim(), kind, status: "offline", project_id: project?.id || null });
       setName("");
       setKind("phone");
+      setAddOpen(false);
       refresh();
     } finally {
       setBusy(false);
@@ -104,24 +107,33 @@ export default function DevicesPanel({ project }) {
             {project ? `${visible.length} ${visible.length === 1 ? "device" : "devices"}` : devices ? "select a project in Projects" : "loading…"}
           </p>
         </div>
+        <Popover open={addOpen} onOpenChange={setAddOpen}>
+          <PopoverTrigger asChild>
+            <button title="Add device"
+              className="h-8 w-8 rounded-lg bg-signal/15 text-signal flex items-center justify-center hover:bg-signal/30 transition">
+              <Plus size={17} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-60 p-3">
+            <form onSubmit={add} className="flex flex-col gap-2">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="New device name"
+                className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm font-body outline-none focus:border-signal/50"
+              />
+              <select value={kind} onChange={(e) => setKind(e.target.value)}
+                className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs font-body outline-none">
+                {kinds.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+              </select>
+              <button type="submit" disabled={busy || !name.trim()}
+                className="rounded-lg bg-signal text-background px-3 py-2 text-sm font-display font-semibold disabled:opacity-40 flex items-center justify-center gap-1.5">
+                {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Add device
+              </button>
+            </form>
+          </PopoverContent>
+        </Popover>
       </div>
-
-      <form onSubmit={add} className="flex gap-2 mb-4">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New device name"
-          className="flex-1 min-w-0 rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm font-body outline-none focus:border-signal/50"
-        />
-        <select value={kind} onChange={(e) => setKind(e.target.value)}
-          className="rounded-lg bg-muted/40 border border-border px-2 py-2 text-xs font-body outline-none">
-          {kinds.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-        </select>
-        <button type="submit" disabled={busy || !name.trim()}
-          className="rounded-lg bg-signal text-background px-3 flex items-center gap-1 text-sm font-display font-semibold disabled:opacity-40">
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-        </button>
-      </form>
 
       {devices === null ? (
         <div className="py-10 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={20} /></div>
