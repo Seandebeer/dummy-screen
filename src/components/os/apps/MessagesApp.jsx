@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X } from "lucide-react";
+import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X, Check, CheckCheck, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { Image } from "@/components/ui/image";
@@ -51,6 +51,9 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
   const [newBody, setNewBody] = useState("");
   const [text, setText] = useState("");
   const [readMap, setReadMap] = useState(loadRead);
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState("");
+  const pressTimer = useRef(null);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -61,6 +64,9 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
     const unsub = base44.entities.Message.subscribe((event) => {
       if (event.type === "create" && keepMsg(event.data)) {
         setMessages((m) => (m.some((x) => x.id === event.data.id) ? m : [...m, event.data]));
+      }
+      if (event.type === "update" && keepMsg(event.data)) {
+        setMessages((m) => m.map((x) => (x.id === event.data.id ? event.data : x)));
       }
     });
     return () => { mounted = false; unsub(); };
@@ -138,7 +144,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
       // reply on the channel the control deck last used for this thread
       const lastIn = threadMsgs(view.id).filter((m) => m.sender === "control").slice(-1)[0];
       const tid = view.id === "stage-1" ? (lastIn?.thread_id || (ownChannel || "stage-1")) : view.id;
-      await base44.entities.Message.create({ thread_id: tid, sender: "phone", text: body, sender_name: "Phone" });
+      await base44.entities.Message.create({ thread_id: tid, sender: "phone", text: body, sender_name: "Phone", read: true });
     } catch { setText(body); }
   };
 
@@ -154,10 +160,26 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
     setTo("");
     setNewBody("");
     try {
-      await base44.entities.Message.create({ thread_id: threadId, sender: "phone", text: body, sender_name: contact?.name || q });
+      await base44.entities.Message.create({ thread_id: threadId, sender: "phone", text: body, sender_name: contact?.name || q, read: true });
       setView({ type: "thread", id: threadId });
     } catch {}
   };
+
+  // tap-and-hold (or double-click) a bubble to restyle it for the scene:
+  // set its timestamp, or flip its own ticks between gray and blue
+  const updateMsg = (m, patch) => {
+    setMessages((list) => list.map((x) => (x.id === m.id ? { ...x, ...patch } : x)));
+    base44.entities.Message.update(m.id, patch).catch(() => {});
+  };
+  const openEditor = (m) => {
+    setEditingId(m.id);
+    setDraft(m.custom_time || new Date(m.created_date).toTimeString().slice(0, 5));
+  };
+  const startPress = (m) => {
+    clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => openEditor(m), 550);
+  };
+  const cancelPress = () => clearTimeout(pressTimer.current);
 
   const deleteThread = async (tid) => {
     setMessages((m) => m.filter((x) => x.thread_id !== tid));
@@ -186,17 +208,49 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
           )}
           {msgs.map((m) => {
             const mine = m.sender === "phone";
-            // deck messages carry the deck's manual time, or the live send time
-            const stamp = !mine
-              ? (m.custom_time || new Date(m.created_date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }))
-              : null;
+            const stamp = m.custom_time || new Date(m.created_date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
             return (
               <div key={m.id} className={cn("flex flex-col", mine ? "items-end" : "items-start")}>
-                <div className={cn("max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
+                <div
+                  onPointerDown={() => startPress(m)} onPointerUp={cancelPress}
+                  onPointerLeave={cancelPress} onPointerMove={cancelPress}
+                  onDoubleClick={() => openEditor(m)}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className={cn("max-w-[75%] select-none rounded-2xl px-3.5 py-2 text-sm",
                   mine ? "bg-[#007AFF] text-white rounded-br-md" : dark ? "bg-[#3A3A3C] text-white rounded-bl-md" : "bg-[#E9E9EB] text-black rounded-bl-md")}>
                   {m.text}
                 </div>
-                {stamp && <span className="px-1 pt-0.5 text-[10px] text-[#8E8E93]">{stamp}</span>}
+                {editingId === m.id ? (
+                  <div className={cn("mt-1 flex max-w-[85%] flex-wrap items-center gap-1.5 rounded-lg px-2 py-1.5",
+                    dark ? "bg-[#2C2C2E]" : "bg-[#E9E9EB]")}>
+                    <Clock size={11} className="shrink-0 text-[#8E8E93]" />
+                    <input type="time" value={draft}
+                      onChange={(e) => { setDraft(e.target.value); updateMsg(m, { custom_time: e.target.value }); }}
+                      className="bg-transparent text-[11px] outline-none" />
+                    <button onClick={() => updateMsg(m, { custom_time: "" })} title="Live send time"
+                      className="text-[10px] text-[#8E8E93]">Live</button>
+                    {mine && (
+                      <span className={cn("flex items-center gap-1 border-l pl-1.5", dark ? "border-white/10" : "border-black/10")}>
+                        <button onClick={() => updateMsg(m, { read: false })} title="Gray tick"
+                          className={cn(!m.read ? "opacity-100" : "opacity-35")}>
+                          <Check size={13} className="text-[#8E8E93]" />
+                        </button>
+                        <button onClick={() => updateMsg(m, { read: true })} title="Blue tick"
+                          className={cn(m.read ? "opacity-100" : "opacity-35")}>
+                          <CheckCheck size={13} className="text-[#53BDEC]" />
+                        </button>
+                      </span>
+                    )}
+                    <button onClick={() => setEditingId(null)} className="ml-auto text-[10px] font-medium text-[#007AFF]">Done</button>
+                  </div>
+                ) : (
+                  <span className="flex items-center gap-1 px-1 pt-0.5 text-[10px] text-[#8E8E93]">
+                    {stamp}
+                    {mine && (m.read
+                      ? <CheckCheck size={11} className="text-[#53BDEC]" />
+                      : <Check size={11} className="text-[#8E8E93]" />)}
+                  </span>
+                )}
               </div>
             );
           })}
