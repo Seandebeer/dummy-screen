@@ -4,6 +4,7 @@
 export const OS_SKINS = [
   {
     id: "modern",
+    era: "modern",
     name: "Current OS",
     desc: "Modern premium look - squircle icons, glass dock, hub status bar.",
     preset: "default",
@@ -11,6 +12,7 @@ export const OS_SKINS = [
   },
   {
     id: "aqua",
+    era: "legacy",
     name: "OS 5",
     desc: "2011-era OS 5 - glossy icons, dark metal dock, soft wallpaper.",
     preset: "aqua",
@@ -18,6 +20,7 @@ export const OS_SKINS = [
   },
   {
     id: "iphoneos",
+    era: "legacy",
     name: "iPhone OS",
     desc: "2007 original - glossy reflections, tactile controls, metal dock.",
     preset: "iphoneos",
@@ -25,6 +28,7 @@ export const OS_SKINS = [
   },
   {
     id: "ios6",
+    era: "legacy",
     name: "OS 6",
     desc: "Peak skeuomorphism - linen texture, glass and rich gloss.",
     preset: "linen",
@@ -32,6 +36,7 @@ export const OS_SKINS = [
   },
   {
     id: "ios7",
+    era: "legacy",
     name: "OS 7",
     desc: "The flat turn - thin type, translucency, light gradients.",
     preset: "ios7",
@@ -39,6 +44,7 @@ export const OS_SKINS = [
   },
   {
     id: "blackberry",
+    era: "legacy",
     name: "BlackBerry",
     desc: "Corporate classic - dense info, tiny icons, dark blue.",
     preset: "bb",
@@ -46,6 +52,7 @@ export const OS_SKINS = [
   },
   {
     id: "winphone",
+    era: "legacy",
     name: "Windows Phone",
     desc: "Live-tile radical - giant type, flat squares, accent colour.",
     preset: "wp",
@@ -53,6 +60,7 @@ export const OS_SKINS = [
   },
   {
     id: "holo",
+    era: "legacy",
     name: "Android Holo",
     desc: "Sci-fi Android - electric blue lines, dark panels, thin type.",
     preset: "holo",
@@ -60,6 +68,7 @@ export const OS_SKINS = [
   },
   {
     id: "material",
+    era: "legacy",
     name: "Android Material",
     desc: "Google's Material - cards, elevation, bright colour.",
     preset: "material",
@@ -67,6 +76,7 @@ export const OS_SKINS = [
   },
   {
     id: "android",
+    era: "modern",
     name: "Current Android",
     desc: "Material You - circular icons, tinted dock, light status bar.",
     preset: "droid",
@@ -74,6 +84,7 @@ export const OS_SKINS = [
   },
   {
     id: "webos",
+    era: "legacy",
     name: "webOS",
     desc: "The cult classic - cards in space, soft glow, gesture bar.",
     preset: "webos",

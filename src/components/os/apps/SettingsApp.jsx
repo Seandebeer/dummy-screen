@@ -54,6 +54,29 @@ export default function SettingsApp({ config, update, onLock }) {
   const bg = config.background || {};
   const hasImage = bg.type === "image" && bg.url;
 
+  const skinButton = (sk) => {
+    if (!sk) return null;
+    const active = (config.skin || "modern") === sk.id;
+    return (
+      <button key={sk.id}
+        onClick={() => update((c) => ({
+          skin: sk.id,
+          background: (c.background?.type || "preset") === "image"
+            ? c.background
+            : { type: "preset", preset: sk.preset, url: "" },
+        }))}
+        className={cn("flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition",
+          active ? "border-amber bg-amber/10" : "border-white/10 hover:border-white/30")}>
+        <span className="h-10 w-10 shrink-0 rounded-xl border border-white/20" style={{ background: sk.preview }} />
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold">{sk.name}</span>
+          <span className="block text-[11px] text-white/50 font-body">{sk.desc}</span>
+        </span>
+        {active && <Check size={16} className="ml-auto shrink-0 text-amber" />}
+      </button>
+    );
+  };
+
   const onFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -80,27 +103,10 @@ export default function SettingsApp({ config, update, onLock }) {
 
       <Section title="Interface">
         <div className="flex flex-col gap-2">
-          {OS_SKINS.map((sk) => {
-            const active = (config.skin || "modern") === sk.id;
-            return (
-              <button key={sk.id}
-                onClick={() => update((c) => ({
-                  skin: sk.id,
-                  background: (c.background?.type || "preset") === "image"
-                    ? c.background
-                    : { type: "preset", preset: sk.preset, url: "" },
-                }))}
-                className={cn("flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition",
-                  active ? "border-amber bg-amber/10" : "border-white/10 hover:border-white/30")}>
-                <span className="h-10 w-10 shrink-0 rounded-xl border border-white/20" style={{ background: sk.preview }} />
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold">{sk.name}</span>
-                  <span className="block text-[11px] text-white/50 font-body">{sk.desc}</span>
-                </span>
-                {active && <Check size={16} className="ml-auto shrink-0 text-amber" />}
-              </button>
-            );
-          })}
+          {skinButton(OS_SKINS.find((s) => s.id === "modern"))}
+          {skinButton(OS_SKINS.find((s) => s.id === "android"))}
+          <div className="pt-2 text-[10px] uppercase tracking-wider text-white/35 font-body">Legacy</div>
+          {OS_SKINS.filter((sk) => sk.era !== "modern").map(skinButton)}
         </div>
         <p className="text-[11px] text-white/40 font-body mt-2">Restyles the status bar, dock, icons and home button of this device.</p>
       </Section>
