@@ -33,8 +33,14 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const bgColor = markers.bgColor ?? null;
   const markStyle = markers.markStyle ?? "none";
 
-  // colors follow the mock OS theme (Settings - Themes)
-  const light = config.theme === "light";
+  // lines auto-contrast with the chosen background - always black by default
+  const isLightHex = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    if (!m) return false;
+    const n = parseInt(m[1], 16);
+    return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
+  };
+  const light = bgColor ? isLightHex(bgColor) : false;
   const line = light ? "border-black/10" : "border-white/10";
   const strongLine = light ? "border-black/50" : "border-white/50";
   const lineHover = light ? "hover:border-black/30" : "hover:border-white/30";
@@ -92,13 +98,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const saveLayout = () => setSaveOpen(true);
 
   // tracking marks: auto contrast against the background
-  const isLightHex = (hex) => {
-    const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
-    if (!m) return false;
-    const n = parseInt(m[1], 16);
-    return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
-  };
-  const markColor = bgColor ? (isLightHex(bgColor) ? "#000000" : "#FFFFFF") : (light ? "#000000" : "#FFFFFF");
+  const markColor = bgColor ? (isLightHex(bgColor) ? "#000000" : "#FFFFFF") : "#FFFFFF";
 
   // per-style tracking-mark layout - draggable, rotatable, persisted
   const markLayout = markers.markLayouts?.[markStyle] || defaultLayoutFor(markStyle);
@@ -347,7 +347,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
 
   return (
     <div className={cn("relative h-full overflow-hidden", light ? "text-black" : "text-white")}
-      style={bgColor ? { background: bgColor } : (light ? { background: "#f2f2f7" } : { background: "#0b0b0f" })}>
+      style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }}>
       {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
         <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
@@ -362,13 +362,6 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                 </button>
               </PopoverTrigger>
               <PopoverContent side="bottom" align="end" className="w-44 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
-                <button onClick={() => saveMarkers({ bgColor: null })}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10">
-                  <span className="h-4 w-4 rounded-full border border-white/25"
-                    style={{ background: light ? "#f2f2f7" : "#0b0b0f" }} />
-                  Theme default
-                  {!bgColor && <Check size={12} className="ml-auto text-amber" />}
-                </button>
                 {vfxColors.map((c) => (
                   <button key={c.id} onClick={() => saveMarkers({ bgColor: c.hex })}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10">
