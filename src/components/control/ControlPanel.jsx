@@ -48,9 +48,24 @@ export default function ControlPanel() {
     try { localStorage.setItem("takeover-target-device", id); } catch {}
   };
 
+  // only devices still tied to an existing project are steerable - devices that
+  // were deleted (or recreated by an orphaned screen save) have no live project
   useEffect(() => {
-    base44.entities.Device.list("-updated_date", 100)
-      .then((d) => setDevices(d)).catch(() => setDevices([]));
+    Promise.all([
+      base44.entities.Device.list("-updated_date", 100),
+      base44.entities.Project.list("-updated_date", 100),
+    ])
+      .then(([devs, projects]) => {
+        const projectIds = new Set(projects.map((p) => p.id));
+        const live = devs.filter((d) => projectIds.has(d.project_id));
+        setDevices(live);
+        if (targetId && !live.some((d) => d.id === targetId)) {
+          setTargetId("");
+          try { localStorage.setItem("takeover-target-device", ""); } catch {}
+        }
+      })
+      .catch(() => setDevices([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveContact = (patch) => setContact((c) => {
