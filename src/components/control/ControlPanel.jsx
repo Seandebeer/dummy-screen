@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock, Check, CheckCheck, Paperclip, Play, Image as ImageIcon } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock, Check, CheckCheck, Paperclip, Play, Image as ImageIcon, MessageSquare } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
@@ -448,7 +448,10 @@ export default function ControlPanel() {
 
       {/* call trigger */}
       <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body mb-3">Call Trigger</div>
+        <div className="flex items-center gap-2 mb-3">
+          <PhoneIncoming size={16} className="text-signal" />
+          <span className="font-display font-semibold text-sm">Call Trigger</span>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <button onClick={triggerCall} disabled={!canCall}
             className="flex flex-col items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 py-3 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
@@ -505,7 +508,10 @@ export default function ControlPanel() {
       {/* message console */}
       <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4 flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">Message Push Console</div>
+          <div className="flex items-center gap-2">
+            <MessageSquare size={16} className="text-signal" />
+            <span className="font-display font-semibold text-sm">Message Push Console</span>
+          </div>
           <button onClick={resetMessages}
             className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
             <Recycle size={11} /> Reset
