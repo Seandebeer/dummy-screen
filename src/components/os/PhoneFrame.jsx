@@ -1,5 +1,5 @@
 import React from "react";
-import { Bluetooth } from "lucide-react";
+import { AlarmClock, Bluetooth, Plane } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { skinUi } from "@/lib/osSkins";
 
@@ -82,6 +82,12 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
   const edit = !!onStatusChange;
   const ui = skinUi(skin);
   const st = ui.status || {};
+  // signal tap cycle: bars count up to full, then no service, then flight mode
+  const nextSignal = () => {
+    if (s.flight) return { flight: false, signal: 1 };
+    if (s.signal === 0) return { flight: true };
+    return { signal: (s.signal + 1) % 5 };
+  };
 
   return (
     <div className={bare ? "absolute inset-0" : "relative mx-auto w-full max-w-[400px] aspect-[9/19.5]"}>
@@ -96,30 +102,53 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
             style={st.style}>
             {st.carrier && (
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={edit ? () => onStatusChange({ signal: (s.signal + 1) % 5 }) : undefined}
-                  title="Signal strength"
-                  className="flex h-[11px] items-end gap-[2px]"
-                >
-                  {[4, 6, 8, 11].map((h, i) => (
-                    <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
-                  ))}
-                </button>
-                <button
-                  onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
-                  title="Carrier"
-                  className="text-[13px] font-body"
-                >
-                  {s.signal === 0 ? "-" : (s.network || "5G")}
-                </button>
+                {s.flight ? (
+                  <button
+                    onClick={edit ? () => onStatusChange(nextSignal()) : undefined}
+                    title="Flight mode"
+                    aria-label="Flight mode"
+                    className="flex items-center"
+                  >
+                    <Plane size={13} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={edit ? () => onStatusChange(nextSignal()) : undefined}
+                    title="Signal strength"
+                    className="flex h-[11px] items-end gap-[2px]"
+                  >
+                    {[4, 6, 8, 11].map((h, i) => (
+                      <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
+                    ))}
+                  </button>
+                )}
+                {!s.flight && (
+                  <button
+                    onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
+                    title="Carrier"
+                    className="text-[13px] font-body"
+                  >
+                    {s.signal === 0 ? "-" : (s.network || "5G")}
+                  </button>
+                )}
               </div>
             )}
-            {onTime ? (
-              <button onClick={onTime} title="Set clock"
-                className={cn("font-body", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>{time}</button>
-            ) : (
-              <span className={cn("font-body", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>{time}</span>
-            )}
+            <div className={cn("flex items-center gap-1", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>
+              {onTime ? (
+                <button onClick={onTime} title="Set clock" className="font-body">{time}</button>
+              ) : (
+                <span className="font-body">{time}</span>
+              )}
+              {/* alarm symbol - invisible until its slot next to the clock is tapped */}
+              <button
+                onClick={edit ? () => onStatusChange({ alarm: !s.alarm }) : undefined}
+                title="Alarm"
+                aria-label="Alarm"
+                className="flex items-center"
+              >
+                <AlarmClock size={12} className={s.alarm ? "opacity-100" : "opacity-0"} />
+              </button>
+            </div>
             {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
             {!bare && skin === "modern" && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
@@ -135,22 +164,35 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
               {/* signal - tap to adjust strength */}
               {!st.carrier && (
                 <>
-                  <button
-                    onClick={edit ? () => onStatusChange({ signal: (s.signal + 1) % 5 }) : undefined}
-                    title="Signal strength"
-                    className="flex h-[11px] items-end gap-[2px]"
-                  >
-                    {[4, 6, 8, 11].map((h, i) => (
-                      <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
-                    ))}
-                  </button>
-                  <button
-                    onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
-                    title="Network type"
-                    className="text-[10px] font-body"
-                  >
-                    {s.signal === 0 ? "-" : (s.network || "5G")}
-                  </button>
+                  {s.flight ? (
+                    <button
+                      onClick={edit ? () => onStatusChange(nextSignal()) : undefined}
+                      title="Flight mode"
+                      aria-label="Flight mode"
+                      className="flex items-center"
+                    >
+                      <Plane size={13} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={edit ? () => onStatusChange(nextSignal()) : undefined}
+                      title="Signal strength"
+                      className="flex h-[11px] items-end gap-[2px]"
+                    >
+                      {[4, 6, 8, 11].map((h, i) => (
+                        <span key={i} className={cn("w-[3px] rounded-[1px]", i < s.signal ? "bg-current" : "bg-current/25")} style={{ height: h }} />
+                      ))}
+                    </button>
+                  )}
+                  {!s.flight && (
+                    <button
+                      onClick={edit ? () => onStatusChange({ network: NETWORKS[(NETWORKS.indexOf(s.network || "5G") + 1) % NETWORKS.length] }) : undefined}
+                      title="Network type"
+                      className="text-[10px] font-body"
+                    >
+                      {s.signal === 0 ? "-" : (s.network || "5G")}
+                    </button>
+                  )}
                 </>
               )}
               {/* wifi - tap to adjust strength */}
