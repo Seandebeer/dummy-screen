@@ -52,7 +52,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   // tool pills always render with a solid dark fill, whatever the background
   const pill = "flex items-center gap-1 rounded-full border border-white/15 bg-[#1c1c1e] px-2.5 py-1 text-[10px] font-body text-white/50 transition hover:text-white";
   // bottom tool pills sit lighter - half-opacity fill over the grid
-  const toolPill = "flex items-center gap-1 rounded-full border border-white/15 bg-[#1c1c1e]/50 px-2.5 py-1 text-[10px] font-body text-white/50 transition hover:text-white";
+  const toolPill = "flex items-center gap-1 rounded-full border border-white/15 bg-[#1c1c1e]/50 px-2 py-1 text-[10px] font-body text-white/50 transition hover:text-white";
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
@@ -351,7 +351,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     if (!trail || trail.fading) return;
     const end = () => {
       setTrail((t) => (t && !t.fading ? { ...t, fading: true } : t));
-      setTimeout(() => setTrail(null), 500);
+      setTimeout(() => setTrail(null), 350);
     };
     window.addEventListener("pointerup", end);
     window.addEventListener("pointercancel", end);
@@ -542,7 +542,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       {/* edit tools - bottom, out of the way of the grid */}
       {!locked && (
         <div className="absolute bottom-3 inset-x-2 z-10 flex items-center justify-center pointer-events-none">
-          <div className="flex items-center gap-2 pointer-events-auto flex-wrap justify-center">
+          <div className="flex items-center gap-1 pointer-events-auto">
             <Popover>
               <PopoverTrigger asChild>
                 <button title="Background colour"

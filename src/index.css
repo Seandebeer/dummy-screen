@@ -260,9 +260,9 @@
   /* locked marker screen: touch glow + swipe trail feedback */
   .touch-glow-ripple {
     position: absolute;
-    width: 100px;
-    height: 100px;
-    margin: -50px 0 0 -50px;
+    width: 70px;
+    height: 70px;
+    margin: -35px 0 0 -35px;
     border-radius: 9999px;
     pointer-events: none;
     animation: touch-glow 0.6s ease-out forwards;
@@ -271,9 +271,18 @@
     0% { opacity: 0.85; transform: scale(0.35); }
     100% { opacity: 0; transform: scale(1); }
   }
-  .touch-glow-trail { animation: touch-trail 0.45s ease-out forwards; }
+  /* swipe trail: soft glow dots, no hard edges */
+  .touch-glow-dot {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    margin: -18px 0 0 -18px;
+    border-radius: 9999px;
+    pointer-events: none;
+  }
+  .touch-glow-trail { animation: touch-trail 0.3s ease-out forwards; }
   @keyframes touch-trail {
-    0% { opacity: 0.5; }
+    0% { opacity: 1; }
     100% { opacity: 0; }
   }
 }
