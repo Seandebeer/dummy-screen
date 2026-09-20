@@ -51,11 +51,11 @@ export default function DevicesPanel({ project }) {
 
   const add = async (e) => {
     e.preventDefault();
-    if (!name.trim() || busy) return;
+    if (!name.trim() || busy || !project) return;
     setBusy(true);
     try {
       await base44.entities.Device.create({
-        name: name.trim(), kind, status: "offline", project_id: project?.id || null,
+        name: name.trim(), kind, status: "offline", project_id: project.id,
         make: make.trim(), model: model.trim(), colour: colour.trim(), serial: serial.trim(), photo,
         sort_order: ordered.length ? (ordered[0].sort_order ?? 0) - 1 : 0,
       });
