@@ -123,12 +123,10 @@ export default function VFXStage() {
     };
   }, [dragId, marksId]);
 
+  // reset layout and sizing only - the colour scheme stays as configured
   const resetCustomisation = () => update((m) => ({
     scale: 1,
     thickness: 1,
-    markColor: null,
-    bgColor: null,
-    bgImage: null,
     layouts: { ...m.layouts, [marksId]: defaultLayoutFor(marksId) },
   }));
 
