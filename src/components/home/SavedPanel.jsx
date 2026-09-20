@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users, LayoutGrid, Smartphone } from "lucide-react";
+import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users, LayoutGrid, Smartphone, ArrowRight } from "lucide-react";
 import { listSaved, deleteConfig, mergeCloudEntries } from "@/lib/savedConfigs";
 import { syncNow, SYNC_EVENT } from "@/lib/cloudSync";
 import SyncBadge from "@/components/home/SyncBadge";
@@ -91,22 +91,18 @@ export default function SavedPanel() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
                 {iconFor(s)}
               </span>
-              <div className="min-w-0 flex-1">
+              <button onClick={() => open(s)} className="min-w-0 flex-1 text-left">
                 <div className="truncate text-sm font-body">{s.name}</div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-body">
                   {categoryOf(s)}
                 </div>
-              </div>
+              </button>
               {s.kind === "os" && (
                 <button onClick={() => setSendOpen(s)}
-                  className="rounded-lg border border-signal/30 bg-signal/10 px-3 py-1.5 text-xs font-body text-signal transition hover:bg-signal/20">
-                  To device
+                  className="flex shrink-0 items-center gap-1 px-1 py-1.5 text-xs font-body text-signal underline transition hover:opacity-80">
+                  Assign <ArrowRight size={13} />
                 </button>
               )}
-              <button onClick={() => open(s)}
-                className="rounded-lg border border-amber/30 bg-amber/15 px-3 py-1.5 text-xs font-body text-amber transition hover:bg-amber/25">
-                Open
-              </button>
               <button onClick={() => remove(s.id)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:border-alert/40 hover:text-alert">
                 <Trash2 size={14} />
