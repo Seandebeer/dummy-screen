@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock, Check, CheckCheck } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock, Check, CheckCheck, Paperclip, Play, Image as ImageIcon } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
@@ -165,6 +165,45 @@ export default function ControlPanel() {
     setUploading(false);
   };
 
+  // photo / video attachments - send one straight away, or queue it as a reply
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const sendMediaMsg = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setMediaBusy(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      await base44.entities.Message.create({
+        thread_id: channel, sender: "control",
+        text: text.trim(), media: file_url,
+        media_type: file.type.startsWith("video") ? "video" : "photo",
+        sender_name: contact.name.trim() || "Control",
+        contact_image: contact.image || "",
+        ...(msgTime ? { custom_time: msgTime } : {}),
+        source: getScreenId(),
+      });
+      setText("");
+    } catch {}
+    setMediaBusy(false);
+  };
+  const queueMediaMsg = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || replyQueue.length >= 20) return;
+    setMediaBusy(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      setReplyQueue((q) => [...q, {
+        id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        text: replyText.trim(), media: file_url,
+        media_type: file.type.startsWith("video") ? "video" : "photo",
+      }]);
+      setReplyText("");
+    } catch {}
+    setMediaBusy(false);
+  };
+
   const triggerCall = async () => {
     if (busy || callState !== "idle" || !contact.name.trim() || !contact.number.trim()) return;
     setBusy(true);
@@ -271,6 +310,7 @@ export default function ControlPanel() {
         thread_id: channel, sender: "control", text: next.text,
         sender_name: contact.name.trim() || "Control",
         contact_image: contact.image || "",
+        ...(next.media ? { media: next.media, media_type: next.media_type } : {}),
         ...(msgTime ? { custom_time: msgTime } : {}),
         source: getScreenId(),
       });
@@ -486,6 +526,12 @@ export default function ControlPanel() {
                 <div className={cn("max-w-[80%] rounded-lg px-3 py-2 text-sm",
                   mine ? "bg-amber/15 border border-amber/30 text-foreground" : "bg-signal/10 border border-signal/30 text-foreground")}>
                   {!mine && <div className="text-[10px] text-signal font-body mb-0.5">PHONE</div>}
+                  {m.media && (
+                    <div className="mb-1 flex items-center gap-1 text-[10px] font-body text-muted-foreground">
+                      {m.media_type === "video" ? <Play size={11} /> : <ImageIcon size={11} />}
+                      {m.media_type || "photo"}
+                    </div>
+                  )}
                   <div className="font-body">{m.text}</div>
                   {mine && (
                     <div className="mt-1 flex items-center justify-end">
@@ -511,6 +557,11 @@ export default function ControlPanel() {
             <input type="time" value={msgTime} onChange={(e) => setMsgTime(e.target.value)}
               className="w-[70px] bg-transparent text-xs font-body outline-none" />
           </label>
+          <label className={cn("h-9 w-9 shrink-0 rounded-lg border border-border flex items-center justify-center cursor-pointer transition hover:border-signal/40",
+            mediaBusy && "opacity-50")} title="Send a photo or video">
+            <Paperclip size={15} className="text-muted-foreground" />
+            <input type="file" accept="image/*,video/*" className="hidden" onChange={sendMediaMsg} />
+          </label>
           <button onClick={sendMessage} disabled={!text.trim()}
             className="h-9 w-9 rounded-lg bg-signal text-background flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition">
             <Send size={16} />
@@ -531,6 +582,11 @@ export default function ControlPanel() {
               className="flex h-9 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
               <Plus size={13} /> Add
             </button>
+            <label className={cn("flex h-9 items-center rounded-lg border border-border px-2.5 cursor-pointer transition hover:border-signal/40",
+              (replyQueue.length >= 20 || mediaBusy) && "pointer-events-none opacity-40")} title="Queue a photo or video">
+              <Paperclip size={13} className="text-muted-foreground" />
+              <input type="file" accept="image/*,video/*" className="hidden" onChange={queueMediaMsg} />
+            </label>
             <button onClick={sendNextReply} disabled={!replyQueue.length}
               className="flex h-9 items-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
               <Send size={13} /> Reply
@@ -541,7 +597,12 @@ export default function ControlPanel() {
               {replyQueue.map((r, i) => (
                 <div key={r.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-2 py-1.5">
                   <span className="text-[9px] font-body text-muted-foreground shrink-0">{i + 1}</span>
-                  <span className="flex-1 min-w-0 truncate text-xs font-body text-foreground">{r.text}</span>
+                  {r.media && (r.media_type === "video"
+                    ? <Play size={12} className="text-muted-foreground shrink-0" />
+                    : <ImageIcon size={12} className="text-muted-foreground shrink-0" />)}
+                  <span className="flex-1 min-w-0 truncate text-xs font-body text-foreground">
+                    {r.text || (r.media_type === "video" ? "Video" : "Photo")}
+                  </span>
                   <button onClick={() => removeReply(r.id)} aria-label="Remove"
                     className="text-muted-foreground hover:text-alert shrink-0 transition">
                     <Trash2 size={12} />

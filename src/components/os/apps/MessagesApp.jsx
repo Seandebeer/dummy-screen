@@ -3,6 +3,7 @@ import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X, Check, Ch
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { Image } from "@/components/ui/image";
+import MediaViewer from "@/components/os/apps/messages/MediaViewer";
 import { getLinkedDeviceId, getScreenId } from "@/lib/deviceLink";
 
 const READ_KEY = "takeover-os-msg-read";
@@ -56,6 +57,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
   const [readMap, setReadMap] = useState(loadRead);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState("");
+  const [mediaView, setMediaView] = useState(null);
   const pressTimer = useRef(null);
   const scrollRef = useRef(null);
 
@@ -225,7 +227,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
     const tid = view.id;
     const msgs = threadMsgs(tid);
     return (
-      <div className={cn("h-full flex flex-col", dark ? "bg-[#0b0b0f] text-white" : "bg-white text-black")}>
+      <div className={cn("relative h-full flex flex-col", dark ? "bg-[#0b0b0f] text-white" : "bg-white text-black")}>
         <div className={cn("flex items-center gap-2 px-3 py-2.5 border-b", dark ? "border-white/10" : "border-black/10")}>
           <button onClick={() => setView({ type: "list" })} className="flex items-center gap-0.5 text-[#007AFF]"><ChevronLeft size={20} /> <span className="text-sm">Messages</span></button>
           <span className="flex-1 text-center text-[15px] font-semibold truncate">{nameFor(tid)}</span>
@@ -248,6 +250,15 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
                   onContextMenu={(e) => e.preventDefault()}
                   className={cn("max-w-[75%] select-none rounded-2xl px-3.5 py-2 text-sm",
                   mine ? "bg-[#007AFF] text-white rounded-br-md" : dark ? "bg-[#3A3A3C] text-white rounded-bl-md" : "bg-[#E9E9EB] text-black rounded-bl-md")}>
+                  {m.media && (
+                    <button onClick={(e) => { e.stopPropagation(); setMediaView(m); }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="mb-1 block overflow-hidden rounded-xl">
+                      {m.media_type === "video"
+                        ? <video src={m.media} muted playsInline className="h-40 w-32 object-cover" />
+                        : <Image src={m.media} alt="" className="h-40 w-32" fittingType="fill" />}
+                    </button>
+                  )}
                   {m.text}
                 </div>
                 {editingId === m.id ? (
@@ -310,6 +321,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
             <Send size={16} className="text-white" />
           </button>
         </div>
+        {mediaView && <MediaViewer url={mediaView.media} type={mediaView.media_type} onClose={() => setMediaView(null)} />}
       </div>
     );
   }

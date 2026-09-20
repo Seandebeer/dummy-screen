@@ -35,6 +35,18 @@
       "type": "boolean",
       "default": false,
       "description": "True once the target phone has opened the thread - shown as blue ticks on the deck"
+    },
+    "media": {
+      "type": "string",
+      "description": "Photo or video attachment URL shown in the message bubble"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "video"
+      ],
+      "description": "Kind of attachment, for bubble rendering and the full-screen viewer"
     }
   },
   "required": [
