@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, FolderKanban, Plus, Trash2, Loader2, Info, Save, ImageUp, Check, GripVertical } from "lucide-react";
+import { MonitorSmartphone, FolderKanban, Plus, Trash2, Loader2, Info, ImageUp, Check, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { applyOsConfig, readCurrentOsConfig, slimConfig, resetOsConfig } from "@/lib/osConfigStore";
+import { applyOsConfig, resetOsConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
 import DeviceDetails from "@/components/home/DeviceDetails";
 import ConfirmDeleteDialog from "@/components/home/ConfirmDeleteDialog";
@@ -33,8 +33,6 @@ export default function DevicesPanel({ project }) {
   const fileRef = useRef(null);
   const [detailsOpen, setDetailsOpen] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
-  const [savedFlash, setSavedFlash] = useState(null);
-  const flashTimer = useRef(null);
   const navigate = useNavigate();
 
   const hasDetails = (d) => Boolean(d.make || d.model || d.colour || d.serial || d.photo);
@@ -90,19 +88,6 @@ export default function DevicesPanel({ project }) {
 
   const remove = async (d) => {
     await base44.entities.Device.delete(d.id);
-    refresh();
-  };
-
-  // each device carries its own saved OS layout - snapshot this screen's
-  // current config onto the device, or load the device's layout back here
-  const saveLayout = async (d) => {
-    const config = readCurrentOsConfig();
-    if (!config) return;
-    await base44.entities.Device.update(d.id, { config: JSON.stringify(slimConfig(config)) });
-    // a quick "Saved" flash under the save icon - not a permanent label
-    setSavedFlash(d.id);
-    clearTimeout(flashTimer.current);
-    flashTimer.current = setTimeout(() => setSavedFlash(null), 1600);
     refresh();
   };
 
@@ -232,15 +217,6 @@ export default function DevicesPanel({ project }) {
                             className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
                             <Info size={15} />
                           </button>
-                          <span className="relative flex flex-col items-center">
-                            <button onClick={() => saveLayout(d)} title="Save this screen's OS layout to the device"
-                              className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
-                              <Save size={15} />
-                            </button>
-                            {savedFlash === d.id && (
-                              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-0.5 text-[9px] font-body uppercase tracking-wide text-signal whitespace-nowrap">Saved</span>
-                            )}
-                          </span>
                           <button onClick={() => setConfirmDel(d)} title="Delete device"
                             className="ml-3 pl-2 border-l border-border/60 text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
                             <Trash2 size={15} />
