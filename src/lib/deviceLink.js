@@ -22,28 +22,22 @@ export const getLinkedDeviceId = () => {
 };
 
 const fallbackName = () => {
-  try { return localStorage.getItem(NAME_KEY) || "Prop phone"; } catch { return "Prop phone"; }
+  try { return localStorage.getItem(NAME_KEY) || "Sandbox"; } catch { return "Sandbox"; }
 };
 
 // this screen's device name - shown in the OS header
 export const getDeviceName = () => fallbackName();
 
-// keep this screen's device record online; create one when asked (QR connect)
-export async function ensureDeviceOnline(createIfNeeded) {
+// keep this screen's device record online. Until the first save this screen
+// is just a sandbox - no device record is ever created here.
+export async function ensureDeviceOnline() {
   const id = getLinkedDeviceId();
-  if (id) {
-    try {
-      await base44.entities.Device.update(id, { status: "online" });
-      return id;
-    } catch {} // device was deleted - recreate if allowed
-  }
-  if (!createIfNeeded) return null;
+  if (!id) return null;
   try {
-    const rec = await base44.entities.Device.create({ name: fallbackName(), kind: "phone", status: "online" });
-    link(rec.id);
-    return rec.id;
+    await base44.entities.Device.update(id, { status: "online" });
+    return id;
   } catch {
-    return null;
+    return null; // device was deleted - this screen is a sandbox again
   }
 }
 

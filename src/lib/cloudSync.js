@@ -1,5 +1,5 @@
 import { base44 } from "@/api/base44Client";
-import { getLinkedDeviceId, getDeviceName, linkDevice } from "@/lib/deviceLink";
+import { getLinkedDeviceId } from "@/lib/deviceLink";
 import { readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
 
 // Cloud sync for the shared on-set library. Everything keeps working from
@@ -117,24 +117,15 @@ export function clearDeviceSync() {
 async function pushDeviceConfig(configJson) {
   const fields = { config: configJson, status: "online" };
   const id = getLinkedDeviceId();
-  if (id) {
-    let alive = false;
-    try {
-      await base44.entities.Device.update(id, fields);
-      return;
-    } catch {
-      try { await base44.entities.Device.get(id); alive = true; } catch {}
-    }
-    // the device still exists - transient failure, retry later
-    if (alive) throw new Error("device sync failed");
-  }
-  // no linked device (or it was deleted) - create one for this screen
+  // no linked device - this screen is a sandbox until its first save; the
+  // OS layout stays local and nothing is pushed
+  if (!id) return;
   try {
-    const rec = await base44.entities.Device.create({
-      name: getDeviceName(), kind: "phone", status: "online", config: configJson,
-    });
-    linkDevice(rec.id, rec.name);
+    await base44.entities.Device.update(id, fields);
   } catch {
+    // the device still exists - transient failure, retry later; if it was
+    // deleted this screen is a sandbox again, so drop the sync silently
+    try { await base44.entities.Device.get(id); } catch { return; }
     throw new Error("device sync failed");
   }
 }

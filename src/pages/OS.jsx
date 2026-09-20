@@ -240,10 +240,10 @@ export default function OS() {
   // shared cloud library for the team - debounced, queued while offline
   useEffect(() => { scheduleDeviceSync(); }, [config]);
 
-  // opened via QR (?connect=1): register this screen as an online,
-  // remotely-controllable device
+  // opened via QR (?connect=1): bring the linked device record online -
+  // a sandbox screen (nothing saved yet) stays unregistered
   useEffect(() => {
-    ensureDeviceOnline(new URLSearchParams(window.location.search).get("connect") === "1");
+    ensureDeviceOnline();
   }, []);
 
   // clear cross-app compose targets once the user leaves the app
