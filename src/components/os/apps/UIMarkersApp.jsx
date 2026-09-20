@@ -71,21 +71,32 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     },
   }));
 
+  // numbers on one button - older layouts store a single number, new ones arrays
+  const numbersOn = (i) => {
+    const v = assignments[i];
+    return Array.isArray(v) ? v : v != null ? [v] : [];
+  };
+
   // next free number across buttons, bars and fillers - never repeats
   const nextNumber = () => {
-    const used = [...Object.values(assignments), Number(barNumber), Number(barVNumber)]
-      .filter((n) => Number.isInteger(n) && n > 0);
+    const used = [
+      ...Object.values(assignments).flatMap((v) => (Array.isArray(v) ? v : v != null ? [v] : [])),
+      Number(barNumber), Number(barVNumber),
+    ].filter((n) => Number.isInteger(n) && n > 0);
     return used.length ? Math.max(...used) + 1 : 1;
   };
 
-  const toggleAssign = (i) => {
-    if (assignments[i] != null) {
-      const next = { ...assignments };
-      delete next[i];
-      saveMarkers({ assignments: next });
-    } else {
-      saveMarkers({ assignments: { ...assignments, [i]: nextNumber() } });
-    }
+  // tap → add another number to the button (multiple allowed)
+  const addNumber = (i) => {
+    saveMarkers({ assignments: { ...assignments, [i]: [...numbersOn(i), nextNumber()] } });
+  };
+
+  // hold → clear every number on the button
+  const clearNumber = (i) => {
+    if (numbersOn(i).length === 0) return;
+    const next = { ...assignments };
+    delete next[i];
+    saveMarkers({ assignments: next });
   };
 
   const resetNumbers = () => saveMarkers({ assignments: {}, barNumber: "", barVNumber: "" });
@@ -253,21 +264,32 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   // one shared renderer for every standard grid cell - main buttons and the
   // cells around the bars, so there is never a gap anywhere on the grid
   const cellButton = (key, style) => {
-    const assigned = assignments[key];
+    const nums = numbersOn(key);
     const isPressed = pressedBtn === key;
     return (
       <button key={key} style={style}
-        onPointerDown={locked ? () => setPressedBtn(key) : undefined}
-        onPointerUp={locked ? () => setPressedBtn(null) : undefined}
-        onPointerLeave={locked ? () => setPressedBtn(null) : undefined}
-        onPointerCancel={locked ? () => setPressedBtn(null) : undefined}
-        onClick={locked ? undefined : () => toggleAssign(key)}
+        onPointerDown={locked ? () => setPressedBtn(key) : () => {
+          if (nums.length === 0) return;
+          clearTimeout(holdTimer.current);
+          holdTimer.current = setTimeout(() => {
+            suppressClick.current = true;
+            clearNumber(key);
+          }, 400);
+        }}
+        onPointerUp={locked ? () => setPressedBtn(null) : () => clearTimeout(holdTimer.current)}
+        onPointerLeave={locked ? () => setPressedBtn(null) : () => clearTimeout(holdTimer.current)}
+        onPointerCancel={locked ? () => setPressedBtn(null) : () => clearTimeout(holdTimer.current)}
+        onClick={locked ? undefined : () => {
+          if (suppressClick.current) { suppressClick.current = false; return; }
+          addNumber(key);
+        }}
         onContextMenu={(e) => e.preventDefault()}
-        className={cn("rounded-xl border flex items-center justify-center text-base font-display select-none touch-none transition-colors",
-          locked && assigned == null ? "border-transparent" : isPressed ? `${strongLine} marker-pulse` : line,
-          !locked && assigned != null && txt,
+        className={cn("rounded-xl border flex items-center justify-center font-display select-none touch-none transition-colors",
+          nums.length > 1 ? "text-[11px] leading-tight" : "text-base",
+          locked && nums.length === 0 ? "border-transparent" : isPressed ? `${strongLine} marker-pulse` : line,
+          !locked && nums.length > 0 && txt,
           !locked && lineHover)}>
-        {assigned != null ? assigned : ""}
+        {nums.length ? nums.join(" ") : ""}
       </button>
     );
   };
@@ -427,7 +449,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       {!locked && (
         <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center pointer-events-none">
           <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-body backdrop-blur", light ? "text-black/40 bg-black/5" : "text-white/40 bg-white/10")}>
-            Tap to number · hold &amp; drag to rearrange
+            Tap to add numbers · hold to clear · drag to rearrange
           </span>
         </div>
       )}
