@@ -326,7 +326,7 @@ export const categories = [
   },
 ];
 
-const TILE_TYPES = ["flat", "duo", "gloss", "dark", "glass", "mono", "outline", "ring", "split", "badge", "pastel"];
+const TILE_TYPES = ["flat", "duo", "gloss", "shine", "dark", "glass", "mono", "outline", "ring", "split", "badge", "pastel"];
 // stripes and polka dots only suit playful brands - games only
 const PLAYFUL_TYPES = ["stripes", "dots"];
 const DUO_TINTS = ["#A78BFA", "#22C55E", "#60A5FA", "#F472B6", "#FCD34D", "#94A3B8", "#D946EF", "#FF9F0A"];

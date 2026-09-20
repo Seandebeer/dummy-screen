@@ -27,6 +27,12 @@ function tileStyle(app) {
       return { style: { background: `repeating-radial-gradient(circle at 30% 25%, ${bg} 0 5px, ${t.bg2}80 5px 9px)` }, fg };
     case "gloss":
       return { style: { background: `linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 45%, rgba(255,255,255,0) 60%), ${bg}` }, fg };
+    case "shine":
+      // extra-wet gloss - a bigger brand with a polished marketing icon
+      return { style: {
+        background: `linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.28) 38%, rgba(255,255,255,0.06) 52%, rgba(255,255,255,0) 58%), ${bg}`,
+        boxShadow: "inset 0 1px 2px rgba(255,255,255,0.45), inset 0 -2px 6px rgba(0,0,0,0.25)",
+      }, fg };
     case "mono":
       return { style: { background: "#ffffff" }, fg: t.fg || bg };
     case "dark":
