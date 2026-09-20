@@ -46,7 +46,7 @@ import { base44 } from "@/api/base44Client";
 export default function OS() {
   const [app, setApp] = useState(null);
   const [locked, setLocked] = useState(true);
-  const { config, update } = useOsConfig();
+  const { config, update, reset } = useOsConfig();
   const [fullscreen, setFullscreen] = useState(false);
   const [fsHint, setFsHint] = useState(false);
   const fsHintTimer = useRef(null);
@@ -321,7 +321,7 @@ export default function OS() {
       case "news": return <NewsApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "property": return <PropertyApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "fitness": return <FitnessApp />;
-      case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
+      case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} reset={reset} />;
       case "appstore": return <AppStoreApp config={config} update={update} />;
       case null: {
         const ui = skinUi(config.skin);

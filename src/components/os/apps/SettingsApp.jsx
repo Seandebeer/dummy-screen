@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Upload, Trash2, Loader2, ChevronDown, Check } from "lucide-react";
+import { Upload, Trash2, Loader2, ChevronDown, Check, RotateCcw } from "lucide-react";
 import LockSettings from "./LockSettings";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { DIAL_CODES, makeDefaultContacts } from "@/lib/osData";
@@ -7,6 +7,7 @@ import { LANGUAGES, uiFor } from "@/lib/osLanguages";
 import { OS_THEMES } from "@/lib/osThemes";
 import { OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
+import { factoryReset } from "@/lib/factoryReset";
 import { cn } from "@/lib/utils";
 
 function Section({ title, children }) {
@@ -18,8 +19,10 @@ function Section({ title, children }) {
   );
 }
 
-export default function SettingsApp({ config, update, onLock }) {
+export default function SettingsApp({ config, update, onLock, reset }) {
   const [uploading, setUploading] = useState(false);
+  const [resetArmed, setResetArmed] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [uploadError, setUploadError] = useState(false);
   const [codeDraft, setCodeDraft] = useState("");
   const [langOpen, setLangOpen] = useState(false);
@@ -48,6 +51,21 @@ export default function SettingsApp({ config, update, onLock }) {
     if (codeDraft.length !== 3 || activeCodes.includes(codeDraft)) return;
     toggleCode(codeDraft);
     setCodeDraft("");
+  };
+
+  // factory reset: wipe this device's pages, apps, settings and local data.
+  // General saved items stay on Home; pages saved to the linked character's
+  // device are cleared from that device's record.
+  const factoryResetDevice = async () => {
+    setResetting(true);
+    try {
+      await factoryReset();
+      reset();
+      setResetArmed(false);
+      onLock();
+    } finally {
+      setResetting(false);
+    }
   };
 
   const light = config.theme === "light";
@@ -223,6 +241,31 @@ export default function SettingsApp({ config, update, onLock }) {
           ))}
         </div>
         <p className="text-[11px] text-white/40 font-body mt-2">How incoming calls are answered on this device.</p>
+      </Section>
+
+      <Section title="Reset">
+        {resetArmed ? (
+          <>
+            <p className="text-[12px] text-white/60 font-body leading-relaxed">
+              Erase all changes on this device - pages, apps, settings and configurations. Pages saved to this character's device are removed from it; items saved to General stay in Saved.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => setResetArmed(false)}
+                className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-body text-white/70 hover:border-white/30 transition">
+                Cancel
+              </button>
+              <button onClick={factoryResetDevice} disabled={resetting}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#FF453A] py-2.5 text-sm font-semibold text-white transition disabled:opacity-60">
+                {resetting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />} Erase Device
+              </button>
+            </div>
+          </>
+        ) : (
+          <button onClick={() => setResetArmed(true)}
+            className="flex w-full items-center gap-2 text-sm text-[#FF453A]">
+            <RotateCcw size={15} /> Factory Reset
+          </button>
+        )}
       </Section>
 
       <p className="text-center text-[10px] text-white/25 font-body uppercase tracking-widest pt-6 pb-8">Takeover OS · prop build 1.0</p>

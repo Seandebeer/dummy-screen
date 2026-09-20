@@ -124,5 +124,8 @@ export default function useOsConfig() {
   const update = (patch) => setConfig((c) =>
     typeof patch === "function" ? { ...c, ...patch(c) } : { ...c, ...patch }
   );
-  return { config, update };
+  // factory reset - storage is wiped first, so this reloads the
+  // out-of-the-box configuration
+  const reset = () => setConfig(loadConfig());
+  return { config, update, reset };
 }
