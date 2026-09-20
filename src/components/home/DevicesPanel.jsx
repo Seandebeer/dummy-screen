@@ -99,9 +99,9 @@ export default function DevicesPanel({ project }) {
           <MonitorSmartphone size={18} />
         </span>
         <div className="flex-1">
-          <h3 className="font-display font-bold text-base leading-none">Devices</h3>
+          <h3 className="font-display font-bold text-base leading-none">{project ? project.name : "Devices"}</h3>
           <p className="text-[11px] text-muted-foreground font-body mt-1">
-            {project ? `${project.name} · ${visible.length} ${visible.length === 1 ? "device" : "devices"}` : devices ? "select a project in Projects" : "loading…"}
+            {project ? `${visible.length} ${visible.length === 1 ? "device" : "devices"}` : devices ? "select a project in Projects" : "loading…"}
           </p>
         </div>
       </div>
