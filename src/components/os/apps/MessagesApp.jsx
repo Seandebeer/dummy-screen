@@ -3,6 +3,7 @@ import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X } from "lu
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { Image } from "@/components/ui/image";
+import { getLinkedDeviceId, getScreenId } from "@/lib/deviceLink";
 
 const READ_KEY = "takeover-os-msg-read";
 
@@ -28,11 +29,24 @@ const digits = (s) => (s || "").replace(/\D/g, "");
 
 export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }) {
   const dark = theme !== "light";
+  // this screen's device profile - the control deck's targeted messages arrive
+  // on a device channel that belongs to this same "Control Deck" thread
+  const linkedId = getLinkedDeviceId();
+  const ownChannel = linkedId ? `device-${linkedId}` : null;
+  const isCtrl = (tid) => tid === "stage-1" || (!!ownChannel && tid === ownChannel);
+  const keepMsg = (m) => {
+    if (m.source && m.source === getScreenId()) return false; // pushed from this screen's own deck
+    const tid = m.thread_id;
+    if (typeof tid === "string" && tid.startsWith("device-") && !isCtrl(tid)) return false; // another device's traffic
+    return true;
+  };
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [editMode, setEditMode] = useState(false);
-  const [view, setView] = useState(() => (initialTo ? { type: "thread", id: String(initialTo.id) } : { type: "list" }));
+  const [view, setView] = useState(() => (initialTo
+    ? { type: "thread", id: isCtrl(String(initialTo.id)) ? "stage-1" : String(initialTo.id) }
+    : { type: "list" }));
   const [to, setTo] = useState("");
   const [newBody, setNewBody] = useState("");
   const [text, setText] = useState("");
@@ -42,10 +56,12 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
   useEffect(() => {
     let mounted = true;
     base44.entities.Message.list("-created_date", 300)
-      .then((data) => { if (mounted) { setMessages(data); setLoading(false); } })
+      .then((data) => { if (mounted) { setMessages(data.filter(keepMsg)); setLoading(false); } })
       .catch(() => { if (mounted) setLoading(false); });
     const unsub = base44.entities.Message.subscribe((event) => {
-      if (event.type === "create") setMessages((m) => (m.some((x) => x.id === event.data.id) ? m : [...m, event.data]));
+      if (event.type === "create" && keepMsg(event.data)) {
+        setMessages((m) => (m.some((x) => x.id === event.data.id) ? m : [...m, event.data]));
+      }
     });
     return () => { mounted = false; unsub(); };
   }, []);
@@ -65,7 +81,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
   }, [messages.length, view]);
 
   const nameFor = (tid) => {
-    if (tid === "stage-1") return controlIdentity().name;
+    if (isCtrl(tid)) return controlIdentity().name;
     const c = contacts.find((x) => String(x.id) === String(tid));
     return c ? c.name : tid;
   };
@@ -79,7 +95,10 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
   const colorFor = (tid) => contactFor(tid)?.color || "#B9C1CB";
 
   const threadMsgs = (tid) =>
-    messages.filter((m) => m.thread_id === tid).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+    (tid === "stage-1"
+      ? messages.filter((m) => isCtrl(m.thread_id))
+      : messages.filter((m) => m.thread_id === tid)
+    ).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
 
   const isUnread = (tid) => {
     const msgs = threadMsgs(tid);
@@ -90,7 +109,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
     return !seen || new Date(last.created_date) > new Date(seen);
   };
 
-  const threadIds = Array.from(new Set(["stage-1", ...messages.map((m) => m.thread_id)]));
+  const threadIds = Array.from(new Set(["stage-1", ...messages.map((m) => (isCtrl(m.thread_id) ? "stage-1" : m.thread_id))]));
   if (initialTo && !threadIds.includes(String(initialTo.id))) threadIds.push(String(initialTo.id));
   threadIds.sort((a, b) => {
     const la = threadMsgs(a).slice(-1)[0]?.created_date;
@@ -108,7 +127,10 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
     const body = text.trim();
     setText("");
     try {
-      await base44.entities.Message.create({ thread_id: view.id, sender: "phone", text: body, sender_name: "Phone" });
+      // reply on the channel the control deck last used for this thread
+      const lastIn = threadMsgs(view.id).filter((m) => m.sender === "control").slice(-1)[0];
+      const tid = view.id === "stage-1" ? (lastIn?.thread_id || (ownChannel || "stage-1")) : view.id;
+      await base44.entities.Message.create({ thread_id: tid, sender: "phone", text: body, sender_name: "Phone" });
     } catch { setText(body); }
   };
 

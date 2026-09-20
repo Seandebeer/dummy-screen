@@ -133,7 +133,7 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
   useEffect(() => {
     if (!inCall || !remote || callMode !== "live") return undefined;
     videoLinkRef.current?.stop();
-    videoLinkRef.current = startPhoneVideo(remote.id, liveVideoRef.current);
+    videoLinkRef.current = startPhoneVideo(remote.id, liveVideoRef.current, remote.channel || "stage-1");
     return () => {
       videoLinkRef.current?.stop();
       videoLinkRef.current = null;

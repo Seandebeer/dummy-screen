@@ -6,6 +6,7 @@ import { Image } from "@/components/ui/image";
 import QrConnect from "@/components/control/QrConnect";
 import VideoCallCard from "@/components/control/VideoCallCard";
 import DeviceContactPicker from "@/components/control/DeviceContactPicker";
+import { getScreenId } from "@/lib/deviceLink";
 import { cn } from "@/lib/utils";
 
 const CONTACT_KEY = "takeover-control-contact";
@@ -33,8 +34,24 @@ export default function ControlPanel() {
   const [photoMode, setPhotoMode] = useState(() => {
     try { return localStorage.getItem("takeover-call-photo-mode") || "circle"; } catch { return "circle"; }
   });
+  const [targetId, setTargetId] = useState(() => {
+    try { return localStorage.getItem("takeover-target-device") || ""; } catch { return ""; }
+  });
+  const [devices, setDevices] = useState(null);
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
+
+  // the operator can steer one specific prop device instead of broadcasting
+  const channel = targetId ? `device-${targetId}` : "stage-1";
+  const chooseTarget = (id) => {
+    setTargetId(id);
+    try { localStorage.setItem("takeover-target-device", id); } catch {}
+  };
+
+  useEffect(() => {
+    base44.entities.Device.list("-updated_date", 100)
+      .then((d) => setDevices(d)).catch(() => setDevices([]));
+  }, []);
 
   const saveContact = (patch) => setContact((c) => {
     const next = { ...c, ...patch };
@@ -47,23 +64,24 @@ export default function ControlPanel() {
     try { localStorage.setItem("takeover-call-photo-mode", m); } catch {}
   };
 
-  // load messages + any pending alarm, keep live subscriptions
+  // load messages + any pending alarm for the selected channel, keep live
   useEffect(() => {
     let mounted = true;
-    base44.entities.Message.filter({ thread_id: "stage-1" }, "created_date", 200)
+    setMessages([]);
+    base44.entities.Message.filter({ thread_id: channel }, "created_date", 200)
       .then((d) => mounted && setMessages(d)).catch(() => {});
-    base44.entities.Command.filter({ channel: "stage-1", type: "alarm", status: "pending" }, "-created_date", 1)
+    base44.entities.Command.filter({ channel, type: "alarm", status: "pending" }, "-created_date", 1)
       .then((d) => { if (mounted && d.length) setAlarmId((a) => a || d[0].id); }).catch(() => {});
     const unsubMsgs = base44.entities.Message.subscribe((e) => {
-      if (e.type === "create") setMessages((m) => [...m, e.data]);
+      if (e.type === "create" && e.data?.thread_id === channel) setMessages((m) => [...m, e.data]);
     });
     const unsubCmds = base44.entities.Command.subscribe((e) => {
-      if (e.data?.type !== "alarm") return;
+      if (e.data?.type !== "alarm" || e.data.channel !== channel) return;
       if (e.type === "create" && e.data.status === "pending") setAlarmId(e.data.id);
       if (e.type === "update" && e.data.status === "completed") setAlarmId((a) => (a === e.data.id ? null : a));
     });
     return () => { mounted = false; unsubMsgs(); unsubCmds(); };
-  }, []);
+  }, [channel]);
 
   // subscribe to call command status updates (reflect phone answering/ending)
   useEffect(() => {
@@ -104,10 +122,10 @@ export default function ControlPanel() {
     setBusy(true);
     try {
       const rec = await base44.entities.Command.create({
-        channel: "stage-1", type: "call_incoming",
+        channel, type: "call_incoming",
         contact_name: contact.name.trim(), contact_number: contact.number.trim(),
         ...(contact.image ? { contact_image: contact.image } : {}),
-        payload: JSON.stringify({ photoMode }),
+        payload: JSON.stringify({ photoMode, source: getScreenId() }),
         status: "pending",
       });
       setActiveCmdId(rec.id);
@@ -134,7 +152,7 @@ export default function ControlPanel() {
   const triggerAlarm = async () => {
     if (alarmId) return;
     try {
-      const rec = await base44.entities.Command.create({ channel: "stage-1", type: "alarm", status: "pending" });
+      const rec = await base44.entities.Command.create({ channel, type: "alarm", status: "pending" });
       setAlarmId(rec.id);
     } catch {}
   };
@@ -152,9 +170,10 @@ export default function ControlPanel() {
     setText("");
     try {
       await base44.entities.Message.create({
-        thread_id: "stage-1", sender: "control", text: body,
+        thread_id: channel, sender: "control", text: body,
         sender_name: contact.name.trim() || "Control",
         contact_image: contact.image || "",
+        source: getScreenId(),
       });
     } catch (e) { setText(body); }
   };
@@ -162,7 +181,7 @@ export default function ControlPanel() {
   const resetMessages = async () => {
     if (!window.confirm("Clear all messages on this channel?")) return;
     setMessages([]);
-    try { await base44.entities.Message.deleteMany({ thread_id: "stage-1" }); } catch {}
+    try { await base44.entities.Message.deleteMany({ thread_id: channel }); } catch {}
   };
 
   const canCall = contact.name.trim() && contact.number.trim() && callState === "idle" && !busy;
@@ -184,12 +203,18 @@ export default function ControlPanel() {
           </span>
         </div>
         <div className="flex items-center gap-3 rounded-lg bg-muted/40 p-3">
-          <div className="h-10 w-10 rounded-lg bg-amber/15 border border-amber/30 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-lg bg-amber/15 border border-amber/30 flex items-center justify-center shrink-0">
             <Users size={18} className="text-amber" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-body text-sm font-semibold">PROP-01</div>
-            <div className="text-[11px] text-muted-foreground font-body">channel stage-1 · OS mode</div>
+            <select value={targetId} onChange={(e) => chooseTarget(e.target.value)} aria-label="Target device"
+              className="w-full cursor-pointer appearance-none bg-transparent font-body text-sm font-semibold text-foreground outline-none">
+              <option value="">All devices (broadcast)</option>
+              {(devices || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            <div className="text-[11px] text-muted-foreground font-body truncate">
+              channel {channel} · {targetId ? "only this device's phones react" : "every connected phone reacts"}
+            </div>
           </div>
           <div className="text-right">
             <div className="text-[11px] text-muted-foreground font-body">CALL STATE</div>
@@ -281,7 +306,7 @@ export default function ControlPanel() {
       </div>
 
       {/* video call trigger */}
-      <VideoCallCard contact={contact} />
+      <VideoCallCard contact={contact} channel={channel} />
 
       {/* message console */}
       <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4 flex-1 flex flex-col min-h-0">

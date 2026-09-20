@@ -61,3 +61,17 @@ export async function saveDevice(name, slimmedConfig) {
     return null;
   }
 }
+
+// a random id unique to THIS browser screen - commands and messages carry it
+// so a screen never reacts to triggers pushed from its own control deck
+const SCREEN_KEY = "takeover-screen-id";
+export const getScreenId = () => {
+  try {
+    let id = localStorage.getItem(SCREEN_KEY);
+    if (!id) {
+      id = `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      localStorage.setItem(SCREEN_KEY, id);
+    }
+    return id;
+  } catch { return "s-local"; }
+};

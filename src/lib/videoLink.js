@@ -12,7 +12,7 @@ const parse = (s) => {
 };
 
 // ---------- control side: streams the operator's camera + mic to the device ----------
-export function startControlVideo(session, onStatus) {
+export function startControlVideo(session, onStatus, ch = CHANNEL) {
   let pc = null;
   let stream = null;
   let stopped = false;
@@ -20,7 +20,7 @@ export function startControlVideo(session, onStatus) {
   let pendingIce = [];
 
   const send = (kind, payload) =>
-    base44.entities.Signal.create({ channel: CHANNEL, sender: "control", kind, session, payload: JSON.stringify(payload) }).catch(() => {});
+    base44.entities.Signal.create({ channel: ch, sender: "control", kind, session, payload: JSON.stringify(payload) }).catch(() => {});
 
   const applyIce = (cand) => {
     if (!pc || !pc.remoteDescription) pendingIce.push(cand);
@@ -64,7 +64,7 @@ export function startControlVideo(session, onStatus) {
       return;
     }
     // catch up on anything the phone signalled before we were listening
-    base44.entities.Signal.filter({ channel: CHANNEL, session }, "created_date", 60)
+    base44.entities.Signal.filter({ channel: ch, session }, "created_date", 60)
       .then((hist) => hist.forEach(handle)).catch(() => {});
   })();
 
@@ -86,7 +86,7 @@ export function startControlVideo(session, onStatus) {
 }
 
 // ---------- phone side: shows the operator's live feed in the call ----------
-export function startPhoneVideo(session, videoEl) {
+export function startPhoneVideo(session, videoEl, ch = CHANNEL) {
   let pc = null;
   let stopped = false;
   let answered = false;
@@ -94,7 +94,7 @@ export function startPhoneVideo(session, videoEl) {
   let pendingIce = [];
 
   const send = (kind, payload) =>
-    base44.entities.Signal.create({ channel: CHANNEL, sender: "phone", kind, session, payload: JSON.stringify(payload) }).catch(() => {});
+    base44.entities.Signal.create({ channel: ch, sender: "phone", kind, session, payload: JSON.stringify(payload) }).catch(() => {});
 
   const applyIce = (cand) => {
     if (!pc || !pc.remoteDescription || !answered) pendingIce.push(cand);
@@ -132,7 +132,7 @@ export function startPhoneVideo(session, videoEl) {
 
   const unsub = base44.entities.Signal.subscribe((e) => handle(e.data));
   // the offer was sent when the call was triggered - pick it up here
-  base44.entities.Signal.filter({ channel: CHANNEL, session }, "created_date", 60)
+  base44.entities.Signal.filter({ channel: ch, session }, "created_date", 60)
     .then((hist) => hist.forEach(handle)).catch(() => {});
 
   function stop() {

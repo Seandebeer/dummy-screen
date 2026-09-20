@@ -35,7 +35,7 @@ import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
-import { ensureDeviceOnline, getDeviceName, getLinkedDeviceId } from "@/lib/deviceLink";
+import { ensureDeviceOnline, getDeviceName, getLinkedDeviceId, getScreenId } from "@/lib/deviceLink";
 import SaveDeviceSheet from "@/components/os/SaveDeviceSheet";
 import LockScreen from "@/components/os/LockScreen";
 import ClockEditor from "@/components/os/ClockEditor";
@@ -142,12 +142,18 @@ export default function OS() {
 
     const unsub = base44.entities.Command.subscribe((event) => {
       const c = event.data;
-      if (!c || c.channel !== "stage-1") return;
+      if (!c) return;
+      // only broadcast commands, or ones aimed at this screen's device profile
+      const own = getLinkedDeviceId();
+      const ownChannel = own ? `device-${own}` : null;
+      if (c.channel !== "stage-1" && c.channel !== ownChannel) return;
+      // triggers pushed from this same screen (its own control deck) never echo back
+      if (event.type === "create" && parseJson(c.payload).source === getScreenId()) return;
       if (event.type === "create") {
         if (c.type === "call_incoming") {
-          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, photoMode: parseJson(c.payload).photoMode });
+          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, photoMode: parseJson(c.payload).photoMode });
         } else if (c.type === "call_outgoing") {
-          setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, startTime: Date.now() });
+          setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, startTime: Date.now() });
           setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
         } else if (c.type === "alarm") {
           setAlarm({ commandId: c.id });
@@ -159,6 +165,7 @@ export default function OS() {
             id: c.id,
             contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image },
             payload: parseJson(c.payload),
+            channel: c.channel,
           });
         }
       } else if (event.type === "update") {
@@ -187,8 +194,13 @@ export default function OS() {
       if (event.type !== "create") return;
       const m = event.data;
       if (!m || m.sender === "phone") return;
+      // pushed from this same screen, or aimed at another device - not for us
+      if (m.source && m.source === getScreenId()) return;
+      const own = getLinkedDeviceId();
+      const ownChannel = own ? `device-${own}` : null;
+      if (m.thread_id !== "stage-1" && m.thread_id !== ownChannel) return;
       const contact = (contactsRef.current || []).find((x) => String(x.id) === String(m.thread_id));
-      const title = m.thread_id === "stage-1"
+      const title = (m.thread_id === "stage-1" || m.thread_id === ownChannel)
         ? (m.sender_name && m.sender_name !== "Control" ? m.sender_name : "Control Deck")
         : (contact?.name || m.sender_name || m.thread_id || "New message");
       const notif = { id: m.id, app: "messages", title, body: m.text || "", threadId: m.thread_id, time: fmtTime(Date.now()) };
@@ -218,7 +230,7 @@ export default function OS() {
   // live voice: a control-driven call pipes the operator's mic into this device
   useEffect(() => {
     if (call?.phase === "active" && call?.commandId && !voiceRef.current) {
-      voiceRef.current = startPhoneVoice(call.commandId);
+      voiceRef.current = startPhoneVoice(call.commandId, call.channel || "stage-1");
     }
     if (!call && voiceRef.current) {
       voiceRef.current.stop();
@@ -569,7 +581,7 @@ export default function OS() {
         </div>
       )}
       <footer className="px-6 py-3 text-center text-[11px] text-muted-foreground font-body border-t border-border/60">
-        Mock device · channel stage-1 · control deck can drive calls & messages
+        Mock device · channel {getLinkedDeviceId() ? `device-${getLinkedDeviceId()}` : "stage-1"} · control deck can drive calls & messages
       </footer>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Film, Image as ImageIcon, Loader2, Mic, MicOff, Monitor, PhoneOff, Video, VideoOff } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { startControlVideo } from "@/lib/videoLink";
+import { getScreenId } from "@/lib/deviceLink";
 import { trackingMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,7 @@ const MODES = [
   { id: "photo", label: "Photo", Icon: ImageIcon },
 ];
 
-export default function VideoCallCard({ contact }) {
+export default function VideoCallCard({ contact, channel = "stage-1" }) {
   const [state, setState] = useState("idle"); // idle | ringing | active | ended
   const [cmdId, setCmdId] = useState(null);
   const [mode, setMode] = useState("live");
@@ -71,11 +72,11 @@ export default function VideoCallCard({ contact }) {
   const start = async () => {
     if (busy || state !== "idle" || !contact.name.trim()) return;
     setBusy(true);
-    const payload = { mode, photoUrl, videoUrl, vfx, camOff: !camOn, micMuted: !micOn, photoMode };
+    const payload = { mode, photoUrl, videoUrl, vfx, camOff: !camOn, micMuted: !micOn, photoMode, source: getScreenId() };
     payloadRef.current = payload;
     try {
       const rec = await base44.entities.Command.create({
-        channel: "stage-1", type: "video_call",
+        channel, type: "video_call",
         contact_name: contact.name.trim(),
         contact_number: contact.number.trim(),
         ...(contact.image ? { contact_image: contact.image } : {}),
@@ -83,7 +84,7 @@ export default function VideoCallCard({ contact }) {
       });
       setCmdId(rec.id);
       setState("ringing");
-      if (mode === "live") linkRef.current = startControlVideo(rec.id, setLive);
+      if (mode === "live") linkRef.current = startControlVideo(rec.id, setLive, channel);
     } catch {}
     setBusy(false);
   };
@@ -97,7 +98,7 @@ export default function VideoCallCard({ contact }) {
   const switchMode = (m) => {
     setMode(m);
     push({ mode: m });
-    if (m === "live" && cmdId && !linkRef.current) linkRef.current = startControlVideo(cmdId, setLive);
+    if (m === "live" && cmdId && !linkRef.current) linkRef.current = startControlVideo(cmdId, setLive, channel);
   };
 
   const toggleCam = () => {
