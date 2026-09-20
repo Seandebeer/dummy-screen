@@ -174,7 +174,8 @@ export default function VFXStage() {
           )}
           <StageToolbar
             colorId={colorId} marksId={marksId} isPoint={isPoint} marks={marks}
-            addKind={addKind} onSelectAddKind={setAddKind} onRotateAll={rotateAll}
+            addKind={addKind} light={isLight} onSelectAddKind={setAddKind}
+            onRotateAll={rotateAll} onLock={() => setLocked(true)}
             onSelectColor={(id) => { update((m) => ({ bgColor: null })); navigate(`/vfx?color=${id}&marks=${marksId}`); }}
             onSelectMarks={(id) => navigate(`/vfx?color=${colorId}&marks=${id}`)}
             onScale={(v) => update((m) => ({ scale: v }))}
