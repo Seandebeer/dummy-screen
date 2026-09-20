@@ -10,10 +10,10 @@ import { base44 } from "@/api/base44Client";
 import { factoryReset } from "@/lib/factoryReset";
 import { cn } from "@/lib/utils";
 
-function Section({ title, children }) {
+function Section({ title, children, plain }) {
   return (
     <div className="px-5 pt-2">
-      <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">{title}</div>
+      <div className={cn("text-[11px] uppercase tracking-wider text-white/40 font-body mb-2", plain && "normal-case")}>{title}</div>
       <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3.5">{children}</div>
     </div>
   );
@@ -264,7 +264,7 @@ export default function SettingsApp({ config, update, onLock, reset }) {
         })()}
       </Section>
 
-      <Section title="Auto-Rotate">
+      <Section title="Auto rotate" plain>
         <button onClick={() => update({ autoRotate: !autoRotate })}
           className="flex w-full items-center justify-between">
           <span className="text-sm">Turn screen with device</span>
@@ -272,7 +272,7 @@ export default function SettingsApp({ config, update, onLock, reset }) {
             <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all", autoRotate ? "left-[18px]" : "left-0.5")} />
           </span>
         </button>
-        <p className="text-[11px] text-white/40 font-body mt-2">Turn this device on its side and the screen turns with it - even when the device's rotation lock is on.</p>
+        <p className="text-[11px] text-white/40 font-body mt-2">OS switches to landscape when the device is tilted on its side.</p>
       </Section>
 
       <Section title="Reset">
