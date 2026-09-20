@@ -188,6 +188,7 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
   const lock = () => {
     setLocked(true);
     setControlsVisible(false);
+    setControlsOpen(false);
     setHint(true);
     setTimeout(() => setHint(false), 2400);
   };
@@ -316,7 +317,7 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
               {picked.name}
             </div>
             <PipView containerRef={rootRef} videoRef={pipVideoRef} camError={camError} facing={facing} />
-            <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4 rounded-[2rem] bg-black/45 px-4 py-2.5 backdrop-blur-md">
+            <div className="absolute bottom-4 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-3 rounded-[2rem] bg-black/45 px-3.5 py-2.5 backdrop-blur-md">
               {(["vfx", "photo", "video"]).map((m) => (
                 <button key={m} onClick={() => savePicked({ mode: m })} className={pill(manualMode === m)}>
                   {m === "vfx" ? <Monitor size={15} /> : m === "photo" ? <ImageIcon size={15} /> : <VideoIcon size={15} />}
@@ -360,7 +361,7 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
         onTap={inCall && !ended ? tapScreen : undefined} />
 
       {!ended && showUi && (
-        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4 rounded-[2rem] bg-black/45 px-4 py-2.5 backdrop-blur-md">
+        <div className="absolute bottom-4 left-1/2 z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-3 rounded-[2rem] bg-black/45 px-3.5 py-2.5 backdrop-blur-md">
           <button onClick={() => setMuted((m) => !m)} title={muted ? "Unmute" : "Mute"}
             className={cn(ctl, muted && "bg-white text-black")}>
             {muted ? <MicOff size={18} /> : <Mic size={18} />}
@@ -404,7 +405,7 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
 
       {locked && hint && <ThreeFingerHint light={light} />}
 
-      {controlsOpen && !remoteOn && callMode === "vfx" && (
+      {controlsOpen && !locked && !remoteOn && callMode === "vfx" && (
         <VfxCallControls vfx={callVfx}
           onChange={(p) => savePicked({ vfx: { ...callVfx, ...p } })}
           onClose={() => setControlsOpen(false)} />
