@@ -4,7 +4,7 @@ import { FolderKanban, Plus, Trash2, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProjectTeam from "@/components/home/ProjectTeam";
 
-export default function ProjectsPanel() {
+export default function ProjectsPanel({ selected, onSelect }) {
   const [projects, setProjects] = useState(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -98,8 +98,12 @@ export default function ProjectsPanel() {
           {visibleProjects.map((p) => (
             <li key={p.id} className="group rounded-lg border border-border bg-muted/30 px-3 py-2.5">
               <div className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-amber/70 shrink-0" />
-                <span className="flex-1 text-sm font-body truncate">{p.name}</span>
+                <button onClick={() => onSelect(selected === p.id ? null : p)}
+                  className={cn("flex flex-1 min-w-0 items-center gap-3 rounded text-left transition",
+                    selected === p.id ? "bg-amber/10 px-1.5 py-0.5 -mx-1.5" : "hover:bg-muted/40 px-1.5 py-0.5 -mx-1.5")}>
+                  <span className={cn("h-2 w-2 rounded-full shrink-0", selected === p.id ? "bg-amber" : "bg-amber/70")} />
+                  <span className="flex-1 text-sm font-body truncate">{p.name}</span>
+                </button>
                 {(myAccess(p) === "editor" || myAccess(p) === "viewer") && (
                   <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[9px] font-body uppercase tracking-wider",
                     myAccess(p) === "editor" ? "bg-signal/15 text-signal" : "bg-muted text-muted-foreground")}>
