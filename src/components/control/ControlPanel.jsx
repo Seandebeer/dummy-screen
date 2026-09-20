@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
@@ -51,10 +52,11 @@ export default function ControlPanel() {
   // the phone's mic + speaker state for the call trigger (deck-driven)
   const [phoneMic, setPhoneMic] = useState(true);
   const [phoneSpeaker, setPhoneSpeaker] = useState(false);
-  // notification banner trigger state
+  // notification banner trigger state - a queue of up to 20 pushable banners
   const [notifScreen, setNotifScreen] = useState("lock"); // lock | home
   const [notifApp, setNotifApp] = useState("messages");
   const [notifText, setNotifText] = useState("");
+  const [notifQueue, setNotifQueue] = useState([]);
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -238,15 +240,46 @@ export default function ControlPanel() {
 
   const canCall = contact.name.trim() && contact.number.trim() && callState === "idle" && !busy;
 
-  const triggerNotification = async () => {
-    if (!notifText.trim()) return;
+  // notification queue: compose up to 20, drag to reorder, Push sends the
+  // next one, Reset clears every banner on the target screen
+  const addNotifToQueue = () => {
+    const t = notifText.trim();
+    if (!t || notifQueue.length >= 20) return;
+    setNotifQueue((q) => [...q, {
+      id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      app: notifApp, screen: notifScreen, text: t,
+    }]);
+    setNotifText("");
+  };
+  const pushNextNotification = async () => {
+    const next = notifQueue[0];
+    if (!next) return;
     try {
       await base44.entities.Command.create({
         channel, type: "notification", status: "pending",
-        payload: JSON.stringify({ screen: notifScreen, app: notifApp, body: notifText.trim(), source: getScreenId() }),
+        payload: JSON.stringify({ screen: next.screen, app: next.app, body: next.text, source: getScreenId() }),
       });
-      setNotifText("");
+      setNotifQueue((q) => q.slice(1));
     } catch {}
+  };
+  const resetNotifications = async () => {
+    try {
+      await base44.entities.Command.create({
+        channel, type: "notification", status: "pending",
+        payload: JSON.stringify({ action: "reset", source: getScreenId() }),
+      });
+    } catch {}
+  };
+  const setQueueText = (id, text) => setNotifQueue((q) => q.map((n) => (n.id === id ? { ...n, text } : n)));
+  const removeQueuedNotif = (id) => setNotifQueue((q) => q.filter((n) => n.id !== id));
+  const onQueueDragEnd = (res) => {
+    if (!res.destination || res.destination.index === res.source.index) return;
+    setNotifQueue((q) => {
+      const next = [...q];
+      const [moved] = next.splice(res.source.index, 1);
+      next.splice(res.destination.index, 0, moved);
+      return next;
+    });
   };
 
   return (
@@ -486,18 +519,66 @@ export default function ControlPanel() {
         </div>
         <div className="flex items-center gap-2">
           <input value={notifText} onChange={(e) => setNotifText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && triggerNotification()}
-            placeholder="Banner text…"
-            className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />
-          <button onClick={triggerNotification} disabled={!notifText.trim()}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
-            <Bell size={13} /> Push
+            onKeyDown={(e) => e.key === "Enter" && addNotifToQueue()}
+            placeholder="Banner text…" disabled={notifQueue.length >= 20}
+            className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
+          <button onClick={addNotifToQueue} disabled={!notifText.trim() || notifQueue.length >= 20}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
+            <Plus size={13} /> Add
+          </button>
+        </div>
+        {notifQueue.length > 0 && (
+          <div className="mt-3">
+            <div className="text-[10px] font-body text-muted-foreground mb-1.5">
+              Queue · {notifQueue.length}/20 · drag to reorder
+            </div>
+            <DragDropContext onDragEnd={onQueueDragEnd}>
+              <Droppable droppableId="notif-queue">
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps}
+                    className="space-y-1.5 max-h-44 overflow-y-auto no-scrollbar pr-0.5">
+                    {notifQueue.map((n, i) => (
+                      <Draggable key={n.id} draggableId={n.id} index={i}>
+                        {(p) => (
+                          <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}
+                            className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-2 py-1.5">
+                            <GripVertical size={13} className="text-muted-foreground shrink-0" />
+                            <span className="h-6 w-6 rounded flex items-center justify-center shrink-0"
+                              style={{ background: allAppsById[n.app]?.bg || "#5E5CE6" }}>
+                              {(() => { const A = allAppsById[n.app]; return A?.Icon ? <A.Icon size={12} className="text-white" /> : null; })()}
+                            </span>
+                            <input value={n.text} onChange={(e) => setQueueText(n.id, e.target.value)}
+                              className="flex-1 min-w-0 bg-transparent text-xs font-body outline-none text-foreground" />
+                            <span className="text-[9px] font-body text-muted-foreground shrink-0">
+                              {n.screen === "lock" ? "Lock" : "Home"}
+                            </span>
+                            <button onClick={() => removeQueuedNotif(n.id)} aria-label="Remove"
+                              className="text-muted-foreground hover:text-alert shrink-0 transition">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </div>
+        )}
+        <div className="mt-2 flex items-center gap-2">
+          <button onClick={pushNextNotification} disabled={!notifQueue.length}
+            className="flex-1 flex h-9 items-center justify-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
+            <Bell size={13} /> {notifQueue.length ? `Push next (${notifQueue.length} queued)` : "Push next"}
+          </button>
+          <button onClick={resetNotifications}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
+            <Trash2 size={13} /> Reset
           </button>
         </div>
         <div className="mt-2 text-[10px] font-body text-muted-foreground">
-          {notifScreen === "lock"
-            ? "Appears as a notification card on the phone's lock screen"
-            : "Drops down as a banner over the phone's home screen"}
+          Banners stack below each other on the phone until Reset clears them
         </div>
       </div>
 

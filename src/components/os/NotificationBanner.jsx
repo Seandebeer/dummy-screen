@@ -7,7 +7,7 @@ export default function NotificationBanner({ notif, light, onOpen, onDismiss }) 
   if (!notif) return null;
   const meta = NOTIF_APPS[notif.app] || NOTIF_APPS.messages;
   return (
-    <div className="absolute top-2 inset-x-2 z-30">
+    <div className="relative w-full">
       <button onClick={() => onOpen?.(notif)}
         className={cn("w-full flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left border shadow-xl backdrop-blur-md",
           light ? "bg-white/85 border-black/10" : "bg-[#2C2C2E]/90 border-white/15")}>

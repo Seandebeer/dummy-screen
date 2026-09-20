@@ -61,7 +61,7 @@ export default function OS() {
   const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
   const [alarm, setAlarm] = useState(null);
-  const [banner, setBanner] = useState(null);
+  const [banners, setBanners] = useState([]);
   const [clockEdit, setClockEdit] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [deviceName, setDeviceName] = useState(getDeviceName);
@@ -91,15 +91,16 @@ export default function OS() {
 
   const lockedRef = useRef(locked);
   const contactsRef = useRef(config.contacts);
-  const bannerTimer = useRef(null);
   useEffect(() => { lockedRef.current = locked; }, [locked]);
   useEffect(() => { contactsRef.current = config.contacts; }, [config.contacts]);
 
-  // drop-down banner for new notifications while the phone is unlocked
+  // drop-down banners stack while the phone is unlocked - each one stays
+  // until dismissed, a reset from the deck, or opening it
   const showBanner = useCallback((notif) => {
-    setBanner(notif);
-    clearTimeout(bannerTimer.current);
-    bannerTimer.current = setTimeout(() => setBanner(null), 6000);
+    setBanners((b) => [...b, notif].slice(-20));
+  }, []);
+  const dismissBanner = useCallback((id) => {
+    setBanners((b) => b.filter((n) => n.id !== id));
   }, []);
 
   // persistent call history - names resolve from the contact book by number
@@ -163,19 +164,24 @@ export default function OS() {
         } else if (c.type === "alarm") {
           setAlarm({ commandId: c.id });
         } else if (c.type === "notification") {
-          // deck-pushed banner: a card on the lock screen, or a drop-down on home
+          // deck-pushed banners stack below each other until reset clears them
           const p = parseJson(c.payload);
-          const notif = {
-            id: `push-${c.id}`,
-            app: p.app || "messages",
-            title: allAppsById[p.app]?.label || "Notification",
-            body: p.body || "",
-            time: fmtTime(Date.now()),
-          };
-          if (p.screen === "home") {
-            if (!lockedRef.current) showBanner(notif);
+          if (p.action === "reset") {
+            setBanners([]);
+            update((cfg) => ({ notifications: (cfg.notifications || []).filter((n) => !String(n.id).startsWith("push-")) }));
           } else {
-            update((cfg) => ({ notifications: [notif, ...(cfg.notifications || [])].slice(0, 5) }));
+            const notif = {
+              id: `push-${c.id}`,
+              app: p.app || "messages",
+              title: allAppsById[p.app]?.label || "Notification",
+              body: p.body || "",
+              time: fmtTime(Date.now()),
+            };
+            if (p.screen === "home") {
+              if (!lockedRef.current) showBanner(notif);
+            } else {
+              update((cfg) => ({ notifications: [notif, ...(cfg.notifications || [])].slice(0, 20) }));
+            }
           }
         } else if (c.type === "video_call") {
           // a control-deck video call opens the app and rings until answered
@@ -427,7 +433,7 @@ export default function OS() {
 
   // opening a notification unlocks and jumps straight to the thread / app
   const openNotification = useCallback((n) => {
-    setBanner(null);
+    setBanners([]);
     setLocked(false);
     update((c) => (c.notifications?.length ? { notifications: [] } : {}));
     if (n?.app === "phone") setApp("phone");
@@ -576,9 +582,13 @@ export default function OS() {
             <div className="absolute inset-0 z-[60] bg-black" onClick={() => setEar(false)} aria-label="Screen off - tap to wake" />
           )}
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
-          {banner && !locked && (
-            <NotificationBanner notif={banner} light={config.theme === "light"}
-              onOpen={openNotification} onDismiss={() => setBanner(null)} />
+          {banners.length > 0 && !locked && (
+            <div className="absolute top-2 inset-x-2 z-30 flex flex-col gap-1.5">
+              {banners.map((n) => (
+                <NotificationBanner key={n.id} notif={n} light={config.theme === "light"}
+                  onOpen={openNotification} onDismiss={() => dismissBanner(n.id)} />
+              ))}
+            </div>
           )}
         </PhoneFrame>
       </div>
@@ -600,9 +610,13 @@ export default function OS() {
                 <ClockEditor clock={config.clock} onSave={(c) => { update({ clock: c }); setClockEdit(false); }} onClose={() => setClockEdit(false)} />
               </div>
             )}
-            {banner && !locked && (
-              <NotificationBanner notif={banner} light={config.theme === "light"}
-                onOpen={openNotification} onDismiss={() => setBanner(null)} />
+            {banners.length > 0 && !locked && (
+              <div className="absolute top-2 inset-x-2 z-30 flex flex-col gap-1.5">
+                {banners.map((n) => (
+                  <NotificationBanner key={n.id} notif={n} light={config.theme === "light"}
+                    onOpen={openNotification} onDismiss={() => dismissBanner(n.id)} />
+                ))}
+              </div>
             )}
             <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} speaker={callSpeaker} onSpeakerChange={setCallSpeaker} muted={callMuted} onMutedChange={setCallMuted} />
             {ear && call?.phase === "active" && (
