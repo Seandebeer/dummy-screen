@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import Timeline from "./Timeline";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "./VideoMarks";
 import MarkAdjust from "@/components/os/MarkAdjust";
+import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import { fmtDur, updateVideo } from "@/lib/videoStore";
 import { cn } from "@/lib/utils";
 
@@ -259,13 +260,7 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
           </div>
         </>
       )}
-      {locked && hint && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-          <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-body text-white/50 backdrop-blur">
-            3-finger tap to unlock
-          </span>
-        </div>
-      )}
+      {locked && hint && <ThreeFingerHint />}
     </div>
   );
 }

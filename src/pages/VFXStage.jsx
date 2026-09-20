@@ -5,6 +5,7 @@ import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import useScreenMarks, { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import StageToolbar from "@/components/vfx/StageToolbar";
+import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 
 const POINT_STYLES = ["cross", "circles", "squares", "brackets", "triangle", ...compositeMarks.map((m) => m.id)];
 
@@ -39,6 +40,7 @@ export default function VFXStage() {
   };
 
   const [locked, setLocked] = useState(false);
+  const [hint, setHint] = useState(false);
   const [banner, setBanner] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [dragId, setDragId] = useState(null);
@@ -60,6 +62,14 @@ export default function VFXStage() {
       return next;
     });
   }, [flash]);
+
+  // brief unlock prompt whenever the stage locks
+  useEffect(() => {
+    if (!locked) return;
+    setHint(true);
+    const t = setTimeout(() => setHint(false), 2400);
+    return () => clearTimeout(t);
+  }, [locked]);
 
   // three-finger tap (touch) or 'L' key (desktop fallback)
   useEffect(() => {
@@ -163,6 +173,9 @@ export default function VFXStage() {
             style={{ background: isLight ? "#000000" : "#FFFFFF", opacity: 0.9 }} />
         </div>
       )}
+
+      {/* brief 3-finger unlock prompt */}
+      {locked && hint && <ThreeFingerHint light={isLight} />}
 
       {/* lock / unlock banner */}
       {banner && (

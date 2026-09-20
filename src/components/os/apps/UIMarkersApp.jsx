@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Check, Lock, Palette, RotateCcw, Save, Shapes } from "lucide-react";
 import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import MarkAdjust from "@/components/os/MarkAdjust";
+import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import { defaultLayoutFor } from "@/hooks/useScreenMarks";
@@ -470,13 +471,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
           })()}
         </>
       )}
-      {locked && hint && (
-        <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
-          <span className={cn("px-3 py-1 rounded-full text-[10px] font-body backdrop-blur", light ? "text-black/50 bg-black/5" : "text-white/50 bg-white/10")}>
-            3-finger tap to unlock
-          </span>
-        </div>
-      )}
+      {locked && hint && <ThreeFingerHint light={light} />}
       {saveOpen && (
         <SaveTargetSheet title="Save marker layout" defaultName={`Markers ${new Date().toLocaleDateString()}`}
           build={(n) => ({ kind: "markers", name: n, uiMarkers: markers })}

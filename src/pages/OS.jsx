@@ -30,6 +30,7 @@ import FitnessApp from "@/components/os/apps/FitnessApp";
 import { allAppsById } from "@/lib/osApps";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
 import MarkAdjust from "@/components/os/MarkAdjust";
+import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
@@ -515,13 +516,7 @@ export default function OS() {
       )}
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-black">
-          {fsHint && (
-            <div className="absolute inset-x-0 bottom-5 z-50 flex justify-center pointer-events-none">
-              <div className="px-4 py-1.5 rounded-full text-[11px] font-body text-white/70 bg-white/10 backdrop-blur">
-                3-Finger Tap to Exit
-              </div>
-            </div>
-          )}
+          {fsHint && <ThreeFingerHint />}
           <PhoneFrame bare className="os-sf" onHome={() => setApp(null)} onTime={() => setClockEdit(true)} skin={config.skin || "modern"}
             light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
