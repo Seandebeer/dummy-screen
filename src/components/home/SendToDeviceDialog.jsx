@@ -56,13 +56,13 @@ export default function SendToDeviceDialog({ entry, onClose }) {
 
         <div>
           <div className="mb-1.5 font-body text-[10px] uppercase tracking-wider text-muted-foreground">Add to existing device</div>
-          {devices === null ? (
+          {devices === null || projects === null ? (
             <div className="flex justify-center py-3 text-muted-foreground"><Loader2 className="animate-spin" size={16} /></div>
-          ) : devices.length === 0 ? (
-            <p className="py-2 text-xs font-body text-muted-foreground">No devices yet - create one below.</p>
+          ) : devices.filter((d) => (projects || []).some((p) => p.id === d.project_id)).length === 0 ? (
+            <p className="py-2 text-xs font-body text-muted-foreground">No existing devices yet - create one below.</p>
           ) : (
             <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto pr-1">
-              {devices.map((d) => (
+              {devices.filter((d) => (projects || []).some((p) => p.id === d.project_id)).map((d) => (
                 <button key={d.id} onClick={() => addToDevice(d)} disabled={busy}
                   className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2 text-left transition hover:border-signal/40 disabled:opacity-50">
                   <span className="truncate text-sm font-body">{d.name}</span>
