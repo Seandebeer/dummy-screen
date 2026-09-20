@@ -71,7 +71,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
   }, [cmdId]);
 
   const start = async () => {
-    if (busy || state !== "idle" || !contact.name.trim()) return;
+    if (busy || state !== "idle" || !contact.name.trim() || !channel) return;
     setBusy(true);
     const payload = { mode, photoUrl, videoUrl, vfx, camOff: !camOn, photoMode, source: getScreenId() };
     payloadRef.current = payload;
@@ -239,9 +239,11 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
         </button>
       </div>
       <div className="mt-2 text-[10px] font-body text-muted-foreground">
-        {contact.name.trim()
-          ? `Calls ${contact.name.trim()} on the prop phone - the phone can also start it from FaceTime`
-          : "Set an on-screen contact name above to enable video calls"}
+        {!channel
+          ? "Tap a target device above to enable video calls"
+          : contact.name.trim()
+            ? `Calls ${contact.name.trim()} on the prop phone - the phone can also start it from FaceTime`
+            : "Set an on-screen contact name above to enable video calls"}
       </div>
     </ControlCard>
   );

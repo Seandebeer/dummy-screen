@@ -70,8 +70,10 @@ export default function ControlPanel() {
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
-  // the operator can steer one specific prop device instead of broadcasting
-  const channel = targetId ? `device-${targetId}` : "stage-1";
+  // the operator steers one specific prop device - nothing is connected until
+  // a device is tapped; broadcast ("all") is a deliberate rare-case choice
+  const broadcast = targetId === "all";
+  const channel = broadcast ? "stage-1" : targetId ? `device-${targetId}` : null;
   const chooseTarget = (id) => {
     setTargetId(id);
     try { localStorage.setItem("takeover-target-device", id); } catch {}
@@ -114,6 +116,7 @@ export default function ControlPanel() {
     setMessages([]);
     setReplyQueue([]);
     setPushedReplies([]);
+    if (!channel) return undefined;
     base44.entities.Message.filter({ thread_id: channel }, "created_date", 200)
       .then((d) => mounted && setMessages(d)).catch(() => {});
     base44.entities.Command.filter({ channel, type: "alarm", status: "pending" }, "-created_date", 1)
@@ -253,7 +256,7 @@ export default function ControlPanel() {
   };
 
   const triggerAlarm = async () => {
-    if (alarmId) return;
+    if (alarmId || !channel) return;
     try {
       const rec = await base44.entities.Command.create({ channel, type: "alarm", status: "pending" });
       setAlarmId(rec.id);
@@ -268,7 +271,7 @@ export default function ControlPanel() {
   };
 
   const sendMessage = async () => {
-    if (!text.trim()) return;
+    if (!channel || !text.trim()) return;
     const body = text.trim();
     setText("");
     try {
@@ -283,7 +286,7 @@ export default function ControlPanel() {
   };
 
   const resetMessages = async () => {
-    if (!window.confirm("Clear all messages on this channel?")) return;
+    if (!channel || !window.confirm("Clear all messages on this channel?")) return;
     setMessages([]);
     try { await base44.entities.Message.deleteMany({ thread_id: channel }); } catch {}
     // the thread is cleared on the phone and every pushed reply loads back
@@ -300,7 +303,7 @@ export default function ControlPanel() {
   };
   const sendNextReply = async () => {
     const next = replyQueue[0];
-    if (!next) return;
+    if (!channel || !next) return;
     try {
       await base44.entities.Message.create({
         thread_id: channel, sender: "control", text: next.text,
@@ -316,7 +319,7 @@ export default function ControlPanel() {
   };
   const removeReply = (id) => setReplyQueue((q) => q.filter((r) => r.id !== id));
 
-  const canCall = contact.name.trim() && contact.number.trim() && callState === "idle" && !busy;
+  const canCall = !!channel && contact.name.trim() && contact.number.trim() && callState === "idle" && !busy;
 
   // notification queue: compose up to 20, drag to reorder, Push sends the
   // next one, Reset clears every banner on the target screen
@@ -331,7 +334,7 @@ export default function ControlPanel() {
   };
   const pushNextNotification = async () => {
     const next = notifQueue[0];
-    if (!next) return;
+    if (!channel || !next) return;
     try {
       await base44.entities.Command.create({
         channel, type: "notification", status: "pending",
@@ -343,6 +346,7 @@ export default function ControlPanel() {
     } catch {}
   };
   const resetNotifications = async () => {
+    if (!channel) return;
     try {
       await base44.entities.Command.create({
         channel, type: "notification", status: "pending",
@@ -375,8 +379,9 @@ export default function ControlPanel() {
             <Radio size={16} className="text-signal" />
             <span className="font-display font-semibold text-[15px] tracking-tight">Target Device</span>
           </div>
-          <span className="flex items-center gap-1.5 text-[11px] font-body text-signal">
-            <span className="h-2 w-2 rounded-full bg-signal led-pulse" /> CONNECTED
+          <span className={cn("flex items-center gap-1.5 text-[11px] font-body", channel ? "text-signal" : "text-muted-foreground")}>
+            <span className={cn("h-2 w-2 rounded-full", channel ? "bg-signal led-pulse" : "bg-muted-foreground/50")} />
+            {channel ? "CONNECTED" : "NOT CONNECTED"}
           </span>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.04] p-3.5">
@@ -386,11 +391,12 @@ export default function ControlPanel() {
           <div className="flex-1 min-w-0">
             <select value={targetId} onChange={(e) => chooseTarget(e.target.value)} aria-label="Target device"
               className="w-full cursor-pointer appearance-none bg-transparent font-body text-sm font-semibold text-foreground outline-none">
-              <option value="">All devices (broadcast)</option>
+              <option value="">Tap to connect a device…</option>
               {(devices || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              <option value="all">All devices (broadcast)</option>
             </select>
             <div className="text-[11px] text-muted-foreground font-body truncate">
-              channel {channel} · {targetId ? "only this device's phones react" : "every connected phone reacts"}
+              {channel ? `channel ${channel} · ${broadcast ? "every connected phone reacts" : "only this device's phones react"}` : "no device connected - triggers are off"}
             </div>
           </div>
           <div className="text-right">
@@ -732,8 +738,8 @@ export default function ControlPanel() {
         badge={alarmId ? (
           <span className="text-[11px] font-body font-semibold uppercase text-amber amber-pulse">ringing</span>
         ) : null}>
-        <button onClick={alarmId ? stopAlarm : triggerAlarm}
-          className={cn("w-full flex items-center justify-center gap-2 rounded-2xl border py-3.5 text-sm font-body font-semibold transition",
+        <button onClick={alarmId ? stopAlarm : triggerAlarm} disabled={!channel && !alarmId}
+          className={cn("w-full flex items-center justify-center gap-2 rounded-2xl border py-3.5 text-sm font-body font-semibold transition disabled:opacity-40",
             alarmId
               ? "border-alert/40 bg-alert/10 text-alert hover:bg-alert/20"
               : "border-amber/40 bg-amber/10 text-amber hover:bg-amber/20")}>
@@ -743,7 +749,7 @@ export default function ControlPanel() {
       </ControlCard>
 
       {/* remote 3-finger tap pad */}
-      <LockPad channel={channel} />
+      {channel && <LockPad channel={channel} />}
 
       {pickerOpen && (
         <DeviceContactPicker
