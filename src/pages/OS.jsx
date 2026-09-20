@@ -49,6 +49,8 @@ import { startPhoneVoice } from "@/lib/voiceLink";
 import { scheduleDeviceSync } from "@/lib/cloudSync";
 import { logTeamCall } from "@/lib/callLog";
 
+const parseJson = (s) => { try { return JSON.parse(s) || {}; } catch { return {}; } };
+
 export default function OS() {
   const [app, setApp] = useState(null);
   const [locked, setLocked] = useState(true);
@@ -64,6 +66,7 @@ export default function OS() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [deviceName, setDeviceName] = useState(getDeviceName);
   const [callSpeaker, setCallSpeaker] = useState(false);
+  const [videoCall, setVideoCall] = useState(null);
 
   // the header names a device only once it's saved to a project - a linked
   // device with no project, or nothing linked at all, is just the sandbox
@@ -82,6 +85,7 @@ export default function OS() {
   const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
   const alarmRef = useRef(null);
+  const videoCallRef = useRef(null);
   const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   const lockedRef = useRef(locked);
@@ -147,6 +151,16 @@ export default function OS() {
           setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
         } else if (c.type === "alarm") {
           setAlarm({ commandId: c.id });
+        } else if (c.type === "video_call") {
+          // a control-deck video call takes over the app and begins by itself
+          setLocked(false);
+          setApp("videocall");
+          setVideoCall({
+            id: c.id,
+            contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image },
+            payload: parseJson(c.payload),
+          });
+          base44.entities.Command.update(c.id, { status: "active" }).catch(() => {});
         }
       } else if (event.type === "update") {
         // control deck ended the call remotely
@@ -157,6 +171,11 @@ export default function OS() {
         }
         if (c.status === "completed" && alarmRef.current && c.id === alarmRef.current.commandId) {
           setAlarm(null);
+        }
+        // video call: apply mid-call content / toggle changes, or hang up
+        if (c.type === "video_call" && videoCallRef.current?.id === c.id) {
+          if (c.status === "completed") setVideoCall(null);
+          else setVideoCall((cur) => (cur ? { ...cur, payload: parseJson(c.payload) } : cur));
         }
       }
     });
@@ -186,6 +205,7 @@ export default function OS() {
   // keep refs in sync with current call / alarm
   useEffect(() => { callRef.current = call; }, [call]);
   useEffect(() => { alarmRef.current = alarm; }, [alarm]);
+  useEffect(() => { videoCallRef.current = videoCall; }, [videoCall]);
 
   // a new call always starts off speakerphone
   useEffect(() => { if (!call) setCallSpeaker(false); }, [call]);
@@ -380,6 +400,13 @@ export default function OS() {
     }
   }, []);
 
+  // actor ended a control-triggered video call from the phone side
+  const endVideoCall = useCallback(() => {
+    const cur = videoCallRef.current;
+    if (cur) base44.entities.Command.update(cur.id, { status: "completed" }).catch(() => {});
+    setVideoCall(null);
+  }, []);
+
   // unlocking clears the lock-screen notification list
   const handleUnlock = useCallback(() => {
     setLocked(false);
@@ -402,7 +429,7 @@ export default function OS() {
       case "calendar": return <CalendarApp />;
       case "notes": return <NotesApp />;
       case "camera": return <CameraApp />;
-      case "videocall": return <VideoCallApp config={config} update={update} />;
+      case "videocall": return <VideoCallApp config={config} update={update} remote={videoCall} onRemoteEnd={endVideoCall} />;
       case "music": return <MusicApp />;
       case "maps": return <MapsApp />;
       case "facepage": return <FacepageApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;

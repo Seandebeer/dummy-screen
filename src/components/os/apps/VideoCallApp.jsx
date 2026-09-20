@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Loader2, Lock, Mic, MicOff, Monitor, PhoneOff, RefreshCw, SlidersHorizontal, Upload, Video as VideoIcon } from "lucide-react";
+import { ChevronLeft, Loader2, Lock, Mic, MicOff, Monitor, PhoneOff, RefreshCw, SlidersHorizontal, Upload, Video as VideoIcon, Image as ImageIcon } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { Image } from "@/components/ui/image";
+import ContactPicker from "@/components/os/apps/videocall/ContactPicker";
 import PipView from "@/components/os/apps/videocall/PipView";
 import VfxCallControls from "@/components/os/apps/videocall/VfxCallControls";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import ThreeFingerHint from "@/components/os/ThreeFingerHint";
+import { startPhoneVideo } from "@/lib/videoLink";
 import { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import { cn } from "@/lib/utils";
 
-// the caller screen defaults to a chroma green cross-mark layout, ready for
-// screen replacement
-export const DEFAULT_CALL_VFX = { bgColor: "#00B140", markStyle: "cross", markColor: null, markSize: 1.1, markThick: 0.6, markRot: 0 };
+const DEFAULT_CALL_VFX = { bgColor: "#00B140", markStyle: "cross", markColor: null, markSize: 1.1, markThick: 0.6, markRot: 0 };
 
 const isLightHex = (hex) => {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
@@ -18,11 +19,14 @@ const isLightHex = (hex) => {
   const n = parseInt(m[1], 16);
   return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
 };
+const keyOf = (c) => String(c?.id ?? c?.number ?? c?.name ?? "");
+const initialsOf = (name) =>
+  (name || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-export default function VideoCallApp({ config, update }) {
-  const vc = { source: "vfx", videoUrl: "", ...(config.videocall || {}) };
-  const vfx = { ...DEFAULT_CALL_VFX, ...(vc.vfx || {}) };
-
+export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
+  const store = { contacts: {}, ...(config.videocall || {}) };
+  const [screen, setScreen] = useState("list"); // list | setup
+  const [picked, setPicked] = useState(null);
   const [inCall, setInCall] = useState(false);
   const [secs, setSecs] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -34,10 +38,28 @@ export default function VideoCallApp({ config, update }) {
   const [locked, setLocked] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [hint, setHint] = useState(false);
+  const [liveOn, setLiveOn] = useState(false);
   const pipVideoRef = useRef(null);
+  const liveVideoRef = useRef(null);
   const streamRef = useRef(null);
+  const videoLinkRef = useRef(null);
   const fileRef = useRef(null);
   const rootRef = useRef(null);
+  const wasRemoteRef = useRef(false);
+
+  const remoteOn = !!remote;
+  const rp = remote?.payload || {};
+  const setKey = picked ? keyOf(picked) : "";
+  const cset = (setKey && store.contacts[setKey]) || {};
+
+  const manualMode = cset.mode || "vfx";
+  const callMode = remoteOn ? (rp.mode || "vfx") : manualMode;
+  const callVfx = { ...DEFAULT_CALL_VFX, ...(remoteOn ? rp.vfx : cset.vfx) };
+  const callPhoto = remoteOn ? rp.photoUrl : cset.photoUrl;
+  const callVideo = remoteOn ? rp.videoUrl : cset.videoUrl;
+  const callerName = remoteOn ? (remote.contact?.name || "Video Call") : (picked?.name || "Video Call");
+  const camOff = !!rp.camOff;
+  const micOff = !!rp.micMuted;
 
   // own-camera picture-in-picture - the "person calling" viewpoint
   useEffect(() => {
@@ -56,6 +78,11 @@ export default function VideoCallApp({ config, update }) {
       streamRef.current = null;
     };
   }, [facing]);
+
+  // keep the pip element attached to the stream whenever it (re)mounts
+  useEffect(() => {
+    if (pipVideoRef.current && streamRef.current) pipVideoRef.current.srcObject = streamRef.current;
+  });
 
   // call duration
   useEffect(() => {
@@ -84,6 +111,61 @@ export default function VideoCallApp({ config, update }) {
     return () => window.removeEventListener("touchstart", onTouch);
   }, [locked]);
 
+  // a control-deck call takes over the app and begins by itself
+  useEffect(() => {
+    if (!remote) return;
+    setInCall(true);
+    setEnded(false);
+    setSecs(0);
+    setLocked(false);
+    setControlsVisible(true);
+    setPicked(remote.contact ? { ...remote.contact } : null);
+  }, [remote?.id]);
+
+  // the control deck hung up - show the ended overlay
+  useEffect(() => {
+    if (!remoteOn && wasRemoteRef.current) setEnded(true);
+    wasRemoteRef.current = remoteOn;
+  }, [remoteOn]);
+
+  // live feed from the control deck
+  useEffect(() => {
+    if (!inCall || !remote || callMode !== "live") return undefined;
+    videoLinkRef.current?.stop();
+    videoLinkRef.current = startPhoneVideo(remote.id, liveVideoRef.current);
+    return () => {
+      videoLinkRef.current?.stop();
+      videoLinkRef.current = null;
+      setLiveOn(false);
+    };
+  }, [inCall, remote?.id, callMode]);
+
+  const saveStore = (patch) => update((c) => ({
+    videocall: {
+      contacts: {}, ...(c.videocall || {}),
+      ...(typeof patch === "function" ? patch(c.videocall || {}) : patch),
+    },
+  }));
+  const savePicked = (p) => {
+    if (!setKey) return;
+    saveStore((s) => ({
+      contacts: { ...(s.contacts || {}), [setKey]: { mode: "vfx", ...(s.contacts?.[setKey] || {}), ...p } },
+    }));
+  };
+
+  const uploadMedia = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !setKey) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      if (file.type.startsWith("video")) savePicked({ mode: "video", videoUrl: file_url });
+      else savePicked({ mode: "photo", photoUrl: file_url });
+    } catch {}
+    setUploading(false);
+  };
+
   const startCall = () => {
     setEnded(false);
     setSecs(0);
@@ -92,9 +174,8 @@ export default function VideoCallApp({ config, update }) {
     setControlsVisible(true);
   };
   const endCall = () => {
-    setEnded(true);
-    setLocked(false);
-    setControlsVisible(false);
+    if (remoteOn) onRemoteEnd?.();
+    else setEnded(true);
   };
   const lock = () => {
     setLocked(true);
@@ -102,108 +183,129 @@ export default function VideoCallApp({ config, update }) {
     setHint(true);
     setTimeout(() => setHint(false), 2400);
   };
-
-  const save = (patch) => update((c) => ({
-    videocall: {
-      ...{ source: "vfx", videoUrl: "" }, ...(c.videocall || {}),
-      ...(typeof patch === "function" ? patch(c.videocall || {}) : patch),
-    },
-  }));
-  const saveVfx = (p) => save((v) => ({ vfx: { ...DEFAULT_CALL_VFX, ...(v.vfx || {}), ...p } }));
-
-  const uploadVideo = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-      save({ videoUrl: file_url, source: "video" });
-    } catch {}
-    setUploading(false);
-  };
-
-  const time = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
-  const markColor = vfx.markColor || (isLightHex(vfx.bgColor) ? "#000000" : "#FFFFFF");
-  const markLayout = defaultLayoutFor(vfx.markStyle);
-  const caller = config.contacts?.[0]?.name || "Jordan Reyes";
-  const showUi = controlsVisible && !locked && !ended;
-  const light = vc.source === "vfx" ? isLightHex(vfx.bgColor) : false;
-
   const tapScreen = () => {
     if (!inCall || ended || locked || controlsOpen) return;
     setControlsVisible((v) => !v);
   };
 
+  const time = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+  const markColor = callVfx.markColor || (isLightHex(callVfx.bgColor) ? "#000000" : "#FFFFFF");
+  const markLayout = defaultLayoutFor(callVfx.markStyle);
+  const showUi = controlsVisible && !locked && !ended;
+  const light = callMode === "vfx" ? isLightHex(callVfx.bgColor) : false;
   const ctl = "flex h-10 w-10 items-center justify-center rounded-full text-white/90 transition active:scale-90";
   const pill = (active) => cn(
     "flex h-9 items-center gap-1.5 rounded-full px-3 text-[10px] font-body transition active:scale-95",
     active ? "bg-[#0A84FF]" : "text-white/80 hover:text-white");
 
-  const sourceButtons = (
-    <>
-      <button onClick={() => save({ source: "vfx" })} className={pill(vc.source === "vfx")}>
-        <Monitor size={15} /> VFX
-      </button>
-      <button onClick={() => save({ source: "video" })} className={pill(vc.source === "video")}>
-        <VideoIcon size={15} /> Video
-      </button>
-    </>
+  const placeholder = (text) => (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#101012]">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/10 font-display text-[22px] font-semibold text-white/90">
+        {initialsOf(callerName)}
+      </div>
+      <span className="text-[11px] font-body text-white/50">{text}</span>
+    </div>
   );
-  const tuneButton = vc.source === "vfx" ? (
+
+  // the far-end screen - live stream, uploaded video / photo or a VFX screen
+  const bigArea = () => {
+    if (callMode === "live") {
+      return (
+        <>
+          <video ref={liveVideoRef} autoPlay playsInline onPlaying={() => setLiveOn(true)}
+            className="absolute inset-0 h-full w-full object-cover" />
+          {(camOff || !liveOn) && placeholder(camOff ? "Camera off" : "Connecting…")}
+        </>
+      );
+    }
+    if (callMode === "photo") {
+      return callPhoto
+        ? <Image src={callPhoto} alt="" className="absolute inset-0 h-full w-full" fittingType="fill" />
+        : placeholder(`No photo for ${callerName}`);
+    }
+    if (callMode === "video") {
+      return callVideo
+        ? <video key={callVideo} src={callVideo} autoPlay loop playsInline muted
+            className="absolute inset-0 h-full w-full object-cover" />
+        : placeholder("No video for the other end yet");
+    }
+    return (
+      <div className="absolute inset-0" style={{ background: callVfx.bgColor }}>
+        <TrackingMarks type={callVfx.markStyle} color={markColor} opacity={0.9}
+          size={callVfx.markSize} thickness={callVfx.markThick}
+          markers={callVfx.markRot
+            ? markLayout.map((m) => ({ ...m, rot: (m.rot || 0) + callVfx.markRot }))
+            : markLayout} />
+      </div>
+    );
+  };
+
+  const tuneSetup = manualMode === "vfx" ? (
     <button onClick={() => setControlsOpen(true)} title="Screen options" className={ctl}>
       <SlidersHorizontal size={18} />
     </button>
   ) : (
-    <button onClick={() => fileRef.current?.click()} disabled={uploading} title="Replace video"
+    <button onClick={() => fileRef.current?.click()} disabled={uploading}
+      title={manualMode === "photo" ? "Add photo" : "Add video"}
       className={cn(ctl, "disabled:opacity-50")}>
       {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
     </button>
   );
 
-  return (
-    <div ref={rootRef} className="relative h-full select-none overflow-hidden bg-black text-white">
-      {/* the other end - uploaded video or a chroma screen with tracking marks */}
-      <div className="absolute inset-0" onClick={tapScreen}>
-        {vc.source === "video" ? (
-          vc.videoUrl ? (
-            <video key={vc.videoUrl} src={vc.videoUrl} autoPlay loop playsInline muted
-              className="absolute inset-0 h-full w-full object-cover" />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#111] px-8 text-center">
-              <VideoIcon size={26} className="text-white/30" />
-              <div className="text-sm font-body text-white/70">No video for the other end yet</div>
-              <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-[12px] font-body transition hover:bg-white/20 disabled:opacity-50">
-                {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                {uploading ? "Uploading…" : "Upload a video"}
-              </button>
-            </div>
-          )
+  // ---- contact picker + per-contact setup ----
+  if (!inCall) {
+    return (
+      <div ref={rootRef} className="relative h-full select-none overflow-hidden bg-[#0a0a0c] text-white">
+        {screen === "list" || !picked ? (
+          <ContactPicker contacts={config.contacts || []}
+            onSelect={(c) => { setPicked(c); setScreen("setup"); }} />
         ) : (
-          <div className="absolute inset-0" style={{ background: vfx.bgColor }}>
-            <TrackingMarks type={vfx.markStyle} color={markColor} opacity={0.9}
-              size={vfx.markSize} thickness={vfx.markThick}
-              markers={vfx.markRot
-                ? markLayout.map((m) => ({ ...m, rot: (m.rot || 0) + vfx.markRot }))
-                : markLayout} />
-          </div>
+          <>
+            <div className="absolute inset-0">{bigArea()}</div>
+            <button onClick={() => setScreen("list")} aria-label="Back"
+              className="absolute left-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 backdrop-blur">
+              <ChevronLeft size={18} />
+            </button>
+            <div className="pointer-events-none absolute left-0 right-0 top-3 z-10 text-center text-[13px] font-display font-semibold drop-shadow">
+              {picked.name}
+            </div>
+            <PipView containerRef={rootRef} videoRef={pipVideoRef} camError={camError} facing={facing} />
+            <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4 rounded-[2rem] bg-black/45 px-4 py-2.5 backdrop-blur-md">
+              {(["vfx", "photo", "video"]).map((m) => (
+                <button key={m} onClick={() => savePicked({ mode: m })} className={pill(manualMode === m)}>
+                  {m === "vfx" ? <Monitor size={15} /> : m === "photo" ? <ImageIcon size={15} /> : <VideoIcon size={15} />}
+                  {m === "vfx" ? "VFX" : m === "photo" ? "Photo" : "Video"}
+                </button>
+              ))}
+              {tuneSetup}
+              <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+                title="Flip camera" className={ctl}><RefreshCw size={18} /></button>
+              <button onClick={startCall} title="Start call"
+                className={cn(ctl, "bg-[#34C759]")}><VideoIcon size={18} /></button>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={uploadMedia} />
+            {controlsOpen && manualMode === "vfx" && (
+              <VfxCallControls vfx={callVfx}
+                onChange={(p) => savePicked({ vfx: { ...callVfx, ...p } })}
+                onClose={() => setControlsOpen(false)} />
+            )}
+          </>
         )}
       </div>
-      <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={uploadVideo} />
+    );
+  }
 
-      {/* setup hint */}
-      {!inCall && !ended && (
-        <div className="absolute left-0 right-0 top-3 z-10 text-center text-[10px] font-body text-white/60 drop-shadow pointer-events-none">
-          Set up the caller screen, then start the call
-        </div>
-      )}
+  // ---- in call (manual or control-driven) ----
+  return (
+    <div ref={rootRef} className="relative h-full select-none overflow-hidden bg-black text-white">
+      <div className="absolute inset-0" onClick={tapScreen}>{bigArea()}</div>
 
-      {/* FaceTime style header - caller + duration, only while the controls are on */}
-      {inCall && showUi && (
-        <div className="absolute left-0 right-0 top-3 z-10 flex flex-col items-center gap-0.5 pointer-events-none">
-          <span className="text-[13px] font-display font-semibold drop-shadow">{caller}</span>
+      {/* FaceTime style header - caller + duration while the controls are on */}
+      {showUi && (
+        <div className="pointer-events-none absolute left-0 right-0 top-3 z-10 flex flex-col items-center gap-0.5">
+          <span className="text-[13px] font-display font-semibold drop-shadow">{callerName}</span>
           <span className="text-[10px] font-body text-white/70 drop-shadow">{time}</span>
+          {micOff && <span className="text-[9px] font-body text-white/50">Caller muted</span>}
         </div>
       )}
 
@@ -211,33 +313,31 @@ export default function VideoCallApp({ config, update }) {
       <PipView containerRef={rootRef} videoRef={pipVideoRef} camError={camError} facing={facing}
         onTap={inCall && !ended ? tapScreen : undefined} />
 
-      {/* control bar - always on while setting up; in-call it hides itself */}
-      {!ended && (showUi || !inCall) && (
+      {!ended && showUi && (
         <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4 rounded-[2rem] bg-black/45 px-4 py-2.5 backdrop-blur-md">
-          {sourceButtons}
-          {tuneButton}
-          {!inCall ? (
-            <>
-              <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-                title="Flip camera" className={ctl}><RefreshCw size={18} /></button>
-              <button onClick={startCall} title="Start call"
-                className={cn(ctl, "bg-[#34C759]")}><VideoIcon size={18} /></button>
-            </>
+          <button onClick={() => setMuted((m) => !m)} title={muted ? "Unmute" : "Mute"}
+            className={cn(ctl, muted && "bg-white text-black")}>
+            {muted ? <MicOff size={18} /> : <Mic size={18} />}
+          </button>
+          <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+            title="Flip camera" className={ctl}><RefreshCw size={18} /></button>
+          {!remoteOn && (callMode === "vfx" ? (
+            <button onClick={() => setControlsOpen(true)} title="Screen options" className={ctl}>
+              <SlidersHorizontal size={18} />
+            </button>
           ) : (
-            <>
-              <button onClick={() => setMuted((m) => !m)} title={muted ? "Unmute" : "Mute"}
-                className={cn(ctl, muted && "bg-white text-black")}>
-                {muted ? <MicOff size={18} /> : <Mic size={18} />}
-              </button>
-              <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-                title="Flip camera" className={ctl}><RefreshCw size={18} /></button>
-              <button onClick={lock} title="Lock screen" className={ctl}><Lock size={18} /></button>
-              <button onClick={endCall} title="End call"
-                className={cn(ctl, "bg-[#FF453A]")}><PhoneOff size={18} /></button>
-            </>
-          )}
+            <button onClick={() => fileRef.current?.click()} disabled={uploading}
+              title={callMode === "photo" ? "Replace photo" : "Replace video"}
+              className={cn(ctl, "disabled:opacity-50")}>
+              {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+            </button>
+          ))}
+          <button onClick={lock} title="Lock screen" className={ctl}><Lock size={18} /></button>
+          <button onClick={endCall} title="End call"
+            className={cn(ctl, "bg-[#FF453A]")}><PhoneOff size={18} /></button>
         </div>
       )}
+      <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={uploadMedia} />
 
       {/* call ended overlay */}
       {ended && (
@@ -249,14 +349,19 @@ export default function VideoCallApp({ config, update }) {
             <VideoIcon size={26} />
           </button>
           <span className="text-[12px] font-body text-white/70">Call Again</span>
+          <button onClick={() => { setInCall(false); setScreen("list"); setEnded(false); }}
+            className="mt-2 text-[11px] font-body text-white/50 underline underline-offset-2">
+            Contacts
+          </button>
         </div>
       )}
 
       {locked && hint && <ThreeFingerHint light={light} />}
 
-      {/* VFX screen options */}
-      {controlsOpen && vc.source === "vfx" && (
-        <VfxCallControls vfx={vfx} onChange={saveVfx} onClose={() => setControlsOpen(false)} />
+      {controlsOpen && !remoteOn && callMode === "vfx" && (
+        <VfxCallControls vfx={callVfx}
+          onChange={(p) => savePicked({ vfx: { ...callVfx, ...p } })}
+          onClose={() => setControlsOpen(false)} />
       )}
     </div>
   );

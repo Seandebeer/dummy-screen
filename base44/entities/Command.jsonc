@@ -13,7 +13,8 @@
         "call_outgoing",
         "call_answered",
         "call_end",
-        "alarm"
+        "alarm",
+        "video_call"
       ]
     },
     "contact_name": {
@@ -23,6 +24,9 @@
       "type": "string"
     },
     "contact_image": {
+      "type": "string"
+    },
+    "payload": {
       "type": "string"
     },
     "status": {

@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
 import QrConnect from "@/components/control/QrConnect";
+import VideoCallCard from "@/components/control/VideoCallCard";
 import { cn } from "@/lib/utils";
 
 const CONTACT_KEY = "takeover-control-contact";
@@ -251,6 +252,9 @@ export default function ControlPanel() {
                 : "Allow mic access for live voice through the target device"}
         </div>
       </div>
+
+      {/* video call trigger */}
+      <VideoCallCard contact={contact} />
 
       {/* message console */}
       <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4 flex-1 flex flex-col min-h-0">
