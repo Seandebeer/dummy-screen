@@ -12,7 +12,7 @@ const parse = (s) => {
 };
 
 // ---------- control side: streams the operator's camera + mic to the device ----------
-export function startControlVideo(session, onStatus, ch = CHANNEL) {
+export function startControlVideo(session, onStatus, ch = CHANNEL, opts = {}) {
   let pc = null;
   let stream = null;
   let stopped = false;
@@ -51,6 +51,8 @@ export function startControlVideo(session, onStatus, ch = CHANNEL) {
       return;
     }
     if (stopped) { stream.getTracks().forEach((t) => t.stop()); return; }
+    // the operator's mic starts silent when it was toggled off pre-call
+    if (opts.micOn === false) stream.getAudioTracks().forEach((t) => { t.enabled = false; });
     pc = new RTCPeerConnection(RTC_CONFIG);
     stream.getTracks().forEach((t) => pc.addTrack(t, stream));
     pc.onicecandidate = (e) => { if (e.candidate) send("ice", e.candidate.toJSON()); };

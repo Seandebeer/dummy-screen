@@ -72,7 +72,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
   const start = async () => {
     if (busy || state !== "idle" || !contact.name.trim()) return;
     setBusy(true);
-    const payload = { mode, photoUrl, videoUrl, vfx, camOff: !camOn, micMuted: !micOn, photoMode, source: getScreenId() };
+    const payload = { mode, photoUrl, videoUrl, vfx, camOff: !camOn, photoMode, source: getScreenId() };
     payloadRef.current = payload;
     try {
       const rec = await base44.entities.Command.create({
@@ -84,7 +84,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
       });
       setCmdId(rec.id);
       setState("ringing");
-      if (mode === "live") linkRef.current = startControlVideo(rec.id, setLive, channel);
+      if (mode === "live") linkRef.current = startControlVideo(rec.id, setLive, channel, { micOn });
     } catch {}
     setBusy(false);
   };
@@ -98,7 +98,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
   const switchMode = (m) => {
     setMode(m);
     push({ mode: m });
-    if (m === "live" && cmdId && !linkRef.current) linkRef.current = startControlVideo(cmdId, setLive, channel);
+    if (m === "live" && cmdId && !linkRef.current) linkRef.current = startControlVideo(cmdId, setLive, channel, { micOn });
   };
 
   const toggleCam = () => {
@@ -107,11 +107,12 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
     linkRef.current?.setCamOn(v);
     push({ camOff: !v });
   };
+  // trigger-side only: the mic toggle gates your own audio on the live
+  // link - nothing changes on the prop phone
   const toggleMic = () => {
     const v = !micOn;
     setMicOn(v);
     linkRef.current?.setMicOn(v);
-    push({ micMuted: !v });
   };
 
   const upload = async (e) => {
@@ -177,7 +178,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
             {live === "on" ? "Live camera streaming"
               : live === "denied" ? "Camera blocked - pick another mode"
               : live === "error" ? "Live link failed"
-              : "Toggles apply to the far end during the call"}
+              : "Toggles control your live feed only"}
           </span>
         </div>
       )}

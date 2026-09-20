@@ -138,9 +138,6 @@ export default function OS() {
     }
     enterTakeover();
     if (c.type === "call_incoming") {
-      // the deck can start the phone's mic muted / speaker on
-      if (typeof p.micOn === "boolean") setCallMuted(!p.micOn);
-      if (typeof p.speakerOn === "boolean") setCallSpeaker(p.speakerOn);
       setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, photoMode: p.photoMode });
     } else if (c.type === "call_outgoing") {
       setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, channel: c.channel, startTime: Date.now() });
@@ -250,11 +247,6 @@ export default function OS() {
             setCall(null);
             // the trigger finished - release the auto takeover lock
             if (autoRef.current) exitTakeover();
-          } else {
-            // mid-call: the deck toggled the phone's mic / speaker
-            const p = parseJson(c.payload);
-            if (typeof p.micOn === "boolean") setCallMuted(!p.micOn);
-            if (typeof p.speakerOn === "boolean") setCallSpeaker(p.speakerOn);
           }
         }
         if (c.status === "completed" && alarmRef.current && c.id === alarmRef.current.commandId) {

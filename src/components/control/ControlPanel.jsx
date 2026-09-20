@@ -49,9 +49,10 @@ export default function ControlPanel() {
     try { return localStorage.getItem("takeover-target-device") || ""; } catch { return ""; }
   });
   const [devices, setDevices] = useState(null);
-  // the phone's mic + speaker state for the call trigger (deck-driven)
-  const [phoneMic, setPhoneMic] = useState(true);
-  const [phoneSpeaker, setPhoneSpeaker] = useState(false);
+  // the operator's own mic + speaker - trigger-side only, never pushed to the
+  // target phone (mic = your voice into the phone, speaker = hearing the actor)
+  const [opMic, setOpMic] = useState(true);
+  const [opSpeaker, setOpSpeaker] = useState(false);
   // notification banner trigger state - a queue of up to 20 pushable banners
   const [notifScreen, setNotifScreen] = useState("lock"); // lock | home
   const [notifApp, setNotifApp] = useState("messages");
@@ -212,36 +213,30 @@ export default function ControlPanel() {
         channel, type: "call_incoming",
         contact_name: contact.name.trim(), contact_number: contact.number.trim(),
         ...(contact.image ? { contact_image: contact.image } : {}),
-        payload: JSON.stringify({ photoMode, micOn: phoneMic, speakerOn: phoneSpeaker, source: getScreenId() }),
+        payload: JSON.stringify({ photoMode, source: getScreenId() }),
         status: "pending",
       });
       setActiveCmdId(rec.id);
       setCallState("ringing");
-      // open the voice link - the phone picks it up when the call is answered
+      // open the voice link - the phone picks it up when the call is answered;
+      // the operator's mic / speaker carry over from the deck toggles
       voiceRef.current?.stop();
-      voiceRef.current = startControlVoice(rec.id, setVoice);
+      voiceRef.current = startControlVoice(rec.id, setVoice, channel, { micOn: opMic, speakerOn: opSpeaker });
     } catch (e) {}
     setBusy(false);
   };
 
-  // mid-call: push the phone's mic / speaker state to the ringing / active call
-  const pushCallAudio = (patch) => {
-    if (!activeCmdId) return;
-    try {
-      base44.entities.Command.update(activeCmdId, {
-        payload: JSON.stringify({ photoMode, micOn: phoneMic, speakerOn: phoneSpeaker, source: getScreenId(), ...patch }),
-      }).catch(() => {});
-    } catch {}
+  // mid-call, trigger-side: mute your own voice or (un)mute hearing the
+  // actor - handled locally on the deck's voice link
+  const toggleOpMic = () => {
+    const v = !opMic;
+    setOpMic(v);
+    voiceRef.current?.setMicOn(v);
   };
-  const togglePhoneMic = () => {
-    const v = !phoneMic;
-    setPhoneMic(v);
-    pushCallAudio({ micOn: v });
-  };
-  const togglePhoneSpeaker = () => {
-    const v = !phoneSpeaker;
-    setPhoneSpeaker(v);
-    pushCallAudio({ speakerOn: v });
+  const toggleOpSpeaker = () => {
+    const v = !opSpeaker;
+    setOpSpeaker(v);
+    voiceRef.current?.setSpeakerOn(v);
   };
 
   const endCall = async () => {
@@ -478,20 +473,18 @@ export default function ControlPanel() {
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-body text-muted-foreground">On the phone</span>
-          <button onClick={togglePhoneMic}
+          <span className="text-[10px] font-body text-muted-foreground">On this deck</span>
+          <button onClick={toggleOpMic}
             className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
-              phoneMic ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
-            {phoneMic ? <Mic size={13} /> : <MicOff size={13} />} {phoneMic ? "Mic on" : "Mic off"}
+              opMic ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+            {opMic ? <Mic size={13} /> : <MicOff size={13} />} {opMic ? "Mic on" : "Mic off"}
           </button>
-          <button onClick={togglePhoneSpeaker}
+          <button onClick={toggleOpSpeaker}
             className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
-              phoneSpeaker ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
-            <Volume2 size={13} /> {phoneSpeaker ? "Speaker on" : "Speaker off"}
+              opSpeaker ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+            <Volume2 size={13} /> {opSpeaker ? "Speaker on" : "Speaker off"}
           </button>
-          {(phoneMic || phoneSpeaker) && (
-            <span className="text-[9px] font-body text-muted-foreground/70">applies live during the call</span>
-          )}
+          <span className="text-[9px] font-body text-muted-foreground/70">your voice into the phone · hear the actor</span>
         </div>
         <div className={cn("mt-2 text-[10px] font-body",
           voice === "mic-on" ? "text-signal" : "text-muted-foreground")}>
