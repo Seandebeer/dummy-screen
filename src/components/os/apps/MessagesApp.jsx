@@ -27,8 +27,11 @@ function fmtListTime(d) {
 
 const digits = (s) => (s || "").replace(/\D/g, "");
 
-export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }) {
+export default function MessagesApp({ contacts = [], initialTo, theme = "dark", locked, fullscreen }) {
   const dark = theme !== "light";
+  // bubble restyling (timestamps / ticks) only works while the screen lock is
+  // unlocked and the stage isn't in a locked fullscreen takeover
+  const canEdit = !locked && !fullscreen;
   // this screen's device profile - the control deck's targeted messages arrive
   // on a device channel that belongs to this same "Control Deck" thread
   const linkedId = getLinkedDeviceId();
@@ -176,10 +179,14 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
     setDraft(m.custom_time || new Date(m.created_date).toTimeString().slice(0, 5));
   };
   const startPress = (m) => {
+    if (!canEdit) return;
     clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => openEditor(m), 550);
   };
   const cancelPress = () => clearTimeout(pressTimer.current);
+
+  // a locked stage closes any open bubble editor
+  useEffect(() => { if (!canEdit) setEditingId(null); }, [canEdit]);
 
   const deleteThread = async (tid) => {
     setMessages((m) => m.filter((x) => x.thread_id !== tid));
@@ -214,7 +221,7 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
                 <div
                   onPointerDown={() => startPress(m)} onPointerUp={cancelPress}
                   onPointerLeave={cancelPress} onPointerMove={cancelPress}
-                  onDoubleClick={() => openEditor(m)}
+                  onDoubleClick={() => canEdit && openEditor(m)}
                   onContextMenu={(e) => e.preventDefault()}
                   className={cn("max-w-[75%] select-none rounded-2xl px-3.5 py-2 text-sm",
                   mine ? "bg-[#007AFF] text-white rounded-br-md" : dark ? "bg-[#3A3A3C] text-white rounded-bl-md" : "bg-[#E9E9EB] text-black rounded-bl-md")}>
