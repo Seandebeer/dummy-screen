@@ -154,7 +154,7 @@ export default function ProjectsPanel({ selected, onSelect }) {
                           )}
                           {canManage(p) && (
                             <button onClick={() => setConfirmDel(p)} title="Delete project"
-                              className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
+                              className="ml-3 pl-2 border-l border-border/60 text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
                               <Trash2 size={15} />
                             </button>
                           )}

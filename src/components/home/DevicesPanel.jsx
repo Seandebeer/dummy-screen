@@ -236,7 +236,7 @@ export default function DevicesPanel({ project }) {
                             </button>
                           )}
                           <button onClick={() => setConfirmDel(d)} title="Delete device"
-                            className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
+                            className="ml-3 pl-2 border-l border-border/60 text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
                             <Trash2 size={15} />
                           </button>
                         </div>
