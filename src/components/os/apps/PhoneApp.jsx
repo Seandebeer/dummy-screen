@@ -14,7 +14,7 @@ const TYPE_META = {
 
 export default function PhoneApp({ onCall, recents = [], language = "en" }) {
   const [number, setNumber] = useState("");
-  const [tab, setTab] = useState("recents");
+  const [tab, setTab] = useState("keypad");
   const t = LANGUAGES.find((l) => l.code === language)?.phone || LANGUAGES[0].phone;
 
   return (
@@ -54,12 +54,12 @@ export default function PhoneApp({ onCall, recents = [], language = "en" }) {
       ) : tab === "history" ? (
         <CallHistoryScreen onCall={onCall} language={language} />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-between py-4">
+        <div className="flex-1 flex flex-col items-center justify-between pt-8 pb-12">
           <div className="font-display text-4xl font-light min-h-[3rem] tracking-wide">{number || <span className="text-white/20">Enter number</span>}</div>
           <div className="grid grid-cols-3 gap-3">
             {keypad.map((k) => (
               <button key={k} onClick={() => setNumber((n) => n + k)}
-                className="h-20 w-20 rounded-full bg-white/10 text-3xl font-display font-light active:bg-white/20">{k}</button>
+                className="h-[4.25rem] w-[4.25rem] rounded-full bg-white/10 text-3xl font-display font-light active:bg-white/20">{k}</button>
             ))}
           </div>
           <div className="flex items-center gap-8">
