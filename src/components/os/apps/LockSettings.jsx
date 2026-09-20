@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { Hash, Grid3x3, ScanFace, Fingerprint, Upload, Trash2, Loader2, Check, Sparkles, ChevronsRight, CircleDot, ChevronUp } from "lucide-react";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { base44 } from "@/api/base44Client";
+import { skinUi } from "@/lib/osSkins";
 import { cn } from "@/lib/utils";
 
 const METHODS = [
@@ -49,6 +50,11 @@ export default function LockSettings({ config, update, onLock, bare = false }) {
     (lock.type === "passcode" && !config.passcode) ||
     (lock.type === "pattern" && !config.pattern);
 
+  // what "Skin Default" opens with on the active skin - the modern skins
+  // (and other flat skins) resolve to swipe up
+  const skinMethod = (skinUi(config.skin).lock || {}).method || "none";
+  const defaultLabel = METHODS.find((m) => m.id === (skinMethod === "none" ? "swipe" : skinMethod))?.label || "Swipe Up";
+
   return (
     <div className={bare ? "" : "px-5 pt-2"}>
       <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">Lock Screen Background</div>
@@ -84,7 +90,9 @@ export default function LockSettings({ config, update, onLock, bare = false }) {
             <Icon size={18} className={lock.type === id ? "text-[#0A84FF]" : "text-white/50"} />
             <span className="flex-1 text-left">
               <span className="block text-sm">{label}</span>
-              <span className="block text-[10px] text-white/35 font-body">{hint}</span>
+              <span className="block text-[10px] text-white/35 font-body">
+                {id === "none" ? `${defaultLabel} by default` : hint}
+              </span>
             </span>
             {lock.type === id && <Check size={16} className="text-[#0A84FF]" />}
           </button>
