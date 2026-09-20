@@ -43,6 +43,14 @@ export const OS_SKINS = [
     preview: "linear-gradient(180deg, #123253, #0b1e38)",
   },
   {
+    id: "blackberry",
+    era: "legacy",
+    name: "BlackBerry",
+    desc: "Corporate classic - dense info, tiny icons, dark blue.",
+    preset: "bb",
+    preview: "linear-gradient(180deg, #101b2a, #060b13)",
+  },
+  {
     id: "winphone",
     era: "legacy",
     name: "Windows Phone",
