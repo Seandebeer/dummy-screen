@@ -8,6 +8,7 @@ const FIELD = "flex-1 min-w-0 rounded-lg bg-muted/40 border border-border px-2.5
 // physical prop details for a device - the actual phone's make, model, colour,
 // serial number and a photo, stored with the device record for the whole team.
 export default function DeviceDetails({ device, onChange }) {
+  const [name, setName] = useState(device.name || "");
   const [make, setMake] = useState(device.make || "");
   const [model, setModel] = useState(device.model || "");
   const [colour, setColour] = useState(device.colour || "");
@@ -20,7 +21,7 @@ export default function DeviceDetails({ device, onChange }) {
   const save = async () => {
     setBusy(true);
     try {
-      await base44.entities.Device.update(device.id, { make, model, colour, serial, photo });
+      await base44.entities.Device.update(device.id, { name: name.trim() || device.name, make, model, colour, serial, photo });
       onChange();
     } finally {
       setBusy(false);
@@ -41,6 +42,8 @@ export default function DeviceDetails({ device, onChange }) {
 
   return (
     <div className="flex flex-col gap-2.5">
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Device name" className={FIELD} />
+
       <div className="grid grid-cols-2 gap-2">
         <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="Make (e.g. Apple)" className={FIELD} />
         <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Model (e.g. iPhone 14)" className={FIELD} />
