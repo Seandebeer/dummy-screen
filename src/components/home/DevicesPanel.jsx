@@ -86,11 +86,6 @@ export default function DevicesPanel({ project }) {
     refresh();
   };
 
-  const assign = async (d, projectId) => {
-    await base44.entities.Device.update(d.id, { project_id: projectId || null });
-    refresh();
-  };
-
   const remove = async (d) => {
     await base44.entities.Device.delete(d.id);
     refresh();
@@ -198,14 +193,12 @@ export default function DevicesPanel({ project }) {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-body truncate">{d.name}</div>
                 <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
-                  {d.kind}{[d.make, d.model].filter(Boolean).join(" ") ? ` · ${[d.make, d.model].filter(Boolean).join(" ")}` : ""}{d.project_id && projectById(d.project_id) ? ` · ${projectById(d.project_id).name}` : ""}{d.config ? " · layout saved" : ""}
+                  {d.kind}
+                  {[d.make, d.model, d.colour].filter(Boolean).length > 0 ? ` · ${[d.make, d.model, d.colour].filter(Boolean).join(" ")}` : ""}
+                  {d.project_id && projectById(d.project_id) ? ` · ${projectById(d.project_id).name}` : ""}
+                  {d.config ? " · layout saved" : ""}
                 </div>
               </div>
-              <select value={d.project_id || ""} onChange={(e) => assign(d, e.target.value)}
-                className="rounded-md bg-muted/40 border border-border px-1.5 py-1 text-[10px] font-body outline-none max-w-[110px]">
-                <option value="">Unassigned</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
               <button onClick={() => setDetailsOpen(detailsOpen === d.id ? null : d.id)} title="Device info"
                 className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
                 <Info size={15} />
