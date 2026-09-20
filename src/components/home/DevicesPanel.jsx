@@ -89,7 +89,7 @@ export default function DevicesPanel({ project }) {
   const projectById = (id) => projects.find((p) => p.id === id);
 
   // this panel follows the project selected in Projects - only its devices show
-  const visible = project ? devices.filter((d) => d.project_id === project.id) : [];
+  const visible = project && devices ? devices.filter((d) => d.project_id === project.id) : [];
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5">
