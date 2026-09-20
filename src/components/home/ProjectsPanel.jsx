@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { FolderKanban, Plus, Trash2, Loader2, Users, ChevronDown } from "lucide-react";
+import { FolderKanban, Plus, Trash2, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProjectTeam from "@/components/home/ProjectTeam";
-import ProjectDevices from "@/components/home/ProjectDevices";
 
 export default function ProjectsPanel() {
   const [projects, setProjects] = useState(null);
-  const [devices, setDevices] = useState([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [teamOpen, setTeamOpen] = useState(null);
-  const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -36,21 +33,16 @@ export default function ProjectsPanel() {
     base44.entities.Project.list("-created_date", 100)
       .then((d) => setProjects(d))
       .catch(() => setProjects([]));
-    base44.entities.Device.list("-created_date", 200)
-      .then((d) => setDevices(d))
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
     refresh();
     const unsub = base44.entities.Project.subscribe(() => refresh());
-    const unsubDevices = base44.entities.Device.subscribe(() => refresh());
-    return () => { unsub(); unsubDevices(); };
+    return () => unsub();
   }, [refresh]);
 
   // only projects this user has access to - their own or shared with them
   const visibleProjects = (projects || []).filter((p) => myAccess(p) === "owner" || myAccess(p) === "editor" || myAccess(p) === "viewer");
-  const deviceCount = (p) => devices.filter((d) => d.project_id === p.id).length;
 
   const add = async (e) => {
     e.preventDefault();
@@ -106,15 +98,8 @@ export default function ProjectsPanel() {
           {visibleProjects.map((p) => (
             <li key={p.id} className="group rounded-lg border border-border bg-muted/30 px-3 py-2.5">
               <div className="flex items-center gap-3">
-                <button onClick={() => setSelected(selected === p.id ? null : p.id)}
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <span className="h-2 w-2 rounded-full bg-amber/70 shrink-0" />
-                  <span className="flex-1 text-sm font-body truncate">{p.name}</span>
-                  <span className="shrink-0 text-[9px] uppercase tracking-wider text-muted-foreground font-body">
-                    {deviceCount(p)} {deviceCount(p) === 1 ? "device" : "devices"}
-                  </span>
-                  <ChevronDown size={13} className={cn("shrink-0 text-muted-foreground transition-transform", selected === p.id && "rotate-180")} />
-                </button>
+                <span className="h-2 w-2 rounded-full bg-amber/70 shrink-0" />
+                <span className="flex-1 text-sm font-body truncate">{p.name}</span>
                 {(myAccess(p) === "editor" || myAccess(p) === "viewer") && (
                   <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[9px] font-body uppercase tracking-wider",
                     myAccess(p) === "editor" ? "bg-signal/15 text-signal" : "bg-muted text-muted-foreground")}>
@@ -133,10 +118,6 @@ export default function ProjectsPanel() {
                   </button>
                 )}
               </div>
-              {selected === p.id && (
-                <ProjectDevices project={p} devices={devices} projects={projects}
-                  readOnly={myAccess(p) === "viewer"} onChange={refresh} />
-              )}
               {teamOpen === p.id && (
                 <div className="mt-2 pt-2 border-t border-border/60">
                   <ProjectTeam project={p} user={user} onChange={refresh} />
