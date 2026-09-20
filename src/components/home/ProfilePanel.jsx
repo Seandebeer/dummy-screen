@@ -156,7 +156,6 @@ export default function ProfilePanel() {
       </div>
 
       <div>
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-body mb-2">Saved profiles</div>
         {profiles === null ? (
           <div className="py-4 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={16} /></div>
         ) : profiles.length === 0 ? null : (
