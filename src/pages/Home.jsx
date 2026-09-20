@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MonitorSmartphone, Clapperboard, Settings2, Bookmark, User as UserIcon } from "lucide-react";
+import { MonitorSmartphone, Clapperboard, Bookmark, User as UserIcon } from "lucide-react";
 import HomeSection from "@/components/home/HomeSection";
 import ProjectsPanel from "@/components/home/ProjectsPanel";
 import DevicesPanel from "@/components/home/DevicesPanel";
@@ -60,6 +60,9 @@ export default function Home() {
               </SheetHeader>
               <div className="p-4 h-[calc(100dvh-88px)] overflow-y-auto">
                 <ProfilePanel />
+                <div className="mt-4">
+                  <AppSettingsPanel />
+                </div>
               </div>
             </SheetContent>
           </Sheet>
@@ -72,9 +75,6 @@ export default function Home() {
         </HomeSection>
         <HomeSection icon={MonitorSmartphone} title="Devices" subtitle="Prop devices & stage sync" open={devicesOpen} onOpenChange={setDevicesOpen}>
           <DevicesPanel project={selectedProject} />
-        </HomeSection>
-        <HomeSection icon={Settings2} title="Settings" subtitle="Deck & mock OS preferences">
-          <AppSettingsPanel />
         </HomeSection>
         <HomeSection icon={Bookmark} title="Saved" subtitle="Saved marker & screen configurations">
           <SavedPanel />
