@@ -33,7 +33,7 @@ import MarkAdjust from "@/components/os/MarkAdjust";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
-import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
+import { ensureDeviceOnline, saveDevice, getDeviceName } from "@/lib/deviceLink";
 import { slimConfig } from "@/lib/osConfigStore";
 import LockScreen from "@/components/os/LockScreen";
 import ClockEditor from "@/components/os/ClockEditor";
@@ -41,7 +41,7 @@ import WpTileHome from "@/components/os/WpTileHome";
 import Bb10Home from "@/components/os/Bb10Home";
 import SettingsApp from "@/components/os/apps/SettingsApp";
 import AppStoreApp from "@/components/os/apps/AppStoreApp";
-import { skinUi } from "@/lib/osSkins";
+import { skinUi, OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
 
 export default function OS() {
@@ -56,6 +56,7 @@ export default function OS() {
   const [alarm, setAlarm] = useState(null);
   const [banner, setBanner] = useState(null);
   const [clockEdit, setClockEdit] = useState(false);
+  const [deviceName, setDeviceName] = useState(getDeviceName);
   const [messageTo, setMessageTo] = useState(null);
   const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
@@ -234,6 +235,7 @@ export default function OS() {
     const name = window.prompt("Save as character's device - name:", fallback);
     if (!name || !name.trim()) return;
     await saveDevice(name.trim(), slimConfig(config));
+    setDeviceName(name.trim());
   };
 
   const statusTime = config.clock.mode === "custom" && config.clock.time
@@ -336,6 +338,7 @@ export default function OS() {
   };
 
   const rtl = config.language === "ar";
+  const skinName = OS_SKINS.find((s) => s.id === (config.skin || "modern"))?.name || "Modern";
   const screen = locked
     ? <div className="absolute inset-0" dir={rtl ? "rtl" : "ltr"}><LockScreen config={config} update={update} onUnlock={handleUnlock} notifications={config.notifications || []} onOpenNotification={openNotification} /></div>
     : app === null
@@ -348,7 +351,12 @@ export default function OS() {
         <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-body">
           <ArrowLeft size={18} /> Back
         </Link>
-        <div className="font-display font-semibold text-[17px] tracking-[-0.01em]">OS Simulator</div>
+        <div className="text-center min-w-0">
+          <div className="font-display font-semibold text-[17px] tracking-[-0.01em] leading-tight truncate max-w-[180px] sm:max-w-[240px]">{deviceName}</div>
+          <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
+            {skinName} · {config.theme === "light" ? "Light" : "Dark"} theme
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>

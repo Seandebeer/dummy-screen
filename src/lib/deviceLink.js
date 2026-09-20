@@ -25,6 +25,9 @@ const fallbackName = () => {
   try { return localStorage.getItem(NAME_KEY) || "Prop phone"; } catch { return "Prop phone"; }
 };
 
+// this screen's device name - shown in the OS header
+export const getDeviceName = () => fallbackName();
+
 // keep this screen's device record online; create one when asked (QR connect)
 export async function ensureDeviceOnline(createIfNeeded) {
   const id = getLinkedDeviceId();
@@ -51,12 +54,13 @@ export async function saveDevice(name, slimmedConfig) {
   if (id) {
     try {
       await base44.entities.Device.update(id, payload);
+      linkDevice(id, name);
       return id;
     } catch {} // device was deleted - recreate below
   }
   try {
     const rec = await base44.entities.Device.create(payload);
-    link(rec.id);
+    linkDevice(rec.id, name);
     return rec.id;
   } catch {
     return null;
