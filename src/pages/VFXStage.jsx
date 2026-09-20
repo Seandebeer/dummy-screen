@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { compositeMarks, getColor } from "@/lib/vfxData";
-import { saveConfig } from "@/lib/savedConfigs";
+import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import useScreenMarks, { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import StageToolbar from "@/components/vfx/StageToolbar";
@@ -40,6 +40,7 @@ export default function VFXStage() {
 
   const [locked, setLocked] = useState(false);
   const [banner, setBanner] = useState(null);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [dragId, setDragId] = useState(null);
   const lastTap = useRef({ id: null, t: 0 });
   const bannerTimer = useRef(null);
@@ -136,11 +137,8 @@ export default function VFXStage() {
     layouts: { ...m.layouts, [marksId]: defaultLayoutFor(marksId) },
   }));
 
-  const saveScreen = () => {
-    const name = window.prompt("Name this screen:", `${marksId} · ${colorId}`);
-    if (!name) return;
-    saveConfig({ kind: "screen", name: name.trim() || "Untitled", colorId, marksId, marks });
-  };
+  // saving offers a choice: the Saved card (favourites) or this device's folder
+  const saveScreen = () => setSaveOpen(true);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden"
@@ -200,6 +198,11 @@ export default function VFXStage() {
         </>
       )}
 
+      {saveOpen && (
+        <SaveTargetSheet title="Save screen" defaultName={`${marksId} · ${colorId}`}
+          build={(n) => ({ kind: "screen", name: n, colorId, marksId, marks })}
+          onClose={() => setSaveOpen(false)} />
+      )}
     </div>
   );
 }

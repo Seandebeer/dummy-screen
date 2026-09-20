@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Check, Lock, Palette, RotateCcw, Save, Shapes } from "lucide-react";
-import { saveConfig } from "@/lib/savedConfigs";
+import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import MarkAdjust from "@/components/os/MarkAdjust";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
@@ -41,6 +41,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [pressedBtn, setPressedBtn] = useState(null);
   const [pressedBar, setPressedBar] = useState(null);
   const [dragBar, setDragBar] = useState(null); // "h" | "v"
@@ -86,11 +87,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     setTimeout(() => setHint(false), 2400);
   };
 
-  const saveLayout = () => {
-    const name = window.prompt("Name this marker configuration:", `Markers ${new Date().toLocaleDateString()}`);
-    if (!name) return;
-    saveConfig({ kind: "markers", name: name.trim() || "Untitled", uiMarkers: markers });
-  };
+  // saving offers a choice: the Saved card (favourites) or this device's folder
+  const saveLayout = () => setSaveOpen(true);
 
   // tracking marks: auto contrast against the background
   const isLightHex = (hex) => {
@@ -478,6 +476,11 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
             3-finger tap to unlock
           </span>
         </div>
+      )}
+      {saveOpen && (
+        <SaveTargetSheet title="Save marker layout" defaultName={`Markers ${new Date().toLocaleDateString()}`}
+          build={(n) => ({ kind: "markers", name: n, uiMarkers: markers })}
+          onClose={() => setSaveOpen(false)} />
       )}
     </div>
   );

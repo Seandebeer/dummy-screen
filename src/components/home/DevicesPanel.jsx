@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, FolderKanban, Plus, Trash2, Loader2, Info, ImageUp, Check, GripVertical } from "lucide-react";
+import { MonitorSmartphone, FolderKanban, Plus, Trash2, Loader2, Info, ImageUp, Check, GripVertical, Folder } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { applyOsConfig, resetOsConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
 import DeviceDetails from "@/components/home/DeviceDetails";
+import DeviceFolder from "@/components/home/DeviceFolder";
 import ConfirmDeleteDialog from "@/components/home/ConfirmDeleteDialog";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { arrayMove, bySortOrder } from "@/lib/reorder";
@@ -32,6 +33,7 @@ export default function DevicesPanel({ project }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
   const [detailsOpen, setDetailsOpen] = useState(null);
+  const [folderOpen, setFolderOpen] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
   const navigate = useNavigate();
 
@@ -213,6 +215,10 @@ export default function DevicesPanel({ project }) {
                               {[d.make, d.model, d.colour].filter(Boolean).length > 0 ? ` · ${[d.make, d.model, d.colour].filter(Boolean).join(" ")}` : ""}
                             </div>
                           </button>
+                          <button onClick={() => setFolderOpen(folderOpen === d.id ? null : d.id)} title="Saved screens & markers"
+                            className={cn("transition opacity-60 group-hover:opacity-100", folderOpen === d.id ? "text-amber" : "text-muted-foreground hover:text-foreground")}>
+                            <Folder size={15} />
+                          </button>
                           <button onClick={() => setDetailsOpen(detailsOpen === d.id ? null : d.id)} title="Device info"
                             className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
                             <Info size={15} />
@@ -225,6 +231,11 @@ export default function DevicesPanel({ project }) {
                         {detailsOpen === d.id && (
                           <div className="mt-2 pt-2 border-t border-border/60">
                             <DeviceDetails device={d} onChange={refresh} />
+                          </div>
+                        )}
+                        {folderOpen === d.id && (
+                          <div className="mt-2 pt-2 border-t border-border/60">
+                            <DeviceFolder device={d} />
                           </div>
                         )}
                       </li>

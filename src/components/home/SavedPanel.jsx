@@ -4,8 +4,7 @@ import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users, LayoutGrid, Smar
 import { listSaved, deleteConfig, mergeCloudEntries } from "@/lib/savedConfigs";
 import { syncNow, SYNC_EVENT } from "@/lib/cloudSync";
 import SyncBadge from "@/components/home/SyncBadge";
-import { applyPage } from "@/lib/savedPages";
-import { applyOsConfig } from "@/lib/osConfigStore";
+import { openSavedEntry } from "@/lib/openSaved";
 import SendToDeviceDialog from "@/components/home/SendToDeviceDialog";
 
 const CATEGORIES = ["All", "OS", "UI Markers", "Key Screens", "Socials", "Websites", "Apps"];
@@ -48,31 +47,12 @@ export default function SavedPanel() {
     };
   }, []);
 
-  const open = (s) => {
-    if (s.kind === "os") {
-      applyOsConfig(s.data);
-      navigate("/os");
-    } else if (s.kind === "markers") {
-      try {
-        const cfg = JSON.parse(localStorage.getItem("takeover-os-config")) || {};
-        cfg.uiMarkers = s.uiMarkers;
-        localStorage.setItem("takeover-os-config", JSON.stringify(cfg));
-      } catch {}
-      navigate("/uimarkers");
-    } else if (s.kind === "page") {
-      applyPage(s);
-      navigate("/os");
-    } else {
-      try {
-        localStorage.setItem("takeover-screen-marks", JSON.stringify(s.marks));
-      } catch {}
-      navigate(`/vfx?color=${s.colorId}&marks=${s.marksId}`);
-    }
-  };
+  const open = (s) => openSavedEntry(s, navigate);
 
   const remove = (id) => setSaved(deleteConfig(id));
 
-  const visible = saved.filter((s) => cat === "All" || categoryOf(s) === cat);
+  // device-scoped saves live in their device's folder, not in the Saved card
+  const visible = saved.filter((s) => !s.device_id && (cat === "All" || categoryOf(s) === cat));
 
   return (
     <div className="pt-1">
