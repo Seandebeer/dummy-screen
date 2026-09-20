@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, X, Globe } from "lucide-react";
 import { nextStockPhoto } from "@/lib/osSocial";
-import { saveWithPrompt } from "@/lib/savedPages";
 import { MAX_SITES } from "@/lib/osSites";
 import { Editable, EditToggle, SaveToggle, Photo } from "./social/SocialBits";
 import { cn } from "@/lib/utils";
@@ -97,7 +96,7 @@ export default function WebdeckApp({ config, update, locked, fullscreen }) {
         {canEdit && (
           <span className="flex shrink-0 items-center gap-1">
             {site && (
-              <SaveToggle onSave={() => saveWithPrompt("webdeck", `${site.name} site`, site)} />
+              <SaveToggle app="webdeck" defaultName={`${site.name} site`} data={site} />
             )}
             <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />
           </span>

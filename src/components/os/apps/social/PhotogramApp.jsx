@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Home as HomeIcon, Heart, MessageCircle, Send, Bookmark, User as UserIcon } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
-import { saveWithPrompt } from "@/lib/savedPages";
 import { Avatar, Editable, EditToggle, SaveToggle, Photo, fmtNum } from "./SocialBits";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +89,7 @@ export default function PhotogramApp({ config, update, locked, fullscreen }) {
           onChange={(v) => setData((d) => ({ name: v }))}
           className="text-[22px] font-display font-semibold italic tracking-tight" />
         <span className="ml-auto flex items-center gap-1">
-          {canEdit && <SaveToggle onSave={() => saveWithPrompt("photogram", `${data.name || "Lume"} page`, data)} />}
+          {canEdit && <SaveToggle app="photogram" defaultName={`${data.name || "Lume"} page`} data={data} />}
           {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />}
         </span>
       </div>

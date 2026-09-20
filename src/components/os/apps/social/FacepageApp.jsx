@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Home as HomeIcon, User as UserIcon, ThumbsUp, MessageCircle, Share2, Search, X } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
-import { saveWithPrompt } from "@/lib/savedPages";
 import { Avatar, Editable, EditToggle, SaveToggle, Photo } from "./SocialBits";
 import { cn } from "@/lib/utils";
 
@@ -44,8 +43,8 @@ export default function FacepageApp({ config, update, locked, fullscreen }) {
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
             <Search size={15} className="text-white" />
           </span>
-          {canEdit && <SaveToggle className="bg-white/15 text-white"
-            onSave={() => saveWithPrompt("facepage", `${data.name || "Grapevine"} page`, data)} />}
+          {canEdit && <SaveToggle className="bg-white/15 text-white" app="facepage"
+            defaultName={`${data.name || "Grapevine"} page`} data={data} />}
           {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/15 text-white" />}
         </span>
       </div>

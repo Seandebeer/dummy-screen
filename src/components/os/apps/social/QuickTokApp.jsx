@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Heart, MessageCircle, Share2, Music2, User as UserIcon, Check, Plus, X, Home as HomeIcon } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
-import { saveWithPrompt } from "@/lib/savedPages";
 import { Avatar, Editable, EditToggle, SaveToggle, Photo, UploadButton, fmtNum } from "./SocialBits";
 import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
@@ -73,8 +72,8 @@ export default function QuickTokApp({ config, update, locked, fullscreen }) {
           </div>
           {canEdit && (
             <div className="absolute right-2 top-2 z-30 flex gap-1.5">
-              <SaveToggle className="bg-white/10 text-white"
-                onSave={() => saveWithPrompt("quicktok", `${data.name || "Flickdeck"} page`, data)} />
+              <SaveToggle className="bg-white/10 text-white" app="quicktok"
+                defaultName={`${data.name || "Flickdeck"} page`} data={data} />
               <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/10 text-white" />
             </div>
           )}

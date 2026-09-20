@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Pencil, Check, Plus, X, Save } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { base44 } from "@/api/base44Client";
+import SaveSheet from "../SaveSheet";
 import { cn } from "@/lib/utils";
 
 // compact count formatting: 1200 -> 1.2K, 4500000 -> 4.5M
@@ -57,13 +58,18 @@ export function EditToggle({ editing, onToggle, className }) {
   );
 }
 
-// save-to-Home toggle shared by all editable apps
-export function SaveToggle({ onSave, className }) {
+// save toggle shared by all editable apps - opens the save sheet so the page
+// can go to the general Saved card or into a character's device
+export function SaveToggle({ app, defaultName, data, className }) {
+  const [open, setOpen] = useState(false);
   return (
-    <button onClick={onSave} title="Save to Home"
-      className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/10 transition hover:bg-black/20", className)}>
-      <Save size={14} />
-    </button>
+    <>
+      <button onClick={() => setOpen(true)} title="Save"
+        className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/10 transition hover:bg-black/20", className)}>
+        <Save size={14} />
+      </button>
+      {open && <SaveSheet app={app} defaultName={defaultName} data={data} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import { nextStockPhoto } from "@/lib/osSocial";
-import { saveWithPrompt } from "@/lib/savedPages";
 import { Editable, EditToggle, SaveToggle, Photo } from "./social/SocialBits";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +35,8 @@ export default function NewsApp({ config, update, locked, fullscreen }) {
         </div>
         {canEdit && (
           <span className="flex shrink-0 items-center gap-1">
-            <SaveToggle className="bg-white/10 text-white"
-              onSave={() => saveWithPrompt("news", `${data.name || "Bulletin"} edition`, data)} />
+            <SaveToggle className="bg-white/10 text-white" app="news"
+              defaultName={`${data.name || "Bulletin"} edition`} data={data} />
             <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/10 text-white" />
           </span>
         )}

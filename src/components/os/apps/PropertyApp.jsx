@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Bath, BedDouble, Heart, Plus, Ruler, X } from "lucide-react";
 import { nextStockPhoto } from "@/lib/osSocial";
-import { saveWithPrompt } from "@/lib/savedPages";
 import { Editable, EditToggle, SaveToggle, Photo } from "./social/SocialBits";
 import { cn } from "@/lib/utils";
 
@@ -45,8 +44,8 @@ export default function PropertyApp({ config, update, locked, fullscreen }) {
           <span className="min-w-0 flex-1 truncate text-sm font-semibold">{listing.address}</span>
           {canEdit && (
             <span className="flex shrink-0 items-center gap-1">
-              <SaveToggle className="bg-white/10 text-white"
-                onSave={() => saveWithPrompt("property", `${listing.address} listing`, listing)} />
+              <SaveToggle className="bg-white/10 text-white" app="property"
+                defaultName={`${listing.address} · Realty`} data={data} />
               <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/10 text-white" />
             </span>
           )}
@@ -98,8 +97,8 @@ export default function PropertyApp({ config, update, locked, fullscreen }) {
         </div>
         {canEdit && (
           <span className="flex shrink-0 items-center gap-1">
-            <SaveToggle className="bg-white/10 text-white"
-              onSave={() => saveWithPrompt("property", `${data.name || "Realty"} listings`, data)} />
+            <SaveToggle className="bg-white/10 text-white" app="property"
+              defaultName={`${data.name || "Realty"} listings`} data={data} />
             <EditToggle editing={editing} onToggle={() => setEditing(!editing)} className="bg-white/10 text-white" />
           </span>
         )}
