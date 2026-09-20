@@ -11,7 +11,7 @@ export default function BrandLogo() {
       src={LOGO_URL}
       alt="Dummy Phone"
       fittingType="fit"
-      className="h-12 w-[173px]"
+      className="h-10 w-[144px]"
     />
   );
 }
