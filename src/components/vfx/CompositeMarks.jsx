@@ -105,9 +105,9 @@ export default function CompositeGlyph({ kind, fill, size = 1, thickness = 1 }) 
   }
 
   if (!g) return null;
-  const s = 48 * size;
+  const s = Math.round(48 * size);
   return (
-    <svg className="absolute" width={s} height={s} viewBox="0 0 100 100"
+    <svg className="absolute" width={s} height={s} viewBox="0 0 100 100" shapeRendering="crispEdges"
       style={{ transform: "translate(-50%, -50%)" }}>
       {holes && (
         <defs>
