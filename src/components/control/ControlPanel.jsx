@@ -7,6 +7,7 @@ import { Image } from "@/components/ui/image";
 import QrConnect from "@/components/control/QrConnect";
 import VideoCallCard from "@/components/control/VideoCallCard";
 import LockPad from "@/components/control/LockPad";
+import ControlCard from "@/components/control/ControlCard";
 import DeviceContactPicker from "@/components/control/DeviceContactPicker";
 import { getScreenId } from "@/lib/deviceLink";
 import { coreApps, mockApps, categories, allAppsById } from "@/lib/osApps";
@@ -447,11 +448,7 @@ export default function ControlPanel() {
       </div>
 
       {/* call trigger */}
-      <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <PhoneIncoming size={16} className="text-signal" />
-          <span className="font-display font-semibold text-[15px] tracking-tight">Call Trigger</span>
-        </div>
+      <ControlCard icon={PhoneIncoming} title="Call Trigger">
         <div className="grid grid-cols-2 gap-2">
           <button onClick={triggerCall} disabled={!canCall}
             className="flex flex-col items-center gap-1.5 rounded-2xl border border-signal/30 bg-signal/10 py-3.5 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
@@ -500,24 +497,20 @@ export default function ControlPanel() {
                 ? "Voice link failed - calls run without live voice"
                 : "Allow mic access for live voice through the target device"}
         </div>
-      </div>
+      </ControlCard>
 
       {/* video call trigger */}
       <VideoCallCard contact={contact} channel={channel} />
 
       {/* message console */}
-      <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5 flex-1 flex flex-col min-h-0">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare size={16} className="text-signal" />
-            <span className="font-display font-semibold text-[15px] tracking-tight">Message Push Console</span>
-          </div>
-          <button onClick={resetMessages}
+      <ControlCard icon={MessageSquare} title="Message Push Console"
+        badge={
+          <button onClick={(e) => { e.stopPropagation(); resetMessages(); }}
             className="flex items-center gap-1 rounded-lg border border-white/[0.08] px-2 py-1 text-[10px] font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
             <Recycle size={11} /> Reset
           </button>
-        </div>
-        <div ref={scrollRef} className="flex-1 overflow-auto no-scrollbar space-y-2 mb-3 min-h-[120px]">
+        }>
+        <div ref={scrollRef} className="max-h-64 overflow-auto no-scrollbar space-y-2 mb-3 min-h-[120px]">
           {messages.length === 0 && <div className="text-center text-muted-foreground text-xs py-6 font-body">No messages. Push one to the prop phone.</div>}
           {messages.map((m) => {
             const mine = m.sender === "control";
@@ -621,14 +614,10 @@ export default function ControlPanel() {
             Reset clears the phone thread and reloads every pushed reply
           </div>
         </div>
-      </div>
+      </ControlCard>
 
       {/* notification banner trigger */}
-      <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Bell size={16} className="text-signal" />
-          <span className="font-display font-semibold text-[15px] tracking-tight">Notification Banner</span>
-        </div>
+      <ControlCard icon={Bell} title="Notification Banner">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[10px] font-body text-muted-foreground">Show on</span>
           <div className="flex gap-1">
@@ -745,14 +734,13 @@ export default function ControlPanel() {
         <div className="mt-2 text-[10px] font-body text-muted-foreground">
           Banners stack below each other on the phone until Reset clears them
         </div>
-      </div>
+      </ControlCard>
 
       {/* alarm trigger */}
-      <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <AlarmClock size={16} className="text-amber" />
-          <span className="font-display font-semibold text-[15px] tracking-tight">Alarm Trigger</span>
-        </div>
+      <ControlCard icon={AlarmClock} iconClass="text-amber" title="Alarm Trigger"
+        badge={alarmId ? (
+          <span className="text-[11px] font-body font-semibold uppercase text-amber amber-pulse">ringing</span>
+        ) : null}>
         <button onClick={alarmId ? stopAlarm : triggerAlarm}
           className={cn("w-full flex items-center justify-center gap-2 rounded-2xl border py-3.5 text-sm font-body font-semibold transition",
             alarmId
@@ -761,7 +749,7 @@ export default function ControlPanel() {
           <AlarmClock size={18} />
           {alarmId ? "Stop Alarm" : "Trigger Alarm"}
         </button>
-      </div>
+      </ControlCard>
 
       {/* remote 3-finger tap pad */}
       <LockPad channel={channel} />

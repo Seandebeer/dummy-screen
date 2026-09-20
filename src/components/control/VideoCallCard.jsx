@@ -5,6 +5,7 @@ import { startControlVideo } from "@/lib/videoLink";
 import { getScreenId } from "@/lib/deviceLink";
 import { trackingMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
+import ControlCard from "@/components/control/ControlCard";
 
 // Remote-triggered mock video call: the operator starts a "video_call" command
 // carrying the caller's content (live camera, VFX screen, uploaded video or
@@ -144,12 +145,8 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
   );
 
   return (
-    <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Video size={16} className="text-signal" />
-          <span className="font-display font-semibold text-[15px] tracking-tight">Video Call Trigger</span>
-        </div>
+    <ControlCard icon={Video} title="Video Call Trigger"
+      badge={
         <span className={cn("text-[11px] font-body font-semibold uppercase",
           state === "active" && "text-signal",
           state === "ringing" && "text-amber amber-pulse",
@@ -157,7 +154,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
           state === "idle" && "text-muted-foreground")}>
           {state}
         </span>
-      </div>
+      }>
 
       {/* what the actor's screen shows as the far end */}
       <div className="mb-2 grid grid-cols-4 gap-1.5">
@@ -246,6 +243,6 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
           ? `Calls ${contact.name.trim()} on the prop phone - the phone can also start it from FaceTime`
           : "Set an on-screen contact name above to enable video calls"}
       </div>
-    </div>
+    </ControlCard>
   );
 }
