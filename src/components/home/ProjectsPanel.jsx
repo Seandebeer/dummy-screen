@@ -98,7 +98,7 @@ export default function ProjectsPanel({ selected, onSelect }) {
               <Plus size={17} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-60 p-3">
+          <PopoverContent align="end" className="w-80 p-4">
             <form onSubmit={add} className="flex flex-col gap-2">
               <input
                 value={name}
