@@ -35,6 +35,13 @@ function tileStyle(app) {
       return { style: { background: `${bg}14`, border: `1.5px solid ${bg}` }, fg: t.fg || bg };
     case "glass":
       return { style: { background: `linear-gradient(145deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0) 60%), ${bg}` }, fg: "#fff" };
+    // downloaded-app styles: each family reads like a different company's brand
+    case "split":
+      return { style: { background: `linear-gradient(135deg, ${bg} 0 50%, ${t.bg2} 50%)` }, fg: "#fff" };
+    case "badge":
+      return { style: { background: `radial-gradient(circle closest-side at 50% 44%, ${bg} 0 86%, transparent 87%), #ffffff` }, fg: "#fff" };
+    case "pastel":
+      return { style: { background: `linear-gradient(180deg, ${bg}2E, ${bg}14)` }, fg: t.fg || bg };
     default: // core apps - clean flat native icon
       return { style: { background: bg }, fg: "#fff" };
   }
