@@ -25,7 +25,8 @@ export default function SettingsApp({ config, update, onLock, reset }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [uploadError, setUploadError] = useState(false);
-  const [codeDraft, setCodeDraft] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [draft, setDraft] = useState("");
   const [langOpen, setLangOpen] = useState(false);
   const fileRef = useRef(null);
   const t = uiFor(config.language);
@@ -39,20 +40,17 @@ export default function SettingsApp({ config, update, onLock, reset }) {
     contacts: [...makeDefaultContacts(codes, c.language || "en"), ...(c.contacts || []).filter((x) => x.custom)],
   }));
 
-  const toggleCode = (code) => {
-    if (activeCodes.includes(code)) {
-      if (activeCodes.length > 1) applyCodes(activeCodes.filter((c) => c !== code));
-    } else if (activeCodes.length >= 3) {
-      applyCodes([...activeCodes.slice(1), code]);
-    } else {
-      applyCodes([...activeCodes, code]);
-    }
-  };
-
-  const applyCustomCode = () => {
-    if (codeDraft.length !== 3 || activeCodes.includes(codeDraft)) return;
-    toggleCode(codeDraft);
-    setCodeDraft("");
+  // tap a pill to retype its number - a valid new code swaps straight into
+  // the dial codes, which regenerates the contacts list immediately
+  const commitEdit = (value) => {
+    const i = editing;
+    setEditing(null);
+    if (i == null) return;
+    const code = (value || "").trim();
+    if (!/^\d{3}$/.test(code) || activeCodes.includes(code) || code === activeCodes[i]) return;
+    const codes = [...activeCodes];
+    codes[i] = code;
+    applyCodes(codes);
   };
 
   // factory reset: wipe this device's pages, apps, settings and local data.
@@ -179,26 +177,24 @@ export default function SettingsApp({ config, update, onLock, reset }) {
 
       <Section title={t.dialCodes}>
         <div className="flex gap-2">
-          {DIAL_CODES.map((code) => (
-            <button key={code} onClick={() => toggleCode(code)}
-              className={cn("flex-1 rounded-lg border py-2.5 font-body text-sm transition",
-                activeCodes.includes(code)
-                  ? "border-amber text-amber bg-amber/10"
-                  : "border-white/10 text-white/60 hover:border-white/30")}>
+          {activeCodes.map((code, i) => editing === i ? (
+            <input key={`edit-${i}`} autoFocus inputMode="numeric" value={draft}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, "").slice(0, 3);
+                setDraft(v);
+                if (v.length === 3) commitEdit(v);
+              }}
+              onBlur={() => commitEdit(draft)}
+              onKeyDown={(e) => { if (e.key === "Enter") commitEdit(draft); }}
+              className="flex-1 rounded-lg border border-amber bg-amber/10 py-2.5 text-center font-body text-sm text-amber outline-none" />
+          ) : (
+            <button key={code} onClick={() => { setEditing(i); setDraft(code); }}
+              className="flex-1 rounded-lg border border-amber/40 text-amber bg-amber/10 py-2.5 font-body text-sm transition hover:border-amber">
               {code}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 mt-3">
-          <input value={codeDraft} onChange={(e) => setCodeDraft(e.target.value.replace(/\D/g, "").slice(0, 3))}
-            inputMode="numeric" placeholder="Custom code"
-            className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 font-body text-sm outline-none focus:border-amber placeholder:text-white/25" />
-          <button disabled={codeDraft.length !== 3} onClick={applyCustomCode}
-            className="rounded-lg bg-amber/15 border border-amber/40 text-amber text-xs font-semibold px-3 py-2 disabled:opacity-35 disabled:border-white/10 disabled:text-white/30">
-            Apply
-          </button>
-        </div>
-        <p className="text-[11px] text-white/40 font-body mt-2">Up to 3 codes stay active - mock numbers start with an active code, the rest is random.</p>
+        <p className="text-[11px] text-white/40 font-body mt-2">Tap to edit</p>
       </Section>
 
       <Section title={t.language}>
