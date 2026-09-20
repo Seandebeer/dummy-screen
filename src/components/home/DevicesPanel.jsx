@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save, ImageUp, Check, GripVertical } from "lucide-react";
+import { MonitorSmartphone, FolderKanban, Plus, Trash2, Loader2, Download, Info, Save, ImageUp, Check, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -129,7 +129,7 @@ export default function DevicesPanel({ project }) {
     <div className="rounded-2xl border border-border bg-surface p-5">
       <div className="flex items-center gap-2.5 mb-4">
         <span className="h-9 w-9 rounded-lg bg-signal/15 text-signal flex items-center justify-center">
-          <MonitorSmartphone size={18} />
+          {project ? <FolderKanban size={18} /> : <MonitorSmartphone size={18} />}
         </span>
         <div className="flex-1">
           <h3 className="font-display font-bold text-base leading-none">{project ? project.name : "Devices"}</h3>
