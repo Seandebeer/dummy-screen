@@ -4,7 +4,6 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
-import QrConnect from "@/components/control/QrConnect";
 import VideoCallCard from "@/components/control/VideoCallCard";
 import LockPad from "@/components/control/LockPad";
 import ControlCard from "@/components/control/ControlCard";
@@ -369,9 +368,6 @@ export default function ControlPanel() {
 
   return (
     <div className="flex flex-col gap-5 h-full">
-      {/* quick connect via QR */}
-      <QrConnect />
-
       {/* connection panel */}
       <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
         <div className="flex items-center justify-between mb-3">
