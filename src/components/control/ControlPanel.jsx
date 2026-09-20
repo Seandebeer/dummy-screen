@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock, Check, CheckCheck } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
@@ -118,6 +118,10 @@ export default function ControlPanel() {
       .then((d) => { if (mounted && d.length) setAlarmId((a) => a || d[0].id); }).catch(() => {});
     const unsubMsgs = base44.entities.Message.subscribe((e) => {
       if (e.type === "create" && e.data?.thread_id === channel) setMessages((m) => [...m, e.data]);
+      // the phone marking a thread read flips ticks to blue live
+      if (e.type === "update" && e.data?.thread_id === channel) {
+        setMessages((m) => m.map((x) => (x.id === e.data.id ? e.data : x)));
+      }
     });
     const unsubCmds = base44.entities.Command.subscribe((e) => {
       if (e.data?.type !== "alarm" || e.data.channel !== channel) return;
@@ -483,6 +487,13 @@ export default function ControlPanel() {
                   mine ? "bg-amber/15 border border-amber/30 text-foreground" : "bg-signal/10 border border-signal/30 text-foreground")}>
                   {!mine && <div className="text-[10px] text-signal font-body mb-0.5">PHONE</div>}
                   <div className="font-body">{m.text}</div>
+                  {mine && (
+                    <div className="mt-1 flex items-center justify-end">
+                      {m.read
+                        ? <CheckCheck size={13} className="text-primary" />
+                        : <Check size={13} className="text-muted-foreground" />}
+                    </div>
+                  )}
                 </div>
               </div>
             );

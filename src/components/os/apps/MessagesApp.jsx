@@ -66,7 +66,8 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
     return () => { mounted = false; unsub(); };
   }, []);
 
-  // mark the open thread as read
+  // mark the open thread as read - locally for badges, and on the server so
+  // the deck's ticks flip from sent to blue read receipts
   useEffect(() => {
     if (view.type !== "thread") return;
     setReadMap((m) => {
@@ -74,6 +75,13 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
       saveRead(n);
       return n;
     });
+    if (view.id === "stage-1") {
+      const chans = [ownChannel, "stage-1"].filter(Boolean);
+      base44.entities.Message.updateMany(
+        { thread_id: { $in: chans }, sender: "control", read: { $ne: true } },
+        { $set: { read: true } }
+      ).catch(() => {});
+    }
   }, [view, messages.length]);
 
   useEffect(() => {

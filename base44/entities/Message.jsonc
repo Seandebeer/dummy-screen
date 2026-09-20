@@ -30,6 +30,11 @@
     "custom_time": {
       "type": "string",
       "description": "Optional manual timestamp shown on the phone instead of the live send time"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once the target phone has opened the thread - shown as blue ticks on the deck"
     }
   },
   "required": [
