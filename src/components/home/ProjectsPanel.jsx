@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { FolderKanban, Plus, Trash2, Loader2, Users } from "lucide-react";
+import { FolderKanban, Plus, Trash2, Loader2, Users, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { arrayMove, bySortOrder } from "@/lib/reorder";
+import ConfirmDeleteDialog from "@/components/home/ConfirmDeleteDialog";
 import ProjectTeam from "@/components/home/ProjectTeam";
 
 export default function ProjectsPanel({ selected, onSelect }) {
@@ -47,12 +50,22 @@ export default function ProjectsPanel({ selected, onSelect }) {
   // only projects this user has access to - their own or shared with them
   const visibleProjects = (projects || []).filter((p) => myAccess(p) === "owner" || myAccess(p) === "editor" || myAccess(p) === "viewer");
 
+  // manual order first, then newest first for items never reordered
+  const ordered = [...visibleProjects].sort(bySortOrder);
+
+  const onDragEnd = async (res) => {
+    if (!res.destination || res.destination.index === res.source.index) return;
+    const next = arrayMove(ordered, res.source.index, res.destination.index);
+    await base44.entities.Project.bulkUpdate(next.map((p, i) => ({ id: p.id, sort_order: i })));
+    refresh();
+  };
+
   const add = async (e) => {
     e.preventDefault();
     if (!name.trim() || busy) return;
     setBusy(true);
     try {
-      await base44.entities.Project.create({ name: name.trim() });
+      await base44.entities.Project.create({ name: name.trim(), sort_order: ordered.length ? (ordered[0].sort_order ?? 0) - 1 : 0 });
       setName("");
       setAddOpen(false);
       refresh();
@@ -107,54 +120,66 @@ export default function ProjectsPanel({ selected, onSelect }) {
       ) : visibleProjects.length === 0 ? (
         <p className="py-8 text-center text-xs text-muted-foreground font-body">No projects you have access to - add one above or ask to join a team.</p>
       ) : (
-        <ul className="flex flex-col gap-1.5">
-          {visibleProjects.map((p) => (
-            <li key={p.id} className="group rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-              <div className="flex items-center gap-3">
-                <button onClick={() => onSelect(selected === p.id ? null : p)}
-                  className={cn("flex flex-1 min-w-0 items-center gap-3 rounded text-left transition",
-                    selected === p.id ? "bg-amber/10 px-1.5 py-0.5 -mx-1.5" : "hover:bg-muted/40 px-1.5 py-0.5 -mx-1.5")}>
-                  <span className={cn("h-2 w-2 rounded-full shrink-0", selected === p.id ? "bg-amber" : "bg-amber/70")} />
-                  <span className="flex-1 text-sm font-body truncate">{p.name}</span>
-                </button>
-                {(myAccess(p) === "editor" || myAccess(p) === "viewer") && (
-                  <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[9px] font-body uppercase tracking-wider",
-                    myAccess(p) === "editor" ? "bg-signal/15 text-signal" : "bg-muted text-muted-foreground")}>
-                    {myAccess(p) === "editor" ? "Editor" : "View only"}
-                  </span>
-                )}
-                {canManage(p) && (
-                  <button onClick={() => setTeamOpen(teamOpen === p.id ? null : p.id)} title="Manage team"
-                    className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
-                    <Users size={15} />
-                  </button>
-                )}
-                {canManage(p) && (
-                  confirmDel === p.id ? (
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      <span className="text-[10px] font-body text-alert">Delete?</span>
-                      <button onClick={() => { remove(p); setConfirmDel(null); }}
-                        className="text-[10px] font-body font-semibold uppercase tracking-wider text-alert">Yes</button>
-                      <button onClick={() => setConfirmDel(null)}
-                        className="text-[10px] font-body uppercase tracking-wider text-muted-foreground hover:text-foreground">No</button>
-                    </span>
-                  ) : (
-                    <button onClick={() => setConfirmDel(p.id)}
-                      className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
-                      <Trash2 size={15} />
-                    </button>
-                  )
-                )}
-              </div>
-              {teamOpen === p.id && (
-                <div className="mt-2 pt-2 border-t border-border/60">
-                  <ProjectTeam project={p} user={user} onChange={refresh} />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="projects">
+            {(provided) => (
+              <ul ref={provided.innerRef} {...provided.droppableProps} className="flex flex-col gap-1.5">
+                {ordered.map((p, i) => (
+                  <Draggable key={p.id} draggableId={p.id} index={i}>
+                    {(drag) => (
+                      <li ref={drag.innerRef} {...drag.draggableProps}
+                        className="group rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <span {...drag.dragHandleProps} title="Drag to reorder"
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground transition shrink-0">
+                            <GripVertical size={14} />
+                          </span>
+                          <button onClick={() => onSelect(selected === p.id ? null : p)}
+                            className={cn("flex flex-1 min-w-0 items-center gap-3 rounded text-left transition",
+                              selected === p.id ? "bg-amber/10 px-1.5 py-0.5 -mx-1.5" : "hover:bg-muted/40 px-1.5 py-0.5 -mx-1.5")}>
+                            <span className={cn("h-2 w-2 rounded-full shrink-0", selected === p.id ? "bg-amber" : "bg-amber/70")} />
+                            <span className="flex-1 text-sm font-body truncate">{p.name}</span>
+                          </button>
+                          {(myAccess(p) === "editor" || myAccess(p) === "viewer") && (
+                            <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[9px] font-body uppercase tracking-wider",
+                              myAccess(p) === "editor" ? "bg-signal/15 text-signal" : "bg-muted text-muted-foreground")}>
+                              {myAccess(p) === "editor" ? "Editor" : "View only"}
+                            </span>
+                          )}
+                          {canManage(p) && (
+                            <button onClick={() => setTeamOpen(teamOpen === p.id ? null : p.id)} title="Manage team"
+                              className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
+                              <Users size={15} />
+                            </button>
+                          )}
+                          {canManage(p) && (
+                            <button onClick={() => setConfirmDel(p)} title="Delete project"
+                              className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
+                              <Trash2 size={15} />
+                            </button>
+                          )}
+                        </div>
+                        {teamOpen === p.id && (
+                          <div className="mt-2 pt-2 border-t border-border/60">
+                            <ProjectTeam project={p} user={user} onChange={refresh} />
+                          </div>
+                        )}
+                      </li>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </ul>
+            )}
+          </Droppable>
+        </DragDropContext>
       )}
+      <ConfirmDeleteDialog
+        open={Boolean(confirmDel)}
+        onOpenChange={(o) => !o && setConfirmDel(null)}
+        name={confirmDel?.name}
+        onConfirm={() => { remove(confirmDel); setConfirmDel(null); }}
+      />
     </div>
   );
 }

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save, ImageUp, Check } from "lucide-react";
+import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save, ImageUp, Check, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
 import DeviceDetails from "@/components/home/DeviceDetails";
+import ConfirmDeleteDialog from "@/components/home/ConfirmDeleteDialog";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { arrayMove, bySortOrder } from "@/lib/reorder";
 
 const kinds = [
   { id: "phone", label: "Phone" },
@@ -54,6 +57,7 @@ export default function DevicesPanel({ project }) {
       await base44.entities.Device.create({
         name: name.trim(), kind, status: "offline", project_id: project?.id || null,
         make: make.trim(), model: model.trim(), colour: colour.trim(), serial: serial.trim(), photo,
+        sort_order: ordered.length ? (ordered[0].sort_order ?? 0) - 1 : 0,
       });
       setName("");
       setKind("phone");
@@ -106,6 +110,14 @@ export default function DevicesPanel({ project }) {
 
   // this panel follows the project selected in Projects - only its devices show
   const visible = project && devices ? devices.filter((d) => d.project_id === project.id) : [];
+  const ordered = visible.slice().sort(bySortOrder);
+
+  const onDragEnd = async (res) => {
+    if (!res.destination || res.destination.index === res.source.index) return;
+    const next = arrayMove(ordered, res.source.index, res.destination.index);
+    await base44.entities.Device.bulkUpdate(next.map((d, i) => ({ id: d.id, sort_order: i })));
+    refresh();
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5">
@@ -177,59 +189,71 @@ export default function DevicesPanel({ project }) {
       ) : visible.length === 0 ? (
         <p className="py-8 text-center text-xs text-muted-foreground font-body">No devices linked to {project.name} yet - add one above.</p>
       ) : (
-        <ul className="flex flex-col gap-1.5">
-          {visible.map((d) => (
-            <li key={d.id} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-              <div className="group flex items-center gap-3">
-              <button onClick={() => toggleStatus(d)} title="Toggle online/offline"
-                className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition",
-                  d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40 hover:bg-muted-foreground/70")} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-body truncate">{d.name}</div>
-                <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
-                  {d.kind}
-                  {[d.make, d.model, d.colour].filter(Boolean).length > 0 ? ` · ${[d.make, d.model, d.colour].filter(Boolean).join(" ")}` : ""}
-                  {d.config ? " · layout saved" : ""}
-                </div>
-              </div>
-              <button onClick={() => setDetailsOpen(detailsOpen === d.id ? null : d.id)} title="Device info"
-                className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
-                <Info size={15} />
-              </button>
-              <button onClick={() => saveLayout(d)} title="Save this screen's OS layout to the device"
-                className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
-                <Save size={15} />
-              </button>
-              {d.config && (
-                <button onClick={() => loadLayout(d)} title="Load this device's layout onto this screen"
-                  className="text-amber/80 hover:text-amber transition opacity-60 group-hover:opacity-100">
-                  <Download size={15} />
-                </button>
-              )}
-              {confirmDel === d.id ? (
-                <span className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-[10px] font-body text-alert">Delete?</span>
-                  <button onClick={() => { remove(d); setConfirmDel(null); }}
-                    className="text-[10px] font-body font-semibold uppercase tracking-wider text-alert">Yes</button>
-                  <button onClick={() => setConfirmDel(null)}
-                    className="text-[10px] font-body uppercase tracking-wider text-muted-foreground hover:text-foreground">No</button>
-                </span>
-              ) : (
-                <button onClick={() => setConfirmDel(d.id)}
-                  className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
-                  <Trash2 size={15} />
-                </button>
-              )}
-              </div>
-              {detailsOpen === d.id && (
-                <div className="mt-2 pt-2 border-t border-border/60">
-                  <DeviceDetails device={d} onChange={refresh} />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="devices">
+            {(provided) => (
+              <ul ref={provided.innerRef} {...provided.droppableProps} className="flex flex-col gap-1.5">
+                {ordered.map((d, i) => (
+                  <Draggable key={d.id} draggableId={d.id} index={i}>
+                    {(drag) => (
+                      <li ref={drag.innerRef} {...drag.draggableProps}
+                        className="group rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <span {...drag.dragHandleProps} title="Drag to reorder"
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground transition shrink-0">
+                            <GripVertical size={14} />
+                          </span>
+                          <button onClick={() => toggleStatus(d)} title="Toggle online/offline"
+                            className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition",
+                              d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40 hover:bg-muted-foreground/70")} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-body truncate">{d.name}</div>
+                            <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
+                              {d.kind}
+                              {[d.make, d.model, d.colour].filter(Boolean).length > 0 ? ` · ${[d.make, d.model, d.colour].filter(Boolean).join(" ")}` : ""}
+                              {d.config ? " · layout saved" : ""}
+                            </div>
+                          </div>
+                          <button onClick={() => setDetailsOpen(detailsOpen === d.id ? null : d.id)} title="Device info"
+                            className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
+                            <Info size={15} />
+                          </button>
+                          <button onClick={() => saveLayout(d)} title="Save this screen's OS layout to the device"
+                            className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
+                            <Save size={15} />
+                          </button>
+                          {d.config && (
+                            <button onClick={() => loadLayout(d)} title="Load this device's layout onto this screen"
+                              className="text-amber/80 hover:text-amber transition opacity-60 group-hover:opacity-100">
+                              <Download size={15} />
+                            </button>
+                          )}
+                          <button onClick={() => setConfirmDel(d)} title="Delete device"
+                            className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                        {detailsOpen === d.id && (
+                          <div className="mt-2 pt-2 border-t border-border/60">
+                            <DeviceDetails device={d} onChange={refresh} />
+                          </div>
+                        )}
+                      </li>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </ul>
+            )}
+          </Droppable>
+        </DragDropContext>
       )}
+      <ConfirmDeleteDialog
+        open={Boolean(confirmDel)}
+        onOpenChange={(o) => !o && setConfirmDel(null)}
+        name={confirmDel?.name}
+        onConfirm={() => { remove(confirmDel); setConfirmDel(null); }}
+      />
     </div>
   );
 }
