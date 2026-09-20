@@ -3,7 +3,7 @@ const KEY = "propsync-app-theme";
 export const APP_THEMES = [
   { id: "black", label: "Black" },
   { id: "grey", label: "Grey" },
-  { id: "white", label: "White" },
+  { id: "white", label: "Cream" },
 ];
 
 export function getAppTheme() {

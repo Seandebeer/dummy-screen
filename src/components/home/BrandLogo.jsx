@@ -12,9 +12,9 @@ export default function BrandLogo() {
         src={LOGO_URL}
         alt="Dummy Phone"
         fittingType="fit"
-        className="h-14 w-[201px]"
+        className="brand-logo-art h-14 w-[201px]"
       />
-      <div className="text-[7.5px] font-body uppercase tracking-[0.25em] text-muted-foreground -mt-2 ml-8">
+      <div className="brand-logo-tagline text-[7.5px] font-body uppercase tracking-[0.25em] text-foreground -mt-2 ml-8">
         props mastertool
       </div>
     </div>

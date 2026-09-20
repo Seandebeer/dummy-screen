@@ -69,20 +69,20 @@
 }
 
 [data-app-theme="white"] {
-  --background: 0 0% 100%;
-  --foreground: 225 20% 12%;
-  --surface: 220 14% 96%;
-  --surface-foreground: 225 20% 12%;
-  --card: 220 14% 96%;
-  --card-foreground: 225 20% 12%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 225 20% 12%;
-  --secondary: 220 14% 92%;
-  --secondary-foreground: 225 20% 12%;
-  --muted: 220 14% 93%;
-  --muted-foreground: 225 10% 42%;
-  --border: 220 13% 86%;
-  --input: 220 13% 86%;
+  --background: 42 45% 94%;
+  --foreground: 35 25% 12%;
+  --surface: 42 32% 89%;
+  --surface-foreground: 35 25% 12%;
+  --card: 42 32% 89%;
+  --card-foreground: 35 25% 12%;
+  --popover: 42 45% 94%;
+  --popover-foreground: 35 25% 12%;
+  --secondary: 42 22% 83%;
+  --secondary-foreground: 35 25% 12%;
+  --muted: 42 25% 85%;
+  --muted-foreground: 35 15% 40%;
+  --border: 40 20% 77%;
+  --input: 40 20% 77%;
   --ring: 212 92% 55%;
 }
 
@@ -226,6 +226,14 @@
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-9px); }
     40%, 80% { transform: translateX(9px); }
+  }
+  /* brand logo: white brush strokes on a transparent backdrop - the black
+     jpeg background drops out via screen blend, and on the cream theme the
+     artwork inverts to black strokes over a multiply-blended backdrop */
+  .brand-logo-art { mix-blend-mode: screen; }
+  [data-app-theme="white"] .brand-logo-art {
+    mix-blend-mode: multiply;
+    filter: invert(1);
   }
   .marker-pulse { animation: marker-press 0.9s ease-in-out infinite; }
   @keyframes marker-press {
