@@ -1,66 +1,30 @@
-import React, { useEffect, useRef, useState } from "react";
-import { RotateCcw } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import React, { useEffect, useState } from "react";
+import { HelpCircle, MessageSquareWarning } from "lucide-react";
 import { APP_THEMES, getAppTheme, setAppTheme } from "@/lib/appTheme";
-import { DEVICE_EVENT } from "@/lib/deviceLink";
+import { APP_LANGUAGES, applyAppLanguage, getAppLanguage, setAppLanguage } from "@/lib/appLanguage";
+import HelpDialog from "@/components/home/HelpDialog";
+import BugReportDialog from "@/components/home/BugReportDialog";
 
-const NAME_KEY = "takeover-device-name";
-
-export default function AppSettingsPanel({ onNameChange }) {
-  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) || "");
-  const [awake, setAwake] = useState(false);
+export default function AppSettingsPanel() {
   const [appTheme, setThemeState] = useState(getAppTheme);
-  const wakeRef = useRef(null);
+  const [lang, setLangState] = useState(getAppLanguage);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [bugOpen, setBugOpen] = useState(false);
+
+  useEffect(() => { applyAppLanguage(getAppLanguage()); }, []);
 
   const chooseTheme = (id) => {
     setAppTheme(id);
     setThemeState(id);
   };
 
-  const saveName = (v) => {
-    setName(v);
-    localStorage.setItem(NAME_KEY, v);
-    try { window.dispatchEvent(new Event(DEVICE_EVENT)); } catch {}
-    onNameChange?.(v);
-  };
-
-  const toggleAwake = async () => {
-    if (awake) {
-      try { await wakeRef.current?.release?.(); } catch {}
-      wakeRef.current = null;
-      setAwake(false);
-      return;
-    }
-    if (!navigator.wakeLock) return;
-    try {
-      wakeRef.current = await navigator.wakeLock.request("screen");
-      wakeRef.current.addEventListener("release", () => setAwake(false));
-      setAwake(true);
-    } catch {
-      setAwake(false);
-    }
-  };
-
-  useEffect(() => () => { wakeRef.current?.release?.().catch?.(() => {}); }, []);
-
-  const resetOs = () => {
-    if (window.confirm("Reset the mock OS to factory defaults? Themes, contacts, dock and lock settings will be restored.")) {
-      localStorage.removeItem("takeover-os-config");
-      window.location.reload();
-    }
+  const chooseLang = (code) => {
+    setAppLanguage(code);
+    setLangState(code);
   };
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border">
-        <div>
-          <div className="text-sm font-body">Device name</div>
-          <div className="text-[11px] text-muted-foreground font-body">Shown on this Home screen</div>
-        </div>
-        <input value={name} onChange={(e) => saveName(e.target.value)} placeholder="e.g. Hero phone"
-          className="w-40 rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
-      </div>
-
       <div className="flex items-center justify-between gap-4 py-3 border-b border-border">
         <div>
           <div className="text-sm font-body">App theme</div>
@@ -79,22 +43,41 @@ export default function AppSettingsPanel({ onNameChange }) {
 
       <div className="flex items-center justify-between gap-4 py-3 border-b border-border">
         <div>
-          <div className="text-sm font-body">Keep screen awake</div>
-          <div className="text-[11px] text-muted-foreground font-body">Stops the prop screen from dimming</div>
+          <div className="text-sm font-body">App language</div>
+          <div className="text-[11px] text-muted-foreground font-body">Interface language preference</div>
         </div>
-        <Switch checked={awake} onCheckedChange={toggleAwake} />
+        <select value={lang} onChange={(e) => chooseLang(e.target.value)}
+          className="cursor-pointer rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs font-body outline-none transition hover:border-amber/40">
+          {APP_LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>{l.native}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border">
+        <div>
+          <div className="text-sm font-body">Help</div>
+          <div className="text-[11px] text-muted-foreground font-body">Quick guide to using PropSync</div>
+        </div>
+        <button onClick={() => setHelpOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-display font-semibold text-muted-foreground hover:text-foreground transition">
+          <HelpCircle size={14} /> Open
+        </button>
       </div>
 
       <div className="flex items-center justify-between gap-4 py-3">
         <div>
-          <div className="text-sm font-body">Reset mock OS</div>
-          <div className="text-[11px] text-muted-foreground font-body">Restore the phone OS to factory defaults</div>
+          <div className="text-sm font-body">Report a bug</div>
+          <div className="text-[11px] text-muted-foreground font-body">Something not working? Let the team know</div>
         </div>
-        <button onClick={resetOs}
-          className="rounded-lg border border-alert/40 bg-alert/10 text-alert text-xs font-display font-semibold px-3 py-2 flex items-center gap-1.5">
-          <RotateCcw size={14} /> Reset
+        <button onClick={() => setBugOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-alert/40 bg-alert/10 px-3 py-2 text-xs font-display font-semibold text-alert transition">
+          <MessageSquareWarning size={14} /> Report
         </button>
       </div>
+
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <BugReportDialog open={bugOpen} onOpenChange={setBugOpen} />
     </div>
   );
 }
