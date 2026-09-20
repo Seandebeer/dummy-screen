@@ -138,17 +138,17 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
   const toggle = (on, onClick, onIcon, offIcon, label) => (
     <button onClick={onClick}
       className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
-        on ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+        on ? "border-signal/40 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
       {on ? onIcon : offIcon} {label}
     </button>
   );
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-surface/80 backdrop-blur-xl shadow-[0_8px_28px_rgba(0,0,0,0.2)] p-4">
+    <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Video size={16} className="text-signal" />
-          <span className="font-display font-semibold text-sm">Video Call Trigger</span>
+          <span className="font-display font-semibold text-[15px] tracking-tight">Video Call Trigger</span>
         </div>
         <span className={cn("text-[11px] font-body font-semibold uppercase",
           state === "active" && "text-signal",
@@ -163,8 +163,8 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
       <div className="mb-2 grid grid-cols-4 gap-1.5">
         {MODES.map((m) => (
           <button key={m.id} onClick={() => switchMode(m.id)}
-            className={cn("flex flex-col items-center gap-1 rounded-lg border py-2 text-[10px] font-body transition",
-              mode === m.id ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground hover:text-foreground")}>
+            className={cn("flex flex-col items-center gap-1 rounded-xl border py-2.5 text-[10px] font-body transition",
+              mode === m.id ? "border-signal/50 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground hover:text-foreground")}>
             <m.Icon size={16} /> {m.label}
           </button>
         ))}
@@ -187,16 +187,16 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {vfxColors.map((c) => (
             <button key={c.id} onClick={() => setVfxPatch({ bgColor: c.hex })} title={c.label}
-              className={cn("h-6 w-6 rounded-full border border-border",
+              className={cn("h-6 w-6 rounded-full border border-white/[0.08]",
                 vfx.bgColor === c.hex && "ring-1 ring-signal ring-offset-1 ring-offset-surface")}
               style={{ background: c.hex }} />
           ))}
           <label title="Custom colour" className="cursor-pointer">
             <input type="color" value={vfx.bgColor} onChange={(e) => setVfxPatch({ bgColor: e.target.value })}
-              className="h-6 w-6 cursor-pointer rounded-full border border-border bg-transparent p-0" />
+              className="h-6 w-6 cursor-pointer rounded-full border border-white/[0.08] bg-transparent p-0" />
           </label>
           <select value={vfx.markStyle} onChange={(e) => setVfxPatch({ markStyle: e.target.value })}
-            className="rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-[10px] font-body text-foreground outline-none">
+            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 text-[10px] font-body text-foreground outline-none">
             {trackingMarks.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
@@ -204,7 +204,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
 
       {(mode === "video" || mode === "photo") && (
         <button onClick={() => fileRef.current?.click()} disabled={uploading}
-          className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-[11px] font-body text-muted-foreground transition hover:text-foreground disabled:opacity-50">
+          className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.08] py-2 text-[11px] font-body text-muted-foreground transition hover:text-foreground disabled:opacity-50">
           {uploading ? <Loader2 size={13} className="animate-spin" /> : (
             <>
               {mode === "video" ? <Film size={13} /> : <ImageIcon size={13} />}
@@ -222,7 +222,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
           {["circle", "full"].map((m) => (
             <button key={m} onClick={() => choosePhotoMode(m)}
               className={cn("rounded-lg border px-2 py-1 text-[10px] font-body transition",
-                photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+                photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
               {m === "circle" ? "Circle" : "Full screen"}
             </button>
           ))}
@@ -231,12 +231,12 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
 
       <div className="grid grid-cols-2 gap-2">
         <button onClick={start} disabled={state !== "idle" || busy || !contact.name.trim()}
-          className="flex flex-col items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 py-3 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
+          className="flex flex-col items-center gap-1.5 rounded-2xl border border-signal/30 bg-signal/10 py-3.5 text-signal disabled:opacity-40 hover:bg-signal/20 transition">
           <Video size={20} />
           <span className="text-[11px] font-body">Video Call</span>
         </button>
         <button onClick={end} disabled={!active}
-          className="flex flex-col items-center gap-1.5 rounded-lg border border-alert/40 bg-alert/10 py-3 text-alert disabled:opacity-40 hover:bg-alert/20 transition">
+          className="flex flex-col items-center gap-1.5 rounded-2xl border border-alert/30 bg-alert/10 py-3.5 text-alert disabled:opacity-40 hover:bg-alert/20 transition">
           <PhoneOff size={20} />
           <span className="text-[11px] font-body">End</span>
         </button>
