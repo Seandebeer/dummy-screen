@@ -79,6 +79,15 @@ export default function ControlPanel() {
     try { localStorage.setItem("takeover-target-device", id); } catch {}
   };
 
+  // the whole connection panel opens the device picker, not just the select
+  const selectRef = useRef(null);
+  const openPicker = () => {
+    const el = selectRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") el.showPicker();
+    else el.focus();
+  };
+
   // only devices still tied to an existing project are steerable - devices that
   // were deleted (or recreated by an orphaned screen save) have no live project
   useEffect(() => {
@@ -394,29 +403,19 @@ export default function ControlPanel() {
             No device connected. Ensure that you have selected a device on the home screen — Projects <span className="text-foreground/70">›</span> Devices.
           </div>
         )}
-        <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.04] p-3.5">
+        <div onClick={openPicker} className="cursor-pointer flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.04] p-3.5 transition hover:border-white/[0.14]">
           <div className="h-10 w-10 rounded-lg bg-amber/15 border border-amber/30 flex items-center justify-center shrink-0">
             <Users size={18} className="text-amber" />
           </div>
           <div className="flex-1 min-w-0">
-            <select value={targetId} onChange={(e) => chooseTarget(e.target.value)} aria-label="Target device"
+            <select ref={selectRef} value={targetId} onChange={(e) => chooseTarget(e.target.value)} aria-label="Target device"
               className="w-full cursor-pointer appearance-none bg-transparent font-body text-sm font-semibold text-foreground outline-none">
-              <option value="">Tap to connect a device…</option>
+              <option value="">None</option>
               {(devices || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               <option value="all">All devices (broadcast)</option>
             </select>
             <div className="text-[11px] text-muted-foreground font-body truncate">
-              {channel ? `channel ${channel} · ${broadcast ? "every connected phone reacts" : "only this device's phones react"}` : "no device connected - triggers are off"}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[11px] text-muted-foreground font-body">CALL STATE</div>
-            <div className={cn("text-xs font-body font-semibold uppercase",
-              callState === "active" && "text-signal",
-              callState === "ringing" && "text-amber amber-pulse",
-              callState === "ended" && "text-alert",
-              callState === "idle" && "text-muted-foreground")}>
-              {callState}
+              {channel ? `channel ${channel} · ${broadcast ? "every connected phone reacts" : "only this device's phones react"}` : "tap anywhere on this panel to pick a device - None disconnects"}
             </div>
           </div>
         </div>

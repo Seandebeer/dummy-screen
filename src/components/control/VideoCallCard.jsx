@@ -145,16 +145,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
   );
 
   return (
-    <ControlCard icon={Video} title="Video Call Trigger"
-      badge={
-        <span className={cn("text-[11px] font-body font-semibold uppercase",
-          state === "active" && "text-signal",
-          state === "ringing" && "text-amber amber-pulse",
-          state === "ended" && "text-alert",
-          state === "idle" && "text-muted-foreground")}>
-          {state}
-        </span>
-      }>
+    <ControlCard icon={Video} title="Video Call Trigger">
 
       {/* what the actor's screen shows as the far end */}
       <div className="mb-2 grid grid-cols-4 gap-1.5">
