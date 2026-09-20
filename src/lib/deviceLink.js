@@ -25,8 +25,9 @@ const fallbackName = () => {
   try { return localStorage.getItem(NAME_KEY) || "Sandbox"; } catch { return "Sandbox"; }
 };
 
-// this screen's device name - shown in the OS header
-export const getDeviceName = () => fallbackName();
+// this screen's device name - shown in the OS header. With no device
+// loaded yet this screen is just a sandbox.
+export const getDeviceName = () => (getLinkedDeviceId() ? fallbackName() : "Sandbox");
 
 // keep this screen's device record online. Until the first save this screen
 // is just a sandbox - no device record is ever created here.
