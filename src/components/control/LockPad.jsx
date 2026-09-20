@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { LockOpen } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Lock, LockOpen } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getScreenId } from "@/lib/deviceLink";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 // phone's takeover lock - the same gesture the prop screen itself uses.
 export default function LockPad({ channel = "stage-1" }) {
   const [flash, setFlash] = useState(null); // "sent" | "error"
+  // every screen_lock command flips the target screen's lock - track the
+  // parity of commands on this channel so the pad shows the live state
+  const [locked, setLocked] = useState(false);
   const lastFire = useRef(0);
   const clicks = useRef(0);
   const clickTimer = useRef(null);
@@ -30,6 +33,20 @@ export default function LockPad({ channel = "stage-1" }) {
     }
   };
 
+  // load parity of past toggles, then keep flipping on every new one
+  useEffect(() => {
+    let mounted = true;
+    base44.entities.Command.filter({ channel, type: "screen_lock" }, "created_date", 500)
+      .then((d) => { if (mounted) setLocked(d.length % 2 === 1); })
+      .catch(() => {});
+    const unsub = base44.entities.Command.subscribe((e) => {
+      if (e.type === "create" && e.data?.type === "screen_lock" && e.data.channel === channel) {
+        setLocked((v) => !v);
+      }
+    });
+    return () => { mounted = false; unsub(); };
+  }, [channel]);
+
   const onTouch = (e) => { if (e.touches.length >= 3) fire(); };
 
   // desktop fallback: three quick clicks do the same
@@ -51,17 +68,14 @@ export default function LockPad({ channel = "stage-1" }) {
         aria-label="Toggle target phone lock"
         className={cn("relative flex h-44 w-full select-none items-center justify-center overflow-hidden rounded-xl border bg-surface/40 grid-backdrop transition",
           flash === "error" ? "border-alert/60" : flash === "sent" ? "border-amber/50" : "border-border")}>
-        {/* three fingertip dots */}
+        {/* live target lock state */}
         <div className="flex flex-col items-center gap-3">
-          <div className="flex gap-2.5">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className={cn("h-3.5 w-3.5 rounded-full border transition",
-                flash === "sent" ? "border-amber bg-amber/40" : "border-muted-foreground/40 bg-muted/60")} />
-            ))}
-          </div>
+          {locked
+            ? <Lock size={28} className="text-amber" />
+            : <LockOpen size={28} className="text-muted-foreground" />}
           <div className="text-center">
-            <div className="font-display text-sm font-semibold">3-finger tap</div>
-            <div className="text-[10px] font-body text-muted-foreground">locks / unlocks the prop phone</div>
+            <div className="font-display text-sm font-semibold">{locked ? "Screen locked" : "Screen unlocked"}</div>
+            <div className="text-[10px] font-body text-muted-foreground">3-finger tap to toggle</div>
           </div>
         </div>
         {flash === "sent" && (
@@ -71,9 +85,6 @@ export default function LockPad({ channel = "stage-1" }) {
           <span className="absolute inset-x-0 bottom-2 text-center text-[10px] font-body text-alert">Failed to send</span>
         )}
       </button>
-      <div className="mt-2 text-[10px] font-body text-muted-foreground">
-        Each tap flips every connected screen - same as a 3-finger tap on the phone itself (or three quick clicks here)
-      </div>
     </div>
   );
 }
