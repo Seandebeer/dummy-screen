@@ -1,4 +1,5 @@
 import React from "react";
+import { Bluetooth } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { skinUi } from "@/lib/osSkins";
 
@@ -122,6 +123,15 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
             {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
             {!bare && skin === "modern" && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
+              {/* bluetooth - invisible until its slot is tapped, tap again to hide */}
+              <button
+                onClick={edit ? () => onStatusChange({ bluetooth: !s.bluetooth }) : undefined}
+                title="Bluetooth"
+                aria-label="Bluetooth"
+                className="flex items-center"
+              >
+                <Bluetooth size={13} className={s.bluetooth ? "opacity-100" : "opacity-0"} />
+              </button>
               {/* signal - tap to adjust strength */}
               {!st.carrier && (
                 <>
