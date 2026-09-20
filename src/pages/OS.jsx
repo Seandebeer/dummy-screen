@@ -32,7 +32,6 @@ import { allAppsById } from "@/lib/osApps";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
 import MarkAdjust from "@/components/os/MarkAdjust";
 import ThreeFingerHint from "@/components/os/ThreeFingerHint";
-import ThreeFingerPad from "@/components/os/ThreeFingerPad";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
@@ -105,12 +104,10 @@ export default function OS() {
   }, []);
 
   // trigger-driven takeover: any deck trigger locks this screen fullscreen
-  // with no hint - the pad is the only place a 3-finger tap lets it out
-  const [autoTakeover, setAutoTakeover] = useState(false);
+  // with no hint - a 3-finger tap anywhere still lets it out
   const autoRef = useRef(false);
   const enterTakeover = useCallback(() => {
     autoRef.current = true;
-    setAutoTakeover(true);
     clearTimeout(fsHintTimer.current);
     setFsHint(false);
     setFullscreen(true);
@@ -122,7 +119,6 @@ export default function OS() {
   }, []);
   const exitTakeover = useCallback(() => {
     autoRef.current = false;
-    setAutoTakeover(false);
     setFullscreen(false);
     try {
       if (document.fullscreenElement && document.exitFullscreen) {
@@ -394,14 +390,13 @@ export default function OS() {
 
   // browser fullscreen exit (Esc) should also end the takeover
   useEffect(() => {
-    const onFs = () => { if (!document.fullscreenElement) { autoRef.current = false; setAutoTakeover(false); setFullscreen(false); } };
+    const onFs = () => { if (!document.fullscreenElement) { autoRef.current = false; setFullscreen(false); } };
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
   const exitFullscreen = useCallback(() => {
     autoRef.current = false;
-    setAutoTakeover(false);
     clearTimeout(fsHintTimer.current);
     setFsHint(false);
     setFullscreen(false);
@@ -413,7 +408,6 @@ export default function OS() {
   const toggleFullscreen = async () => {
     const next = !fullscreen;
     autoRef.current = false;
-    setAutoTakeover(false);
     setFullscreen(next);
     if (next) {
       setFsHint(true);
@@ -434,8 +428,7 @@ export default function OS() {
   // clean-HUD takeover: 3-finger tap (or Esc / L) is the only way out
   useEffect(() => {
     if (!fullscreen) return;
-    // in a trigger-driven takeover the pad is the only place 3 fingers work
-    const onTouch = (e) => { if (e.touches.length >= 3 && !autoRef.current) exitFullscreen(); };
+    const onTouch = (e) => { if (e.touches.length >= 3) exitFullscreen(); };
     const onKey = (e) => { if (e.key === "Escape" || e.key.toLowerCase() === "l") exitFullscreen(); };
     window.addEventListener("touchstart", onTouch, { passive: true });
     window.addEventListener("keydown", onKey);
@@ -693,7 +686,6 @@ export default function OS() {
             )}
             {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>
-          {autoTakeover && <ThreeFingerPad onUnlock={exitTakeover} />}
         </div>
       )}
       <footer className="px-6 py-3 text-center text-[11px] text-muted-foreground font-body border-t border-border/60">
