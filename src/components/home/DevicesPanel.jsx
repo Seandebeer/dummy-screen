@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, FolderKanban, Plus, Trash2, Loader2, Download, Info, Save, ImageUp, Check, GripVertical } from "lucide-react";
+import { MonitorSmartphone, FolderKanban, Plus, Trash2, Loader2, Info, Save, ImageUp, Check, GripVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -241,12 +241,6 @@ export default function DevicesPanel({ project }) {
                               <span className="absolute top-full left-1/2 -translate-x-1/2 mt-0.5 text-[9px] font-body uppercase tracking-wide text-signal whitespace-nowrap">Saved</span>
                             )}
                           </span>
-                          {d.config && (
-                            <button onClick={() => loadLayout(d)} title="Load this device's layout onto this screen"
-                              className="text-amber/80 hover:text-amber transition opacity-60 group-hover:opacity-100">
-                              <Download size={15} />
-                            </button>
-                          )}
                           <button onClick={() => setConfirmDel(d)} title="Delete device"
                             className="ml-3 pl-2 border-l border-border/60 text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
                             <Trash2 size={15} />
