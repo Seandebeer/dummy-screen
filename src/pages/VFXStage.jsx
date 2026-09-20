@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { compositeMarks, getColor } from "@/lib/vfxData";
 import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
+import { DEFAULT_OVERLAY, OverlayLayer } from "@/components/vfx/OverlayImage";
 import useScreenMarks, { defaultLayoutFor } from "@/hooks/useScreenMarks";
 import StageToolbar from "@/components/vfx/StageToolbar";
 import ThreeFingerHint from "@/components/os/ThreeFingerHint";
@@ -138,6 +139,7 @@ export default function VFXStage() {
       style={marks.bgImage
         ? { backgroundImage: `url("${marks.bgImage}")`, backgroundSize: "cover", backgroundPosition: "center" }
         : { background: marks.bgColor || color.hex }}>
+      <OverlayLayer overlay={marks.overlay} />
       <TrackingMarks type={marksId} color={marks.markColor || (isLight ? "#000000" : "#FFFFFF")}
         opacity={marksId === "checkerboard" ? 1 : 0.85}
         size={marks.scale} thickness={marks.thickness}
@@ -181,6 +183,7 @@ export default function VFXStage() {
             onMarkColor={(v) => update((m) => ({ markColor: v }))}
             onBgColor={(v) => update((m) => ({ bgColor: v }))}
             onBgImage={(v) => update((m) => ({ bgImage: v }))}
+            onOverlayChange={(p) => update((m) => ({ overlay: { ...DEFAULT_OVERLAY, ...m.overlay, ...p } }))}
             onAdd={addMarker} onSave={saveScreen} onReset={resetCustomisation}
           />
         </>

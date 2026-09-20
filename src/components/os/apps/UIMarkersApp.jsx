@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Check, Lock, Palette, RotateCcw, Save, Shapes } from "lucide-react";
+import { Check, Eye, EyeOff, ImagePlus, Lock, Palette, RotateCcw, Save, Shapes } from "lucide-react";
 import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import MarkAdjust from "@/components/os/MarkAdjust";
+import { DEFAULT_OVERLAY, OverlayControl, OverlayLayer } from "@/components/vfx/OverlayImage";
 import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
@@ -33,6 +34,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const barVNumber = barNumsOf(markers.barVNumber);
   const bgColor = markers.bgColor ?? null;
   const markStyle = markers.markStyle ?? "none";
+  const overlay = { ...DEFAULT_OVERLAY, ...(markers.overlay || {}) };
 
   // lines auto-contrast with the chosen background - always black by default
   const isLightHex = (hex) => {
@@ -503,6 +505,25 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                   })} />
               </PopoverContent>
             </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button title="Image overlay"
+                  className={pill}>
+                  <ImagePlus size={11} /> Image
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="end" className="w-56 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
+                <OverlayControl overlay={markers.overlay}
+                  onChange={(p) => saveMarkers((m) => ({ overlay: { ...DEFAULT_OVERLAY, ...m.overlay, ...p } }))} />
+              </PopoverContent>
+            </Popover>
+            {overlay.url && (
+              <button title={overlay.hidden ? "Show image" : "Hide image"}
+                onClick={() => saveMarkers((m) => ({ overlay: { ...DEFAULT_OVERLAY, ...m.overlay, hidden: !m.overlay?.hidden } }))}
+                className={pill}>
+                {overlay.hidden ? <EyeOff size={11} /> : <Eye size={11} />}
+              </button>
+            )}
             <button onClick={saveLayout}
               className={pill}>
               <Save size={11} /> Save
@@ -534,6 +555,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         {verticalBar}
         {columnFillers}
       </div>
+      {/* image overlay - reference photo above the grid, never interactive */}
+      <OverlayLayer overlay={markers.overlay} />
       {/* tracking marks overlay - follows the chosen background */}
       {markStyle !== "none" && (
         <>

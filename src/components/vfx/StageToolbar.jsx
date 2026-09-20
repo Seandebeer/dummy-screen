@@ -1,9 +1,10 @@
 import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, Lock, Palette, Plus, RotateCcw, RotateCw, Save, Shapes, SlidersHorizontal, Target, Upload, X } from "lucide-react";
+import { ArrowLeft, Check, Eye, EyeOff, ImagePlus, Lock, Palette, Plus, RotateCcw, RotateCw, Save, Shapes, SlidersHorizontal, Target, Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
+import { OverlayControl } from "@/components/vfx/OverlayImage";
 import { compositeMarks, trackingMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +36,8 @@ const MARK_COLORS = [
 export default function StageToolbar({
   colorId, marksId, isPoint, marks, addKind, light,
   onSelectAddKind, onRotateAll, onLock,
-  onSelectColor, onSelectMarks, onScale, onThick, onMarkColor, onBgColor, onBgImage, onAdd, onSave, onReset,
+  onSelectColor, onSelectMarks, onScale, onThick, onMarkColor, onBgColor, onBgImage,
+  onOverlayChange, onAdd, onSave, onReset,
 }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -171,6 +173,21 @@ export default function StageToolbar({
                 )}
               </PopoverContent>
             </Popover>
+          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button title="Image overlay" className={btn}><ImagePlus size={16} /></button>
+            </PopoverTrigger>
+            <PopoverContent side="top" className={cn("w-56 p-2", panel)}>
+              <OverlayControl overlay={marks.overlay} onChange={onOverlayChange} />
+            </PopoverContent>
+          </Popover>
+          {marks.overlay?.url && (
+            <button title={marks.overlay.hidden ? "Show image" : "Hide image"}
+              onClick={() => onOverlayChange({ hidden: !marks.overlay.hidden })}
+              className={btn}>
+              {marks.overlay.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           )}
           <span className={divider} />
 
