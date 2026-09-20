@@ -50,6 +50,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const txt = light ? "text-black/90" : "text-white/90";
   // tool pills always render with a solid dark fill, whatever the background
   const pill = "flex items-center gap-1 rounded-full border border-white/15 bg-[#1c1c1e] px-2.5 py-1 text-[10px] font-body text-white/50 transition hover:text-white";
+  // bottom tool pills sit lighter - half-opacity fill over the grid
+  const toolPill = "flex items-center gap-1 rounded-full border border-white/15 bg-[#1c1c1e]/50 px-2.5 py-1 text-[10px] font-body text-white/50 transition hover:text-white";
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
@@ -429,10 +431,14 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }}>
       {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
-        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-between pointer-events-none">
+        <div className="absolute top-2 inset-x-0 z-10 flex justify-center pointer-events-none">
           <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-body backdrop-blur", light ? "text-black/40 bg-black/5" : "text-white/40 bg-white/10")}>
             Tap to add numbers · hold to clear · drag to rearrange
           </span>
+        </div>
+      )}
+      {!locked && (
+        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
           <div className="flex items-center gap-2 pointer-events-auto">
             <button onClick={lock}
               className={pill}>
@@ -448,7 +454,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
             <Popover>
               <PopoverTrigger asChild>
                 <button title="Background colour"
-                  className={pill}>
+                  className={toolPill}>
                   <Palette size={11} />
                   <span className="h-2.5 w-2.5 rounded-full border border-current"
                     style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }} />
@@ -474,7 +480,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
             <Popover>
               <PopoverTrigger asChild>
                 <button title="Tracking marks"
-                  className={pill}>
+                  className={toolPill}>
                   <Shapes size={11} /> Marks
                 </button>
               </PopoverTrigger>
@@ -522,7 +528,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
             <Popover>
               <PopoverTrigger asChild>
                 <button title="Image overlay"
-                  className={pill}>
+                  className={toolPill}>
                   <ImagePlus size={11} /> Overlay
                 </button>
               </PopoverTrigger>
@@ -534,16 +540,16 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
             {overlay.url && (
               <button title={overlay.hidden ? "Show image" : "Hide image"}
                 onClick={() => saveMarkers((m) => ({ overlay: { ...DEFAULT_OVERLAY, ...m.overlay, hidden: !m.overlay?.hidden } }))}
-                className={pill}>
+                className={toolPill}>
                 {overlay.hidden ? <EyeOff size={11} /> : <Eye size={11} />}
               </button>
             )}
             <button onClick={saveLayout}
-              className={pill}>
+              className={toolPill}>
               <Save size={11} /> Save
             </button>
             <button onClick={resetNumbers}
-              className={pill}>
+              className={toolPill}>
               <RotateCcw size={11} /> Reset
             </button>
           </div>
