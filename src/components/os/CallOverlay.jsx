@@ -84,6 +84,7 @@ export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap",
         <div className="text-white/50 font-body text-sm mt-1">
           {phase === "incoming" && "incoming call…"}
           {phase === "outgoing" && "calling…"}
+          {phase === "ringing" && "ringing…"}
           {phase === "active" && `${mm}:${ss}`}
         </div>
         {number && <div className="text-white/40 text-xs font-body mt-0.5">{number}</div>}

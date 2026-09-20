@@ -42,6 +42,7 @@ const defaults = {
   theme: "dark",
   skin: "modern",
   callAnswer: "tap",
+  ringDelay: 4,
   clock: { mode: "live", time: "", date: "" },
   background: { type: "preset", preset: "default", url: "" },
   status: { battery: 75, signal: 4, wifi: 3, network: "5G" },

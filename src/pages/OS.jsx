@@ -126,7 +126,7 @@ export default function OS() {
           setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id });
         } else if (c.type === "call_outgoing") {
           setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, startTime: Date.now() });
-          setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), 2200);
+          setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
         } else if (c.type === "alarm") {
           setAlarm({ commandId: c.id });
         }
@@ -171,6 +171,12 @@ export default function OS() {
 
   // a new call always starts off speakerphone
   useEffect(() => { if (!call) setCallSpeaker(false); }, [call]);
+
+  // how long the other side rings before picking up (1-60s, from Settings)
+  const ringDelayRef = useRef(4);
+  useEffect(() => {
+    ringDelayRef.current = Math.min(60, Math.max(1, Number(config.ringDelay) || 4));
+  }, [config.ringDelay]);
 
   // live voice: a control-driven call pipes the operator's mic into this device
   useEffect(() => {
@@ -334,8 +340,14 @@ export default function OS() {
     });
   }, []);
 
+  // dialling from this phone: the other side rings first, then picks up
   const startLocalCall = (contact) => {
-    setCall({ phase: "active", direction: "out", contact, startTime: Date.now(), commandId: null });
+    setCall({ phase: "ringing", direction: "out", contact, commandId: null });
+    setTimeout(() => {
+      setCall((cur) => cur && cur.phase === "ringing" && cur.direction === "out" && cur.contact?.number === contact.number
+        ? { ...cur, phase: "active", startTime: Date.now() }
+        : cur);
+    }, ringDelayRef.current * 1000);
   };
 
   // opening a notification unlocks and jumps straight to the thread / app

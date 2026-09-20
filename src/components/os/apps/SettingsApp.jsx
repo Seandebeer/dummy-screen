@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Upload, Trash2, Loader2, ChevronDown, Check, RotateCcw } from "lucide-react";
+import { Upload, Trash2, Loader2, ChevronDown, Check, RotateCcw, Minus, Plus } from "lucide-react";
 import LockSettings from "./LockSettings";
 import { bgPresets } from "@/hooks/useOsConfig";
 import { DIAL_CODES, makeDefaultContacts } from "@/lib/osData";
@@ -243,6 +243,28 @@ export default function SettingsApp({ config, update, onLock, reset }) {
           ))}
         </div>
         <p className="text-[11px] text-white/40 font-body mt-2">How incoming calls are answered on this device.</p>
+      </Section>
+
+      <Section title="Ring Duration">
+        {(() => {
+          const delay = Math.min(60, Math.max(1, Number(config.ringDelay) || 4));
+          return (
+            <>
+              <div className="flex items-center gap-3">
+                <button onClick={() => update({ ringDelay: Math.max(1, delay - 1) })}
+                  className="h-9 w-9 rounded-lg border border-white/10 text-white/70 flex items-center justify-center hover:border-white/30 transition">
+                  <Minus size={14} />
+                </button>
+                <div className="flex-1 text-center text-sm font-body font-semibold">{delay}s</div>
+                <button onClick={() => update({ ringDelay: Math.min(60, delay + 1) })}
+                  className="h-9 w-9 rounded-lg border border-white/10 text-white/70 flex items-center justify-center hover:border-white/30 transition">
+                  <Plus size={14} />
+                </button>
+              </div>
+              <p className="text-[11px] text-white/40 font-body mt-2">How long the other side rings before picking up (1–60s).</p>
+            </>
+          );
+        })()}
       </Section>
 
       <Section title="Reset">
