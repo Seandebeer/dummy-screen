@@ -16,6 +16,12 @@ export const slimConfig = (config) => ({
   contacts: (config.contacts || []).filter((c) => c.custom),
 });
 
+// no saved layout yet - start from the out-of-the-box configuration
+// (latest Apple skin, graphite theme, no lock screen)
+export const resetOsConfig = () => {
+  try { localStorage.removeItem(OS_KEY); } catch {}
+};
+
 // apply a saved profile to this screen; removing the contacts version markers
 // makes the OS regenerate localized defaults and merge the custom ones back in
 export const applyOsConfig = (config) => {

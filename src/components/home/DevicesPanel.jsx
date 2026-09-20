@@ -4,7 +4,7 @@ import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save, ImageUp
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
+import { applyOsConfig, readCurrentOsConfig, slimConfig, resetOsConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
 import DeviceDetails from "@/components/home/DeviceDetails";
 import ConfirmDeleteDialog from "@/components/home/ConfirmDeleteDialog";
@@ -100,12 +100,18 @@ export default function DevicesPanel({ project }) {
     refresh();
   };
 
+  // open this device's OS on this screen - its saved layout if it has one,
+  // otherwise the out-of-the-box setup (latest Apple skin, graphite, no lock)
   const loadLayout = (d) => {
-    try {
-      applyOsConfig(JSON.parse(d.config));
-      linkDevice(d.id, d.name);
-      navigate("/os");
-    } catch {}
+    if (d.config) {
+      try {
+        applyOsConfig(JSON.parse(d.config));
+      } catch {}
+    } else {
+      resetOsConfig();
+    }
+    linkDevice(d.id, d.name);
+    navigate("/os");
   };
 
   // this panel follows the project selected in Projects - only its devices show
@@ -206,14 +212,15 @@ export default function DevicesPanel({ project }) {
                           <button onClick={() => toggleStatus(d)} title="Toggle online/offline"
                             className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition",
                               d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40 hover:bg-muted-foreground/70")} />
-                          <div className="flex-1 min-w-0">
+                          <button onClick={() => loadLayout(d)} title="Open this device's OS"
+                            className="flex-1 min-w-0 text-left hover:opacity-80 transition">
                             <div className="text-sm font-body truncate">{d.name}</div>
                             <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
                               {d.kind}
                               {[d.make, d.model, d.colour].filter(Boolean).length > 0 ? ` · ${[d.make, d.model, d.colour].filter(Boolean).join(" ")}` : ""}
                               {d.config ? " · layout saved" : ""}
                             </div>
-                          </div>
+                          </button>
                           <button onClick={() => setDetailsOpen(detailsOpen === d.id ? null : d.id)} title="Device info"
                             className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
                             <Info size={15} />
