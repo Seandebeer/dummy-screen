@@ -28,6 +28,21 @@
     },
     "config": {
       "type": "string"
+    },
+    "make": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "colour": {
+      "type": "string"
+    },
+    "serial": {
+      "type": "string"
+    },
+    "photo": {
+      "type": "string"
     }
   },
   "required": [

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Save } from "lucide-react";
+import { MonitorSmartphone, Plus, Trash2, Loader2, Download, Info, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { applyOsConfig, readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
+import DeviceDetails from "@/components/home/DeviceDetails";
 
 const kinds = [
   { id: "phone", label: "Phone" },
@@ -19,7 +20,10 @@ export default function DevicesPanel() {
   const [name, setName] = useState("");
   const [kind, setKind] = useState("phone");
   const [busy, setBusy] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(null);
   const navigate = useNavigate();
+
+  const hasDetails = (d) => Boolean(d.make || d.model || d.colour || d.serial || d.photo);
 
   const refresh = useCallback(() => {
     base44.entities.Device.list("-created_date", 100)
@@ -122,14 +126,15 @@ export default function DevicesPanel() {
       ) : (
         <ul className="flex flex-col gap-1.5">
           {devices.map((d) => (
-            <li key={d.id} className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+            <li key={d.id} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+              <div className="group flex items-center gap-3">
               <button onClick={() => toggleStatus(d)} title="Toggle online/offline"
                 className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition",
                   d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40 hover:bg-muted-foreground/70")} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-body truncate">{d.name}</div>
                 <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
-                  {d.kind}{d.project_id && projectById(d.project_id) ? ` · ${projectById(d.project_id).name}` : ""}{d.config ? " · layout saved" : ""}
+                  {d.kind}{[d.make, d.model].filter(Boolean).join(" ") ? ` · ${[d.make, d.model].filter(Boolean).join(" ")}` : ""}{d.project_id && projectById(d.project_id) ? ` · ${projectById(d.project_id).name}` : ""}{d.config ? " · layout saved" : ""}
                 </div>
               </div>
               <select value={d.project_id || ""} onChange={(e) => assign(d, e.target.value)}
@@ -137,6 +142,10 @@ export default function DevicesPanel() {
                 <option value="">Unassigned</option>
                 {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
+              <button onClick={() => setDetailsOpen(detailsOpen === d.id ? null : d.id)} title="Device info"
+                className={cn("transition opacity-60 group-hover:opacity-100", hasDetails(d) ? "text-signal" : "text-muted-foreground hover:text-foreground")}>
+                <Info size={15} />
+              </button>
               <button onClick={() => saveLayout(d)} title="Save this screen's OS layout to the device"
                 className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
                 <Save size={15} />
@@ -150,6 +159,12 @@ export default function DevicesPanel() {
               <button onClick={() => remove(d)} className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
                 <Trash2 size={15} />
               </button>
+              </div>
+              {detailsOpen === d.id && (
+                <div className="mt-2 pt-2 border-t border-border/60">
+                  <DeviceDetails device={d} onChange={refresh} />
+                </div>
+              )}
             </li>
           ))}
         </ul>
