@@ -31,6 +31,7 @@ export const nextStockPhoto = (current) => {
 
 export const makeDefaultSocials = () => ({
   facepage: {
+    name: "Grapevine",
     profile: {
       name: "Alex Carter",
       bio: "Coffee, cameras and long drives. Opinions are my own.",
@@ -45,6 +46,7 @@ export const makeDefaultSocials = () => ({
     ],
   },
   photogram: {
+    name: "Lume",
     profile: {
       name: "Alex Carter",
       handle: "alex.carter",
@@ -64,12 +66,14 @@ export const makeDefaultSocials = () => ({
     ],
   },
   vidtube: {
+    name: "Streamly",
     profile: {
       name: "Alex Carter",
       handle: "@alexcarter",
       subscribers: 12400,
     },
     subs: {},
+    chSubs: {},
     videos: [
       { id: "yt-1", title: "I Built a Camera Lens From Scratch", channel: "GearLab", chHue: "#E63946", views: 1200000, age: "2 days ago", duration: "14:32", image: STOCK_PHOTOS[4], cat: "Tech" },
       { id: "yt-2", title: "Sailing the Bay - 4K Drone Film", channel: "SkyFrame", chHue: "#457B9D", views: 486000, age: "1 week ago", duration: "10:05", image: STOCK_PHOTOS[1], cat: "Travel" },
@@ -83,12 +87,14 @@ export const makeDefaultSocials = () => ({
     ],
   },
   quicktok: {
+    name: "Flickdeck",
     profile: {
       name: "Alex Carter",
       handle: "alex.carter",
       followers: 2431,
       likes: 89500,
     },
+    tabs: { following: "Following", foryou: "For You" },
     following: ["dan.m", "sara.lane"],
     posts: [
       { id: "tt-1", author: "maya.k", caption: "POV: your coffee order is right 10% of the time", image: STOCK_PHOTOS[11], likes: 45200, comments: 1240, shares: 890, liked: false, music: "Original sound - maya.k" },
@@ -102,7 +108,7 @@ export const makeDefaultSocials = () => ({
 // get one platform's slice of config data plus a setter, for use inside an app
 export const socialSlice = (config, update, key) => {
   const defaults = makeDefaultSocials();
-  const current = (config.socials && config.socials[key]) || defaults[key];
+  const current = { ...defaults[key], ...((config.socials || {})[key] || {}) };
   const setData = (patch) => update((c) => {
     const socials = c.socials || makeDefaultSocials();
     const base = socials[key] || defaults[key];

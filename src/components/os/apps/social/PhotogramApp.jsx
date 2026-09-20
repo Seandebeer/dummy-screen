@@ -51,7 +51,8 @@ export default function PhotogramApp({ config, update, locked, fullscreen }) {
         )}
       </div>
       <Photo src={p.image} className="aspect-square w-full object-cover" editing={editing}
-        onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })} />
+        onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })}
+        onUpload={(url) => patchPost(p.id, { image: url })} />
       <div className="flex items-center gap-4 px-3 pt-2.5">
         <button onClick={() => patchPost(p.id, { liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) })}>
           <Heart size={22} className={cn(p.liked ? "fill-[#FF3040] text-[#FF3040]" : "text-[#262626]")} />
@@ -84,7 +85,9 @@ export default function PhotogramApp({ config, update, locked, fullscreen }) {
   return (
     <div className="flex h-full flex-col bg-white text-[#262626]">
       <div className="flex items-center px-3 py-2">
-        <span className="text-[22px] font-display font-semibold italic tracking-tight">Lume</span>
+        <Editable editing={editing} value={data.name || "Lume"}
+          onChange={(v) => setData((d) => ({ name: v }))}
+          className="text-[22px] font-display font-semibold italic tracking-tight" />
         <span className="ml-auto flex items-center gap-1">
           {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />}
         </span>
@@ -129,7 +132,8 @@ export default function PhotogramApp({ config, update, locked, fullscreen }) {
             <div className="mt-3 grid grid-cols-3 gap-0.5">
               {data.posts.map((p) => (
                 <Photo key={p.id} src={p.image} className="aspect-square w-full object-cover" editing={editing}
-                  onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })} />
+                  onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })}
+                  onUpload={(url) => patchPost(p.id, { image: url })} />
               ))}
             </div>
           </div>

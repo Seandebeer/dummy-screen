@@ -36,7 +36,9 @@ export default function FacepageApp({ config, update, locked, fullscreen }) {
     <div className="flex h-full flex-col bg-[#F0F2F5] text-[#050505]">
       {/* blue wordmark header */}
       <div className="flex items-center gap-2 bg-[#1877F2] px-3 py-2">
-        <span className="text-[20px] font-bold tracking-tight text-white">Grapevine</span>
+        <Editable editing={editing} value={data.name || "Grapevine"}
+          onChange={(v) => setData((d) => ({ name: v }))}
+          className="text-[20px] font-bold tracking-tight text-white" />
         <span className="ml-auto flex items-center gap-1.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
             <Search size={15} className="text-white" />
@@ -84,6 +86,7 @@ export default function FacepageApp({ config, update, locked, fullscreen }) {
                 {p.image ? (
                   <Photo src={p.image} className="aspect-[4/3] w-full object-cover" editing={editing}
                     onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })}
+                    onUpload={(url) => patchPost(p.id, { image: url })}
                     onDelete={() => patchPost(p.id, { image: "" })} />
                 ) : editing ? (
                   <Photo src="" editing className="mx-3 mb-2 h-28 rounded-lg" addLabel="Add photo"
@@ -131,7 +134,8 @@ export default function FacepageApp({ config, update, locked, fullscreen }) {
               <div className="mt-4 grid w-full grid-cols-3 gap-1">
                 {data.posts.filter((p) => p.image).map((p) => (
                   <Photo key={p.id} src={p.image} className="aspect-square w-full object-cover" editing={editing}
-                    onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })} />
+                    onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })}
+                    onUpload={(url) => patchPost(p.id, { image: url })} />
                 ))}
               </div>
             </div>

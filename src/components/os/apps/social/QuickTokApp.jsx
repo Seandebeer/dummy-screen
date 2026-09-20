@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Heart, MessageCircle, Share2, Music2, User as UserIcon, Check, Plus, X, Home as HomeIcon } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
-import { Avatar, Editable, EditToggle, Photo, fmtNum } from "./SocialBits";
+import { Avatar, Editable, EditToggle, Photo, UploadButton, fmtNum } from "./SocialBits";
 import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,19 @@ export default function QuickTokApp({ config, update, locked, fullscreen }) {
     }));
   };
 
+  const addUploadedClip = (url, type) => {
+    const caption = window.prompt("Caption for the new clip:", "");
+    const isVideo = String(type || "").startsWith("video");
+    setData((d) => ({
+      posts: [{
+        id: `tt-${Date.now()}`, author: me.handle || me.name, caption: (caption || "").trim(),
+        image: isVideo ? "" : url, video: isVideo ? url : "",
+        likes: 0, comments: 0, shares: 0, liked: false,
+        music: `Original sound - ${me.handle || me.name}`,
+      }, ...d.posts],
+    }));
+  };
+
   const posts = feed === "following"
     ? data.posts.filter((p) => isFollowing(p.author))
     : data.posts;
@@ -46,10 +59,16 @@ export default function QuickTokApp({ config, update, locked, fullscreen }) {
         <>
           <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-center gap-5 bg-gradient-to-b from-black/60 to-transparent pb-4 pt-2 text-[14px] font-semibold">
             <button onClick={() => setFeed("following")}
-              className={feed === "following" ? "text-white" : "text-white/50"}>Following</button>
+              className={feed === "following" ? "text-white" : "text-white/50"}>
+              <Editable editing={editing} value={(data.tabs || {}).following || "Following"}
+                onChange={(v) => setData((d) => ({ tabs: { ...(d.tabs || {}), following: v } }))} />
+            </button>
             <span className="h-3.5 w-px bg-white/30" />
             <button onClick={() => setFeed("foryou")}
-              className={feed === "foryou" ? "text-white" : "text-white/50"}>For You</button>
+              className={feed === "foryou" ? "text-white" : "text-white/50"}>
+              <Editable editing={editing} value={(data.tabs || {}).foryou || "For You"}
+                onChange={(v) => setData((d) => ({ tabs: { ...(d.tabs || {}), foryou: v } }))} />
+            </button>
           </div>
           {canEdit && (
             <div className="absolute right-2 top-2 z-30">
@@ -60,15 +79,24 @@ export default function QuickTokApp({ config, update, locked, fullscreen }) {
           <div className="h-full snap-y snap-mandatory overflow-y-auto no-scrollbar">
             {editing && (
               <div className="snap-start">
-                <button onClick={addClip}
-                  className="flex h-full w-full flex-col items-center justify-center gap-2 text-[13px] font-semibold text-white/70">
-                  <Plus size={26} /> Add clip
-                </button>
+                <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+                  <button onClick={addClip}
+                    className="flex flex-col items-center gap-2 text-[13px] font-semibold text-white/70">
+                    <Plus size={26} /> Stock clip
+                  </button>
+                  <UploadButton accept="video/*,image/*" label="Upload clip" onFile={addUploadedClip}
+                    className="px-4 py-2 text-[12px]" />
+                </div>
               </div>
             )}
             {posts.map((p) => (
               <div key={p.id} className="relative h-full w-full snap-start overflow-hidden">
-                <Image src={p.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                {p.video ? (
+                  <video src={p.video} autoPlay loop muted playsInline
+                    className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <Image src={p.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/35" />
 
                 {/* right action rail */}
@@ -117,8 +145,17 @@ export default function QuickTokApp({ config, update, locked, fullscreen }) {
                       Edit clip
                       <button onClick={() => patchPost(p.id, { image: nextStockPhoto(p.image) })}
                         className="ml-auto rounded-full bg-white/15 px-2 py-0.5 text-[10px] normal-case tracking-normal text-white">Swap photo</button>
+                      <UploadButton accept="video/*,image/*" label="Upload"
+                        onFile={(url, type) => patchPost(p.id, String(type || "").startsWith("video")
+                          ? { video: url, image: "" }
+                          : { image: url, video: "" })} />
                       <button onClick={() => removePost(p.id)} aria-label="Delete clip"
                         className="rounded-full bg-white/15 p-1 text-white"><X size={11} /></button>
+                    </div>
+                    <div className="mt-1 flex items-center gap-0.5">
+                      <span className="text-[11px] text-white/50">@</span>
+                      <Editable editing={editing} value={p.author} onChange={(v) => patchPost(p.id, { author: v })}
+                        className="text-[12px] text-white" inputClass="border-white/30 bg-white/10 text-white" />
                     </div>
                     <div className="mt-1.5 flex gap-2">
                       <Editable editing={editing} type="number" value={p.likes} onChange={(v) => patchPost(p.id, { likes: v })}
@@ -176,8 +213,13 @@ export default function QuickTokApp({ config, update, locked, fullscreen }) {
           </div>
           <div className="mt-4 grid grid-cols-3 gap-0.5 pb-2">
             {data.posts.map((p) => (
-              <Photo key={p.id} src={p.image} className="aspect-[9/14] w-full object-cover" editing={editing}
-                onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })} />
+              p.video && !p.image ? (
+                <video key={p.id} src={p.video} muted playsInline className="aspect-[9/14] w-full object-cover" />
+              ) : (
+                <Photo key={p.id} src={p.image} className="aspect-[9/14] w-full object-cover" editing={editing}
+                  onSwap={() => patchPost(p.id, { image: nextStockPhoto(p.image) })}
+                  onUpload={(url) => patchPost(p.id, { image: url })} />
+              )
             ))}
           </div>
         </div>

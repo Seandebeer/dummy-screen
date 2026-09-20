@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Pencil, Check, Plus, X } from "lucide-react";
 import { Image } from "@/components/ui/image";
+import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
 // compact count formatting: 1200 -> 1.2K, 4500000 -> 4.5M
@@ -56,12 +57,38 @@ export function EditToggle({ editing, onToggle, className }) {
   );
 }
 
-// content photo with edit-mode controls (swap / delete / add)
-export function Photo({ src, alt = "", className, editing, onSwap, onDelete, onAdd, addLabel }) {
+// upload button: picks a file, uploads it and hands back the URL + file type
+export function UploadButton({ onFile, accept = "image/*", label = "Upload", className }) {
+  const ref = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const pick = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      onFile(file_url, file.type);
+    } catch {}
+    setBusy(false);
+  };
+  return (
+    <>
+      <input ref={ref} type="file" accept={accept} className="hidden" onChange={pick} />
+      <button onClick={(e) => { e.stopPropagation(); ref.current?.click(); }} disabled={busy}
+        className={cn("rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur disabled:opacity-60", className)}>
+        {busy ? "Uploading…" : label}
+      </button>
+    </>
+  );
+}
+
+// content photo with edit-mode controls (swap / upload / delete / add)
+export function Photo({ src, alt = "", className, editing, onSwap, onUpload, onDelete, onAdd, addLabel }) {
   if (!src) {
     if (!onAdd) return null;
     return (
-      <button onClick={onAdd} className={cn("flex items-center justify-center gap-1.5 bg-black/5 text-[12px] font-medium text-black/40", className)}>
+      <button onClick={(e) => { e.stopPropagation(); onAdd(); }} className={cn("flex items-center justify-center gap-1.5 bg-black/5 text-[12px] font-medium text-black/40", className)}>
         <Plus size={14} /> {addLabel || "Add photo"}
       </button>
     );
@@ -71,11 +98,15 @@ export function Photo({ src, alt = "", className, editing, onSwap, onDelete, onA
       <Image src={src} alt={alt} className={className} />
       {editing && (
         <span className="absolute right-2 top-2 flex gap-1.5">
-          <button onClick={onSwap} className="rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
-            Swap
-          </button>
+          {onSwap && (
+            <button onClick={(e) => { e.stopPropagation(); onSwap(); }}
+              className="rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
+              Swap
+            </button>
+          )}
+          {onUpload && <UploadButton label="Upload" onFile={(url) => onUpload(url)} />}
           {onDelete && (
-            <button onClick={onDelete} aria-label="Remove photo"
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label="Remove photo"
               className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white">
               <X size={12} />
             </button>

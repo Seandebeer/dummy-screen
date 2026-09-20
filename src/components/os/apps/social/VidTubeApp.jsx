@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Home as HomeIcon, Play, Search, ThumbsUp, ThumbsDown, Share2, Users } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
-import { Avatar, Editable, EditToggle, Photo, fmtNum } from "./SocialBits";
+import { Avatar, Editable, EditToggle, Photo, UploadButton, fmtNum } from "./SocialBits";
 import { cn } from "@/lib/utils";
 
 // VidTube - YouTube-style home grid, watch page, subscriptions and channel
@@ -33,6 +33,19 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
     }));
   };
 
+  const addUploadedVideo = (url) => {
+    const title = window.prompt("Title for the new video:", "New video");
+    setData((d) => ({
+      videos: [{
+        id: `yt-${Date.now()}`, title: (title || "New video").trim(), channel: me.name, chHue: "#1877F2",
+        views: 0, age: "just now", duration: "0:00", image: "", video: url, cat: "Film",
+      }, ...d.videos],
+    }));
+  };
+
+  const chSubsOf = (ch, views) => (data.chSubs || {})[ch] ?? Math.max(1000, Math.round((views || 0) / 40));
+  const setChSubs = (ch, n) => setData((d) => ({ chSubs: { ...(d.chSubs || {}), [ch]: n } }));
+
   const cats = ["All", ...new Set(data.videos.map((v) => v.cat))];
   const visible = chip === "All" ? data.videos : data.videos.filter((v) => v.cat === chip);
   const watch = data.videos.find((v) => v.id === watchId) || null;
@@ -41,17 +54,25 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
     <button key={v.id} onClick={() => { setWatchId(v.id); setTab("watch"); }}
       className="block w-full text-left">
       <span className="relative block">
-        <Photo src={v.image} className="aspect-video w-full object-cover" editing={editing}
-          onSwap={() => patchVideo(v.id, { image: nextStockPhoto(v.image) })} />
+        {v.video && !v.image ? (
+          <video src={v.video} muted playsInline className="aspect-video w-full object-cover" />
+        ) : (
+          <Photo src={v.image} className="aspect-video w-full object-cover" editing={editing}
+            onSwap={() => patchVideo(v.id, { image: nextStockPhoto(v.image) })}
+            onUpload={(url) => patchVideo(v.id, { image: url })} />
+        )}
         <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 text-[10px] font-medium text-white">{v.duration}</span>
         {editing && (
-          <span className="absolute left-1 top-1">
+          <span className="absolute left-1 top-1 flex gap-1.5">
             <span onClick={(e) => { e.stopPropagation(); removeVideo(v.id); }}
               className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white">✕</span>
+            {v.video && (
+              <UploadButton label="Thumb" onFile={(url) => patchVideo(v.id, { image: url })} />
+            )}
           </span>
         )}
       </span>
-      <div className={cn("flex gap-2", small ? "p-1.5" : "p-2.5 pt-2")}>
+      <div onClick={(e) => { if (editing) e.stopPropagation(); }} className={cn("flex gap-2", small ? "p-1.5" : "p-2.5 pt-2")}>
         <Avatar name={v.channel} hue={v.chHue} size={small ? 24 : 34} />
         <span className="min-w-0 flex-1">
           <Editable editing={editing} value={v.title} onChange={(t) => patchVideo(v.id, { title: t })}
@@ -60,7 +81,7 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
             className="block truncate text-[11px] text-black/55" />
           <span className="block text-[11px] text-black/55">
             <Editable editing={editing} type="number" value={v.views} onChange={(n) => patchVideo(v.id, { views: n })} />{" "}
-            views · {v.age}
+            views · <Editable editing={editing} value={v.age} onChange={(t) => patchVideo(v.id, { age: t })} />
           </span>
         </span>
       </div>
@@ -77,7 +98,9 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
             <span className="flex h-[22px] w-[32px] items-center justify-center rounded-md bg-[#FF0000]">
               <Play size={13} className="fill-white text-white" />
             </span>
-            <span className="text-[18px] font-semibold tracking-tight">Streamly</span>
+            <Editable editing={editing} value={data.name || "Streamly"}
+              onChange={(v) => setData((d) => ({ name: v }))}
+              className="text-[18px] font-semibold tracking-tight" />
           </span>
         )}
         <span className="ml-auto flex items-center gap-1.5">
@@ -99,10 +122,14 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
               ))}
             </div>
             {editing && (
-              <button onClick={addVideo}
-                className="mx-3 mt-2 flex w-[calc(100%-24px)] items-center justify-center gap-1.5 rounded-lg border border-dashed border-black/25 py-1.5 text-[12px] font-semibold text-black/60">
-                + Add video
-              </button>
+              <div className="mx-3 mt-2 flex gap-2">
+                <button onClick={addVideo}
+                  className="flex-1 rounded-lg border border-dashed border-black/25 py-1.5 text-[12px] font-semibold text-black/60">
+                  + Add video
+                </button>
+                <UploadButton accept="video/*" label="Upload video" onFile={(url) => addUploadedVideo(url)}
+                  className="flex-1 rounded-lg border border-dashed border-black/25 py-1.5 text-[12px] font-semibold text-black/60 bg-black/[0.04]" />
+              </div>
             )}
             <div className="grid grid-cols-1 gap-1 pb-2">
               {visible.map((v) => videoCard(v))}
@@ -112,21 +139,26 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
 
         {tab === "watch" && watch && (
           <>
-            <span className="relative block">
-              <Photo src={watch.image} className="aspect-video w-full object-cover" editing={editing}
-                onSwap={() => patchVideo(watch.id, { image: nextStockPhoto(watch.image) })} />
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
-                  <Play size={22} className="fill-white text-white" />
+            {watch.video ? (
+              <video src={watch.video} controls autoPlay playsInline className="aspect-video w-full bg-black" />
+            ) : (
+              <span className="relative block">
+                <Photo src={watch.image} className="aspect-video w-full object-cover" editing={editing}
+                  onSwap={() => patchVideo(watch.id, { image: nextStockPhoto(watch.image) })}
+                  onUpload={(url) => patchVideo(watch.id, { image: url })} />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                    <Play size={22} className="fill-white text-white" />
+                  </span>
                 </span>
               </span>
-            </span>
+            )}
             <div className="px-3 pt-2.5">
               <Editable editing={editing} value={watch.title} onChange={(t) => patchVideo(watch.id, { title: t })}
                 className="block text-[16px] font-semibold leading-snug" />
               <div className="pt-1 text-[12px] text-black/55">
                 <Editable editing={editing} type="number" value={watch.views} onChange={(n) => patchVideo(watch.id, { views: n })} />{" "}
-                views · {watch.age}
+                views · <Editable editing={editing} value={watch.age} onChange={(t) => patchVideo(watch.id, { age: t })} />
               </div>
               <div className="mt-2 flex items-center gap-4 rounded-xl bg-black/[0.04] px-3 py-2">
                 <span className="flex items-center gap-1 text-[12px] font-medium"><ThumbsUp size={16} /> {fmtNum(Math.round(watch.views / 20))}</span>
@@ -139,7 +171,8 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
                   <Editable editing={editing} value={watch.channel} onChange={(t) => patchVideo(watch.id, { channel: t })}
                     className="block truncate text-[13px] font-semibold" />
                   <span className="block text-[11px] text-black/50">
-                    {fmtNum(Math.max(1000, Math.round(watch.views / 40)))} subscribers
+                    <Editable editing={editing} type="number" value={chSubsOf(watch.channel, watch.views)}
+                      onChange={(n) => setChSubs(watch.channel, n)} /> subscribers
                   </span>
                 </div>
                 <button onClick={() => toggleSub(watch.channel)}
@@ -149,7 +182,8 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
                 </button>
               </div>
               <div className="mt-2.5 rounded-xl bg-black/[0.04] p-2.5 text-[12px] leading-snug text-black/70">
-                {watch.duration} · {watch.cat}. Tap Subscribe to keep up with new uploads.
+                <Editable editing={editing} value={watch.duration} onChange={(t) => patchVideo(watch.id, { duration: t })} /> ·{" "}
+                <Editable editing={editing} value={watch.cat} onChange={(t) => patchVideo(watch.id, { cat: t })} />. Tap Subscribe to keep up with new uploads.
               </div>
             </div>
             <div className="mt-3 border-t border-black/10 pt-1">
@@ -164,7 +198,14 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
             {[...new Map(data.videos.map((v) => [v.channel, v.chHue])).entries()].map(([ch, hue]) => (
               <div key={ch} className="flex items-center gap-3 border-b border-black/5 py-2.5">
                 <Avatar name={ch} hue={hue} size={40} />
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{ch}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-medium">{ch}</span>
+                  <span className="block text-[11px] text-black/50">
+                    <Editable editing={editing} type="number"
+                      value={chSubsOf(ch, data.videos.find((x) => x.channel === ch)?.views || 0)}
+                      onChange={(n) => setChSubs(ch, n)} /> subscribers
+                  </span>
+                </span>
                 <button onClick={() => toggleSub(ch)}
                   className={cn("rounded-full px-3 py-1.5 text-[11px] font-semibold",
                     isSub(ch) ? "bg-black/[0.08] text-[#0f0f0f]" : "bg-[#FF0000] text-white")}>
