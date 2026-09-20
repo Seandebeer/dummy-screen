@@ -45,6 +45,7 @@ import { skinUi, OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
 import { startPhoneVoice } from "@/lib/voiceLink";
 import { scheduleDeviceSync } from "@/lib/cloudSync";
+import { logTeamCall } from "@/lib/callLog";
 
 export default function OS() {
   const [app, setApp] = useState(null);
@@ -95,6 +96,7 @@ export default function OS() {
         badges: { ...(c.badges || {}), phone: Math.min(1000000, ((c.badges || {}).phone || 0) + 1) },
       }),
     }));
+    logTeamCall({ name, number: entry.number || "", type: entry.type });
     if (notif && !lockedRef.current) showBanner(notif);
   }, []);
 

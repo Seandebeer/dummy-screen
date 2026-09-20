@@ -1,0 +1,29 @@
+{
+  "name": "CallLog",
+  "type": "object",
+  "properties": {
+    "contact_name": {
+      "type": "string"
+    },
+    "contact_number": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "incoming",
+        "outgoing",
+        "missed"
+      ]
+    },
+    "device_name": {
+      "type": "string"
+    },
+    "logged_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "type"
+  ]
+}

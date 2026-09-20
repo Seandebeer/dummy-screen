@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Delete, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LANGUAGES } from "@/lib/osLanguages";
+import CallHistoryScreen from "@/components/os/apps/phone/CallHistoryScreen";
 
 const keypad = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
 
@@ -19,10 +20,10 @@ export default function PhoneApp({ onCall, recents = [], language = "en" }) {
   return (
     <div className="h-full bg-black text-white flex flex-col">
       <div className="flex border-b border-white/10">
-        {["recents", "keypad"].map((k) => (
+        {["recents", "history", "keypad"].map((k) => (
           <button key={k} onClick={() => setTab(k)}
             className={cn("flex-1 py-2.5 text-sm", tab === k ? "text-[#34C759] border-b-2 border-[#34C759]" : "text-white/40")}>
-            {k === "recents" ? t.recents : t.keypad}
+            {k === "recents" ? t.recents : k === "history" ? (t.history || "History") : t.keypad}
           </button>
         ))}
       </div>
@@ -50,6 +51,8 @@ export default function PhoneApp({ onCall, recents = [], language = "en" }) {
             );
           })}
         </div>
+      ) : tab === "history" ? (
+        <CallHistoryScreen onCall={onCall} language={language} />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-between py-4">
           <div className="font-display text-4xl font-light min-h-[3rem] tracking-wide">{number || <span className="text-white/20">Enter number</span>}</div>
