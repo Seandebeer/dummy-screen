@@ -257,4 +257,23 @@
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(0.93); opacity: 0.7; }
   }
+  /* locked marker screen: touch glow + swipe trail feedback */
+  .touch-glow-ripple {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    margin: -50px 0 0 -50px;
+    border-radius: 9999px;
+    pointer-events: none;
+    animation: touch-glow 0.6s ease-out forwards;
+  }
+  @keyframes touch-glow {
+    0% { opacity: 0.85; transform: scale(0.35); }
+    100% { opacity: 0; transform: scale(1); }
+  }
+  .touch-glow-trail { animation: touch-trail 0.45s ease-out forwards; }
+  @keyframes touch-trail {
+    0% { opacity: 0.5; }
+    100% { opacity: 0; }
+  }
 }

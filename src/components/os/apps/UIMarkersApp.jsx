@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Check, Eye, EyeOff, ImagePlus, Lock, Palette, RotateCcw, Save, Shapes } from "lucide-react";
+import { Check, Eye, EyeOff, ImagePlus, Lock, Palette, RotateCcw, Save, Shapes, Sparkles } from "lucide-react";
 import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import MarkAdjust from "@/components/os/MarkAdjust";
+import TouchGlow from "@/components/os/TouchGlow";
 import { DEFAULT_OVERLAY, OverlayControl, OverlayLayer } from "@/components/vfx/OverlayImage";
 import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -65,6 +66,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const [dropCell, setDropCell] = useState(null); // square it would land on
   const cellStart = useRef({ x: 0, y: 0 });
   const cellMoved = useRef(false);
+  const [ripples, setRipples] = useState([]); // locked touch glows
+  const [trail, setTrail] = useState(null); // locked bar swipe line
+  const rippleId = useRef(0);
   const containerRef = useRef(null);
   const holdTimer = useRef(null);
   const suppressClick = useRef(false);
@@ -324,6 +328,39 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     };
   }, [dragCell, dropCell]);
 
+  // touch feedback (locked + glow on): a glow where the screen is touched,
+  // and a quickly fading line when one of the long bars is swiped
+  const glowOn = markers.glow !== false;
+  const onRootPointerDown = (e) => {
+    if (!locked || !glowOn) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const id = ++rippleId.current;
+    setRipples((rs) => [...rs, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }]);
+    setTimeout(() => setRipples((rs) => rs.filter((r) => r.id !== id)), 650);
+    if (e.target.closest?.("[data-bar]")) setTrail({ points: [{ x: e.clientX - rect.left, y: e.clientY - rect.top }] });
+  };
+  const onRootPointerMove = (e) => {
+    if (!trail || trail.fading) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const p = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setTrail((t) => (t && !t.fading ? { ...t, points: [...t.points, p] } : t));
+  };
+
+  // release anywhere: the swipe line fades out, then disappears
+  useEffect(() => {
+    if (!trail || trail.fading) return;
+    const end = () => {
+      setTrail((t) => (t && !t.fading ? { ...t, fading: true } : t));
+      setTimeout(() => setTrail(null), 500);
+    };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  }, [trail]);
+
   // grid tracks - 1fr everywhere, so bars are exactly as thick as buttons
   const colTemplate = [];
   for (let c = 0; c <= COLS; c++) {
@@ -406,6 +443,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const horizontalBar = locked ? (
     <div
       style={{ gridColumn: "1 / -1", gridRow: barRow + 1 }}
+      data-bar="h"
       onPointerDown={() => setPressedBar("h")}
       onPointerUp={() => setPressedBar(null)}
       onPointerLeave={() => setPressedBar(null)}
@@ -447,6 +485,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
 
   const verticalBar = locked ? (
     <div style={{ gridColumn: barCol + 1, gridRow: `${vStart} / ${vStart + 6}` }}
+      data-bar="v"
       onPointerDown={() => setPressedBar("v")}
       onPointerUp={() => setPressedBar(null)}
       onPointerLeave={() => setPressedBar(null)}
@@ -479,7 +518,9 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
 
   return (
     <div className={cn("relative h-full overflow-hidden", light ? "text-black" : "text-white")}
-      style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }}>
+      style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }}
+      onPointerDown={onRootPointerDown}
+      onPointerMove={onRootPointerMove}>
       {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
         <div className="absolute top-2 inset-x-0 z-10 flex justify-center pointer-events-none">
@@ -595,6 +636,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                 {overlay.hidden ? <EyeOff size={11} /> : <Eye size={11} />}
               </button>
             )}
+            <button title="Touch glow" onClick={() => saveMarkers({ glow: !glowOn })}
+              className={cn(toolPill, glowOn && "text-amber")}>
+              <Sparkles size={11} /> Glow
+            </button>
             <button onClick={saveLayout}
               className={toolPill}>
               <Save size={11} /> Save
@@ -615,6 +660,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         {verticalBar}
         {columnFillers}
       </div>
+      {/* locked touch feedback - glows and swipe trails (toggleable) */}
+      {locked && glowOn && <TouchGlow ripples={ripples} trail={trail} light={light} />}
       {/* image overlay - reference photo above the grid, never interactive */}
       <OverlayLayer overlay={markers.overlay} />
       {/* tracking marks overlay - follows the chosen background */}
