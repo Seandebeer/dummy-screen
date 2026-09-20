@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
 import QrConnect from "@/components/control/QrConnect";
 import VideoCallCard from "@/components/control/VideoCallCard";
+import DeviceContactPicker from "@/components/control/DeviceContactPicker";
 import { cn } from "@/lib/utils";
 
 const CONTACT_KEY = "takeover-control-contact";
@@ -28,6 +29,10 @@ export default function ControlPanel() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [voice, setVoice] = useState("off");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [photoMode, setPhotoMode] = useState(() => {
+    try { return localStorage.getItem("takeover-call-photo-mode") || "circle"; } catch { return "circle"; }
+  });
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -36,6 +41,11 @@ export default function ControlPanel() {
     localStorage.setItem(CONTACT_KEY, JSON.stringify(next));
     return next;
   });
+
+  const choosePhotoMode = (m) => {
+    setPhotoMode(m);
+    try { localStorage.setItem("takeover-call-photo-mode", m); } catch {}
+  };
 
   // load messages + any pending alarm, keep live subscriptions
   useEffect(() => {
@@ -97,6 +107,7 @@ export default function ControlPanel() {
         channel: "stage-1", type: "call_incoming",
         contact_name: contact.name.trim(), contact_number: contact.number.trim(),
         ...(contact.image ? { contact_image: contact.image } : {}),
+        payload: JSON.stringify({ photoMode }),
         status: "pending",
       });
       setActiveCmdId(rec.id);
@@ -224,6 +235,10 @@ export default function ControlPanel() {
               className="col-span-2 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
           </div>
         </div>
+        <button onClick={() => setPickerOpen(true)}
+          className="mt-3 flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-body text-muted-foreground transition hover:border-signal/40 hover:text-foreground">
+          <Smartphone size={12} /> Choose from a device's contacts
+        </button>
       </div>
 
       {/* call trigger */}
@@ -240,6 +255,18 @@ export default function ControlPanel() {
             <PhoneOff size={20} />
             <span className="text-[11px] font-body">End</span>
           </button>
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[10px] font-body text-muted-foreground">Caller photo before answering</span>
+          <div className="flex gap-1">
+            {["circle", "full"].map((m) => (
+              <button key={m} onClick={() => choosePhotoMode(m)}
+                className={cn("rounded-lg border px-2 py-1 text-[10px] font-body transition",
+                  photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+                {m === "circle" ? "Circle" : "Full screen"}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={cn("mt-2 text-[10px] font-body",
           voice === "mic-on" ? "text-signal" : "text-muted-foreground")}>
@@ -308,6 +335,15 @@ export default function ControlPanel() {
           {alarmId ? "Stop Alarm" : "Trigger Alarm"}
         </button>
       </div>
+
+      {pickerOpen && (
+        <DeviceContactPicker
+          onPick={(c) => {
+            saveContact({ name: c.name, number: c.number, email: c.email, image: c.image || "" });
+            setPickerOpen(false);
+          }}
+          onClose={() => setPickerOpen(false)} />
+      )}
     </div>
   );
 }

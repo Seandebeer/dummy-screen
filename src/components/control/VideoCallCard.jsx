@@ -25,6 +25,13 @@ export default function VideoCallCard({ contact }) {
   const [photoUrl, setPhotoUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [vfx, setVfx] = useState({ bgColor: "#00B140", markStyle: "cross" });
+  const [photoMode, setPhotoMode] = useState(() => {
+    try { return localStorage.getItem("takeover-video-photo-mode") || "circle"; } catch { return "circle"; }
+  });
+  const choosePhotoMode = (m) => {
+    setPhotoMode(m);
+    try { localStorage.setItem("takeover-video-photo-mode", m); } catch {}
+  };
   const [live, setLive] = useState("off"); // off | on | denied | error
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -64,7 +71,7 @@ export default function VideoCallCard({ contact }) {
   const start = async () => {
     if (busy || state !== "idle" || !contact.name.trim()) return;
     setBusy(true);
-    const payload = { mode, photoUrl, videoUrl, vfx, camOff: !camOn, micMuted: !micOn };
+    const payload = { mode, photoUrl, videoUrl, vfx, camOff: !camOn, micMuted: !micOn, photoMode };
     payloadRef.current = payload;
     try {
       const rec = await base44.entities.Command.create({
@@ -205,6 +212,20 @@ export default function VideoCallCard({ contact }) {
         </button>
       )}
       <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={upload} />
+
+      {/* how the caller's photo greets the actor before answering */}
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[10px] font-body text-muted-foreground">Caller photo before answering</span>
+        <div className="flex gap-1">
+          {["circle", "full"].map((m) => (
+            <button key={m} onClick={() => choosePhotoMode(m)}
+              className={cn("rounded-lg border px-2 py-1 text-[10px] font-body transition",
+                photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
+              {m === "circle" ? "Circle" : "Full screen"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <button onClick={start} disabled={state !== "idle" || busy || !contact.name.trim()}

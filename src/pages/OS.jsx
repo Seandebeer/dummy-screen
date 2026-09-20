@@ -145,14 +145,14 @@ export default function OS() {
       if (!c || c.channel !== "stage-1") return;
       if (event.type === "create") {
         if (c.type === "call_incoming") {
-          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id });
+          setCall({ phase: "incoming", direction: "in", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, photoMode: parseJson(c.payload).photoMode });
         } else if (c.type === "call_outgoing") {
           setCall({ phase: "outgoing", direction: "out", contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image }, commandId: c.id, startTime: Date.now() });
           setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
         } else if (c.type === "alarm") {
           setAlarm({ commandId: c.id });
         } else if (c.type === "video_call") {
-          // a control-deck video call takes over the app and begins by itself
+          // a control-deck video call opens the app and rings until answered
           setLocked(false);
           setApp("videocall");
           setVideoCall({
@@ -160,7 +160,6 @@ export default function OS() {
             contact: { name: c.contact_name, number: c.contact_number, image: c.contact_image },
             payload: parseJson(c.payload),
           });
-          base44.entities.Command.update(c.id, { status: "active" }).catch(() => {});
         }
       } else if (event.type === "update") {
         // control deck ended the call remotely

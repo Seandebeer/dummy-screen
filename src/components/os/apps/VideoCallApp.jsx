@@ -32,6 +32,7 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
   const [muted, setMuted] = useState(false);
   const [facing, setFacing] = useState("user");
   const [ended, setEnded] = useState(false);
+  const [answered, setAnswered] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [camError, setCamError] = useState(false);
@@ -111,10 +112,10 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
     return () => window.removeEventListener("touchstart", onTouch);
   }, [locked]);
 
-  // a control-deck call takes over the app and begins by itself
+  // a control-deck call opens the app and rings until answered
   useEffect(() => {
     if (!remote) return;
-    setInCall(true);
+    setAnswered(false);
     setEnded(false);
     setSecs(0);
     setLocked(false);
@@ -124,9 +125,9 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
 
   // the control deck hung up - show the ended overlay
   useEffect(() => {
-    if (!remoteOn && wasRemoteRef.current) setEnded(true);
+    if (!remoteOn && wasRemoteRef.current && inCall) setEnded(true);
     wasRemoteRef.current = remoteOn;
-  }, [remoteOn]);
+  }, [remoteOn, inCall]);
 
   // live feed from the control deck
   useEffect(() => {
@@ -176,6 +177,13 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
   const endCall = () => {
     if (remoteOn) onRemoteEnd?.();
     else setEnded(true);
+  };
+  const acceptRemote = () => {
+    setAnswered(true);
+    setInCall(true);
+    setSecs(0);
+    setControlsVisible(true);
+    if (remote) base44.entities.Command.update(remote.id, { status: "active" }).catch(() => {});
   };
   const lock = () => {
     setLocked(true);
@@ -251,6 +259,44 @@ export default function VideoCallApp({ config, update, remote, onRemoteEnd }) {
       {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
     </button>
   );
+
+  // ---- incoming control-deck video call - rings until answered ----
+  if (remoteOn && !answered) {
+    const ringPhoto = remote.contact?.image;
+    const ringFull = rp.photoMode === "full" && ringPhoto;
+    return (
+      <div className="absolute inset-0 z-40 flex flex-col items-center justify-between overflow-hidden px-6 py-14 text-white"
+        style={{ background: ringFull ? "#000" : "linear-gradient(180deg, #1a1d2e 0%, #0a0b14 100%)" }}>
+        {ringFull && (
+          <>
+            <Image src={ringPhoto} alt={callerName} className="absolute inset-0 h-full w-full" fittingType="fill" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/60" />
+          </>
+        )}
+        <div className="relative mt-6 flex flex-col items-center">
+          {!ringFull && (
+            <div className="mb-4 flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-white/10 font-display text-4xl font-bold">
+              {ringPhoto
+                ? <Image src={ringPhoto} alt={callerName} className="h-full w-full" fittingType="fill" />
+                : initialsOf(callerName)}
+            </div>
+          )}
+          <div className="font-display text-3xl font-semibold drop-shadow">{callerName}</div>
+          <div className="mt-1 font-body text-sm text-white/60">wants to video chat…</div>
+        </div>
+        <div className="relative flex items-center gap-16">
+          <button onClick={() => onRemoteEnd?.()} className="flex flex-col items-center gap-2">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FF3B30]"><PhoneOff size={26} className="text-white" /></span>
+            <span className="font-body text-xs text-white/60">Decline</span>
+          </button>
+          <button onClick={acceptRemote} className="flex flex-col items-center gap-2">
+            <span className="flex h-16 w-16 animate-pulse items-center justify-center rounded-full bg-[#34C759]"><VideoIcon size={26} className="text-black" /></span>
+            <span className="font-body text-xs text-white/60">Accept</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ---- contact picker + per-contact setup ----
   if (!inCall) {
