@@ -10,14 +10,23 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTr
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
 
+const SELECTED_KEY = "propscreen.selectedProject";
+
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [devicesOpen, setDevicesOpen] = useState(false);
+  // the chosen project stays selected while the app is open - it only clears
+  // when you pick it off again or close the app
+  const [selectedProject, setSelectedProject] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(SELECTED_KEY)) || null; } catch { return null; }
+  });
+  const [devicesOpen, setDevicesOpen] = useState(Boolean(selectedProject));
   const [projectsOpen, setProjectsOpen] = useState(false);
   const pickProject = (p) => {
     setSelectedProject(p);
-    setProjectsOpen(false);
+    try {
+      if (p) sessionStorage.setItem(SELECTED_KEY, JSON.stringify(p));
+      else sessionStorage.removeItem(SELECTED_KEY);
+    } catch {}
     if (p) setDevicesOpen(true);
   };
   const initials = (user?.full_name || user?.email || "?")
