@@ -91,12 +91,32 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     saveMarkers({ assignments: { ...assignments, [i]: [...numbersOn(i), nextNumber()] } });
   };
 
-  // hold → clear every number on the button
+  // deletion closes the gaps: every remaining number shifts down so the
+  // sequence stays 1..N in the same press order (bars included)
+  const renumber = (next) => {
+    const entries = [];
+    Object.entries(next.assignments).forEach(([key, v]) =>
+      (Array.isArray(v) ? v : v != null ? [v] : []).forEach((n) => entries.push({ key, n })));
+    [["barNumber", Number(next.barNumber)], ["barVNumber", Number(next.barVNumber)]]
+      .forEach(([key, n]) => { if (n > 0) entries.push({ key, n }); });
+    entries.sort((a, b) => a.n - b.n);
+    const out = { assignments: {} };
+    entries.forEach((e, i) => {
+      if (e.key === "barNumber" || e.key === "barVNumber") out[e.key] = String(i + 1);
+      else (out.assignments[e.key] ??= []).push(i + 1);
+    });
+    return out;
+  };
+
+  // hold → clear every number on the button; the rest renumber to close the gap
   const clearNumber = (i) => {
     if (numbersOn(i).length === 0) return;
     const next = { ...assignments };
     delete next[i];
-    saveMarkers({ assignments: next });
+    saveMarkers((m) => {
+      const seq = renumber({ assignments: next, barNumber: m.barNumber || "", barVNumber: m.barVNumber || "" });
+      return { assignments: seq.assignments, barNumber: seq.barNumber, barVNumber: seq.barVNumber };
+    });
   };
 
   const resetNumbers = () => saveMarkers({ assignments: {}, barNumber: "", barVNumber: "" });
@@ -299,10 +319,20 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     gridRow: r + (r >= barRow ? 1 : 0) + 1,
   });
 
-  // tap anywhere on a bar (edit mode) → next number appears, tap again to clear
+  // tap anywhere on a bar (edit mode) → next number appears, tap again to
+  // clear; everything after it renumbers to close the gap
   const toggleBarNumber = (key) => {
     if (suppressClick.current) { suppressClick.current = false; return; }
-    saveMarkers((m) => (m[key] ? { [key]: "" } : { [key]: String(nextNumber()) }));
+    saveMarkers((m) => {
+      if (!m[key]) return { [key]: String(nextNumber()) };
+      const seq = renumber({
+        assignments: m.assignments || {},
+        barNumber: m.barNumber || "",
+        barVNumber: m.barVNumber || "",
+        [key]: "",
+      });
+      return { assignments: seq.assignments, barNumber: seq.barNumber, barVNumber: seq.barVNumber };
+    });
   };
 
   const horizontalBar = locked ? (
