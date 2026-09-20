@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Download, KeyRound, Loader2, LogOut, Share2, Trash2, UserRound } from "lucide-react";
+import { Camera, Download, KeyRound, Loader2, LogOut, Trash2, UserRound } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
 import { applyOsConfig } from "@/lib/osConfigStore";
 
 export default function ProfilePanel() {
@@ -48,7 +47,6 @@ export default function ProfilePanel() {
 
   const [designation, setDesignation] = useState("");
   const [savingTitle, setSavingTitle] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => { setDesignation(user?.designation || ""); }, [user?.designation]);
 
@@ -57,19 +55,6 @@ export default function ProfilePanel() {
     if (val === (user?.designation || "")) return;
     setSavingTitle(true);
     try { await base44.auth.updateMe({ designation: val }); } finally { setSavingTitle(false); }
-  };
-
-  // share the app - the App Store / Google Play link lands here once published
-  const shareApp = async () => {
-    const storeUrl = null;
-    const text = storeUrl
-      ? `Get PropSync: ${storeUrl}`
-      : "PropSync - coming soon to the App Store and Google Play";
-    try {
-      if (navigator.share) { await navigator.share({ title: "PropSync", text, ...(storeUrl ? { url: storeUrl } : {}) }); return; }
-      await navigator.clipboard.writeText(text);
-      toast({ description: "Copied - store links coming soon" });
-    } catch {}
   };
 
   const loadProfile = (p) => {
@@ -174,11 +159,6 @@ export default function ProfilePanel() {
           </ul>
         )}
       </div>
-
-      <button onClick={shareApp}
-        className="mt-auto flex items-center justify-center gap-2 rounded-lg border border-signal/40 bg-signal/10 py-2.5 text-xs font-body font-semibold text-signal hover:bg-signal/20 transition">
-        <Share2 size={14} /> Share App
-      </button>
     </div>
   );
 }

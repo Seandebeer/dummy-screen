@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { GraduationCap, HelpCircle, MessageSquareWarning } from "lucide-react";
+import { GraduationCap, HelpCircle, MessageSquareWarning, Share2 } from "lucide-react";
 import { APP_THEMES, getAppTheme, setAppTheme } from "@/lib/appTheme";
 import { APP_LANGUAGES, applyAppLanguage, getAppLanguage, setAppLanguage } from "@/lib/appLanguage";
+import { useToast } from "@/components/ui/use-toast";
 import HelpDialog from "@/components/home/HelpDialog";
 import BugReportDialog from "@/components/home/BugReportDialog";
 import TutorialDialog from "@/components/home/TutorialDialog";
@@ -12,8 +13,22 @@ export default function AppSettingsPanel() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => { applyAppLanguage(getAppLanguage()); }, []);
+
+  // share the app - the App Store / Google Play link lands here once published
+  const shareApp = async () => {
+    const storeUrl = null;
+    const text = storeUrl
+      ? `Get PropSync: ${storeUrl}`
+      : "PropSync - coming soon to the App Store and Google Play";
+    try {
+      if (navigator.share) { await navigator.share({ title: "PropSync", text, ...(storeUrl ? { url: storeUrl } : {}) }); return; }
+      await navigator.clipboard.writeText(text);
+      toast({ description: "Copied - store links coming soon" });
+    } catch {}
+  };
 
   const chooseTheme = (id) => {
     setAppTheme(id);
@@ -86,6 +101,17 @@ export default function AppSettingsPanel() {
         <button onClick={() => setBugOpen(true)}
           className="flex items-center gap-1.5 rounded-lg border border-alert/40 bg-alert/10 px-3 py-2 text-xs font-display font-semibold text-alert transition">
           <MessageSquareWarning size={14} /> Report
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 pt-3 border-t border-border">
+        <div>
+          <div className="text-sm font-body">Share App</div>
+          <div className="text-[11px] text-muted-foreground font-body">Send PropSync to the rest of the crew</div>
+        </div>
+        <button onClick={shareApp}
+          className="flex items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 px-3 py-2 text-xs font-display font-semibold text-signal hover:bg-signal/20 transition">
+          <Share2 size={14} /> Share
         </button>
       </div>
 
