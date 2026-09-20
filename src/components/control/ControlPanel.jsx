@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock, Check, CheckCheck, Paperclip, Play, Image as ImageIcon, MessageSquare } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Plug, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock, Check, CheckCheck, Paperclip, Play, Image as ImageIcon, MessageSquare } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
@@ -404,13 +404,14 @@ export default function ControlPanel() {
           </div>
         )}
         <div onClick={openPicker} className="cursor-pointer flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.04] p-3.5 transition hover:border-white/[0.14]">
-          <div className="h-10 w-10 rounded-lg bg-amber/15 border border-amber/30 flex items-center justify-center shrink-0">
-            <Users size={18} className="text-amber" />
+          <div className={cn("h-10 w-10 rounded-lg border flex items-center justify-center shrink-0",
+            channel ? "bg-signal/15 border-signal/30" : "bg-alert/15 border-alert/30")}>
+            <Plug size={18} className={channel ? "text-signal" : "text-alert"} />
           </div>
           <div className="flex-1 min-w-0">
             <select ref={selectRef} value={targetId} onChange={(e) => chooseTarget(e.target.value)} aria-label="Target device"
               className="w-full cursor-pointer appearance-none bg-transparent font-body text-sm font-semibold text-foreground outline-none">
-              <option value="">None</option>
+              <option value="">Tap to connect a device…</option>
               {(devices || []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               <option value="all">All devices (broadcast)</option>
             </select>
