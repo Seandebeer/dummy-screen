@@ -179,7 +179,7 @@ export default function DevicesPanel({ project }) {
       {devices === null ? (
         <div className="py-10 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={20} /></div>
       ) : !project ? (
-        <p className="py-8 text-center text-xs text-muted-foreground font-body">Select a project in Projects to see its devices.</p>
+        <p className="py-8 text-center text-xs text-muted-foreground font-body">Select a project to view its devices</p>
       ) : visible.length === 0 ? (
         <p className="py-8 text-center text-xs text-muted-foreground font-body">No devices linked to {project.name} yet - add one above.</p>
       ) : (
