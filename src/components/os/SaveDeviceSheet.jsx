@@ -3,21 +3,21 @@ import { Loader2, Save, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { saveConfig } from "@/lib/savedConfigs";
 import { slimConfig } from "@/lib/osConfigStore";
-import { saveDevice, linkDevice, getLinkedDeviceId, getDeviceName } from "@/lib/deviceLink";
+import { linkDevice } from "@/lib/deviceLink";
 import { createDeviceInProject, createProjectWithDevice } from "@/lib/osDeviceSave";
 import { cn } from "@/lib/utils";
 
-// SaveDeviceSheet - save this screen's OS layout to the Saved card on Home
-// (favourites), the device this screen is running as, or a brand-new device
-// inside an existing or brand-new project.
+// SaveDeviceSheet - save this screen's OS layout as a new device inside a
+// project (creating the project first if there are none), or to favourites
+// (the Saved card on Home).
 
 export default function SaveDeviceSheet({ config, onClose, onSaved }) {
   const [name, setName] = useState("");
   const [projectName, setProjectName] = useState("");
   const [projects, setProjects] = useState(null);
-  const [target, setTarget] = useState(() => (getLinkedDeviceId() ? "linked" : "fav"));
+  const [target, setTarget] = useState("project");
+  const [projectId, setProjectId] = useState(null);
   const [busy, setBusy] = useState(false);
-  const linked = Boolean(getLinkedDeviceId());
 
   useEffect(() => {
     base44.entities.Project.list("-created_date", 100)
@@ -32,18 +32,14 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
     try {
       if (target === "fav") {
         saveConfig({ kind: "os", category: "OS", name: n, data: slimConfig(config) });
-      } else if (target === "linked") {
-        await saveDevice(n, slimConfig(config));
-        onSaved?.(n);
-      } else if (target === "new") {
-        if (!projectName.trim()) { setBusy(false); return; }
+      } else if (projectId) {
+        const rec = await createDeviceInProject(projectId, n, slimConfig(config));
+        linkDevice(rec.id, rec.name);
+        onSaved?.(rec.name);
+      } else {
         const { device } = await createProjectWithDevice(projectName, n, slimConfig(config));
         linkDevice(device.id, device.name);
         onSaved?.(device.name);
-      } else {
-        const rec = await createDeviceInProject(target, n, slimConfig(config));
-        linkDevice(rec.id, rec.name);
-        onSaved?.(rec.name);
       }
       onClose();
     } catch {
@@ -63,6 +59,10 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
     </button>
   );
 
+  const canSave =
+    Boolean(name.trim()) && !busy &&
+    (target === "fav" || (projects?.length ? Boolean(projectId) : Boolean(projectName.trim())));
+
   return (
     <div className="absolute inset-0 z-40 flex items-end bg-black/60" onClick={() => !busy && onClose()}>
       <div onClick={(e) => e.stopPropagation()}
@@ -78,27 +78,29 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
           className="w-full rounded-xl bg-white/10 px-3.5 py-2.5 text-[14px] outline-none placeholder:text-white/30" />
         <div className="mt-3 space-y-1.5">
           <div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/35">Save to</div>
-          <Row label="Favourites" sub="Saved card on Home" selected={target === "fav"} onClick={() => setTarget("fav")} />
-          {linked && (
-            <Row label={`Current device — ${getDeviceName()}`} sub="Update the device this screen is running as"
-              selected={target === "linked"} onClick={() => setTarget("linked")} />
+          <Row label="Project" sub="Add a new device to one of your projects"
+            selected={target === "project"} onClick={() => setTarget("project")} />
+          {target === "project" && (
+            projects === null ? (
+              <div className="flex justify-center py-2 text-white/40"><Loader2 size={16} className="animate-spin" /></div>
+            ) : projects.length > 0 ? (
+              projects.map((p) => (
+                <Row key={p.id} label={p.name} sub="Add device to this project"
+                  selected={projectId === p.id} onClick={() => setProjectId(p.id)} />
+              ))
+            ) : (
+              <div className="rounded-xl bg-white/[0.06] px-3 py-2.5">
+                <p className="text-[11px] text-white/40">No projects yet - create your first one:</p>
+                <input autoFocus value={projectName} onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="Project name (e.g. Night Shift)"
+                  className="mt-2 w-full rounded-xl bg-white/10 px-3.5 py-2.5 text-[13px] outline-none placeholder:text-white/30" />
+              </div>
+            )
           )}
-          {projects === null ? (
-            <div className="flex justify-center py-2 text-white/40"><Loader2 size={16} className="animate-spin" /></div>
-          ) : projects.map((p) => (
-            <Row key={p.id} label={`New device in ${p.name}`} sub="Save device to this project"
-              selected={target === p.id} onClick={() => setTarget(p.id)} />
-          ))}
-          <Row label="New project…" sub="Create a project with a new device"
-            selected={target === "new"} onClick={() => setTarget("new")} />
-          {target === "new" && (
-            <input autoFocus value={projectName} onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Project name (e.g. Night Shift)"
-              className="w-full rounded-xl bg-white/10 px-3.5 py-2.5 text-[13px] outline-none placeholder:text-white/30" />
-          )}
+          <Row label="Favourites" sub="Saved card on Home"
+            selected={target === "fav"} onClick={() => setTarget("fav")} />
         </div>
-        <button onClick={save}
-          disabled={!name.trim() || busy || (target === "new" && !projectName.trim())}
+        <button onClick={save} disabled={!canSave}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0A84FF] py-3 text-[15px] font-semibold transition active:opacity-80 disabled:opacity-40">
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={15} />}
           {busy ? "Saving…" : "Save"}
