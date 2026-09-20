@@ -133,8 +133,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   // saving offers a choice: the Saved card (favourites) or this device's folder
   const saveLayout = () => setSaveOpen(true);
 
-  // tracking marks: auto contrast against the background
-  const markColor = bgColor ? (isLightHex(bgColor) ? "#000000" : "#FFFFFF") : "#FFFFFF";
+  // tracking marks: chosen colour, or auto contrast against the background
+  const markColor = markers.markColor || (bgColor ? (isLightHex(bgColor) ? "#000000" : "#FFFFFF") : "#FFFFFF");
 
   // per-style tracking-mark layout - draggable, rotatable, persisted
   const markLayout = markers.markLayouts?.[markStyle] || defaultLayoutFor(markStyle);
@@ -475,6 +475,26 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                     {markStyle === s.id && <Check size={12} className="text-amber" />}
                   </button>
                 ))}
+                <div className="mt-1 border-t border-white/10 px-2.5 pt-1.5">
+                  <span className="block pb-1 text-[9px] font-body uppercase tracking-wider text-white/40">Mark colour</span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1.5">
+                    <button onClick={() => saveMarkers({ markColor: null })} title="Auto contrast"
+                      className={cn("h-4 w-4 shrink-0 rounded-full border border-white/25",
+                        !markers.markColor && "ring-1 ring-amber ring-offset-1 ring-offset-black")}
+                      style={{ background: "linear-gradient(90deg, #000000 50%, #FFFFFF 50%)" }} />
+                    {vfxColors.map((c) => (
+                      <button key={c.id} onClick={() => saveMarkers({ markColor: c.hex })} title={c.label}
+                        className={cn("h-4 w-4 shrink-0 rounded-full border border-white/25",
+                          markers.markColor === c.hex && "ring-1 ring-amber ring-offset-1 ring-offset-black")}
+                        style={{ background: c.hex }} />
+                    ))}
+                    <label title="Custom colour" className="cursor-pointer">
+                      <input type="color" value={markers.markColor || "#FFFFFF"}
+                        onChange={(e) => saveMarkers({ markColor: e.target.value })}
+                        className="h-4 w-4 shrink-0 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
+                    </label>
+                  </div>
+                </div>
                 <MarkAdjust size={markers.markSize} thickness={markers.markThick} rot={markers.markRot}
                   onChange={(p) => saveMarkers({
                     ...(p.size !== undefined && { markSize: p.size }),
