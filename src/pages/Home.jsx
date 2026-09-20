@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Smartphone, Clapperboard, Settings2, Bookmark, User as UserIcon } from "lucide-react";
+import { MonitorSmartphone, Clapperboard, Settings2, Bookmark, User as UserIcon } from "lucide-react";
 import HomeSection from "@/components/home/HomeSection";
 import ProjectsPanel from "@/components/home/ProjectsPanel";
 import DevicesPanel from "@/components/home/DevicesPanel";
@@ -61,7 +61,7 @@ export default function Home() {
         <HomeSection icon={Clapperboard} title="Projects" subtitle="Production projects" open={projectsOpen} onOpenChange={setProjectsOpen}>
           <ProjectsPanel selected={selectedProject?.id || null} onSelect={pickProject} />
         </HomeSection>
-        <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync" open={devicesOpen} onOpenChange={setDevicesOpen}>
+        <HomeSection icon={MonitorSmartphone} title="Devices" subtitle="Prop devices & stage sync" open={devicesOpen} onOpenChange={setDevicesOpen}>
           <DevicesPanel project={selectedProject} />
         </HomeSection>
         <HomeSection icon={Settings2} title="Settings" subtitle="Deck & mock OS preferences">
