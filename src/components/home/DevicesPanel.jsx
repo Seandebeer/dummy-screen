@@ -122,7 +122,7 @@ export default function DevicesPanel({ project }) {
         <div className="flex-1">
           <h3 className="font-display font-bold text-base leading-none">{project ? project.name : "Devices"}</h3>
           <p className="text-[11px] text-muted-foreground font-body mt-1">
-            {project ? `${visible.length} ${visible.length === 1 ? "device" : "devices"}` : devices ? "select a project in Projects" : "loading…"}
+            {project ? `${visible.length} ${visible.length === 1 ? "device" : "devices"}` : ""}
           </p>
         </div>
         <Popover open={addOpen} onOpenChange={setAddOpen}>
