@@ -95,7 +95,7 @@ export default function ControlPanel() {
           try { localStorage.setItem("takeover-target-device", ""); } catch {}
         }
       })
-      .catch(() => setDevices([]));
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -384,7 +384,12 @@ export default function ControlPanel() {
             {channel ? "CONNECTED" : "NOT CONNECTED"}
           </span>
         </div>
-        {!channel && (
+        {devices && devices.length === 0 && (
+          <div className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[11px] font-body text-muted-foreground">
+            No devices detected - ensure that you have created a device. Home screen <span className="text-foreground/70">›</span> Projects <span className="text-foreground/70">›</span> Devices.
+          </div>
+        )}
+        {devices && devices.length > 0 && !channel && (
           <div className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[11px] font-body text-muted-foreground">
             No device connected. Ensure that you have selected a device on the home screen — Projects <span className="text-foreground/70">›</span> Devices.
           </div>
