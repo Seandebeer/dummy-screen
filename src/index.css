@@ -239,13 +239,13 @@
   /* every theme: the header sits a step off the page for tonal contrast,
      sealed with a solid hairline edge and slightly translucent */
   [data-app-theme="white"] .home-header {
-    background: hsl(42 30% 84% / 0.7);
+    background: hsl(42 30% 84% / 0.65);
   }
   [data-app-theme="grey"] .home-header {
-    background: hsl(225 10% 17% / 0.7);
+    background: hsl(225 10% 17% / 0.65);
   }
   [data-app-theme="black"] .home-header {
-    background: hsl(240 6% 11% / 0.7);
+    background: hsl(240 6% 11% / 0.65);
   }
   .brand-logo-art { mix-blend-mode: screen; }
   [data-app-theme="white"] .brand-logo-art {
