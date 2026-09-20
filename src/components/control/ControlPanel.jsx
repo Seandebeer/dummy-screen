@@ -384,6 +384,11 @@ export default function ControlPanel() {
             {channel ? "CONNECTED" : "NOT CONNECTED"}
           </span>
         </div>
+        {!channel && (
+          <div className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[11px] font-body text-muted-foreground">
+            No device connected. Ensure that you have selected a device on the home screen — Projects <span className="text-foreground/70">›</span> Devices.
+          </div>
+        )}
         <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.04] p-3.5">
           <div className="h-10 w-10 rounded-lg bg-amber/15 border border-amber/30 flex items-center justify-center shrink-0">
             <Users size={18} className="text-amber" />
