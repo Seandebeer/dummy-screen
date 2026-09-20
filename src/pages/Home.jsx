@@ -35,11 +35,11 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-background grid-backdrop">
-      <header className="border-b border-border/60 px-6 sm:px-8 py-5 flex items-center justify-between">
-        <div>
+      <header className="border-b border-border/60 px-6 sm:px-8 py-5 flex md:grid md:grid-cols-6 items-center justify-between">
+        <div className="md:col-start-2 md:col-span-2 md:justify-self-center">
           <BrandLogo />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 md:col-start-4 md:col-span-2 md:justify-self-center">
           <Sheet>
             <SheetTrigger asChild>
               <button title="Profile & saved layouts"
