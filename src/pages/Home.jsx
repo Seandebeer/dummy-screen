@@ -6,6 +6,7 @@ import DevicesPanel from "@/components/home/DevicesPanel";
 import AppSettingsPanel from "@/components/home/AppSettingsPanel";
 import SavedPanel from "@/components/home/SavedPanel";
 import ProfilePanel from "@/components/home/ProfilePanel";
+import BrandLogo from "@/components/home/BrandLogo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
@@ -36,7 +37,7 @@ export default function Home() {
     <div className="min-h-dvh bg-background grid-backdrop">
       <header className="border-b border-border/60 px-6 sm:px-8 py-5 flex items-center justify-between">
         <div>
-          <div className="text-xs font-medium text-muted-foreground font-body">PropScreen</div>
+          <BrandLogo />
           <h1 className="font-display font-bold text-3xl tracking-[-0.02em] leading-none mt-1.5">Home</h1>
         </div>
         <div className="flex items-center gap-3">
