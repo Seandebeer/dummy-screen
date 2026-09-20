@@ -13,6 +13,11 @@ import { useAuth } from "@/lib/AuthContext";
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [selectedProject, setSelectedProject] = useState(null);
+  const [devicesOpen, setDevicesOpen] = useState(false);
+  const pickProject = (p) => {
+    setSelectedProject(p);
+    if (p) setDevicesOpen(true);
+  };
   const initials = (user?.full_name || user?.email || "?")
     .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
 
@@ -52,9 +57,9 @@ export default function Home() {
 
       <div className="p-5 sm:p-8 max-w-[1280px] mx-auto flex flex-col gap-5">
         <HomeSection icon={Clapperboard} title="Projects" subtitle="Production projects">
-          <ProjectsPanel selected={selectedProject?.id || null} onSelect={setSelectedProject} />
+          <ProjectsPanel selected={selectedProject?.id || null} onSelect={pickProject} />
         </HomeSection>
-        <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync">
+        <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync" open={devicesOpen} onOpenChange={setDevicesOpen}>
           <DevicesPanel project={selectedProject} />
         </HomeSection>
         <HomeSection icon={Settings2} title="Settings" subtitle="Deck & mock OS preferences">
