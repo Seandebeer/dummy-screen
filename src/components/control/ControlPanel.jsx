@@ -581,18 +581,20 @@ export default function ControlPanel() {
             <input value={replyText} onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addReply()}
               placeholder="Queue up a reply…" disabled={replyQueue.length >= 20}
-              className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
+              className="min-w-0 flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
             <button onClick={addReply} disabled={!replyText.trim() || replyQueue.length >= 20}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
               <Plus size={13} /> Add
             </button>
-            <label className={cn("flex h-9 items-center rounded-lg border border-border px-2.5 cursor-pointer transition hover:border-signal/40",
+          </div>
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <label className={cn("flex h-9 shrink-0 items-center rounded-lg border border-border px-2.5 cursor-pointer transition hover:border-signal/40",
               (replyQueue.length >= 20 || mediaBusy) && "pointer-events-none opacity-40")} title="Queue a photo or video">
               <Paperclip size={13} className="text-muted-foreground" />
               <input type="file" accept="image/*,video/*" className="hidden" onChange={queueMediaMsg} />
             </label>
             <button onClick={sendNextReply} disabled={!replyQueue.length}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
               <Send size={13} /> Reply
             </button>
           </div>
