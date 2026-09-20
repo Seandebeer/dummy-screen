@@ -503,13 +503,7 @@ export default function ControlPanel() {
       <VideoCallCard contact={contact} channel={channel} />
 
       {/* message console */}
-      <ControlCard icon={MessageSquare} title="Message Push Console"
-        badge={
-          <button onClick={(e) => { e.stopPropagation(); resetMessages(); }}
-            className="flex items-center gap-1 rounded-lg border border-white/[0.08] px-2 py-1 text-[10px] font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
-            <Recycle size={11} /> Reset
-          </button>
-        }>
+      <ControlCard icon={MessageSquare} title="Message Push Console">
         <div ref={scrollRef} className="max-h-64 overflow-auto no-scrollbar space-y-2 mb-3 min-h-[120px]">
           {messages.length === 0 && <div className="text-center text-muted-foreground text-xs py-6 font-body">No messages. Push one to the prop phone.</div>}
           {messages.map((m) => {
@@ -581,6 +575,10 @@ export default function ControlPanel() {
             </button>
           </div>
           <div className="mt-2 flex items-center justify-end gap-2">
+            <button onClick={resetMessages}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
+              <Recycle size={13} /> Reset
+            </button>
             <label className={cn("flex h-9 shrink-0 items-center rounded-lg border border-white/[0.08] px-2.5 cursor-pointer transition hover:border-signal/40",
               (replyQueue.length >= 20 || mediaBusy) && "pointer-events-none opacity-40")} title="Queue a photo or video">
               <Paperclip size={13} className="text-muted-foreground" />
@@ -588,7 +586,7 @@ export default function ControlPanel() {
             </label>
             <button onClick={sendNextReply} disabled={!replyQueue.length}
               className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
-              <Send size={13} /> Reply
+              <Send size={13} /> Send
             </button>
           </div>
           {replyQueue.length > 0 && (
@@ -610,9 +608,6 @@ export default function ControlPanel() {
               ))}
             </div>
           )}
-          <div className="mt-1.5 text-[10px] font-body text-muted-foreground">
-            Reset clears the phone thread and reloads every pushed reply
-          </div>
         </div>
       </ControlCard>
 
