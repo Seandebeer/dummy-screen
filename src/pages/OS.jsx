@@ -24,7 +24,6 @@ import FacepageApp from "@/components/os/apps/social/FacepageApp";
 import PhotogramApp from "@/components/os/apps/social/PhotogramApp";
 import VidTubeApp from "@/components/os/apps/social/VidTubeApp";
 import QuickTokApp from "@/components/os/apps/social/QuickTokApp";
-import FramesApp from "@/components/os/apps/FramesApp";
 import BrowserApp from "@/components/os/apps/BrowserApp";
 import WebdeckApp from "@/components/os/apps/WebdeckApp";
 import NewsApp from "@/components/os/apps/NewsApp";
@@ -543,7 +542,6 @@ export default function OS() {
       case "photogram": return <PhotogramApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "vidtube": return <VidTubeApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "quicktok": return <QuickTokApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
-      case "frames": return <FramesApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "browser": return <BrowserApp />;
       case "webdeck": return <WebdeckApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "news": return <NewsApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
