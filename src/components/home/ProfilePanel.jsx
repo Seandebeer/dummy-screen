@@ -143,16 +143,10 @@ export default function ProfilePanel() {
             {savingTitle && <Loader2 size={14} className="animate-spin text-muted-foreground shrink-0" />}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => navigate("/forgot-password")}
-            className="flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-xs font-body font-semibold text-muted-foreground hover:text-foreground transition">
-            <KeyRound size={14} /> Reset password
-          </button>
-          <button onClick={shareApp}
-            className="flex items-center justify-center gap-2 rounded-lg border border-signal/40 bg-signal/10 py-2.5 text-xs font-body font-semibold text-signal hover:bg-signal/20 transition">
-            <Share2 size={14} /> Share App
-          </button>
-        </div>
+        <button onClick={() => navigate("/forgot-password")}
+          className="flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-xs font-body font-semibold text-muted-foreground hover:text-foreground transition">
+          <KeyRound size={14} /> Reset password
+        </button>
       </div>
 
       <div>
@@ -180,6 +174,11 @@ export default function ProfilePanel() {
           </ul>
         )}
       </div>
+
+      <button onClick={shareApp}
+        className="mt-auto flex items-center justify-center gap-2 rounded-lg border border-signal/40 bg-signal/10 py-2.5 text-xs font-body font-semibold text-signal hover:bg-signal/20 transition">
+        <Share2 size={14} /> Share App
+      </button>
     </div>
   );
 }
