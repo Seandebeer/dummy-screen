@@ -548,24 +548,28 @@ export default function ControlPanel() {
         {contact.name.trim() && (
           <div className="text-[10px] text-muted-foreground font-body mb-1.5">Sending as {contact.name.trim()}</div>
         )}
-        <div className="flex items-center gap-2">
-          <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Type message to push…" className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />
+        <textarea value={text} onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+          placeholder="Type message to push…" rows={4}
+          className="w-full min-h-[96px] resize-y bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />
+        <div className="mt-2 flex items-center justify-between gap-2">
           <label className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2 shrink-0"
             title="Time shown on the phone - clear it for live time">
             <Clock size={12} className="text-muted-foreground shrink-0" />
             <input type="time" value={msgTime} onChange={(e) => setMsgTime(e.target.value)}
               className="w-[70px] bg-transparent text-xs font-body outline-none" />
           </label>
-          <label className={cn("h-9 w-9 shrink-0 rounded-lg border border-border flex items-center justify-center cursor-pointer transition hover:border-signal/40",
-            mediaBusy && "opacity-50")} title="Send a photo or video">
-            <Paperclip size={15} className="text-muted-foreground" />
-            <input type="file" accept="image/*,video/*" className="hidden" onChange={sendMediaMsg} />
-          </label>
-          <button onClick={sendMessage} disabled={!text.trim()}
-            className="h-9 w-9 rounded-lg bg-signal text-background flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition">
-            <Send size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            <label className={cn("h-9 w-9 shrink-0 rounded-lg border border-border flex items-center justify-center cursor-pointer transition hover:border-signal/40",
+              mediaBusy && "opacity-50")} title="Send a photo or video">
+              <Paperclip size={15} className="text-muted-foreground" />
+              <input type="file" accept="image/*,video/*" className="hidden" onChange={sendMediaMsg} />
+            </label>
+            <button onClick={sendMessage} disabled={!text.trim()}
+              className="h-9 w-9 rounded-lg bg-signal text-background flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition">
+              <Send size={16} />
+            </button>
+          </div>
         </div>
 
         {/* pre-loaded replies - a single button pushes the next one down */}
@@ -677,15 +681,17 @@ export default function ControlPanel() {
             {allAppsById[notifApp]?.label || notifApp}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <input value={notifText} onChange={(e) => setNotifText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addNotifToQueue()}
-            placeholder="Banner text…" disabled={notifQueue.length >= 20}
-            className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
-          <button onClick={addNotifToQueue} disabled={!notifText.trim() || notifQueue.length >= 20}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
-            <Plus size={13} /> Add
-          </button>
+        <div>
+          <textarea value={notifText} onChange={(e) => setNotifText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addNotifToQueue(); } }}
+            placeholder="Banner text…" rows={4} disabled={notifQueue.length >= 20}
+            className="w-full min-h-[96px] resize-y bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
+          <div className="mt-2 flex justify-end">
+            <button onClick={addNotifToQueue} disabled={!notifText.trim() || notifQueue.length >= 20}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
+              <Plus size={13} /> Add
+            </button>
+          </div>
         </div>
         {notifQueue.length > 0 && (
           <div className="mt-3">
