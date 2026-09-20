@@ -429,8 +429,22 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
       style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }}>
       {/* floating edit HUD - hidden when locked, never affects the grid layout */}
       {!locked && (
-        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-end pointer-events-none">
+        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-between pointer-events-none">
+          <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-body backdrop-blur", light ? "text-black/40 bg-black/5" : "text-white/40 bg-white/10")}>
+            Tap to add numbers · hold to clear · drag to rearrange
+          </span>
           <div className="flex items-center gap-2 pointer-events-auto">
+            <button onClick={lock}
+              className={pill}>
+              <Lock size={11} /> Lock
+            </button>
+          </div>
+        </div>
+      )}
+      {/* edit tools - bottom, out of the way of the grid */}
+      {!locked && (
+        <div className="absolute bottom-3 inset-x-2 z-10 flex items-center justify-center pointer-events-none">
+          <div className="flex items-center gap-2 pointer-events-auto flex-wrap justify-center">
             <Popover>
               <PopoverTrigger asChild>
                 <button title="Background colour"
@@ -440,7 +454,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                     style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="bottom" align="end" className="w-44 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
+              <PopoverContent side="top" align="end" className="w-44 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
                 {vfxColors.map((c) => (
                   <button key={c.id} onClick={() => saveMarkers({ bgColor: c.hex })}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10">
@@ -464,7 +478,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                   <Shapes size={11} /> Marks
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="bottom" align="end" className="w-44 p-1.5 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
+              <PopoverContent side="top" align="end" className="w-44 p-1.5 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
                 <button onClick={() => saveMarkers({ markStyle: "none" })}
                   className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px] font-body uppercase tracking-wider transition hover:bg-white/10">
                   None
@@ -512,7 +526,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                   <ImagePlus size={11} /> Overlay
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="bottom" align="end" className="w-56 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
+              <PopoverContent side="top" align="end" className="w-56 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
                 <OverlayControl overlay={markers.overlay}
                   onChange={(p) => saveMarkers((m) => ({ overlay: { ...DEFAULT_OVERLAY, ...m.overlay, ...p } }))} />
               </PopoverContent>
@@ -532,21 +546,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
               className={pill}>
               <RotateCcw size={11} /> Reset
             </button>
-            <button onClick={lock}
-              className={pill}>
-              <Lock size={11} /> Lock
-            </button>
           </div>
         </div>
       )}
-      {/* edit-mode instructions - bottom, out of the way of the nav buttons */}
-      {!locked && (
-        <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center pointer-events-none">
-          <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-body backdrop-blur", light ? "text-black/40 bg-black/5" : "text-white/40 bg-white/10")}>
-            Tap to add numbers · hold to clear · drag to rearrange
-          </span>
-        </div>
-      )}
+
       {/* fixed full-screen grid - button size & position never change between modes */}
       <div ref={containerRef} className="absolute inset-0 grid p-1"
         style={{ gridTemplateColumns: colTemplate.join(" "), gridTemplateRows: rowTemplate.join(" "), gap: "4px" }}>
