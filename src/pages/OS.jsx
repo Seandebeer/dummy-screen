@@ -33,8 +33,8 @@ import MarkAdjust from "@/components/os/MarkAdjust";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
-import { ensureDeviceOnline, saveDevice, getDeviceName } from "@/lib/deviceLink";
-import { slimConfig } from "@/lib/osConfigStore";
+import { ensureDeviceOnline, getDeviceName } from "@/lib/deviceLink";
+import SaveDeviceSheet from "@/components/os/SaveDeviceSheet";
 import LockScreen from "@/components/os/LockScreen";
 import ClockEditor from "@/components/os/ClockEditor";
 import WpTileHome from "@/components/os/WpTileHome";
@@ -59,6 +59,7 @@ export default function OS() {
   const [alarm, setAlarm] = useState(null);
   const [banner, setBanner] = useState(null);
   const [clockEdit, setClockEdit] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [deviceName, setDeviceName] = useState(getDeviceName);
   const [callSpeaker, setCallSpeaker] = useState(false);
   const [ear, setEar] = useState(false);
@@ -297,14 +298,9 @@ export default function OS() {
     };
   }, [fullscreen, exitFullscreen]);
 
-  // save this screen's OS layout as a character's device (appears in Devices)
-  const saveAsDevice = async () => {
-    const fallback = localStorage.getItem("takeover-device-name") || "Character's phone";
-    const name = window.prompt("Save as character's device - name:", fallback);
-    if (!name || !name.trim()) return;
-    await saveDevice(name.trim(), slimConfig(config));
-    setDeviceName(name.trim());
-  };
+  // save this screen's OS layout - to the current device, the Saved card
+  // (favourites) or a new device inside a project
+  const saveAsDevice = () => setSaveOpen(true);
 
   const statusTime = config.clock.mode === "custom" && config.clock.time
     ? config.clock.time
@@ -475,7 +471,7 @@ export default function OS() {
           </Popover>
           <button onClick={saveAsDevice}
             className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-muted-foreground transition">
-            <Save size={14} /> <span className="hidden sm:inline">Save as Device</span>
+            <Save size={14} /> <span className="hidden sm:inline">Save</span>
           </button>
           <button onClick={toggleFullscreen}
             className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-body text-muted-foreground hover:text-foreground hover:border-muted-foreground transition">
@@ -501,6 +497,10 @@ export default function OS() {
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
         </PhoneFrame>
       </div>
+      {saveOpen && (
+        <SaveDeviceSheet config={config} onClose={() => setSaveOpen(false)}
+          onSaved={(n) => n && setDeviceName(n)} />
+      )}
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-black">
           {fsHint && (

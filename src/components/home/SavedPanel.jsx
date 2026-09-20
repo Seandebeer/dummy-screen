@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users, LayoutGrid } from "lucide-react";
+import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users, LayoutGrid, Smartphone } from "lucide-react";
 import { listSaved, deleteConfig, mergeCloudEntries } from "@/lib/savedConfigs";
 import { syncNow, SYNC_EVENT } from "@/lib/cloudSync";
 import SyncBadge from "@/components/home/SyncBadge";
 import { applyPage } from "@/lib/savedPages";
+import { applyOsConfig } from "@/lib/osConfigStore";
+import SendToDeviceDialog from "@/components/home/SendToDeviceDialog";
 
-const CATEGORIES = ["All", "UI Markers", "Key Screens", "Socials", "Websites", "Apps"];
+const CATEGORIES = ["All", "OS", "UI Markers", "Key Screens", "Socials", "Websites", "Apps"];
 
 const categoryOf = (s) =>
-  s.kind === "markers" ? "UI Markers"
+  s.kind === "os" ? "OS"
+  : s.kind === "markers" ? "UI Markers"
   : s.kind === "screen" ? "Key Screens"
   : s.category || "Pages";
 
 const iconFor = (s) =>
-  s.kind === "markers" ? <Crosshair size={15} />
+  s.kind === "os" ? <Smartphone size={15} />
+  : s.kind === "markers" ? <Crosshair size={15} />
   : s.kind === "screen" ? <Monitor size={15} />
   : s.category === "Websites" ? <Globe size={15} />
   : s.category === "Apps" ? <LayoutGrid size={15} />
@@ -23,6 +27,7 @@ const iconFor = (s) =>
 export default function SavedPanel() {
   const [saved, setSaved] = useState(listSaved);
   const [cat, setCat] = useState("All");
+  const [sendOpen, setSendOpen] = useState(null);
   const navigate = useNavigate();
 
   // load the shared cloud library (falls back to the local copy with no
@@ -44,7 +49,10 @@ export default function SavedPanel() {
   }, []);
 
   const open = (s) => {
-    if (s.kind === "markers") {
+    if (s.kind === "os") {
+      applyOsConfig(s.data);
+      navigate("/os");
+    } else if (s.kind === "markers") {
       try {
         const cfg = JSON.parse(localStorage.getItem("takeover-os-config")) || {};
         cfg.uiMarkers = s.uiMarkers;
@@ -109,6 +117,12 @@ export default function SavedPanel() {
                   {categoryOf(s)}
                 </div>
               </div>
+              {s.kind === "os" && (
+                <button onClick={() => setSendOpen(s)}
+                  className="rounded-lg border border-signal/30 bg-signal/10 px-3 py-1.5 text-xs font-body text-signal transition hover:bg-signal/20">
+                  To device
+                </button>
+              )}
               <button onClick={() => open(s)}
                 className="rounded-lg border border-amber/30 bg-amber/15 px-3 py-1.5 text-xs font-body text-amber transition hover:bg-amber/25">
                 Open
@@ -121,6 +135,7 @@ export default function SavedPanel() {
           ))}
         </div>
       )}
+      <SendToDeviceDialog entry={sendOpen} onClose={() => setSendOpen(null)} />
     </div>
   );
 }
