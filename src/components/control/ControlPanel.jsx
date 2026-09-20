@@ -59,6 +59,10 @@ export default function ControlPanel() {
   const [notifQueue, setNotifQueue] = useState([]);
   // everything pushed since the last reset - Reset reloads it into the queue
   const [pushedNotifs, setPushedNotifs] = useState([]);
+  // pre-loaded message replies - hit Reply to push the next one down
+  const [replyQueue, setReplyQueue] = useState([]);
+  const [pushedReplies, setPushedReplies] = useState([]);
+  const [replyText, setReplyText] = useState("");
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -104,6 +108,8 @@ export default function ControlPanel() {
   useEffect(() => {
     let mounted = true;
     setMessages([]);
+    setReplyQueue([]);
+    setPushedReplies([]);
     base44.entities.Message.filter({ thread_id: channel }, "created_date", 200)
       .then((d) => mounted && setMessages(d)).catch(() => {});
     base44.entities.Command.filter({ channel, type: "alarm", status: "pending" }, "-created_date", 1)
@@ -238,7 +244,33 @@ export default function ControlPanel() {
     if (!window.confirm("Clear all messages on this channel?")) return;
     setMessages([]);
     try { await base44.entities.Message.deleteMany({ thread_id: channel }); } catch {}
+    // the thread is cleared on the phone and every pushed reply loads back
+    // into the queue - whatever gets pushed next becomes the next set
+    setReplyQueue(pushedReplies.slice(0, 20));
+    setPushedReplies([]);
   };
+
+  const addReply = () => {
+    const t = replyText.trim();
+    if (!t || replyQueue.length >= 20) return;
+    setReplyQueue((q) => [...q, { id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, text: t }]);
+    setReplyText("");
+  };
+  const sendNextReply = async () => {
+    const next = replyQueue[0];
+    if (!next) return;
+    try {
+      await base44.entities.Message.create({
+        thread_id: channel, sender: "control", text: next.text,
+        sender_name: contact.name.trim() || "Control",
+        contact_image: contact.image || "",
+        source: getScreenId(),
+      });
+      setPushedReplies((p) => [...p, next]);
+      setReplyQueue((q) => q.slice(1));
+    } catch {}
+  };
+  const removeReply = (id) => setReplyQueue((q) => q.filter((r) => r.id !== id));
 
   const canCall = contact.name.trim() && contact.number.trim() && callState === "idle" && !busy;
 
@@ -434,7 +466,7 @@ export default function ControlPanel() {
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">Message Push Console</div>
           <button onClick={resetMessages}
             className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
-            <Trash2 size={11} /> Reset
+            <Recycle size={11} /> Reset
           </button>
         </div>
         <div ref={scrollRef} className="flex-1 overflow-auto no-scrollbar space-y-2 mb-3 min-h-[120px]">
@@ -462,6 +494,44 @@ export default function ControlPanel() {
             className="h-9 w-9 rounded-lg bg-signal text-background flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition">
             <Send size={16} />
           </button>
+        </div>
+
+        {/* pre-loaded replies - a single button pushes the next one down */}
+        <div className="mt-3 border-t border-border pt-2.5">
+          <div className="text-[10px] font-body text-muted-foreground mb-1.5">
+            Pre-loaded replies · {replyQueue.length}/20
+          </div>
+          <div className="flex items-center gap-2">
+            <input value={replyText} onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addReply()}
+              placeholder="Queue up a reply…" disabled={replyQueue.length >= 20}
+              className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
+            <button onClick={addReply} disabled={!replyText.trim() || replyQueue.length >= 20}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
+              <Plus size={13} /> Add
+            </button>
+            <button onClick={sendNextReply} disabled={!replyQueue.length}
+              className="flex h-9 items-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
+              <Send size={13} /> Reply
+            </button>
+          </div>
+          {replyQueue.length > 0 && (
+            <div className="mt-2 space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+              {replyQueue.map((r, i) => (
+                <div key={r.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-2 py-1.5">
+                  <span className="text-[9px] font-body text-muted-foreground shrink-0">{i + 1}</span>
+                  <span className="flex-1 min-w-0 truncate text-xs font-body text-foreground">{r.text}</span>
+                  <button onClick={() => removeReply(r.id)} aria-label="Remove"
+                    className="text-muted-foreground hover:text-alert shrink-0 transition">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-1.5 text-[10px] font-body text-muted-foreground">
+            Reset clears the phone thread and reloads every pushed reply
+          </div>
         </div>
       </div>
 
