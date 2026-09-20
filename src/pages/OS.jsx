@@ -33,7 +33,7 @@ import MarkAdjust from "@/components/os/MarkAdjust";
 import NotificationBanner from "@/components/os/NotificationBanner";
 import { cn } from "@/lib/utils";
 import useOsConfig from "@/hooks/useOsConfig";
-import { ensureDeviceOnline, getDeviceName } from "@/lib/deviceLink";
+import { ensureDeviceOnline, getDeviceName, getLinkedDeviceId } from "@/lib/deviceLink";
 import SaveDeviceSheet from "@/components/os/SaveDeviceSheet";
 import LockScreen from "@/components/os/LockScreen";
 import ClockEditor from "@/components/os/ClockEditor";
@@ -62,6 +62,18 @@ export default function OS() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [deviceName, setDeviceName] = useState(getDeviceName);
   const [callSpeaker, setCallSpeaker] = useState(false);
+
+  // the header names a device only once it's saved to a project - a linked
+  // device with no project, or nothing linked at all, is just the sandbox
+  const refreshDeviceName = useCallback(() => {
+    const id = getLinkedDeviceId();
+    if (!id) { setDeviceName("Sandbox"); return; }
+    base44.entities.Device.get(id)
+      .then((d) => setDeviceName(d?.project_id ? d.name : "Sandbox"))
+      .catch(() => setDeviceName("Sandbox"));
+  }, []);
+
+  useEffect(() => { refreshDeviceName(); }, [refreshDeviceName]);
   const [ear, setEar] = useState(false);
   const voiceRef = useRef(null);
   const [messageTo, setMessageTo] = useState(null);
@@ -499,7 +511,7 @@ export default function OS() {
       </div>
       {saveOpen && (
         <SaveDeviceSheet config={config} onClose={() => setSaveOpen(false)}
-          onSaved={(n) => n && setDeviceName(n)} />
+          onSaved={refreshDeviceName} />
       )}
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-black">
