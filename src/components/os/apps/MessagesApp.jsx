@@ -178,12 +178,17 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark" }
           )}
           {msgs.map((m) => {
             const mine = m.sender === "phone";
+            // deck messages carry the deck's manual time, or the live send time
+            const stamp = !mine
+              ? (m.custom_time || new Date(m.created_date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }))
+              : null;
             return (
-              <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+              <div key={m.id} className={cn("flex flex-col", mine ? "items-end" : "items-start")}>
                 <div className={cn("max-w-[75%] rounded-2xl px-3.5 py-2 text-sm",
                   mine ? "bg-[#007AFF] text-white rounded-br-md" : dark ? "bg-[#3A3A3C] text-white rounded-bl-md" : "bg-[#E9E9EB] text-black rounded-bl-md")}>
                   {m.text}
                 </div>
+                {stamp && <span className="px-1 pt-0.5 text-[10px] text-[#8E8E93]">{stamp}</span>}
               </div>
             );
           })}

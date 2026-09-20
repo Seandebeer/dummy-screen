@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle, Clock } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
@@ -63,6 +63,8 @@ export default function ControlPanel() {
   const [replyQueue, setReplyQueue] = useState([]);
   const [pushedReplies, setPushedReplies] = useState([]);
   const [replyText, setReplyText] = useState("");
+  // optional manual timestamp for pushed messages - blank means live time
+  const [msgTime, setMsgTime] = useState("");
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -235,6 +237,7 @@ export default function ControlPanel() {
         thread_id: channel, sender: "control", text: body,
         sender_name: contact.name.trim() || "Control",
         contact_image: contact.image || "",
+        ...(msgTime ? { custom_time: msgTime } : {}),
         source: getScreenId(),
       });
     } catch (e) { setText(body); }
@@ -264,6 +267,7 @@ export default function ControlPanel() {
         thread_id: channel, sender: "control", text: next.text,
         sender_name: contact.name.trim() || "Control",
         contact_image: contact.image || "",
+        ...(msgTime ? { custom_time: msgTime } : {}),
         source: getScreenId(),
       });
       setPushedReplies((p) => [...p, next]);
@@ -490,6 +494,12 @@ export default function ControlPanel() {
         <div className="flex items-center gap-2">
           <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             placeholder="Type message to push…" className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />
+          <label className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2 shrink-0"
+            title="Time shown on the phone - clear it for live time">
+            <Clock size={12} className="text-muted-foreground shrink-0" />
+            <input type="time" value={msgTime} onChange={(e) => setMsgTime(e.target.value)}
+              className="w-[70px] bg-transparent text-xs font-body outline-none" />
+          </label>
           <button onClick={sendMessage} disabled={!text.trim()}
             className="h-9 w-9 rounded-lg bg-signal text-background flex items-center justify-center disabled:opacity-40 hover:brightness-110 transition">
             <Send size={16} />

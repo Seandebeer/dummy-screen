@@ -26,6 +26,10 @@
     "source": {
       "type": "string",
       "description": "Screen id of the browser that pushed this message, so the pushing screen never reacts to it"
+    },
+    "custom_time": {
+      "type": "string",
+      "description": "Optional manual timestamp shown on the phone instead of the live send time"
     }
   },
   "required": [

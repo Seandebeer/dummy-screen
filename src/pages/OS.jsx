@@ -182,7 +182,7 @@ export default function OS() {
     const title = (m.thread_id === "stage-1" || m.thread_id === ownChannel)
       ? (m.sender_name && m.sender_name !== "Control" ? m.sender_name : "Control Deck")
       : (contact?.name || m.sender_name || m.thread_id || "New message");
-    const notif = { id: m.id, app: "messages", title, body: m.text || "", threadId: m.thread_id, time: fmtTime(Date.now()) };
+    const notif = { id: m.id, app: "messages", title, body: m.text || "", threadId: m.thread_id, time: m.custom_time || fmtTime(Date.now()) };
     update((c) => ({
       notifications: [notif, ...(c.notifications || [])].slice(0, 5),
       badges: { ...(c.badges || {}), messages: Math.min(1000000, ((c.badges || {}).messages || 0) + 1) },
