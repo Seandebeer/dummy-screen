@@ -9,7 +9,8 @@ import { formatBadge, normalizeBadge } from "@/lib/osNotifications";
 import ClockEditor from "./ClockEditor";
 import { cn } from "@/lib/utils";
 
-const PAGE_SIZE = 16;
+// page 1 fits every functional app by default (4 dock apps + 20 grid icons)
+const PAGE_SIZE = 20;
 const DOCK_SLOTS = [0, 1, 2, 3];
 const BADGE_APPS = ["phone", "messages", "email"];
 

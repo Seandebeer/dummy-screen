@@ -78,7 +78,7 @@ export default function AppLibrary({ order, onToggle, onClose }) {
   return (
     <div className="h-full bg-black flex flex-col" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
-        <div className="text-white font-display font-bold">App Store</div>
+        <div className="text-white font-display font-bold">App Library</div>
         {onClose && <button onClick={onClose} className="text-white/70 hover:text-white"><X size={18} /></button>}
       </div>
       <div className="px-4 pb-2">

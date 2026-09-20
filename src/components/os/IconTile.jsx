@@ -1,4 +1,5 @@
 import React from "react";
+import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
 
 const SIZES = {
@@ -52,7 +53,12 @@ export default function IconTile({ app, size = "md" }) {
       {/* polished glass finish: soft top sheen + fine inner highlight */}
       <span className="tile-glint pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_0_0_0.5px_rgba(255,255,255,0.12)]" />
       <span className="tile-sheen pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />
-      <Icon size={s.icon} style={{ color: fg }} className="relative drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.3)]" />
+      {/* apps with uploaded artwork render the image itself as the icon */}
+      {app.img ? (
+        <Image src={app.img} alt={app.label} className="h-full w-full" fittingType="fill" focalPointX={0.5} focalPointY={0.33} />
+      ) : (
+        <Icon size={s.icon} style={{ color: fg }} className="relative drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.3)]" />
+      )}
     </span>
   );
 }

@@ -99,7 +99,7 @@ export default function WpTileHome({ config, update, onOpen, ui }) {
       <div className="no-scrollbar h-full overflow-y-auto px-3 pt-12 pb-16 flex flex-wrap content-start gap-1.5">
         {apps.map(tile)}
         {apps.length === 0 && (
-          <p className="w-full pt-10 text-center text-xs text-white/50">No apps - open the App Store to add some</p>
+          <p className="w-full pt-10 text-center text-xs text-white/50">No apps - open the App Library to add some</p>
         )}
       </div>
 

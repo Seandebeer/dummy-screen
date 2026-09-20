@@ -21,7 +21,7 @@ export const coreApps = [
   { id: "photos", label: "Photos", Icon: Images, bg: "#FF9500", tile: { type: "gradient", bg2: "#34C759" } },
   { id: "videocall", label: "Vidcall", Icon: Video, bg: "#32D74B" },
   { id: "maps", label: "Maps", Icon: Map, bg: "#00C7BE" },
-  { id: "appstore", label: "App Store", Icon: ShoppingBag, bg: "#0A84FF", tile: { type: "gloss" } },
+  { id: "appstore", label: "App Library", Icon: ShoppingBag, bg: "#0A84FF", tile: { type: "gloss" } },
   { id: "facepage", label: "Grapevine", Icon: ThumbsUp, bg: "#1877F2", tile: { type: "gloss" } },
   { id: "photogram", label: "Lume", Icon: Camera, bg: "#833AB4", tile: { type: "duo", bg2: "#FD1D1D" } },
   { id: "vidtube", label: "Streamly", Icon: Play, bg: "#FF0000", tile: { type: "gloss" } },
