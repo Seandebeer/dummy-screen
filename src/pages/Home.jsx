@@ -61,7 +61,7 @@ export default function Home() {
               <div className="p-4 h-[calc(100dvh-88px)] overflow-y-auto">
                 <ProfilePanel />
                 <div className="mt-5">
-                  <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground font-body">Settings</div>
+                  <div className="mb-2 font-display font-bold text-base">Settings</div>
                   <AppSettingsPanel />
                 </div>
               </div>
