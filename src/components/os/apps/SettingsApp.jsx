@@ -30,6 +30,7 @@ export default function SettingsApp({ config, update, onLock, reset }) {
   const fileRef = useRef(null);
   const t = uiFor(config.language);
   const activeCodes = config.dialCodes || DIAL_CODES;
+  const autoRotate = config.autoRotate !== false;
 
   const applyCodes = (codes) => update((c) => ({
     dialCodes: codes,
@@ -265,6 +266,17 @@ export default function SettingsApp({ config, update, onLock, reset }) {
             </>
           );
         })()}
+      </Section>
+
+      <Section title="Auto-Rotate">
+        <button onClick={() => update({ autoRotate: !autoRotate })}
+          className="flex w-full items-center justify-between">
+          <span className="text-sm">Turn screen with device</span>
+          <span className={cn("relative h-6 w-10 shrink-0 rounded-full transition", autoRotate ? "bg-[#30D158]" : "bg-white/15")}>
+            <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all", autoRotate ? "left-[18px]" : "left-0.5")} />
+          </span>
+        </button>
+        <p className="text-[11px] text-white/40 font-body mt-2">Turn this device on its side and the screen turns with it - even when the device's rotation lock is on.</p>
       </Section>
 
       <Section title="Reset">

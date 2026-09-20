@@ -74,7 +74,7 @@ function HomeButton({ variant, onHome }) {
   );
 }
 
-export default function PhoneFrame({ children, onHome, onTime, light = false, time: timeProp, status, onStatusChange, bare = false, className, skin = "modern" }) {
+export default function PhoneFrame({ children, onHome, onTime, light = false, time: timeProp, status, onStatusChange, bare = false, className, skin = "modern", rotated = false, rotateDir = 1 }) {
   const now = new Date();
   const time = timeProp || now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const s = { battery: 75, signal: 4, wifi: 3, ...(status || {}) };
@@ -89,8 +89,12 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
     return { signal: (s.signal + 1) % 5 };
   };
 
-  return (
-    <div className={bare ? "absolute inset-0" : "relative mx-auto w-full max-w-[400px] aspect-[9/19.5]"}>
+  const outer = bare
+    ? "absolute inset-0"
+    : "relative mx-auto aspect-[9/19.5] " + (rotated ? "w-[40dvh]" : "w-full max-w-[400px]");
+
+  const frame = (
+    <div className={outer}>
       {/* bezel */}
       <div className={cn("absolute inset-0 overflow-hidden bg-[#05060a]",
         bare ? "rounded-none p-0 border-0 shadow-none" : "rounded-[3rem] p-[10px] shadow-2xl border border-[#242936]")}>
@@ -229,6 +233,26 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
           {/* home indicator */}
           {onHome && <HomeButton variant={ui.home} onHome={onHome} />}
         </div>
+      </div>
+    </div>
+  );
+
+  if (!rotated) return frame;
+
+  // sideways device: flip the whole simulator to landscape with a pure CSS
+  // rotation - the browser viewport itself may stay rotation-locked portrait
+  const turn = `rotate(${rotateDir * 90}deg)`;
+  if (bare) {
+    return (
+      <div className="absolute inset-0 overflow-hidden" style={{ transform: turn }}>
+        {frame}
+      </div>
+    );
+  }
+  return (
+    <div className="relative mx-auto" style={{ width: "calc(40dvh * 19.5 / 9)", height: "40dvh" }}>
+      <div className="absolute top-1/2 left-1/2" style={{ width: "40dvh", transform: `translate(-50%, -50%) ${turn}` }}>
+        {frame}
       </div>
     </div>
   );

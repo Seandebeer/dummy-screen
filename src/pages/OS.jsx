@@ -393,6 +393,29 @@ export default function OS() {
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
+  // auto-rotate: the tilt sensor tells us the device is on its side even when
+  // its rotation lock keeps the browser portrait - then the simulator is
+  // flipped to landscape with a pure CSS turn (rotateDir: 1 cw, -1 ccw)
+  const autoRotate = config.autoRotate !== false;
+  const [rotateDir, setRotateDir] = useState(0);
+  useEffect(() => {
+    if (!autoRotate) { setRotateDir(0); return; }
+    let side = 0;
+    const portrait = window.matchMedia("(orientation: portrait)");
+    const apply = () => setRotateDir(portrait.matches ? side : 0);
+    const onOrient = (e) => {
+      if (e.gamma == null) return;
+      side = e.gamma > 45 ? -1 : e.gamma < -45 ? 1 : 0;
+      apply();
+    };
+    window.addEventListener("deviceorientation", onOrient);
+    if (portrait.addEventListener) portrait.addEventListener("change", apply);
+    return () => {
+      window.removeEventListener("deviceorientation", onOrient);
+      if (portrait.removeEventListener) portrait.removeEventListener("change", apply);
+    };
+  }, [autoRotate]);
+
   const exitFullscreen = useCallback(() => {
     autoRef.current = false;
     clearTimeout(fsHintTimer.current);
@@ -627,7 +650,7 @@ export default function OS() {
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame className="os-sf" onHome={() => setApp(null)} onTime={() => setClockEdit(true)} skin={config.skin || "modern"} light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
+        <PhoneFrame className="os-sf" rotated={rotateDir !== 0} rotateDir={rotateDir} onHome={() => setApp(null)} onTime={() => setClockEdit(true)} skin={config.skin || "modern"} light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
@@ -659,7 +682,7 @@ export default function OS() {
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-black">
           {fsHint && <ThreeFingerHint />}
-          <PhoneFrame bare className="os-sf" onHome={() => setApp(null)} onTime={() => setClockEdit(true)} skin={config.skin || "modern"}
+          <PhoneFrame bare className="os-sf" rotated={rotateDir !== 0} rotateDir={rotateDir} onHome={() => setApp(null)} onTime={() => setClockEdit(true)} skin={config.skin || "modern"}
             light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
