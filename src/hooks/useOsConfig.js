@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { allApps, coreApps, defaultHomeOrder } from "@/lib/osApps";
 import { makeDefaultContacts } from "@/lib/osData";
 import { makeDefaultSocials } from "@/lib/osSocial";
+import { makeDefaultSites } from "@/lib/osSites";
 
 const STORAGE_KEY = "takeover-os-config";
 
@@ -50,6 +51,7 @@ const defaults = {
   badges: { messages: 0, mail: 0, phone: 0 },
   notifications: [],
   socials: makeDefaultSocials(),
+  webdeck: makeDefaultSites(),
 };
 
 function loadConfig() {
@@ -100,6 +102,7 @@ function loadConfig() {
       }
       return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, badges: { ...defaults.badges, ...(saved.badges || {}) }, notifications: Array.isArray(saved.notifications) ? saved.notifications : [],
       socials: { ...defaults.socials, ...(saved.socials || {}) },
+      webdeck: { ...defaults.webdeck, ...(saved.webdeck || {}) },
       dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}

@@ -1,7 +1,7 @@
 import {
   Phone, MessageSquare, Mail, Clock, Contact, Settings,
   Calculator, CalendarDays, StickyNote, Aperture, Music, Map, ShoppingBag,
-  ThumbsUp, Camera, Play, Music2,
+  ThumbsUp, Camera, Play, Music2, Globe, AppWindow,
 } from "lucide-react";
 import { mockApps, categories } from "@/lib/mockAppCatalog";
 
@@ -23,6 +23,8 @@ export const coreApps = [
   { id: "photogram", label: "Lume", Icon: Camera, bg: "#833AB4", tile: { type: "duo", bg2: "#FD1D1D" } },
   { id: "vidtube", label: "Streamly", Icon: Play, bg: "#FF0000", tile: { type: "gloss" } },
   { id: "quicktok", label: "Flickdeck", Icon: Music2, bg: "#25F4EE", tile: { type: "dark" } },
+  { id: "browser", label: "Browser", Icon: Globe, bg: "#0A84FF", tile: { type: "gloss" } },
+  { id: "webdeck", label: "Webdeck", Icon: AppWindow, bg: "#FF9F0A", tile: { type: "duo", bg2: "#FFD60A" } },
 ];
 
 // mock ("downloaded") apps live in the category catalog - 20 categories,

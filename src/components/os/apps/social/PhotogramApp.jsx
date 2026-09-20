@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Home as HomeIcon, Heart, MessageCircle, Send, Bookmark, User as UserIcon } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
-import { Avatar, Editable, EditToggle, Photo, fmtNum } from "./SocialBits";
+import { saveWithPrompt } from "@/lib/savedPages";
+import { Avatar, Editable, EditToggle, SaveToggle, Photo, fmtNum } from "./SocialBits";
 import { cn } from "@/lib/utils";
 
 // Photogram - Instagram-style stories, square-photo feed and profile grid.
@@ -89,6 +90,7 @@ export default function PhotogramApp({ config, update, locked, fullscreen }) {
           onChange={(v) => setData((d) => ({ name: v }))}
           className="text-[22px] font-display font-semibold italic tracking-tight" />
         <span className="ml-auto flex items-center gap-1">
+          {canEdit && <SaveToggle onSave={() => saveWithPrompt("photogram", `${data.name || "Lume"} page`, data)} />}
           {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />}
         </span>
       </div>

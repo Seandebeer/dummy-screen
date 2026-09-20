@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Home as HomeIcon, Play, Search, ThumbsUp, ThumbsDown, Share2, Users } from "lucide-react";
 import { socialSlice, nextStockPhoto } from "@/lib/osSocial";
-import { Avatar, Editable, EditToggle, Photo, UploadButton, fmtNum } from "./SocialBits";
+import { saveWithPrompt } from "@/lib/savedPages";
+import { Avatar, Editable, EditToggle, SaveToggle, Photo, UploadButton, fmtNum } from "./SocialBits";
 import { cn } from "@/lib/utils";
 
 // VidTube - YouTube-style home grid, watch page, subscriptions and channel
@@ -105,6 +106,7 @@ export default function VidTubeApp({ config, update, locked, fullscreen }) {
         )}
         <span className="ml-auto flex items-center gap-1.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5"><Search size={16} /></span>
+          {canEdit && <SaveToggle onSave={() => saveWithPrompt("vidtube", `${data.name || "Streamly"} page`, data)} />}
           {canEdit && <EditToggle editing={editing} onToggle={() => setEditing(!editing)} />}
         </span>
       </div>

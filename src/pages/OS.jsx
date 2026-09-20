@@ -22,6 +22,8 @@ import FacepageApp from "@/components/os/apps/social/FacepageApp";
 import PhotogramApp from "@/components/os/apps/social/PhotogramApp";
 import VidTubeApp from "@/components/os/apps/social/VidTubeApp";
 import QuickTokApp from "@/components/os/apps/social/QuickTokApp";
+import BrowserApp from "@/components/os/apps/BrowserApp";
+import WebdeckApp from "@/components/os/apps/WebdeckApp";
 import { allAppsById } from "@/lib/osApps";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
 import MarkAdjust from "@/components/os/MarkAdjust";
@@ -311,6 +313,8 @@ export default function OS() {
       case "photogram": return <PhotogramApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "vidtube": return <VidTubeApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "quicktok": return <QuickTokApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
+      case "browser": return <BrowserApp />;
+      case "webdeck": return <WebdeckApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
       case "appstore": return <AppStoreApp config={config} update={update} />;
       case null: {
@@ -386,7 +390,7 @@ export default function OS() {
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame className="os-sf" onHome={() => setApp(null)} skin={config.skin || "modern"} light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube"}
+        <PhoneFrame className="os-sf" onHome={() => setApp(null)} skin={config.skin || "modern"} light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
@@ -405,7 +409,7 @@ export default function OS() {
             </div>
           )}
           <PhoneFrame bare className="os-sf" onHome={() => setApp(null)} skin={config.skin || "modern"}
-            light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube"}
+            light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
             <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}

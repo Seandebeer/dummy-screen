@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Pencil, Check, Plus, X } from "lucide-react";
+import { Pencil, Check, Plus, X, Save } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,16 @@ export function EditToggle({ editing, onToggle, className }) {
       )}
     >
       {editing ? <Check size={16} /> : <Pencil size={14} />}
+    </button>
+  );
+}
+
+// save-to-Home toggle shared by all editable apps
+export function SaveToggle({ onSave, className }) {
+  return (
+    <button onClick={onSave} title="Save to Home"
+      className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/10 transition hover:bg-black/20", className)}>
+      <Save size={14} />
     </button>
   );
 }
