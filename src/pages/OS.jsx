@@ -58,6 +58,7 @@ export default function OS() {
   const [fullscreen, setFullscreen] = useState(false);
   const [fsHint, setFsHint] = useState(false);
   const fsHintTimer = useRef(null);
+  const fsRef = useRef(false);
   const [, setTick] = useState(0);
   const [call, setCall] = useState(null);
   const [alarm, setAlarm] = useState(null);
@@ -92,6 +93,7 @@ export default function OS() {
   const lockedRef = useRef(locked);
   const contactsRef = useRef(config.contacts);
   useEffect(() => { lockedRef.current = locked; }, [locked]);
+  useEffect(() => { fsRef.current = fullscreen; }, [fullscreen]);
   useEffect(() => { contactsRef.current = config.contacts; }, [config.contacts]);
 
   // drop-down banners stack while the phone is unlocked - each one stays
@@ -144,6 +146,10 @@ export default function OS() {
       setTimeout(() => setCall((cur) => cur && cur.commandId === c.id ? { ...cur, phase: "active", startTime: Date.now() } : cur), ringDelayRef.current * 1000);
     } else if (c.type === "alarm") {
       setAlarm({ commandId: c.id });
+    } else if (c.type === "screen_lock") {
+      // remote 3-finger tap from the deck's pad: flip this screen's lock
+      if (fsRef.current) exitTakeover();
+      else enterTakeover();
     } else if (c.type === "notification") {
       // deck-pushed banners stack below each other until reset clears them
       const notif = {

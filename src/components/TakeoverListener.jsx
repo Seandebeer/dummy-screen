@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { getLinkedDeviceId, getScreenId } from "@/lib/deviceLink";
 
 const parseJson = (s) => { try { return JSON.parse(s) || {}; } catch { return {}; } };
-const TRIGGER_TYPES = ["call_incoming", "call_outgoing", "alarm", "notification", "video_call"];
+const TRIGGER_TYPES = ["call_incoming", "call_outgoing", "alarm", "notification", "video_call", "screen_lock"];
 
 // When the control deck triggers anything, every screen of the app - except
 // the control deck itself - jumps to the phone, which comes up fullscreen

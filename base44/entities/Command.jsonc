@@ -15,7 +15,8 @@
         "call_end",
         "alarm",
         "video_call",
-        "notification"
+        "notification",
+        "screen_lock"
       ]
     },
     "contact_name": {

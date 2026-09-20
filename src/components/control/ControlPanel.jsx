@@ -6,6 +6,7 @@ import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
 import QrConnect from "@/components/control/QrConnect";
 import VideoCallCard from "@/components/control/VideoCallCard";
+import LockPad from "@/components/control/LockPad";
 import DeviceContactPicker from "@/components/control/DeviceContactPicker";
 import { getScreenId } from "@/lib/deviceLink";
 import { coreApps, mockApps, categories, allAppsById } from "@/lib/osApps";
@@ -747,6 +748,9 @@ export default function ControlPanel() {
           {alarmId ? "Stop Alarm" : "Trigger Alarm"}
         </button>
       </div>
+
+      {/* remote 3-finger tap pad */}
+      <LockPad channel={channel} />
 
       {pickerOpen && (
         <DeviceContactPicker
