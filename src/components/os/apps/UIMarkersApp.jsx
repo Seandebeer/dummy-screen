@@ -45,6 +45,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const strongLine = light ? "border-black/50" : "border-white/50";
   const lineHover = light ? "hover:border-black/30" : "hover:border-white/30";
   const txt = light ? "text-black/90" : "text-white/90";
+  // tool pills always render with a solid dark fill, whatever the background
+  const pill = "flex items-center gap-1 rounded-full border border-white/15 bg-[#1c1c1e] px-2.5 py-1 text-[10px] font-body text-white/50 transition hover:text-white";
 
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
@@ -355,10 +357,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
             <Popover>
               <PopoverTrigger asChild>
                 <button title="Background colour"
-                  className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
+                  className={pill}>
                   <Palette size={11} />
                   <span className="h-2.5 w-2.5 rounded-full border border-current"
-                    style={bgColor ? { background: bgColor } : (light ? { background: "#0b0b0f" } : { background: "#f2f2f7" })} />
+                    style={bgColor ? { background: bgColor } : { background: "#0b0b0f" }} />
                 </button>
               </PopoverTrigger>
               <PopoverContent side="bottom" align="end" className="w-44 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
@@ -381,7 +383,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
             <Popover>
               <PopoverTrigger asChild>
                 <button title="Tracking marks"
-                  className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
+                  className={pill}>
                   <Shapes size={11} /> Marks
                 </button>
               </PopoverTrigger>
@@ -407,15 +409,15 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
               </PopoverContent>
             </Popover>
             <button onClick={saveLayout}
-              className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
+              className={pill}>
               <Save size={11} /> Save
             </button>
             <button onClick={resetNumbers}
-              className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
+              className={pill}>
               <RotateCcw size={11} /> Reset
             </button>
             <button onClick={lock}
-              className={cn("flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-body transition", light ? "border-black/10 text-black/50 hover:text-black" : "border-white/10 text-white/50 hover:text-white")}>
+              className={pill}>
               <Lock size={11} /> Lock
             </button>
           </div>
