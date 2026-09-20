@@ -36,6 +36,7 @@ import useOsConfig from "@/hooks/useOsConfig";
 import { ensureDeviceOnline, saveDevice } from "@/lib/deviceLink";
 import { slimConfig } from "@/lib/osConfigStore";
 import LockScreen from "@/components/os/LockScreen";
+import ClockEditor from "@/components/os/ClockEditor";
 import WpTileHome from "@/components/os/WpTileHome";
 import Bb10Home from "@/components/os/Bb10Home";
 import SettingsApp from "@/components/os/apps/SettingsApp";
@@ -54,6 +55,7 @@ export default function OS() {
   const [call, setCall] = useState(null);
   const [alarm, setAlarm] = useState(null);
   const [banner, setBanner] = useState(null);
+  const [clockEdit, setClockEdit] = useState(false);
   const [messageTo, setMessageTo] = useState(null);
   const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
@@ -396,11 +398,16 @@ export default function OS() {
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center p-6">
-        <PhoneFrame className="os-sf" onHome={() => setApp(null)} skin={config.skin || "modern"} light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
+        <PhoneFrame className="os-sf" onHome={() => setApp(null)} onTime={() => setClockEdit(true)} skin={config.skin || "modern"} light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
           time={statusTime} status={config.status} onStatusChange={onStatusChange}>
           {screen}
           <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
             color={osMarks.color || (config.theme === "light" ? "#000000" : "#FFFFFF")} />
+          {clockEdit && (
+            <div className="absolute inset-x-3 top-10 z-40">
+              <ClockEditor clock={config.clock} onSave={(c) => { update({ clock: c }); setClockEdit(false); }} onClose={() => setClockEdit(false)} />
+            </div>
+          )}
           <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
         </PhoneFrame>
@@ -414,12 +421,17 @@ export default function OS() {
               </div>
             </div>
           )}
-          <PhoneFrame bare className="os-sf" onHome={() => setApp(null)} skin={config.skin || "modern"}
+          <PhoneFrame bare className="os-sf" onHome={() => setApp(null)} onTime={() => setClockEdit(true)} skin={config.skin || "modern"}
             light={((app === null || app === "messages") && config.theme === "light") || app === "facepage" || app === "photogram" || app === "vidtube" || app === "browser" || app === "webdeck"}
             time={statusTime} status={config.status} onStatusChange={onStatusChange}>
             {screen}
             <VideoMarks marks={osMarks} onChange={setOsMarks} locked={locked}
               color={osMarks.color || (config.theme === "light" ? "#000000" : "#FFFFFF")} />
+            {clockEdit && (
+              <div className="absolute inset-x-3 top-10 z-40">
+                <ClockEditor clock={config.clock} onSave={(c) => { update({ clock: c }); setClockEdit(false); }} onClose={() => setClockEdit(false)} />
+              </div>
+            )}
             {banner && !locked && (
               <NotificationBanner notif={banner} light={config.theme === "light"}
                 onOpen={openNotification} onDismiss={() => setBanner(null)} />

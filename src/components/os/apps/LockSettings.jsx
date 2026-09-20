@@ -51,31 +51,7 @@ export default function LockSettings({ config, update, onLock, bare = false }) {
 
   return (
     <div className={bare ? "" : "px-5 pt-2"}>
-      <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">Lock Screen</div>
-      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-        {METHODS.map(({ id, label, hint, Icon }) => (
-          <button key={id} onClick={() => setLock({ type: id })} className="flex w-full items-center gap-3 py-1.5">
-            <Icon size={18} className={lock.type === id ? "text-[#0A84FF]" : "text-white/50"} />
-            <span className="flex-1 text-left">
-              <span className="block text-sm">{label}</span>
-              <span className="block text-[10px] text-white/35 font-body">{hint}</span>
-            </span>
-            {lock.type === id && <Check size={16} className="text-[#0A84FF]" />}
-          </button>
-        ))}
-        <div className="flex items-center justify-between border-t border-white/10 mt-1 pt-2">
-          {lock.type === "passcode" ? (
-            <button onClick={() => { update({ passcode: "" }); onLock?.(); }} className="text-xs text-[#FF453A]">Reset Passcode</button>
-          ) : lock.type === "pattern" ? (
-            <button onClick={() => { update({ pattern: "" }); onLock?.(); }} className="text-xs text-[#FF453A]">Reset Pattern</button>
-          ) : (
-            <span />
-          )}
-          {needsSetup && <span className="text-[10px] text-[#FF9F0A] font-body uppercase tracking-wider">set on next lock</span>}
-        </div>
-      </div>
-
-      <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2 mt-4">Lock Screen Background</div>
+      <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2">Lock Screen Background</div>
       <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3.5">
         <div className="grid grid-cols-4 gap-2 mb-3">
           {bgPresets.map((p) => (
@@ -99,6 +75,30 @@ export default function LockSettings({ config, update, onLock, bare = false }) {
           )}
         </div>
         {error && <p className="text-[11px] text-[#FF453A] font-body mt-2">image upload failed - try again</p>}
+      </div>
+
+      <div className="text-[11px] uppercase tracking-wider text-white/40 font-body mb-2 mt-4">Lock Screen Method</div>
+      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+        {METHODS.map(({ id, label, hint, Icon }) => (
+          <button key={id} onClick={() => setLock({ type: id })} className="flex w-full items-center gap-3 py-1.5">
+            <Icon size={18} className={lock.type === id ? "text-[#0A84FF]" : "text-white/50"} />
+            <span className="flex-1 text-left">
+              <span className="block text-sm">{label}</span>
+              <span className="block text-[10px] text-white/35 font-body">{hint}</span>
+            </span>
+            {lock.type === id && <Check size={16} className="text-[#0A84FF]" />}
+          </button>
+        ))}
+        <div className="flex items-center justify-between border-t border-white/10 mt-1 pt-2">
+          {lock.type === "passcode" ? (
+            <button onClick={() => { update({ passcode: "" }); onLock?.(); }} className="text-xs text-[#FF453A]">Reset Passcode</button>
+          ) : lock.type === "pattern" ? (
+            <button onClick={() => { update({ pattern: "" }); onLock?.(); }} className="text-xs text-[#FF453A]">Reset Pattern</button>
+          ) : (
+            <span />
+          )}
+          {needsSetup && <span className="text-[10px] text-[#FF9F0A] font-body uppercase tracking-wider">set on next lock</span>}
+        </div>
       </div>
     </div>
   );

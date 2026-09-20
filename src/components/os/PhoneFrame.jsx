@@ -73,7 +73,7 @@ function HomeButton({ variant, onHome }) {
   );
 }
 
-export default function PhoneFrame({ children, onHome, light = false, time: timeProp, status, onStatusChange, bare = false, className, skin = "modern" }) {
+export default function PhoneFrame({ children, onHome, onTime, light = false, time: timeProp, status, onStatusChange, bare = false, className, skin = "modern" }) {
   const now = new Date();
   const time = timeProp || now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const s = { battery: 75, signal: 4, wifi: 3, ...(status || {}) };
@@ -113,7 +113,12 @@ export default function PhoneFrame({ children, onHome, light = false, time: time
                 </button>
               </div>
             )}
-            <span className={cn("font-body", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>{time}</span>
+            {onTime ? (
+              <button onClick={onTime} title="Set clock"
+                className={cn("font-body", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>{time}</button>
+            ) : (
+              <span className={cn("font-body", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>{time}</span>
+            )}
             {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
             {!bare && skin === "modern" && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
