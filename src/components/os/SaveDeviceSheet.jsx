@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { Loader2, Save, X } from "lucide-react";
+import { ChevronDown, Loader2, Plus, Save, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { saveConfig } from "@/lib/savedConfigs";
 import { slimConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
-import { createDeviceInProject, createProjectWithDevice } from "@/lib/osDeviceSave";
+import { createDeviceInProject } from "@/lib/osDeviceSave";
 import { cn } from "@/lib/utils";
 
 // SaveDeviceSheet - save this screen's OS layout as a new device inside a
-// project (creating the project first if there are none), or to favourites
+// project (picked from a dropdown, with an add-new window), or to favourites
 // (the Saved card on Home).
 
 export default function SaveDeviceSheet({ config, onClose, onSaved }) {
   const [name, setName] = useState("");
-  const [projectName, setProjectName] = useState("");
   const [projects, setProjects] = useState(null);
   const [target, setTarget] = useState("project");
   const [projectId, setProjectId] = useState(null);
+  const [projectOpen, setProjectOpen] = useState(false);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -25,6 +27,23 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
       .catch(() => setProjects([]));
   }, []);
 
+  const chosen = projects?.find((p) => p.id === projectId) || null;
+
+  const createProject = async () => {
+    const pn = newProjectName.trim();
+    if (!pn || busy) return;
+    setBusy(true);
+    try {
+      const rec = await base44.entities.Project.create({ name: pn });
+      setProjects((prev) => (prev || []).concat(rec));
+      setProjectId(rec.id);
+      setNewProjectOpen(false);
+      setNewProjectName("");
+      setProjectOpen(false);
+    } catch {}
+    setBusy(false);
+  };
+
   const save = async () => {
     const n = name.trim();
     if (!n || busy) return;
@@ -32,14 +51,10 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
     try {
       if (target === "fav") {
         saveConfig({ kind: "os", category: "OS", name: n, data: slimConfig(config) });
-      } else if (projectId) {
+      } else {
         const rec = await createDeviceInProject(projectId, n, slimConfig(config));
         linkDevice(rec.id, rec.name);
         onSaved?.(rec.name);
-      } else {
-        const { device } = await createProjectWithDevice(projectName, n, slimConfig(config));
-        linkDevice(device.id, device.name);
-        onSaved?.(device.name);
       }
       onClose();
     } catch {
@@ -59,9 +74,7 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
     </button>
   );
 
-  const canSave =
-    Boolean(name.trim()) && !busy &&
-    (target === "fav" || (projects?.length ? Boolean(projectId) : Boolean(projectName.trim())));
+  const canSave = Boolean(name.trim()) && !busy && (target === "fav" || Boolean(projectId));
 
   return (
     <div className="absolute inset-0 z-40 flex items-end bg-black/60" onClick={() => !busy && onClose()}>
@@ -78,27 +91,34 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
           className="w-full rounded-xl bg-white/10 px-3.5 py-2.5 text-[14px] outline-none placeholder:text-white/30" />
         <div className="mt-3 space-y-1.5">
           <div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/35">Save to</div>
-          <Row label="Project" sub="Add a new device to one of your projects"
-            selected={target === "project"} onClick={() => setTarget("project")} />
-          {target === "project" && (
+          <button onClick={() => { setTarget("project"); setProjectOpen((o) => !o); }}
+            className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition",
+              target === "project" ? "bg-[#0A84FF]/25" : "bg-white/[0.06] active:bg-white/10")}>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13.5px] font-medium">Project</span>
+              <span className="block truncate text-[10.5px] text-white/40">
+                {chosen ? chosen.name : "Choose a project"}
+              </span>
+            </span>
+            <ChevronDown size={15}
+              className={cn("shrink-0 text-white/50 transition", projectOpen && "rotate-180")} />
+          </button>
+          {target === "project" && projectOpen && (
             projects === null ? (
               <div className="flex justify-center py-2 text-white/40"><Loader2 size={16} className="animate-spin" /></div>
-            ) : projects.length > 0 ? (
-              projects.map((p) => (
-                <Row key={p.id} label={p.name} sub="Add device to this project"
-                  selected={projectId === p.id} onClick={() => setProjectId(p.id)} />
-              ))
             ) : (
-              <div className="rounded-xl bg-white/[0.06] px-3 py-2.5">
-                <p className="text-[11px] text-white/40">No projects yet - create your first one:</p>
-                <input autoFocus value={projectName} onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Project name (e.g. Night Shift)"
-                  className="mt-2 w-full rounded-xl bg-white/10 px-3.5 py-2.5 text-[13px] outline-none placeholder:text-white/30" />
-              </div>
+              <>
+                {projects.map((p) => (
+                  <Row key={p.id} label={p.name} selected={projectId === p.id}
+                    onClick={() => { setProjectId(p.id); setProjectOpen(false); }} />
+                ))}
+                <Row label="Add new project…" sub="Create a project for this device"
+                  onClick={() => { setNewProjectOpen(true); setProjectOpen(false); }} />
+              </>
             )
           )}
           <Row label="Favourites" sub="Saved card on Home"
-            selected={target === "fav"} onClick={() => setTarget("fav")} />
+            selected={target === "fav"} onClick={() => { setTarget("fav"); setProjectOpen(false); }} />
         </div>
         <button onClick={save} disabled={!canSave}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0A84FF] py-3 text-[15px] font-semibold transition active:opacity-80 disabled:opacity-40">
@@ -106,6 +126,28 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
           {busy ? "Saving…" : "Save"}
         </button>
       </div>
+
+      {/* create-new-project window */}
+      {newProjectOpen && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => !busy && setNewProjectOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-[#1c1c1e] p-4 text-white shadow-2xl">
+            <p className="mb-3 font-display text-[15px] font-semibold">New project</p>
+            <input autoFocus value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)}
+              placeholder="Project name (e.g. Night Shift)"
+              className="w-full rounded-xl bg-white/10 px-3.5 py-2.5 text-[14px] outline-none placeholder:text-white/30" />
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => setNewProjectOpen(false)} disabled={busy}
+                className="flex-1 rounded-xl bg-white/10 py-2.5 text-[14px] font-medium disabled:opacity-50">Cancel</button>
+              <button onClick={createProject} disabled={!newProjectName.trim() || busy}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0A84FF] py-2.5 text-[14px] font-semibold disabled:opacity-40">
+                {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
