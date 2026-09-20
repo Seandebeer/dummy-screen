@@ -9,6 +9,7 @@ export default function ProjectsPanel({ selected, onSelect }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [teamOpen, setTeamOpen] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -117,9 +118,20 @@ export default function ProjectsPanel({ selected, onSelect }) {
                   </button>
                 )}
                 {canManage(p) && (
-                  <button onClick={() => remove(p)} className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
-                    <Trash2 size={15} />
-                  </button>
+                  confirmDel === p.id ? (
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <span className="text-[10px] font-body text-alert">Delete?</span>
+                      <button onClick={() => { remove(p); setConfirmDel(null); }}
+                        className="text-[10px] font-body font-semibold uppercase tracking-wider text-alert">Yes</button>
+                      <button onClick={() => setConfirmDel(null)}
+                        className="text-[10px] font-body uppercase tracking-wider text-muted-foreground hover:text-foreground">No</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmDel(p.id)}
+                      className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
+                      <Trash2 size={15} />
+                    </button>
+                  )
                 )}
               </div>
               {teamOpen === p.id && (

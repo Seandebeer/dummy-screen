@@ -21,6 +21,7 @@ export default function DevicesPanel({ project }) {
   const [kind, setKind] = useState("phone");
   const [busy, setBusy] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
   const navigate = useNavigate();
 
   const hasDetails = (d) => Boolean(d.make || d.model || d.colour || d.serial || d.photo);
@@ -161,9 +162,20 @@ export default function DevicesPanel({ project }) {
                   <Download size={15} />
                 </button>
               )}
-              <button onClick={() => remove(d)} className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
-                <Trash2 size={15} />
-              </button>
+              {confirmDel === d.id ? (
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <span className="text-[10px] font-body text-alert">Delete?</span>
+                  <button onClick={() => { remove(d); setConfirmDel(null); }}
+                    className="text-[10px] font-body font-semibold uppercase tracking-wider text-alert">Yes</button>
+                  <button onClick={() => setConfirmDel(null)}
+                    className="text-[10px] font-body uppercase tracking-wider text-muted-foreground hover:text-foreground">No</button>
+                </span>
+              ) : (
+                <button onClick={() => setConfirmDel(d.id)}
+                  className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
+                  <Trash2 size={15} />
+                </button>
+              )}
               </div>
               {detailsOpen === d.id && (
                 <div className="mt-2 pt-2 border-t border-border/60">
