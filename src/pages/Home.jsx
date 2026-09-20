@@ -14,8 +14,10 @@ export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [selectedProject, setSelectedProject] = useState(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
   const pickProject = (p) => {
     setSelectedProject(p);
+    setProjectsOpen(false);
     if (p) setDevicesOpen(true);
   };
   const initials = (user?.full_name || user?.email || "?")
@@ -56,7 +58,7 @@ export default function Home() {
       </header>
 
       <div className="p-5 sm:p-8 max-w-[1280px] mx-auto flex flex-col gap-5">
-        <HomeSection icon={Clapperboard} title="Projects" subtitle="Production projects">
+        <HomeSection icon={Clapperboard} title="Projects" subtitle="Production projects" open={projectsOpen} onOpenChange={setProjectsOpen}>
           <ProjectsPanel selected={selectedProject?.id || null} onSelect={pickProject} />
         </HomeSection>
         <HomeSection icon={Smartphone} title="Devices" subtitle="Prop devices & stage sync" open={devicesOpen} onOpenChange={setDevicesOpen}>
