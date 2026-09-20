@@ -99,11 +99,13 @@ export function scheduleDeviceSync() {
     if (!cfg) return;
     let notes = null;
     let calendar = null;
+    let emails = null;
     try { notes = JSON.parse(localStorage.getItem("takeover-os-notes")) || null; } catch {}
     try { calendar = JSON.parse(localStorage.getItem("takeover-os-calendar")) || null; } catch {}
+    try { emails = JSON.parse(localStorage.getItem("takeover-os-emails")) || null; } catch {}
     enqueue({
       type: "device_config",
-      payload: JSON.stringify({ ...slimConfig(cfg), _notes: notes, _calendar: calendar }),
+      payload: JSON.stringify({ ...slimConfig(cfg), _notes: notes, _calendar: calendar, _emails: emails }),
     });
     flush();
   }, 2500);

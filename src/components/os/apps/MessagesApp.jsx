@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X, Check, CheckCheck, Clock } from "lucide-react";
+import { Send, Search, ChevronLeft, ChevronRight, SquarePen, Minus, X, Check, CheckCheck, Clock, Reply, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { Image } from "@/components/ui/image";
@@ -139,15 +139,33 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
     (threadMsgs(tid).slice(-1)[0]?.text || "").toLowerCase().includes(query.toLowerCase())
   );
 
+  // reply on the channel the control deck last used for this thread
+  const threadChannel = (tid) => tid === "stage-1"
+    ? (threadMsgs(tid).filter((m) => m.sender === "control").slice(-1)[0]?.thread_id || ownChannel || "stage-1")
+    : tid;
+
   const sendThread = async () => {
     if (!text.trim()) return;
     const body = text.trim();
     setText("");
     try {
-      // reply on the channel the control deck last used for this thread
-      const lastIn = threadMsgs(view.id).filter((m) => m.sender === "control").slice(-1)[0];
-      const tid = view.id === "stage-1" ? (lastIn?.thread_id || (ownChannel || "stage-1")) : view.id;
-      await base44.entities.Message.create({ thread_id: tid, sender: "phone", text: body, sender_name: "Phone", read: true });
+      await base44.entities.Message.create({ thread_id: threadChannel(view.id), sender: "phone", text: body, sender_name: "Phone", read: true });
+    } catch { setText(body); }
+  };
+
+  // script the other side of the conversation: create as phone first, then
+  // flip the sender - the OS takeover / banner listeners ignore phone
+  // creates, so a locally scripted incoming message never locks this screen
+  const sendIncoming = async () => {
+    if (!text.trim()) return;
+    const body = text.trim();
+    setText("");
+    try {
+      const rec = await base44.entities.Message.create({
+        thread_id: threadChannel(view.id), sender: "phone", text: body,
+        sender_name: nameFor(view.id), read: true,
+      });
+      await base44.entities.Message.update(rec.id, { sender: "control" });
     } catch { setText(body); }
   };
 
@@ -184,6 +202,11 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
     pressTimer.current = setTimeout(() => openEditor(m), 550);
   };
   const cancelPress = () => clearTimeout(pressTimer.current);
+  const deleteMsg = (m) => {
+    setEditingId(null);
+    setMessages((list) => list.filter((x) => x.id !== m.id));
+    base44.entities.Message.delete(m.id).catch(() => {});
+  };
 
   // a locked stage closes any open bubble editor
   useEffect(() => { if (!canEdit) setEditingId(null); }, [canEdit]);
@@ -228,27 +251,36 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
                   {m.text}
                 </div>
                 {editingId === m.id ? (
-                  <div className={cn("mt-1 flex max-w-[85%] flex-wrap items-center gap-1.5 rounded-lg px-2 py-1.5",
+                  <div className={cn("mt-1 flex w-[85%] flex-col gap-1 rounded-lg px-2 py-1.5",
                     dark ? "bg-[#2C2C2E]" : "bg-[#E9E9EB]")}>
-                    <Clock size={11} className="shrink-0 text-[#8E8E93]" />
-                    <input type="time" value={draft}
-                      onChange={(e) => { setDraft(e.target.value); updateMsg(m, { custom_time: e.target.value }); }}
-                      className="bg-transparent text-[11px] outline-none" />
-                    <button onClick={() => updateMsg(m, { custom_time: "" })} title="Live send time"
-                      className="text-[10px] text-[#8E8E93]">Live</button>
-                    {mine && (
-                      <span className={cn("flex items-center gap-1 border-l pl-1.5", dark ? "border-white/10" : "border-black/10")}>
-                        <button onClick={() => updateMsg(m, { read: false })} title="Gray tick"
-                          className={cn(!m.read ? "opacity-100" : "opacity-35")}>
-                          <Check size={13} className="text-[#8E8E93]" />
-                        </button>
-                        <button onClick={() => updateMsg(m, { read: true })} title="Blue tick"
-                          className={cn(m.read ? "opacity-100" : "opacity-35")}>
-                          <CheckCheck size={13} className="text-[#53BDEC]" />
-                        </button>
-                      </span>
-                    )}
-                    <button onClick={() => setEditingId(null)} className="ml-auto text-[10px] font-medium text-[#007AFF]">Done</button>
+                    <input value={m.text} onChange={(e) => updateMsg(m, { text: e.target.value })}
+                      placeholder="Message text"
+                      className="w-full bg-transparent text-[13px] outline-none" />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Clock size={11} className="shrink-0 text-[#8E8E93]" />
+                      <input type="time" value={draft}
+                        onChange={(e) => { setDraft(e.target.value); updateMsg(m, { custom_time: e.target.value }); }}
+                        className="bg-transparent text-[11px] outline-none" />
+                      <button onClick={() => updateMsg(m, { custom_time: "" })} title="Live send time"
+                        className="text-[10px] text-[#8E8E93]">Live</button>
+                      {mine && (
+                        <span className={cn("flex items-center gap-1 border-l pl-1.5", dark ? "border-white/10" : "border-black/10")}>
+                          <button onClick={() => updateMsg(m, { read: false })} title="Gray tick"
+                            className={cn(!m.read ? "opacity-100" : "opacity-35")}>
+                            <Check size={13} className="text-[#8E8E93]" />
+                          </button>
+                          <button onClick={() => updateMsg(m, { read: true })} title="Blue tick"
+                            className={cn(m.read ? "opacity-100" : "opacity-35")}>
+                            <CheckCheck size={13} className="text-[#53BDEC]" />
+                          </button>
+                        </span>
+                      )}
+                      <button onClick={() => deleteMsg(m)} title="Delete message"
+                        className="flex items-center gap-0.5 text-[10px] text-[#FF3B30]">
+                        <Trash2 size={12} /> Remove
+                      </button>
+                      <button onClick={() => setEditingId(null)} className="ml-auto text-[10px] font-medium text-[#007AFF]">Done</button>
+                    </div>
                   </div>
                 ) : (
                   <span className="flex items-center gap-1 px-1 pt-0.5 text-[10px] text-[#8E8E93]">
@@ -263,6 +295,13 @@ export default function MessagesApp({ contacts = [], initialTo, theme = "dark", 
           })}
         </div>
         <div className={cn("flex items-center gap-2 px-3 py-2.5 border-t", dark ? "border-white/10" : "border-black/10")}>
+          {canEdit && (
+            <button onClick={sendIncoming} disabled={!text.trim()} title="Add their reply to the thread"
+              className={cn("h-9 w-9 shrink-0 rounded-full flex items-center justify-center border disabled:opacity-30",
+                dark ? "border-white/15" : "border-black/15")}>
+              <Reply size={15} className="text-[#007AFF]" />
+            </button>
+          )}
           <input value={text} onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendThread()}
             placeholder="Text message" className={cn("flex-1 rounded-full border px-4 py-2 text-sm outline-none", dark ? "border-white/15 placeholder:text-white/30" : "border-black/15 placeholder:text-black/30")} />

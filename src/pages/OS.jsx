@@ -530,7 +530,7 @@ export default function OS() {
           onEmail={(c) => { setEmailTo(c); setApp("email"); }} />
       );
       case "messages": return <MessagesApp key={messageTo?.id || "list"} contacts={config.contacts} initialTo={messageTo} theme={config.theme} locked={locked} fullscreen={fullscreen} />;
-      case "email": return <EmailApp initialTo={emailTo} />;
+      case "email": return <EmailApp initialTo={emailTo} locked={locked} fullscreen={fullscreen} />;
       case "clock": return <ClockApp />;
       case "calculator": return <CalculatorApp />;
       case "calendar": return <CalendarApp />;
