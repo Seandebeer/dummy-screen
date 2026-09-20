@@ -21,10 +21,10 @@ import {
   Calculator, Cpu, Sprout,
 } from "lucide-react";
 
-// custom image icon (uploaded artwork rendered straight into the app tile)
-const FRAMES_ICON = "https://media.base44.com/images/public/6aadcd9ec1ee05040e66de73/b7b94a366_IMG_5791.jpeg";
+// Frames' uploaded icon artwork - rendered straight into its app tile
+export const FRAMES_ICON = "https://media.base44.com/images/public/6aadcd9ec1ee05040e66de73/b7b94a366_IMG_5791.jpeg";
 
-const app = (label, Icon, bg, sub, img) => ({ label, Icon, bg, sub, ...(img ? { img } : {}) });
+const app = (label, Icon, bg, sub) => ({ label, Icon, bg, sub });
 
 export const categories = [
   {
@@ -315,7 +315,6 @@ export const categories = [
   {
     id: "specialised", name: "Specialised / Professional Tools",
     apps: [
-      app("Frames", Clapperboard, "#1C1C1E", "Film & production", FRAMES_ICON),
       app("Slatepro", Clapperboard, "#111827", "Film & production"),
       app("Callsheet", FileText, "#B91C1C", "Film & production"),
       app("Forcecalc", Ruler, "#1D4ED8", "Engineering"),
@@ -361,6 +360,5 @@ export const mockApps = categories.flatMap((cat, ci) =>
     category: cat.id,
     categoryName: cat.name,
     sub: a.sub,
-    ...(a.img ? { img: a.img } : {}),
   })),
 );

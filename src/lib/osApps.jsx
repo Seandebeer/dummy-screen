@@ -2,9 +2,9 @@ import {
   Phone, MessageSquare, Mail, Clock, Contact, Settings,
   Calculator, CalendarDays, StickyNote, Aperture, Music, Map, ShoppingBag,
   ThumbsUp, Camera, Play, Music2, Globe, AppWindow, Newspaper, Building2, HeartPulse,
-  Video, Images,
+  Video, Images, Clapperboard,
 } from "lucide-react";
-import { mockApps, categories } from "@/lib/mockAppCatalog";
+import { mockApps, categories, FRAMES_ICON } from "@/lib/mockAppCatalog";
 
 export const coreApps = [
   { id: "phone", label: "Phone", Icon: Phone, bg: "#34C759" },
@@ -31,6 +31,7 @@ export const coreApps = [
   { id: "news", label: "Bulletin", Icon: Newspaper, bg: "#DC4A38", tile: { type: "flat" } },
   { id: "property", label: "Realty", Icon: Building2, bg: "#32D74B", tile: { type: "gradient", bg2: "#0E9F8C" } },
   { id: "fitness", label: "Pulse", Icon: HeartPulse, bg: "#FF375F", tile: { type: "gloss" } },
+  { id: "frames", label: "Frames", Icon: Clapperboard, bg: "#1C1C1E", tile: { type: "dark" }, img: FRAMES_ICON },
 ];
 
 // mock ("downloaded") apps live in the category catalog - 20 categories,
