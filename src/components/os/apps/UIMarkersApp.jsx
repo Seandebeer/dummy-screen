@@ -61,6 +61,10 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const [dragBar, setDragBar] = useState(null); // "h" | "v"
   const barMoved = useRef(false);
   const barStart = useRef({ x: 0, y: 0 });
+  const [dragCell, setDragCell] = useState(null); // square button being dragged
+  const [dropCell, setDropCell] = useState(null); // square it would land on
+  const cellStart = useRef({ x: 0, y: 0 });
+  const cellMoved = useRef(false);
   const containerRef = useRef(null);
   const holdTimer = useRef(null);
   const suppressClick = useRef(false);
@@ -282,6 +286,44 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     };
   }, [dragBar]);
 
+  // drop a dragged square on another square - the two swap their numbers
+  const swapCells = (from, to) => {
+    const next = { ...assignments };
+    const a = next[from] ?? [];
+    const b = next[to] ?? [];
+    if (a.length) next[to] = a; else delete next[to];
+    if (b.length) next[from] = b; else delete next[from];
+    saveMarkers({ assignments: next });
+  };
+
+  // hold a square (edit mode) → drag it in any direction; dropping it on
+  // another square swaps the numbers, holding it in place still clears it
+  useEffect(() => {
+    if (!dragCell) return;
+    const move = (e) => {
+      if (Math.hypot(e.clientX - cellStart.current.x, e.clientY - cellStart.current.y) > 6) cellMoved.current = true;
+      const key = document.elementFromPoint(e.clientX, e.clientY)?.dataset?.cellKey;
+      setDropCell(key && key !== dragCell ? key : null);
+    };
+    const up = () => {
+      clearTimeout(holdTimer.current);
+      const from = dragCell;
+      const to = dropCell;
+      setDragCell(null);
+      setDropCell(null);
+      if (!cellMoved.current) clearNumber(from);
+      else if (to) swapCells(from, to);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [dragCell, dropCell]);
+
   // grid tracks - 1fr everywhere, so bars are exactly as thick as buttons
   const colTemplate = [];
   for (let c = 0; c <= COLS; c++) {
@@ -299,15 +341,19 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const cellButton = (key, style) => {
     const nums = numbersOn(key);
     const isPressed = pressedBtn === key;
+    const isDragSource = dragCell === key;
+    const isDropTarget = dropCell === key;
     return (
-      <button key={key} style={style}
-        onPointerDown={locked ? () => setPressedBtn(key) : () => {
-          if (nums.length === 0) return;
+      <button key={key} style={style} data-cell-key={key}
+        onPointerDown={locked ? () => setPressedBtn(key) : (e) => {
+          if (nums.length === 0 || (e.pointerType === "mouse" && e.button !== 0)) return;
           clearTimeout(holdTimer.current);
+          cellStart.current = { x: e.clientX, y: e.clientY };
+          cellMoved.current = false;
           holdTimer.current = setTimeout(() => {
             suppressClick.current = true;
-            clearNumber(key);
-          }, 400);
+            setDragCell(key);
+          }, 250);
         }}
         onPointerUp={locked ? () => setPressedBtn(null) : () => clearTimeout(holdTimer.current)}
         onPointerLeave={locked ? () => setPressedBtn(null) : () => clearTimeout(holdTimer.current)}
@@ -319,7 +365,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
         onContextMenu={(e) => e.preventDefault()}
         className={cn("rounded-xl border flex items-center justify-center font-display select-none touch-none transition-colors",
           nums.length > 1 ? "text-[11px] leading-tight" : "text-base",
-          locked && nums.length === 0 ? "border-transparent" : isPressed ? `${strongLine} marker-pulse` : line,
+          locked && nums.length === 0 ? "border-transparent"
+            : isPressed ? `${strongLine} marker-pulse`
+            : isDropTarget ? `${strongLine} marker-pulse`
+            : isDragSource ? strongLine
+            : line,
+          isDragSource && "opacity-50 cursor-grabbing",
           !locked && nums.length > 0 && txt,
           !locked && lineHover)}>
         {nums.length ? nums.join(" ") : ""}
