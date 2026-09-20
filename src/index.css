@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@200;300;400;500;600&family=Montserrat:wght@200;300;400;500&family=Open+Sans:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@200;300;400;500;600&family=Montserrat:wght@200;300;400;500&family=Open+Sans:wght@400;600&family=Metal+Mania&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -231,5 +231,26 @@
   @keyframes marker-press {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(0.93); opacity: 0.7; }
+  }
+  /* 80s band wordmark: chrome-metal gradient with hard retro print-offset
+     shadows, ready for 'Metal Mania' lettering */
+  .band-wordmark {
+    font-family: 'Metal Mania', 'Brush Script MT', cursive;
+    background: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #e8eef6 34%,
+      #77828f 49%,
+      #f2f6fb 55%,
+      #aab6c2 72%,
+      #f0d27a 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow:
+      3px 3px 0 rgba(255, 46, 196, 0.85),
+      -3px -2px 0 rgba(34, 211, 238, 0.75);
+    letter-spacing: 0.03em;
   }
 }
