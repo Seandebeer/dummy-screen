@@ -13,6 +13,7 @@ import CalculatorApp from "@/components/os/apps/CalculatorApp";
 import CalendarApp from "@/components/os/apps/CalendarApp";
 import NotesApp from "@/components/os/apps/NotesApp";
 import CameraApp from "@/components/os/apps/CameraApp";
+import VideoCallApp from "@/components/os/apps/VideoCallApp";
 import CallOverlay from "@/components/os/CallOverlay";
 import AlarmOverlay from "@/components/os/AlarmOverlay";
 import MockApp from "@/components/os/apps/MockApp";
@@ -401,6 +402,7 @@ export default function OS() {
       case "calendar": return <CalendarApp />;
       case "notes": return <NotesApp />;
       case "camera": return <CameraApp />;
+      case "videocall": return <VideoCallApp config={config} update={update} />;
       case "music": return <MusicApp />;
       case "maps": return <MapsApp />;
       case "facepage": return <FacepageApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;

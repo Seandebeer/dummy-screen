@@ -2,6 +2,7 @@ import {
   Phone, MessageSquare, Mail, Clock, Contact, Settings,
   Calculator, CalendarDays, StickyNote, Aperture, Music, Map, ShoppingBag,
   ThumbsUp, Camera, Play, Music2, Globe, AppWindow, Newspaper, Building2, HeartPulse,
+  Video,
 } from "lucide-react";
 import { mockApps, categories } from "@/lib/mockAppCatalog";
 
@@ -17,6 +18,7 @@ export const coreApps = [
   { id: "calendar", label: "Calendar", Icon: CalendarDays, bg: "#FF3B30" },
   { id: "notes", label: "Notes", Icon: StickyNote, bg: "#FFC800", tile: { type: "gloss", fg: "#7A5900" } },
   { id: "camera", label: "Camera", Icon: Aperture, bg: "#2C2C2E" },
+  { id: "videocall", label: "Vidcall", Icon: Video, bg: "#32D74B" },
   { id: "maps", label: "Maps", Icon: Map, bg: "#00C7BE" },
   { id: "appstore", label: "App Store", Icon: ShoppingBag, bg: "#0A84FF", tile: { type: "gloss" } },
   { id: "facepage", label: "Grapevine", Icon: ThumbsUp, bg: "#1877F2", tile: { type: "gloss" } },
