@@ -43,14 +43,6 @@ export const OS_SKINS = [
     preview: "linear-gradient(180deg, #123253, #0b1e38)",
   },
   {
-    id: "blackberry",
-    era: "legacy",
-    name: "BlackBerry",
-    desc: "Corporate classic - dense info, tiny icons, dark blue.",
-    preset: "bb",
-    preview: "linear-gradient(180deg, #101b2a, #060b13)",
-  },
-  {
     id: "winphone",
     era: "legacy",
     name: "Windows Phone",
@@ -181,15 +173,6 @@ export const SKIN_UI = {
     dock: { className: "rounded-[1.4rem] backdrop-blur-2xl", light: "bg-white/40", dark: "bg-white/15" },
     lock: { method: "slide", layout: "ios7" },
     home: "modern",
-  },
-  blackberry: {
-    font: '"Slate Pro", "Segoe UI", "Open Sans", Tahoma, sans-serif',
-    layout: "bb",
-    clock: { size: 36, weight: 500, style: { letterSpacing: "0.02em" } },
-    status: { className: "font-normal text-[13px] text-[#D1D5DB]" },
-    dock: { hidden: true },
-    lock: { method: "none", layout: "bb" },
-    home: "webos",
   },
   winphone: {
     font: '"Segoe UI", "Segoe WP", Tahoma, sans-serif',

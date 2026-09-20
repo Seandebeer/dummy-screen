@@ -40,7 +40,6 @@ import SaveDeviceSheet from "@/components/os/SaveDeviceSheet";
 import LockScreen from "@/components/os/LockScreen";
 import ClockEditor from "@/components/os/ClockEditor";
 import WpTileHome from "@/components/os/WpTileHome";
-import Bb10Home from "@/components/os/Bb10Home";
 import SettingsApp from "@/components/os/apps/SettingsApp";
 import AppStoreApp from "@/components/os/apps/AppStoreApp";
 import { skinUi, OS_SKINS } from "@/lib/osSkins";
@@ -551,7 +550,6 @@ export default function OS() {
       case null: {
         const ui = skinUi(config.skin);
         if (ui.layout === "tiles") return <WpTileHome config={config} update={update} onOpen={setApp} ui={ui} />;
-        if (ui.layout === "bb") return <Bb10Home config={config} update={update} onOpen={setApp} ui={ui} />;
         return <Homescreen onOpen={setApp} config={config} update={update} />;
       }
       default: return <MockApp app={allAppsById[app]} />;

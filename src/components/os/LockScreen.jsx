@@ -200,30 +200,6 @@ export default function LockScreen({ config, update, onUnlock, notifications = [
     );
   }
 
-  // BlackBerry: banner strip with clock, swipe up below
-  if (lk.layout === "bb") {
-    return (
-      <div className="h-full flex flex-col relative overflow-hidden" style={rootStyle}>
-        <div className="pt-9 px-3">
-          <div className="rounded-[4px] px-3 py-2 text-white"
-            style={{
-              backgroundImage: "linear-gradient(180deg, #223148 0%, #0c1725 100%)",
-              border: "1px solid rgba(255,255,255,0.18)",
-            }}>
-            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-white/75">
-              <span className="flex items-center gap-1"><Lock size={10} /> locked</span>
-              <span>{time}</span>
-            </div>
-            <div className="text-[11px] text-white/55 mt-0.5">{date}</div>
-          </div>
-        </div>
-        {notifs}
-        {authStatus}
-        <div className="relative mt-auto mb-6 w-full flex justify-center">{methodUi}</div>
-      </div>
-    );
-  }
-
   // default (modern / Material / webOS): centered clock + swipe up
   return (
     <div className="h-full flex flex-col items-center relative overflow-hidden" style={rootStyle}>
