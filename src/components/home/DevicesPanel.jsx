@@ -17,7 +17,6 @@ const kinds = [
 
 export default function DevicesPanel({ project }) {
   const [devices, setDevices] = useState(null);
-  const [projects, setProjects] = useState([]);
   const [name, setName] = useState("");
   const [kind, setKind] = useState("phone");
   const [busy, setBusy] = useState(false);
@@ -39,9 +38,6 @@ export default function DevicesPanel({ project }) {
     base44.entities.Device.list("-created_date", 100)
       .then((d) => setDevices(d))
       .catch(() => setDevices([]));
-    base44.entities.Project.list("-created_date", 100)
-      .then((d) => setProjects(d))
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -107,8 +103,6 @@ export default function DevicesPanel({ project }) {
       navigate("/os");
     } catch {}
   };
-
-  const projectById = (id) => projects.find((p) => p.id === id);
 
   // this panel follows the project selected in Projects - only its devices show
   const visible = project && devices ? devices.filter((d) => d.project_id === project.id) : [];
@@ -195,7 +189,6 @@ export default function DevicesPanel({ project }) {
                 <div className="text-[10px] text-muted-foreground font-body uppercase tracking-wider">
                   {d.kind}
                   {[d.make, d.model, d.colour].filter(Boolean).length > 0 ? ` · ${[d.make, d.model, d.colour].filter(Boolean).join(" ")}` : ""}
-                  {d.project_id && projectById(d.project_id) ? ` · ${projectById(d.project_id).name}` : ""}
                   {d.config ? " · layout saved" : ""}
                 </div>
               </div>
