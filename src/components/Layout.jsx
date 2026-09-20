@@ -9,7 +9,7 @@ const navItems = [
   { to: "/os", label: "OS", icon: RectangleVertical },
   { to: "/vfx", label: "Screens", icon: Plus },
   { to: "/uimarkers", label: "UI Marker", icon: Crosshair },
-  { to: "/videos", label: "Video", icon: Play },
+  { to: "/videos", label: "Playback", icon: Play },
   { to: "/control", label: "Control", icon: Radio },
 ];
 
