@@ -145,15 +145,15 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
           {target === "device" && deviceOpen && (
             devices === null ? (
               <div className="flex justify-center py-2 text-white/40"><Loader2 size={16} className="animate-spin" /></div>
-            ) : devices.length > 0 ? (
-              devices.map((d) => (
+            ) : devices.filter((d) => d.project_id).length > 0 ? (
+              devices.filter((d) => d.project_id).map((d) => (
                 <Row key={d.id} label={d.name}
-                  sub={projects?.find((p) => p.id === d.project_id)?.name || "No project"}
+                  sub={projects?.find((p) => p.id === d.project_id)?.name}
                   selected={deviceId === d.id}
                   onClick={() => { setDeviceId(d.id); setDeviceOpen(false); }} />
               ))
             ) : (
-              <p className="px-3 py-2 text-[11px] text-white/40">No devices yet - add one under Project instead.</p>
+              <p className="px-3 py-2 text-[11px] text-white/40">No existing devices yet - save one under Project first.</p>
             )
           )}
           <Row label="Favourites" sub="Saved card on Home"
