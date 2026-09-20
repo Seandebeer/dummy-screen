@@ -3,6 +3,7 @@ import { allApps, coreApps, defaultHomeOrder } from "@/lib/osApps";
 import { makeDefaultContacts } from "@/lib/osData";
 import { makeDefaultSocials } from "@/lib/osSocial";
 import { makeDefaultSites } from "@/lib/osSites";
+import { makeDefaultNews, makeDefaultProperty } from "@/lib/osAppsData";
 
 const STORAGE_KEY = "takeover-os-config";
 
@@ -52,6 +53,8 @@ const defaults = {
   notifications: [],
   socials: makeDefaultSocials(),
   webdeck: makeDefaultSites(),
+  news: makeDefaultNews(),
+  property: makeDefaultProperty(),
 };
 
 function loadConfig() {
@@ -103,6 +106,8 @@ function loadConfig() {
       return { ...defaults, ...saved, order, orderVer: 2, dock, dockVer: 2, lockVer: 2, lockscreen, uiMarkers, osMarks, osMarksVer: 1, badges: { ...defaults.badges, ...(saved.badges || {}) }, notifications: Array.isArray(saved.notifications) ? saved.notifications : [],
       socials: { ...defaults.socials, ...(saved.socials || {}) },
       webdeck: { ...defaults.webdeck, ...(saved.webdeck || {}) },
+      news: { ...defaults.news, ...(saved.news || {}) },
+      property: { ...defaults.property, ...(saved.property || {}) },
       dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
   } catch {}

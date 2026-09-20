@@ -8,6 +8,8 @@ const CATEGORIES = {
   vidtube: "Socials",
   quicktok: "Socials",
   webdeck: "Websites",
+  news: "Apps",
+  property: "Apps",
 };
 
 export const categoryOf = (app) => CATEGORIES[app] || "Pages";
@@ -35,6 +37,8 @@ export const applyPage = (entry) => {
           ? sites.map((x) => (x.id === entry.data.id ? entry.data : x))
           : [...sites, entry.data],
       };
+    } else if (entry.app === "news" || entry.app === "property") {
+      cfg[entry.app] = entry.data;
     } else {
       cfg.socials = { ...(cfg.socials || {}), [entry.app]: entry.data };
     }

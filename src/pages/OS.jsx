@@ -24,6 +24,9 @@ import VidTubeApp from "@/components/os/apps/social/VidTubeApp";
 import QuickTokApp from "@/components/os/apps/social/QuickTokApp";
 import BrowserApp from "@/components/os/apps/BrowserApp";
 import WebdeckApp from "@/components/os/apps/WebdeckApp";
+import NewsApp from "@/components/os/apps/NewsApp";
+import PropertyApp from "@/components/os/apps/PropertyApp";
+import FitnessApp from "@/components/os/apps/FitnessApp";
 import { allAppsById } from "@/lib/osApps";
 import VideoMarks, { MARK_COLORS, MARK_STYLES } from "@/components/os/apps/video/VideoMarks";
 import MarkAdjust from "@/components/os/MarkAdjust";
@@ -315,6 +318,9 @@ export default function OS() {
       case "quicktok": return <QuickTokApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
       case "browser": return <BrowserApp />;
       case "webdeck": return <WebdeckApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
+      case "news": return <NewsApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
+      case "property": return <PropertyApp config={config} update={update} locked={locked} fullscreen={fullscreen} />;
+      case "fitness": return <FitnessApp />;
       case "settings": return <SettingsApp config={config} update={update} onLock={() => setLocked(true)} />;
       case "appstore": return <AppStoreApp config={config} update={update} />;
       case null: {

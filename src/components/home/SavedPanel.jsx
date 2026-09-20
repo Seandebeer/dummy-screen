@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users } from "lucide-react";
+import { Trash2, Crosshair, Monitor, ChevronDown, Globe, Users, LayoutGrid } from "lucide-react";
 import { listSaved, deleteConfig } from "@/lib/savedConfigs";
 import { applyPage } from "@/lib/savedPages";
 
-const CATEGORIES = ["All", "UI Markers", "Key Screens", "Socials", "Websites"];
+const CATEGORIES = ["All", "UI Markers", "Key Screens", "Socials", "Websites", "Apps"];
 
 const categoryOf = (s) =>
   s.kind === "markers" ? "UI Markers"
@@ -15,6 +15,7 @@ const iconFor = (s) =>
   s.kind === "markers" ? <Crosshair size={15} />
   : s.kind === "screen" ? <Monitor size={15} />
   : s.category === "Websites" ? <Globe size={15} />
+  : s.category === "Apps" ? <LayoutGrid size={15} />
   : <Users size={15} />;
 
 export default function SavedPanel() {
