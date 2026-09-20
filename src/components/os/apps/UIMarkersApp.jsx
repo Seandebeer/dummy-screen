@@ -509,7 +509,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
               <PopoverTrigger asChild>
                 <button title="Image overlay"
                   className={pill}>
-                  <ImagePlus size={11} /> Image
+                  <ImagePlus size={11} /> Overlay
                 </button>
               </PopoverTrigger>
               <PopoverContent side="bottom" align="end" className="w-56 p-2 border-white/15 bg-black/80 text-white backdrop-blur-xl shadow-2xl">
