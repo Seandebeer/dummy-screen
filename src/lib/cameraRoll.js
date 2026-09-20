@@ -63,6 +63,11 @@ export const addVideo = async (blob, poster) => {
 
 export const getClip = (id) => tx("readonly", (s) => s.get(id)).catch(() => null);
 
+export const renameClip = (id, name) => {
+  store(getPhotos().map((p) => (p.id === id ? { ...p, name } : p)));
+  return getPhotos();
+};
+
 export const deletePhoto = (id) => {
   tx("readwrite", (s) => s.delete(id)).catch(() => {});
   store(getPhotos().filter((p) => p.id !== id));

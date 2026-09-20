@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Aperture, ChevronLeft, Images, Play, RefreshCw, Trash2, X } from "lucide-react";
+import { Aperture, ChevronLeft, Film, Images, Play, RefreshCw, Trash2, X } from "lucide-react";
 import { addPhoto, addVideo, deletePhoto, getClip, getPhotos } from "@/lib/cameraRoll";
+import ClipsGallery from "@/components/os/apps/camera/ClipsGallery";
 import { cn } from "@/lib/utils";
 
 export default function CameraApp() {
@@ -122,6 +123,16 @@ export default function CameraApp() {
 
   const recTime = `${Math.floor(recSecs / 60)}:${String(recSecs % 60).padStart(2, "0")}`;
 
+  if (mode === "clips") {
+    return (
+      <ClipsGallery
+        clips={photos.filter((p) => p.type === "video")}
+        onBack={() => setMode("camera")}
+        onChange={setPhotos}
+      />
+    );
+  }
+
   if (mode === "roll") {
     return (
       <div className="relative h-full flex flex-col bg-black text-white">
@@ -129,7 +140,12 @@ export default function CameraApp() {
           <button onClick={() => setMode("camera")} className="flex items-center gap-1 text-sm font-body text-amber">
             <ChevronLeft size={16} /> Camera
           </button>
-          <div className="text-xs font-body text-white/60">{photos.length} item{photos.length === 1 ? "" : "s"}</div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMode("clips")} className="flex items-center gap-1 text-xs font-body text-amber">
+              <Film size={13} /> Clips
+            </button>
+            <div className="text-xs font-body text-white/60">{photos.length} item{photos.length === 1 ? "" : "s"}</div>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar p-1">
           {photos.length ? (
@@ -202,6 +218,15 @@ export default function CameraApp() {
           <Images size={16} />
           {photos.length > 0 && (
             <span className="absolute -top-1 -right-1 rounded-full bg-amber px-1.5 text-[9px] font-body font-semibold text-black">{photos.length}</span>
+          )}
+        </button>
+        <button onClick={() => setMode("clips")} disabled={recording} title="Clips"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-black/45 backdrop-blur disabled:opacity-40">
+          <Film size={16} />
+          {photos.some((p) => p.type === "video") && (
+            <span className="absolute -top-1 -right-1 rounded-full bg-[#FF453A] px-1.5 text-[9px] font-body font-semibold text-white">
+              {photos.filter((p) => p.type === "video").length}
+            </span>
           )}
         </button>
         <button onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
