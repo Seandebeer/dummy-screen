@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
@@ -7,8 +7,17 @@ import QrConnect from "@/components/control/QrConnect";
 import VideoCallCard from "@/components/control/VideoCallCard";
 import DeviceContactPicker from "@/components/control/DeviceContactPicker";
 import { getScreenId } from "@/lib/deviceLink";
-import { allApps, allAppsById } from "@/lib/osApps";
+import { coreApps, mockApps, categories, allAppsById } from "@/lib/osApps";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+
+// notification picker: socials first, then the remaining functional apps.
+// the mock library is tucked away in the "more apps" dropdown by category
+const SOCIAL_IDS = new Set(["facepage", "photogram", "vidtube", "quicktok"]);
+const notifPrimaryApps = [
+  ...coreApps.filter((a) => SOCIAL_IDS.has(a.id)),
+  ...coreApps.filter((a) => !SOCIAL_IDS.has(a.id)),
+];
 
 const CONTACT_KEY = "takeover-control-contact";
 const BLANK = { name: "", number: "", email: "", image: "" };
@@ -436,7 +445,7 @@ export default function ControlPanel() {
         <div className="mb-2">
           <div className="text-[10px] font-body text-muted-foreground mb-1.5">App icon</div>
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-            {allApps.filter((a) => a.Icon).map((a) => (
+            {notifPrimaryApps.map((a) => (
               <button key={a.id} onClick={() => setNotifApp(a.id)} title={a.label}
                 className={cn("h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition",
                   notifApp === a.id ? "border-signal ring-1 ring-signal" : "border-border opacity-60 hover:opacity-100")}
@@ -444,6 +453,32 @@ export default function ControlPanel() {
                 {a.Icon ? <a.Icon size={16} className="text-white" /> : null}
               </button>
             ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button title="More apps"
+                  className={cn("h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition",
+                    mockApps.some((a) => a.id === notifApp) ? "border-signal ring-1 ring-signal" : "border-border opacity-60 hover:opacity-100")}>
+                  <ChevronDown size={16} className="text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="max-h-72 overflow-y-auto w-52">
+                {categories.map((cat, ci) => (
+                  <div key={cat.id}>
+                    {ci > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuLabel className="text-[10px] font-body text-muted-foreground">{cat.name}</DropdownMenuLabel>
+                    {mockApps.filter((a) => a.category === cat.id).map((a) => (
+                      <DropdownMenuItem key={a.id} onClick={() => setNotifApp(a.id)}
+                        className={cn("gap-2 text-xs", notifApp === a.id && "bg-accent/60")}>
+                        <span className="h-5 w-5 rounded flex items-center justify-center shrink-0" style={{ background: a.bg }}>
+                          {a.Icon ? <a.Icon size={12} className="text-white" /> : null}
+                        </span>
+                        {a.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="text-[9px] font-body text-muted-foreground/70 mt-1">
             {allAppsById[notifApp]?.label || notifApp}
