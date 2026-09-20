@@ -14,7 +14,7 @@ const kinds = [
   { id: "remote", label: "Remote" },
 ];
 
-export default function DevicesPanel() {
+export default function DevicesPanel({ project }) {
   const [devices, setDevices] = useState(null);
   const [projects, setProjects] = useState([]);
   const [name, setName] = useState("");
@@ -45,7 +45,7 @@ export default function DevicesPanel() {
     if (!name.trim() || busy) return;
     setBusy(true);
     try {
-      await base44.entities.Device.create({ name: name.trim(), kind, status: "offline" });
+      await base44.entities.Device.create({ name: name.trim(), kind, status: "offline", project_id: project?.id || null });
       setName("");
       setKind("phone");
       refresh();
@@ -88,6 +88,9 @@ export default function DevicesPanel() {
 
   const projectById = (id) => projects.find((p) => p.id === id);
 
+  // this panel follows the project selected in Projects - only its devices show
+  const visible = project ? devices.filter((d) => d.project_id === project.id) : [];
+
   return (
     <div className="rounded-2xl border border-border bg-surface p-5">
       <div className="flex items-center gap-2.5 mb-4">
@@ -97,7 +100,7 @@ export default function DevicesPanel() {
         <div className="flex-1">
           <h3 className="font-display font-bold text-base leading-none">Devices</h3>
           <p className="text-[11px] text-muted-foreground font-body mt-1">
-            {devices ? `${devices.filter((d) => d.status === "online").length} online · ${devices.length} total` : "loading…"}
+            {project ? `${project.name} · ${visible.length} ${visible.length === 1 ? "device" : "devices"}` : devices ? "select a project in Projects" : "loading…"}
           </p>
         </div>
       </div>
@@ -121,11 +124,13 @@ export default function DevicesPanel() {
 
       {devices === null ? (
         <div className="py-10 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={20} /></div>
-      ) : devices.length === 0 ? (
-        <p className="py-8 text-center text-xs text-muted-foreground font-body">No devices yet - add one above.</p>
+      ) : !project ? (
+        <p className="py-8 text-center text-xs text-muted-foreground font-body">Select a project in Projects to see its devices.</p>
+      ) : visible.length === 0 ? (
+        <p className="py-8 text-center text-xs text-muted-foreground font-body">No devices linked to {project.name} yet - add one above.</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
-          {devices.map((d) => (
+          {visible.map((d) => (
             <li key={d.id} className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
               <div className="group flex items-center gap-3">
               <button onClick={() => toggleStatus(d)} title="Toggle online/offline"

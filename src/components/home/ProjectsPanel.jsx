@@ -7,13 +7,12 @@ import { applyOsConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
 import ProjectTeam from "@/components/home/ProjectTeam";
 
-export default function ProjectsPanel() {
+export default function ProjectsPanel({ selected, onSelect }) {
   const [projects, setProjects] = useState(null);
   const [devices, setDevices] = useState([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [teamOpen, setTeamOpen] = useState(null);
-  const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
@@ -121,7 +120,7 @@ export default function ProjectsPanel() {
           {visibleProjects.map((p) => (
             <li key={p.id} className="group rounded-lg border border-border bg-muted/30 px-3 py-2.5">
               <div className="flex items-center gap-3">
-                <button onClick={() => setSelected(selected === p.id ? null : p.id)}
+                <button onClick={() => onSelect(selected === p.id ? null : p)}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left">
                   <span className="h-2 w-2 rounded-full bg-amber/70 shrink-0" />
                   <span className="flex-1 text-sm font-body truncate">{p.name}</span>
