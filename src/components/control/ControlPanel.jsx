@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical } from "lucide-react";
+import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus, Smartphone, Mic, MicOff, Volume2, Bell, ChevronDown, Plus, GripVertical, Recycle } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { startControlVoice } from "@/lib/voiceLink";
@@ -57,6 +57,8 @@ export default function ControlPanel() {
   const [notifApp, setNotifApp] = useState("messages");
   const [notifText, setNotifText] = useState("");
   const [notifQueue, setNotifQueue] = useState([]);
+  // everything pushed since the last reset - Reset reloads it into the queue
+  const [pushedNotifs, setPushedNotifs] = useState([]);
   const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -259,6 +261,8 @@ export default function ControlPanel() {
         channel, type: "notification", status: "pending",
         payload: JSON.stringify({ screen: next.screen, app: next.app, body: next.text, source: getScreenId() }),
       });
+      // remember what was pushed - Reset brings the whole set back
+      setPushedNotifs((p) => [...p, next]);
       setNotifQueue((q) => q.slice(1));
     } catch {}
   };
@@ -268,6 +272,10 @@ export default function ControlPanel() {
         channel, type: "notification", status: "pending",
         payload: JSON.stringify({ action: "reset", source: getScreenId() }),
       });
+      // clear the phone and reload the last pushed set into the queue -
+      // whatever gets pushed next becomes the set a future Reset restores
+      setNotifQueue(pushedNotifs.slice(0, 20));
+      setPushedNotifs([]);
     } catch {}
   };
   const setQueueText = (id, text) => setNotifQueue((q) => q.map((n) => (n.id === id ? { ...n, text } : n)));
@@ -571,7 +579,7 @@ export default function ControlPanel() {
           </button>
           <button onClick={resetNotifications}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
-            <Trash2 size={13} /> Reset
+            <Recycle size={13} /> Reset
           </button>
         </div>
         <div className="mt-2 text-[10px] font-body text-muted-foreground">
