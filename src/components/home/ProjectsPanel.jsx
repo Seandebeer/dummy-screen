@@ -1,17 +1,34 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { FolderKanban, Plus, Trash2, Loader2 } from "lucide-react";
+import { FolderKanban, Plus, Trash2, Loader2, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { applyOsConfig } from "@/lib/osConfigStore";
 import { linkDevice } from "@/lib/deviceLink";
+import ProjectTeam from "@/components/home/ProjectTeam";
 
 export default function ProjectsPanel() {
   const [projects, setProjects] = useState(null);
   const [devices, setDevices] = useState([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(null);
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  // this user's role on a project: owner (account holder), editor or viewer
+  const myAccess = (p) => {
+    if (!user) return "loading";
+    if (user.role === "admin" || p.created_by_id === user.id) return "owner";
+    const me = (user.email || "").toLowerCase();
+    if ((p.editors || []).includes(me)) return "editor";
+    if ((p.viewers || []).includes(me)) return "viewer";
+    return "none";
+  };
 
   const refresh = useCallback(() => {
     base44.entities.Project.list("-created_date", 100)
@@ -98,16 +115,31 @@ export default function ProjectsPanel() {
               <div className="flex items-center gap-3">
                 <span className="h-2 w-2 rounded-full bg-amber/70 shrink-0" />
                 <span className="flex-1 text-sm font-body truncate">{p.name}</span>
-                <button onClick={() => remove(p)} className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
-                  <Trash2 size={15} />
-                </button>
+                {(myAccess(p) === "editor" || myAccess(p) === "viewer") && (
+                  <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[9px] font-body uppercase tracking-wider",
+                    myAccess(p) === "editor" ? "bg-signal/15 text-signal" : "bg-muted text-muted-foreground")}>
+                    {myAccess(p) === "editor" ? "Editor" : "View only"}
+                  </span>
+                )}
+                {myAccess(p) === "owner" && (
+                  <button onClick={() => setTeamOpen(teamOpen === p.id ? null : p.id)} title="Manage team"
+                    className="text-muted-foreground hover:text-foreground transition opacity-60 group-hover:opacity-100">
+                    <Users size={15} />
+                  </button>
+                )}
+                {myAccess(p) === "owner" && (
+                  <button onClick={() => remove(p)} className="text-muted-foreground hover:text-alert transition opacity-60 group-hover:opacity-100">
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
               <div className="mt-1.5 pl-5 flex flex-col gap-1">
                 {projectDevices(p).length === 0 ? (
                   <span className="text-[10px] text-muted-foreground/70 font-body">No devices assigned</span>
                 ) : projectDevices(p).map((d) => (
-                  <button key={d.id} onClick={() => openDevice(d)} title="Open this device's OS"
-                    className="w-full flex items-center gap-2 text-xs font-body text-left rounded-md py-0.5 px-1 -mx-1 hover:bg-muted/60 transition cursor-pointer">
+                  <button key={d.id} onClick={() => openDevice(d)} disabled={myAccess(p) === "viewer"}
+                    title={myAccess(p) === "viewer" ? "View only - editing access required" : "Open this device's OS"}
+                    className="w-full flex items-center gap-2 text-xs font-body text-left rounded-md py-0.5 px-1 -mx-1 hover:bg-muted/60 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0",
                       d.status === "online" ? "bg-signal led-pulse" : "bg-muted-foreground/40")} />
                     <span className="truncate text-foreground/80">{d.name}</span>
@@ -115,6 +147,11 @@ export default function ProjectsPanel() {
                   </button>
                 ))}
               </div>
+              {teamOpen === p.id && (
+                <div className="mt-2 pt-2 border-t border-border/60">
+                  <ProjectTeam project={p} user={user} onChange={refresh} />
+                </div>
+              )}
             </li>
           ))}
         </ul>
