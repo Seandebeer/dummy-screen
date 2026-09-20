@@ -211,8 +211,8 @@ export default function OS() {
     const onOrient = (e) => {
       if (e.beta == null) return;
       sensor = true;
-      if (e.beta > 70) engage();
-      else if (e.beta < 55) wake();
+      if (e.beta > 75) engage();
+      else if (e.beta < 60) wake();
     };
     window.addEventListener("deviceorientation", onOrient);
     // fallback: no sensors available, sleep the screen 3s into the call
