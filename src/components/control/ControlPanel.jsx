@@ -549,9 +549,6 @@ export default function ControlPanel() {
                             </span>
                             <input value={n.text} onChange={(e) => setQueueText(n.id, e.target.value)}
                               className="flex-1 min-w-0 bg-transparent text-xs font-body outline-none text-foreground" />
-                            <span className="text-[9px] font-body text-muted-foreground shrink-0">
-                              {n.screen === "lock" ? "Lock" : "Home"}
-                            </span>
                             <button onClick={() => removeQueuedNotif(n.id)} aria-label="Remove"
                               className="text-muted-foreground hover:text-alert shrink-0 transition">
                               <Trash2 size={12} />
@@ -570,7 +567,7 @@ export default function ControlPanel() {
         <div className="mt-2 flex items-center gap-2">
           <button onClick={pushNextNotification} disabled={!notifQueue.length}
             className="flex-1 flex h-9 items-center justify-center gap-1.5 rounded-lg bg-signal px-3 text-xs font-body font-semibold text-background disabled:opacity-40 hover:brightness-110 transition">
-            <Bell size={13} /> {notifQueue.length ? `Push next (${notifQueue.length} queued)` : "Push next"}
+            <Bell size={13} /> Push
           </button>
           <button onClick={resetNotifications}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
