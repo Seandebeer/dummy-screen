@@ -139,7 +139,7 @@ export default function DevicesPanel({ project }) {
         </div>
         <Popover open={addOpen} onOpenChange={setAddOpen}>
           <PopoverTrigger asChild>
-            <button title="Add device"
+            <button title="Add device" hidden={!project}
               className="h-8 w-8 rounded-lg bg-signal/15 text-signal flex items-center justify-center hover:bg-signal/30 transition">
               <Plus size={17} />
             </button>
@@ -191,7 +191,7 @@ export default function DevicesPanel({ project }) {
       {devices === null ? (
         <div className="py-10 flex justify-center text-muted-foreground"><Loader2 className="animate-spin" size={20} /></div>
       ) : !project ? (
-        <p className="py-8 text-center text-xs text-muted-foreground font-body">Select a project to view its devices</p>
+        <p className="py-8 text-center text-xs text-muted-foreground font-body">Add or select a project to view its devices</p>
       ) : visible.length === 0 ? (
         <p className="py-8 text-center text-xs text-muted-foreground font-body">No devices linked to {project.name} yet - add one above.</p>
       ) : (
