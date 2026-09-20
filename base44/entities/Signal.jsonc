@@ -1,0 +1,38 @@
+{
+  "name": "Signal",
+  "type": "object",
+  "properties": {
+    "channel": {
+      "type": "string",
+      "default": "stage-1"
+    },
+    "sender": {
+      "type": "string",
+      "enum": [
+        "control",
+        "phone"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "offer",
+        "answer",
+        "ice",
+        "end"
+      ]
+    },
+    "session": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sender",
+    "kind",
+    "session",
+    "payload"
+  ]
+}

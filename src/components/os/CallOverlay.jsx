@@ -48,10 +48,13 @@ function SlideToAnswer({ onAccept }) {
   );
 }
 
-export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap" }) {
+export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap", speaker, onSpeakerChange }) {
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [speaker, setSpeaker] = useState(false);
+  const [localSpeaker, setLocalSpeaker] = useState(false);
+  // speaker is lifted to the OS when onSpeakerChange is given (proximity needs it)
+  const spk = typeof speaker === "boolean" ? speaker : localSpeaker;
+  const toggleSpeaker = () => onSpeakerChange ? onSpeakerChange(!speaker) : setLocalSpeaker((s) => !s);
 
   useEffect(() => {
     if (call?.phase === "active") {
@@ -126,8 +129,8 @@ export default function CallOverlay({ call, onAccept, onEnd, answerMode = "tap" 
               </span>
               <span className="text-[11px] text-white/60">mute</span>
             </button>
-            <button onClick={() => setSpeaker((s) => !s)} className="flex flex-col items-center gap-1.5">
-              <span className={cn("h-14 w-14 rounded-full flex items-center justify-center", speaker ? "bg-white text-black" : "bg-white/15")}>
+            <button onClick={toggleSpeaker} className="flex flex-col items-center gap-1.5">
+              <span className={cn("h-14 w-14 rounded-full flex items-center justify-center", spk ? "bg-white text-black" : "bg-white/15")}>
                 <Volume2 size={22} />
               </span>
               <span className="text-[11px] text-white/60">speaker</span>

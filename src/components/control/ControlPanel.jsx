@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PhoneIncoming, PhoneOff, Send, Radio, Users, AlarmClock, Trash2, ImagePlus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { startControlVoice } from "@/lib/voiceLink";
 import { Image } from "@/components/ui/image";
 import QrConnect from "@/components/control/QrConnect";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,8 @@ export default function ControlPanel() {
   const [alarmId, setAlarmId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [voice, setVoice] = useState("off");
+  const voiceRef = useRef(null);
   const scrollRef = useRef(null);
 
   const saveContact = (patch) => setContact((c) => {
@@ -57,6 +60,9 @@ export default function ControlPanel() {
       if (e.type === "update" && e.data.id === activeCmdId && e.data.type?.startsWith("call_")) {
         if (e.data.status === "active") setCallState("active");
         if (e.data.status === "completed") {
+          voiceRef.current?.stop();
+          voiceRef.current = null;
+          setVoice("off");
           setCallState("ended");
           setTimeout(() => setCallState("idle"), 1500);
           setActiveCmdId(null);
@@ -94,11 +100,17 @@ export default function ControlPanel() {
       });
       setActiveCmdId(rec.id);
       setCallState("ringing");
+      // open the voice link - the phone picks it up when the call is answered
+      voiceRef.current?.stop();
+      voiceRef.current = startControlVoice(rec.id, setVoice);
     } catch (e) {}
     setBusy(false);
   };
 
   const endCall = async () => {
+    voiceRef.current?.stop();
+    voiceRef.current = null;
+    setVoice("off");
     if (activeCmdId) {
       try { await base44.entities.Command.update(activeCmdId, { status: "completed" }); } catch (e) {}
     }
@@ -227,6 +239,16 @@ export default function ControlPanel() {
             <PhoneOff size={20} />
             <span className="text-[11px] font-body">End</span>
           </button>
+        </div>
+        <div className={cn("mt-2 text-[10px] font-body",
+          voice === "mic-on" ? "text-signal" : "text-muted-foreground")}>
+          {voice === "mic-on"
+            ? "Voice live - you're speaking through the target device"
+            : voice === "mic-denied"
+              ? "Mic blocked - calls run without live voice"
+              : voice === "error"
+                ? "Voice link failed - calls run without live voice"
+                : "Allow mic access for live voice through the target device"}
         </div>
       </div>
 

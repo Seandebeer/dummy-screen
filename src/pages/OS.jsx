@@ -43,6 +43,7 @@ import SettingsApp from "@/components/os/apps/SettingsApp";
 import AppStoreApp from "@/components/os/apps/AppStoreApp";
 import { skinUi, OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
+import { startPhoneVoice } from "@/lib/voiceLink";
 
 export default function OS() {
   const [app, setApp] = useState(null);
@@ -57,6 +58,9 @@ export default function OS() {
   const [banner, setBanner] = useState(null);
   const [clockEdit, setClockEdit] = useState(false);
   const [deviceName, setDeviceName] = useState(getDeviceName);
+  const [callSpeaker, setCallSpeaker] = useState(false);
+  const [ear, setEar] = useState(false);
+  const voiceRef = useRef(null);
   const [messageTo, setMessageTo] = useState(null);
   const [emailTo, setEmailTo] = useState(null);
   const callRef = useRef(null);
@@ -165,6 +169,57 @@ export default function OS() {
   useEffect(() => { callRef.current = call; }, [call]);
   useEffect(() => { alarmRef.current = alarm; }, [alarm]);
 
+  // a new call always starts off speakerphone
+  useEffect(() => { if (!call) setCallSpeaker(false); }, [call]);
+
+  // live voice: a control-driven call pipes the operator's mic into this device
+  useEffect(() => {
+    if (call?.phase === "active" && call?.commandId && !voiceRef.current) {
+      voiceRef.current = startPhoneVoice(call.commandId);
+    }
+    if (!call && voiceRef.current) {
+      voiceRef.current.stop();
+      voiceRef.current = null;
+    }
+  }, [call?.phase, call?.commandId]);
+
+  // ear proximity: during a live non-speaker call the screen sleeps like a
+  // phone held to the ear - the tilt sensor wakes it when it comes back down,
+  // and without sensors the screen sleeps 3 seconds in (tap to wake)
+  useEffect(() => {
+    if (!call || call.phase !== "active" || callSpeaker) { setEar(false); return; }
+    let engaged = false;
+    let sensor = false;
+    const engage = () => { engaged = true; setEar(true); };
+    const wake = () => { if (engaged) { engaged = false; setEar(false); } };
+    // real proximity sensor, when the browser exposes one
+    const onProx = (e) => {
+      sensor = true;
+      if (e.value < 5) engage();
+      else if (e.value > 8) wake();
+    };
+    if (typeof window.DeviceProximityEvent !== "undefined") {
+      window.addEventListener("deviceproximity", onProx);
+    }
+    // lift-to-ear: the top of the phone tilted steeply up = at the ear
+    const onOrient = (e) => {
+      if (e.beta == null) return;
+      sensor = true;
+      if (e.beta > 70) engage();
+      else if (e.beta < 55) wake();
+    };
+    window.addEventListener("deviceorientation", onOrient);
+    // fallback: no sensors available, sleep the screen 3s into the call
+    const timer = setTimeout(() => { if (!sensor) engage(); }, 3000);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("deviceorientation", onOrient);
+      if (typeof window.DeviceProximityEvent !== "undefined") {
+        window.removeEventListener("deviceproximity", onProx);
+      }
+    };
+  }, [call?.phase, call?.commandId, call?.startTime, callSpeaker]);
+
   // keep the live status-bar clock fresh
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 15000);
@@ -269,6 +324,10 @@ export default function OS() {
   }, []);
 
   const acceptCall = useCallback(() => {
+    // iOS needs a user gesture to allow the lift-to-ear tilt sensor
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      DeviceOrientationEvent.requestPermission().catch(() => {});
+    }
     setCall((cur) => {
       if (cur?.commandId) base44.entities.Command.update(cur.commandId, { status: "active" }).catch(() => {});
       return { ...cur, phase: "active", startTime: Date.now() };
@@ -416,7 +475,10 @@ export default function OS() {
               <ClockEditor clock={config.clock} onSave={(c) => { update({ clock: c }); setClockEdit(false); }} onClose={() => setClockEdit(false)} />
             </div>
           )}
-          <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
+          <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} speaker={callSpeaker} onSpeakerChange={setCallSpeaker} />
+          {ear && call?.phase === "active" && (
+            <div className="absolute inset-0 z-[60] bg-black" onClick={() => setEar(false)} aria-label="Screen off - tap to wake" />
+          )}
           {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
         </PhoneFrame>
       </div>
@@ -444,7 +506,10 @@ export default function OS() {
               <NotificationBanner notif={banner} light={config.theme === "light"}
                 onOpen={openNotification} onDismiss={() => setBanner(null)} />
             )}
-            <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} />
+            <CallOverlay call={call} onAccept={acceptCall} onEnd={endCall} answerMode={config.callAnswer} speaker={callSpeaker} onSpeakerChange={setCallSpeaker} />
+            {ear && call?.phase === "active" && (
+              <div className="absolute inset-0 z-[60] bg-black" onClick={() => setEar(false)} aria-label="Screen off - tap to wake" />
+            )}
             {alarm && <AlarmOverlay onDismiss={stopAlarm} />}
           </PhoneFrame>
         </div>
