@@ -29,8 +29,10 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
   const saveTimer = useRef(null);
   const marksTimer = useRef(null);
   const lockEnteredFs = useRef(false);
+  const pendingPlay = useRef(null);
 
   const [playing, setPlaying] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [time, setTime] = useState(0);
   const [locked, setLocked] = useState(false);
   const [hint, setHint] = useState(false);
@@ -41,7 +43,10 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
   const [aspect, setAspect] = useState(video.aspect || "fit");
   const [marks, setMarks] = useState(video.marks || { style: "none", layouts: {} });
 
-  // reset the editor whenever the queued video changes, then autoplay
+  // reset the editor whenever the queued video changes; the clip is seeked
+  // to its trim point and autoplayed only once loadedmetadata fires -
+  // seeking / playing a half-loaded element gets dropped, which is what
+  // caused opens to sometimes land on a black screen
   useEffect(() => {
     setTrim({ start: video.trimStart || 0, end: video.trimEnd ?? video.duration });
     setLoop(!!video.loop);
@@ -49,8 +54,8 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
     setMarks(video.marks || { style: "none", layouts: {} });
     setVidRatio(null);
     setTime(video.trimStart || 0);
-    const v = vidRef.current;
-    if (v) { v.currentTime = video.trimStart || 0; v.play().catch(() => {}); }
+    setLoadError(false);
+    pendingPlay.current = { seek: video.trimStart || 0 };
   }, [video.id]);
 
   // measure the stage for the aspect-ratio frame
@@ -170,8 +175,25 @@ export default function VideoPlayer({ videos, index, setIndex, onExit, urlFor })
             onLoadedMetadata={() => {
               const v = vidRef.current;
               if (v?.videoWidth) setVidRatio(v.videoWidth / v.videoHeight);
-            }} />
+              const pending = pendingPlay.current;
+              if (v && pending) {
+                pendingPlay.current = null;
+                v.currentTime = pending.seek;
+                v.play().catch(() => {});
+              }
+            }}
+            onError={() => { pendingPlay.current = null; setLoadError(true); }} />
         </div>
+        {/* load failure - show it instead of a silent black screen */}
+        {loadError && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/60 text-center">
+            <p className="text-[11px] font-body text-white/60">Couldn't open this video</p>
+            <button onClick={() => { setLoadError(false); vidRef.current?.load(); }}
+              className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-body text-white/80 hover:text-white">
+              Try again
+            </button>
+          </div>
+        )}
         {/* marks anchor to the whole screen, not the letterboxed video frame */}
         <VideoMarks marks={marks} onChange={setMarksPersist} locked={locked} color={marks.color || "#FFFFFF"} />
       </div>
