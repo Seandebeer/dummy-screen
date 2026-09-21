@@ -22,6 +22,8 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
   const [projectOpen, setProjectOpen] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  // offline: a "new project" is just a remembered name until the save syncs
+  const [pendingProject, setPendingProject] = useState(null);
   const [devices, setDevices] = useState(null);
   const [deviceId, setDeviceId] = useState(null);
   const [deviceOpen, setDeviceOpen] = useState(false);
@@ -36,7 +38,7 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
       .catch(() => setDevices([]));
   }, []);
 
-  const chosen = projects?.find((p) => p.id === projectId) || null;
+  const chosen = projects?.find((p) => p.id === projectId) || (pendingProject ? { name: pendingProject } : null);
   const chosenDevice = devices?.find((d) => d.id === deviceId) || null;
 
   // only devices inside projects this user can see - matches the Home panels
@@ -47,6 +49,15 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
   const createProject = async () => {
     const pn = newProjectName.trim();
     if (!pn || busy) return;
+    // offline: the project is created together with the device once the
+    // queued save syncs - just remember the name and carry on
+    if (!navigator.onLine) {
+      setPendingProject(pn);
+      setNewProjectOpen(false);
+      setNewProjectName("");
+      setProjectOpen(false);
+      return;
+    }
     setBusy(true);
     try {
       const rec = await base44.entities.Project.create({ name: pn });
@@ -78,9 +89,10 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
         linkDevice(deviceId, chosenDevice?.name);
         onSaved?.(chosenDevice?.name);
       } else {
-        const rec = await createDeviceInProject(projectId, n, slimConfig(config));
-        linkDevice(rec.id, rec.name);
-        onSaved?.(rec.name);
+        // offline this returns null - the record appears once the save syncs
+        const rec = await createDeviceInProject(projectId, n, slimConfig(config), pendingProject || undefined);
+        if (rec) linkDevice(rec.id, rec.name);
+        onSaved?.(rec?.name);
       }
       onClose();
     } catch {
@@ -103,7 +115,7 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
 
   const canSave = !busy && (target === "this" ? true
     : target === "device" ? Boolean(deviceId)
-    : Boolean(name.trim()) && (target === "fav" || Boolean(projectId)));
+    : Boolean(name.trim()) && (target === "fav" || Boolean(projectId || pendingProject)));
 
   return (
     <div className="absolute inset-0 z-40 flex items-end bg-black/60" onClick={() => !busy && onClose()}>
@@ -147,7 +159,7 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
               <>
                 {projects.map((p) => (
                   <Row key={p.id} label={p.name} selected={projectId === p.id}
-                    onClick={() => { setProjectId(p.id); setProjectOpen(false); }} />
+                    onClick={() => { setProjectId(p.id); setPendingProject(null); setProjectOpen(false); }} />
                 ))}
                 <Row label="Add new project…" sub="Create a project for this device"
                   onClick={() => { setNewProjectOpen(true); setProjectOpen(false); }} />

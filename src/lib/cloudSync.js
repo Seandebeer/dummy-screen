@@ -116,6 +116,28 @@ export function clearDeviceSync() {
   writeQueue(readQueue().filter((o) => o.type !== "device_config"));
 }
 
+// --- save-sheet device writes (queued when offline, synced with signal) ---
+
+// push a config onto an existing device record once there's a connection
+export function enqueueDeviceUpdate(deviceId, configJson) {
+  ensureInit();
+  enqueue({ type: "device_update", key: `device-${deviceId}`, deviceId, payload: configJson });
+  flush();
+}
+
+// create a device (and its project first, when the project is also new)
+export function enqueueDeviceCreate(projectId, projectName, deviceName, configJson) {
+  ensureInit();
+  enqueue({
+    type: "device_create",
+    projectId: projectId || null,
+    projectName: projectName || "",
+    deviceName,
+    payload: configJson,
+  });
+  flush();
+}
+
 async function pushDeviceConfig(configJson) {
   const fields = { config: configJson, status: "online" };
   const id = getLinkedDeviceId();
@@ -156,6 +178,18 @@ async function runOp(op) {
     await base44.entities.SavedItem.deleteMany({ item_key: op.key });
   } else if (op.type === "device_config") {
     await pushDeviceConfig(op.payload);
+  } else if (op.type === "device_update") {
+    await base44.entities.Device.update(op.deviceId, { config: op.payload });
+  } else if (op.type === "device_create") {
+    let pid = op.projectId;
+    if (!pid && op.projectName) {
+      const proj = await base44.entities.Project.create({ name: op.projectName });
+      pid = proj.id;
+    }
+    await base44.entities.Device.create({
+      name: op.deviceName, kind: "phone", status: "offline",
+      project_id: pid, config: op.payload,
+    });
   }
 }
 
