@@ -95,15 +95,19 @@ export default function DevicesPanel({ project }) {
 
   // open this device's OS on this screen - its saved layout if it has one,
   // otherwise the out-of-the-box setup (latest Apple skin, graphite, no lock)
-  const loadLayout = (d) => {
-    if (d.config) {
+  const loadLayout = async (d) => {
+    // fetch the record fresh - a layout saved moments ago must be the one
+    // that opens, not this panel's snapshot
+    let dev = d;
+    try { dev = (await base44.entities.Device.get(d.id)) || d; } catch {}
+    if (dev.config) {
       try {
-        applyOsConfig(JSON.parse(d.config));
+        applyOsConfig(JSON.parse(dev.config));
       } catch {}
     } else {
       resetOsConfig();
     }
-    linkDevice(d.id, d.name);
+    linkDevice(dev.id, dev.name);
     navigate("/os");
   };
 

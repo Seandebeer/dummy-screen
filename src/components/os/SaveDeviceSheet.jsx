@@ -28,6 +28,7 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
   const [deviceId, setDeviceId] = useState(null);
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null);
   // a linked id can outlive its device record (deleted on another screen) -
   // once that's confirmed the sheet falls back to the full save options
   const [linkedOk, setLinkedOk] = useState(true);
@@ -95,23 +96,32 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
         saveConfig({ kind: "os", category: "OS", name: n, data: slimConfig(config) });
         onSaved?.(null);
       } else if (target === "this") {
-        await applyConfigToDevice(linkedId, slimConfig(config));
+        const res = await applyConfigToDevice(linkedId, slimConfig(config));
+        if (res?.queued) return queuedSave();
         onSaved?.(getDeviceName());
       } else if (target === "device") {
-        await applyConfigToDevice(deviceId, slimConfig(config));
+        const res = await applyConfigToDevice(deviceId, slimConfig(config));
+        if (res?.queued) return queuedSave();
         linkDevice(deviceId, chosenDevice?.name);
         onSaved?.(chosenDevice?.name);
       } else {
         // offline this returns null - the record appears once the save syncs
         const rec = await createDeviceInProject(projectId, n, slimConfig(config), pendingProject || undefined);
-        if (rec) linkDevice(rec.id, rec.name);
-        onSaved?.(rec?.name);
+        if (!rec) return queuedSave();
+        linkDevice(rec.id, rec.name);
+        onSaved?.(rec.name);
       }
       onClose();
     } catch {
       setBusy(false);
       setError("Save failed - check your connection and try again");
     }
+  };
+
+  // saved while there's no signal - it syncs to the team once signal returns
+  const queuedSave = () => {
+    setBusy(false);
+    setNote("No signal right now - the save is kept on this screen and syncs to the team library once you're back online.");
   };
 
   const Row = ({ label, sub, selected, onClick }) => (
@@ -211,6 +221,7 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
             onClick={() => { setTarget("fav"); setProjectOpen(false); setDeviceOpen(false); }} />
         </div>
         {error && <p className="mt-2 px-1 text-[11px] text-red-400">{error}</p>}
+        {note && <p className="mt-2 px-1 text-[11px] text-amber-300">{note}</p>}
         <button onClick={save} disabled={!canSave}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0A84FF] py-3 text-[15px] font-semibold transition active:opacity-80 disabled:opacity-40">
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={15} />}

@@ -46,7 +46,7 @@ import AppStoreApp from "@/components/os/apps/AppStoreApp";
 import { skinUi, OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
 import { startPhoneVoice } from "@/lib/voiceLink";
-import { scheduleDeviceSync } from "@/lib/cloudSync";
+import { scheduleDeviceSync, pushDeviceStateNow } from "@/lib/cloudSync";
 import { applyLiveOsConfig, isOsPushedHere } from "@/lib/osLiveSync";
 import { logTeamCall } from "@/lib/callLog";
 
@@ -384,6 +384,10 @@ export default function OS() {
     if (remoteAppliedRef.current) { remoteAppliedRef.current = false; return; }
     scheduleDeviceSync();
   }, [config]);
+
+  // leaving the OS pushes the latest layout to the cloud immediately, so
+  // reopening the device from Home always shows the newest save
+  useEffect(() => () => { pushDeviceStateNow(); }, []);
 
   // opened via QR (?connect=1): bring the linked device record online -
   // a sandbox screen (nothing saved yet) stays unregistered

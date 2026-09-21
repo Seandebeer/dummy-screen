@@ -91,25 +91,31 @@ export async function syncNow() {
 
 let deviceTimer = null;
 
+// push this screen's current device state into the queue right now
+export function pushDeviceStateNow() {
+  ensureInit();
+  clearTimeout(deviceTimer);
+  const cfg = readCurrentOsConfig();
+  if (!cfg) return;
+  let notes = null;
+  let calendar = null;
+  let emails = null;
+  try { notes = JSON.parse(localStorage.getItem("takeover-os-notes")) || null; } catch {}
+  try { calendar = JSON.parse(localStorage.getItem("takeover-os-calendar")) || null; } catch {}
+  try { emails = JSON.parse(localStorage.getItem("takeover-os-emails")) || null; } catch {}
+  enqueue({
+    type: "device_config",
+    key: "device-config",
+    payload: JSON.stringify({ ...slimConfig(cfg), _notes: notes, _calendar: calendar, _emails: emails }),
+  });
+  flush();
+}
+
 // schedule a debounced push of this screen's current device state
 export function scheduleDeviceSync() {
   ensureInit();
   clearTimeout(deviceTimer);
-  deviceTimer = setTimeout(() => {
-    const cfg = readCurrentOsConfig();
-    if (!cfg) return;
-    let notes = null;
-    let calendar = null;
-    let emails = null;
-    try { notes = JSON.parse(localStorage.getItem("takeover-os-notes")) || null; } catch {}
-    try { calendar = JSON.parse(localStorage.getItem("takeover-os-calendar")) || null; } catch {}
-    try { emails = JSON.parse(localStorage.getItem("takeover-os-emails")) || null; } catch {}
-    enqueue({
-      type: "device_config",
-      payload: JSON.stringify({ ...slimConfig(cfg), _notes: notes, _calendar: calendar, _emails: emails }),
-    });
-    flush();
-  }, 2500);
+  deviceTimer = setTimeout(pushDeviceStateNow, 2500);
 }
 
 // drop any queued device state (factory reset - a fresh one syncs right after)
@@ -160,6 +166,9 @@ async function pushDeviceConfig(configJson) {
 
 let flushing = false;
 let inited = false;
+// ops that keep failing while online are dropped after a few attempts, so
+// one bad entry can never freeze the whole queue (and every later save)
+let opFails = {};
 
 async function runOp(op) {
   if (op.type === "saved_upsert") {
@@ -215,8 +224,15 @@ export async function flush() {
       const op = q[0];
       try {
         await runOp(op);
+        delete opFails[op.opId];
       } catch {
-        break; // connection dropped - the op stays queued for the next attempt
+        // signal dropped - the op stays queued for the next attempt
+        if (typeof navigator !== "undefined" && !navigator.onLine) break;
+        opFails[op.opId] = (opFails[op.opId] || 0) + 1;
+        if (opFails[op.opId] < 3) break; // transient failure - retry next flush
+        // keeps failing while online - drop it so the rest of the queue can sync
+        writeQueue(readQueue().filter((o) => o.opId !== op.opId));
+        continue;
       }
       writeQueue(readQueue().filter((o) => o.opId !== op.opId));
     }
@@ -228,7 +244,7 @@ export async function flush() {
 function ensureInit() {
   if (inited || typeof window === "undefined") return;
   inited = true;
-  window.addEventListener("online", () => { syncNow(); });
+  window.addEventListener("online", () => { opFails = {}; syncNow(); });
   window.addEventListener("offline", () => emit());
   flush();
 }
