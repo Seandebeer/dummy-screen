@@ -28,8 +28,16 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
   const [deviceId, setDeviceId] = useState(null);
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // a linked id can outlive its device record (deleted on another screen) -
+  // once that's confirmed the sheet falls back to the full save options
+  const [linkedOk, setLinkedOk] = useState(true);
+  const linked = linkedId && linkedOk;
 
   useEffect(() => {
+    if (linkedId && navigator.onLine) {
+      base44.entities.Device.get(linkedId)
+        .catch(() => { setLinkedOk(false); setTarget("project"); });
+    }
     base44.entities.Project.list("-created_date", 100)
       .then(setProjects)
       .catch(() => setProjects([]));
@@ -67,7 +75,12 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
       setNewProjectName("");
       setProjectOpen(false);
     } catch {
-      setError("Could not create project - check your connection and try again");
+      // server unreachable - remember the name; the project is created
+      // together with the device once the queued save syncs
+      setPendingProject(pn);
+      setNewProjectOpen(false);
+      setNewProjectName("");
+      setProjectOpen(false);
     }
     setBusy(false);
   };
@@ -134,12 +147,12 @@ export default function SaveDeviceSheet({ config, onClose, onSaved }) {
         )}
         <div className="mt-3 space-y-1.5">
           <div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/35">Save to</div>
-          {linkedId && (
+          {linked && (
             <Row label="This device" sub={`${getDeviceName()} · update its saved layout`}
               selected={target === "this"}
               onClick={() => { setTarget("this"); setProjectOpen(false); setDeviceOpen(false); }} />
           )}
-          {!linkedId && (<>
+          {!linked && (<>
           <button onClick={() => { setTarget("project"); setDeviceOpen(false); setProjectOpen((o) => !o); }}
             className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition",
               target === "project" ? "bg-[#0A84FF]/25" : "bg-white/[0.06] active:bg-white/10")}>

@@ -179,7 +179,14 @@ async function runOp(op) {
   } else if (op.type === "device_config") {
     await pushDeviceConfig(op.payload);
   } else if (op.type === "device_update") {
-    await base44.entities.Device.update(op.deviceId, { config: op.payload });
+    try {
+      await base44.entities.Device.update(op.deviceId, { config: op.payload });
+    } catch {
+      // the device was deleted - the save is moot, drop it; a transient
+      // failure stays queued for the next flush
+      try { await base44.entities.Device.get(op.deviceId); } catch { return; }
+      throw new Error("device sync failed");
+    }
   } else if (op.type === "device_create") {
     let pid = op.projectId;
     if (!pid && op.projectName) {
