@@ -153,8 +153,6 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
                 <AlarmClock size={12} className={s.alarm ? "opacity-100" : "opacity-0"} />
               </button>
             </div>
-            {/* centered screen hub pill - hidden in fullscreen takeover (real device has its own) */}
-            {!bare && skin === "modern" && <div className="absolute left-1/2 top-[9px] -translate-x-1/2 h-[25px] w-[90px] rounded-full bg-black" />}
             <div className="flex items-center gap-2">
               {/* bluetooth - invisible until its slot is tapped, tap again to hide */}
               <button
