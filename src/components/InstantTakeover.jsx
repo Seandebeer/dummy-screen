@@ -6,6 +6,12 @@ import { enterTakeover } from "@/lib/screenTakeover";
 // where permitted and at the very first tap anywhere otherwise.
 export default function InstantTakeover() {
   useEffect(() => {
+    // standalone / native shell: no browser UI exists, so the screen is
+    // already fully ours - nothing to request (and webviews may refuse)
+    const standalone =
+      window.matchMedia?.("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+    if (standalone) return;
     const grab = () => {
       enterTakeover();
       window.removeEventListener("pointerdown", grab);

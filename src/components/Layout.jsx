@@ -18,11 +18,11 @@ export default function Layout() {
 
   if (isMobile) {
     return (
-      <div className="min-h-dvh bg-background">
+      <div className="min-h-dvh bg-background pt-[env(safe-area-inset-top)]">
         <main className="pb-20">
           <Outlet />
         </main>
-        <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-surface/70 backdrop-blur-2xl">
+        <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-surface/70 backdrop-blur-2xl pb-[env(safe-area-inset-bottom)]">
           <div className="flex items-stretch justify-around pt-2">
             {navItems.map((item) => (
               <NavLink
