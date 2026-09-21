@@ -342,8 +342,22 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   const onRootPointerMove = (e) => {
     if (!trail || trail.fading) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const p = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    setTrail((t) => (t && !t.fading ? { ...t, points: [...t.points, p] } : t));
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setTrail((t) => {
+      if (!t || t.fading) return t;
+      const pts = [...t.points];
+      const from = pts[pts.length - 1];
+      if (!from) return { ...t, points: [...pts, { x, y }] };
+      // fill in dots along the segment so fast swipes stay a solid line
+      const dx = x - from.x;
+      const dy = y - from.y;
+      const steps = Math.max(1, Math.round(Math.hypot(dx, dy) / 12));
+      for (let i = 1; i <= steps; i++) {
+        pts.push({ x: from.x + (dx * i) / steps, y: from.y + (dy * i) / steps });
+      }
+      return { ...t, points: pts };
+    });
   };
 
   // release anywhere: the swipe line fades out, then disappears
