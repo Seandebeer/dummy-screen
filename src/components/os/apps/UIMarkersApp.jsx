@@ -8,6 +8,7 @@ import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TrackingMarks } from "@/components/vfx/TrackingMarks";
 import { defaultLayoutFor } from "@/hooks/useScreenMarks";
+import { enterTakeover, exitTakeover } from "@/lib/screenTakeover";
 import { compositeMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
 
@@ -140,6 +141,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     setLocked(true);
     setHint(true);
     setTimeout(() => setHint(false), 2400);
+    // locking is also a screen takeover - the real device UI disappears
+    enterTakeover();
   };
 
   // saving offers a choice: the Saved card (favourites) or this device's folder
@@ -239,7 +242,12 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
   // 3-finger tap to unlock
   useEffect(() => {
     if (!locked) return;
-    const onTouch = (e) => { if (e.touches.length >= 3) setLocked(false); };
+    const onTouch = (e) => {
+      if (e.touches.length >= 3) {
+        setLocked(false);
+        exitTakeover();
+      }
+    };
     window.addEventListener("touchstart", onTouch, { passive: true });
     return () => window.removeEventListener("touchstart", onTouch);
   }, [locked]);
