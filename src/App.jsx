@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import TakeoverListener from '@/components/TakeoverListener';
+import InstantTakeover from '@/components/InstantTakeover';
 // Add page imports here
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
@@ -42,6 +43,7 @@ const AuthenticatedApp = () => {
 
   return (
     <>
+      <InstantTakeover />
       <TakeoverListener />
       <Routes>
       <Route element={<Layout />}>
