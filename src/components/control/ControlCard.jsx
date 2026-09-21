@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export default function ControlCard({ icon: Icon, title, badge, iconClass = "text-signal", children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)]">
+    <div className="rounded-[20px] border border-border/70 bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)]">
       <div role="button" tabIndex={0} onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
         className="flex w-full cursor-pointer select-none items-center justify-between px-5 py-4">

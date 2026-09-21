@@ -382,7 +382,7 @@ export default function ControlPanel() {
   return (
     <div className="flex flex-col gap-5 h-full">
       {/* connection panel */}
-      <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
+      <div className="rounded-[20px] border border-border/70 bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Radio size={16} className="text-signal" />
@@ -394,16 +394,16 @@ export default function ControlPanel() {
           </span>
         </div>
         {devices && devices.length === 0 && (
-          <div className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[11px] font-body text-muted-foreground">
+          <div className="mb-2 rounded-xl border border-border/70 bg-secondary/30 px-3 py-2 text-[11px] font-body text-muted-foreground">
             No devices detected - ensure that you have created a device. Home screen <span className="text-foreground/70">›</span> Projects <span className="text-foreground/70">›</span> Devices.
           </div>
         )}
         {devices && devices.length > 0 && !channel && (
-          <div className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[11px] font-body text-muted-foreground">
+          <div className="mb-2 rounded-xl border border-border/70 bg-secondary/30 px-3 py-2 text-[11px] font-body text-muted-foreground">
             No device connected. Ensure that you have selected a device on the home screen — Projects <span className="text-foreground/70">›</span> Devices.
           </div>
         )}
-        <div onClick={openPicker} className="cursor-pointer flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.04] p-3.5 transition hover:border-white/[0.14]">
+        <div onClick={openPicker} className="cursor-pointer flex items-center gap-3 rounded-xl border border-border/70 bg-secondary/40 p-3.5 transition hover:border-border">
           <div className={cn("h-10 w-10 rounded-lg border flex items-center justify-center shrink-0",
             channel ? "bg-signal/15 border-signal/30" : "bg-alert/15 border-alert/30")}>
             <Plug size={18} className={channel ? "text-signal" : "text-alert"} />
@@ -423,7 +423,7 @@ export default function ControlPanel() {
       </div>
 
       {/* on-screen contact - the identity used for calls and messages */}
-      <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
+      <div className="rounded-[20px] border border-border/70 bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-body">On-Screen Contact</div>
@@ -437,7 +437,7 @@ export default function ControlPanel() {
           )}
         </div>
         <div className="flex items-start gap-3 mb-3">
-          <label className="relative h-16 w-16 rounded-full bg-white/[0.04] border border-white/[0.08] overflow-hidden flex items-center justify-center cursor-pointer shrink-0">
+          <label className="relative h-16 w-16 rounded-full bg-secondary/40 border border-border overflow-hidden flex items-center justify-center cursor-pointer shrink-0">
             {contact.image
               ? <Image src={contact.image} alt="" className="h-full w-full" fittingType="fill" />
               : <ImagePlus size={18} className="text-muted-foreground" />}
@@ -446,15 +446,15 @@ export default function ControlPanel() {
           </label>
           <div className="flex-1 grid grid-cols-2 gap-2">
             <input value={contact.name} onChange={(e) => saveContact({ name: e.target.value })} placeholder="Name"
-              className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
+              className="bg-secondary/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
             <input value={contact.number} onChange={(e) => saveContact({ number: e.target.value })} placeholder="Mock number"
-              className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
+              className="bg-secondary/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
             <input value={contact.email} onChange={(e) => saveContact({ email: e.target.value })} placeholder="Email (optional)"
-              className="col-span-2 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
+              className="col-span-2 bg-secondary/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-amber/50" />
           </div>
         </div>
         <button onClick={() => setPickerOpen(true)}
-          className="mt-3 flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-2.5 py-1.5 text-[10px] font-body text-muted-foreground transition hover:border-signal/40 hover:text-foreground">
+          className="mt-3 flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-body text-muted-foreground transition hover:border-signal/40 hover:text-foreground">
           <Smartphone size={12} /> Choose from contacts
         </button>
       </div>
@@ -479,7 +479,7 @@ export default function ControlPanel() {
             {["circle", "full"].map((m) => (
               <button key={m} onClick={() => choosePhotoMode(m)}
                 className={cn("rounded-lg border px-2 py-1 text-[10px] font-body transition",
-                  photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
+                  photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
                 {m === "circle" ? "Circle" : "Full screen"}
               </button>
             ))}
@@ -489,12 +489,12 @@ export default function ControlPanel() {
           <span className="text-[10px] font-body text-muted-foreground">On this deck</span>
           <button onClick={toggleOpMic}
             className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
-              opMic ? "border-signal/40 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
+              opMic ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
             {opMic ? <Mic size={13} /> : <MicOff size={13} />} {opMic ? "Mic on" : "Mic off"}
           </button>
           <button onClick={toggleOpSpeaker}
             className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
-              opSpeaker ? "border-signal/40 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
+              opSpeaker ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
             <Volume2 size={13} /> {opSpeaker ? "Speaker on" : "Speaker off"}
           </button>
           <span className="text-[9px] font-body text-muted-foreground/70">your voice into the phone · hear the actor</span>
@@ -550,16 +550,16 @@ export default function ControlPanel() {
         <textarea value={text} onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           placeholder="Type message to push…" rows={4}
-          className="w-full min-h-[96px] resize-y bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />
+          className="w-full min-h-[96px] resize-y bg-secondary/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal" />
         <div className="mt-2 flex items-center justify-between gap-2">
-          <label className="flex h-9 items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2 shrink-0"
+          <label className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-secondary/40 px-2 shrink-0"
             title="Time shown on the phone - clear it for live time">
             <Clock size={12} className="text-muted-foreground shrink-0" />
             <input type="time" value={msgTime} onChange={(e) => setMsgTime(e.target.value)}
               className="w-[70px] bg-transparent text-xs font-body outline-none" />
           </label>
           <div className="flex items-center gap-2">
-            <label className={cn("h-9 w-9 shrink-0 rounded-lg border border-white/[0.08] flex items-center justify-center cursor-pointer transition hover:border-signal/40",
+            <label className={cn("h-9 w-9 shrink-0 rounded-lg border border-border flex items-center justify-center cursor-pointer transition hover:border-signal/40",
               mediaBusy && "opacity-50")} title="Send a photo or video">
               <Paperclip size={15} className="text-muted-foreground" />
               <input type="file" accept="image/*,video/*" className="hidden" onChange={sendMediaMsg} />
@@ -580,7 +580,7 @@ export default function ControlPanel() {
             <input value={replyText} onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addReply()}
               placeholder="Queue up a reply…" disabled={replyQueue.length >= 20}
-              className="min-w-0 flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
+              className="min-w-0 flex-1 bg-secondary/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
             <button onClick={addReply} disabled={!replyText.trim() || replyQueue.length >= 20}
               className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
               <Plus size={13} /> Add
@@ -588,10 +588,10 @@ export default function ControlPanel() {
           </div>
           <div className="mt-2 flex items-center justify-end gap-2">
             <button onClick={resetMessages}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
               <Recycle size={13} /> Reset
             </button>
-            <label className={cn("flex h-9 shrink-0 items-center rounded-lg border border-white/[0.08] px-2.5 cursor-pointer transition hover:border-signal/40",
+            <label className={cn("flex h-9 shrink-0 items-center rounded-lg border border-border px-2.5 cursor-pointer transition hover:border-signal/40",
               (replyQueue.length >= 20 || mediaBusy) && "pointer-events-none opacity-40")} title="Queue a photo or video">
               <Paperclip size={13} className="text-muted-foreground" />
               <input type="file" accept="image/*,video/*" className="hidden" onChange={queueMediaMsg} />
@@ -604,7 +604,7 @@ export default function ControlPanel() {
           {replyQueue.length > 0 && (
             <div className="mt-2 space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
               {replyQueue.map((r, i) => (
-                <div key={r.id} className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1.5">
+                <div key={r.id} className="flex items-center gap-2 rounded-lg border border-border bg-secondary/30 px-2 py-1.5">
                   <span className="text-[9px] font-body text-muted-foreground shrink-0">{i + 1}</span>
                   {r.media && (r.media_type === "video"
                     ? <Play size={12} className="text-muted-foreground shrink-0" />
@@ -631,7 +631,7 @@ export default function ControlPanel() {
             {["lock", "home"].map((s) => (
               <button key={s} onClick={() => setNotifScreen(s)}
                 className={cn("rounded-lg border px-2 py-1 text-[10px] font-body transition",
-                  notifScreen === s ? "border-signal/50 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
+                  notifScreen === s ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
                 {s === "lock" ? "Lock screen" : "Home screen"}
               </button>
             ))}
@@ -643,7 +643,7 @@ export default function ControlPanel() {
             {notifPrimaryApps.map((a) => (
               <button key={a.id} onClick={() => setNotifApp(a.id)} title={a.label}
                 className={cn("h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition",
-                  notifApp === a.id ? "border-signal ring-1 ring-signal" : "border-white/[0.08] opacity-60 hover:opacity-100")}
+                  notifApp === a.id ? "border-signal ring-1 ring-signal" : "border-border opacity-60 hover:opacity-100")}
                 style={{ background: a.bg }}>
                 {a.Icon ? <a.Icon size={16} className="text-white" /> : null}
               </button>
@@ -652,7 +652,7 @@ export default function ControlPanel() {
               <DropdownMenuTrigger asChild>
                 <button title="More apps"
                   className={cn("h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition",
-                    mockApps.some((a) => a.id === notifApp) ? "border-signal ring-1 ring-signal" : "border-white/[0.08] opacity-60 hover:opacity-100")}>
+                    mockApps.some((a) => a.id === notifApp) ? "border-signal ring-1 ring-signal" : "border-border opacity-60 hover:opacity-100")}>
                   <ChevronDown size={16} className="text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
@@ -683,7 +683,7 @@ export default function ControlPanel() {
           <textarea value={notifText} onChange={(e) => setNotifText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addNotifToQueue(); } }}
             placeholder="Banner text…" rows={4} disabled={notifQueue.length >= 20}
-            className="w-full min-h-[96px] resize-y bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
+            className="w-full min-h-[96px] resize-y bg-secondary/40 border border-border rounded-lg px-3 py-2 text-sm font-body outline-none focus:border-signal disabled:opacity-50" />
           <div className="mt-2 flex justify-end">
             <button onClick={addNotifToQueue} disabled={!notifText.trim() || notifQueue.length >= 20}
               className="flex h-9 items-center gap-1.5 rounded-lg border border-signal/50 bg-signal/10 px-3 text-xs font-body font-semibold text-signal disabled:opacity-40 hover:bg-signal/20 transition">
@@ -705,7 +705,7 @@ export default function ControlPanel() {
                       <Draggable key={n.id} draggableId={n.id} index={i}>
                         {(p) => (
                           <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}
-                            className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1.5">
+                            className="flex items-center gap-2 rounded-lg border border-border bg-secondary/30 px-2 py-1.5">
                             <GripVertical size={13} className="text-muted-foreground shrink-0" />
                             <span className="h-6 w-6 rounded flex items-center justify-center shrink-0"
                               style={{ background: allAppsById[n.app]?.bg || "#5E5CE6" }}>
@@ -734,7 +734,7 @@ export default function ControlPanel() {
             <Bell size={13} /> Push
           </button>
           <button onClick={resetNotifications}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-body text-muted-foreground hover:text-alert hover:border-alert/40 transition">
             <Recycle size={13} /> Reset
           </button>
         </div>

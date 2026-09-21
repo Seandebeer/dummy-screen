@@ -139,7 +139,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
   const toggle = (on, onClick, onIcon, offIcon, label) => (
     <button onClick={onClick}
       className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-body transition",
-        on ? "border-signal/40 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
+        on ? "border-signal/40 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
       {on ? onIcon : offIcon} {label}
     </button>
   );
@@ -152,7 +152,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
         {MODES.map((m) => (
           <button key={m.id} onClick={() => switchMode(m.id)}
             className={cn("flex flex-col items-center gap-1 rounded-xl border py-2.5 text-[10px] font-body transition",
-              mode === m.id ? "border-signal/50 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground hover:text-foreground")}>
+              mode === m.id ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground hover:text-foreground")}>
             <m.Icon size={16} /> {m.label}
           </button>
         ))}
@@ -175,16 +175,16 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {vfxColors.map((c) => (
             <button key={c.id} onClick={() => setVfxPatch({ bgColor: c.hex })} title={c.label}
-              className={cn("h-6 w-6 rounded-full border border-white/[0.08]",
+              className={cn("h-6 w-6 rounded-full border border-border",
                 vfx.bgColor === c.hex && "ring-1 ring-signal ring-offset-1 ring-offset-surface")}
               style={{ background: c.hex }} />
           ))}
           <label title="Custom colour" className="cursor-pointer">
             <input type="color" value={vfx.bgColor} onChange={(e) => setVfxPatch({ bgColor: e.target.value })}
-              className="h-6 w-6 cursor-pointer rounded-full border border-white/[0.08] bg-transparent p-0" />
+              className="h-6 w-6 cursor-pointer rounded-full border border-border bg-transparent p-0" />
           </label>
           <select value={vfx.markStyle} onChange={(e) => setVfxPatch({ markStyle: e.target.value })}
-            className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 text-[10px] font-body text-foreground outline-none">
+            className="rounded-lg border border-border bg-secondary/40 px-2 py-1.5 text-[10px] font-body text-foreground outline-none">
             {trackingMarks.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
@@ -192,7 +192,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
 
       {(mode === "video" || mode === "photo") && (
         <button onClick={() => fileRef.current?.click()} disabled={uploading}
-          className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.08] py-2 text-[11px] font-body text-muted-foreground transition hover:text-foreground disabled:opacity-50">
+          className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-[11px] font-body text-muted-foreground transition hover:text-foreground disabled:opacity-50">
           {uploading ? <Loader2 size={13} className="animate-spin" /> : (
             <>
               {mode === "video" ? <Film size={13} /> : <ImageIcon size={13} />}
@@ -210,7 +210,7 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
           {["circle", "full"].map((m) => (
             <button key={m} onClick={() => choosePhotoMode(m)}
               className={cn("rounded-lg border px-2 py-1 text-[10px] font-body transition",
-                photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-white/[0.08] text-muted-foreground")}>
+                photoMode === m ? "border-signal/50 bg-signal/10 text-signal" : "border-border text-muted-foreground")}>
               {m === "circle" ? "Circle" : "Full screen"}
             </button>
           ))}

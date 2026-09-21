@@ -58,7 +58,7 @@ export default function QrConnect() {
   }, [scanning, register]);
 
   return (
-    <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
+    <div className="rounded-[20px] border border-border/70 bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
       <div className="flex items-center gap-2 mb-3">
         <QrCode size={16} className="text-amber" />
         <span className="font-display font-semibold text-[15px] tracking-tight">Quick Connect</span>
@@ -76,7 +76,7 @@ export default function QrConnect() {
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-muted-foreground font-body">{status || "Point the camera at a device QR…"}</span>
             <button onClick={() => setScanning(false)}
-              className="flex items-center gap-1 rounded-lg border border-white/[0.08] px-2 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
+              className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition">
               <X size={11} /> Stop
             </button>
           </div>

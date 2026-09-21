@@ -58,7 +58,7 @@ export default function LockPad({ channel = "stage-1" }) {
   };
 
   return (
-    <div className="rounded-[20px] border border-white/[0.07] bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
+    <div className="rounded-[20px] border border-border/70 bg-surface/60 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.28)] p-5">
       <div className="mb-3 flex items-center gap-2">
         <LockOpen size={16} className="text-amber" />
         <span className="font-display font-semibold text-[15px] tracking-tight">Screen Lock Pad</span>
@@ -67,7 +67,7 @@ export default function LockPad({ channel = "stage-1" }) {
         onTouchStart={onTouch} onClick={onClick}
         aria-label="Toggle target phone lock"
         className={cn("relative flex h-44 w-full select-none items-center justify-center overflow-hidden rounded-xl border bg-surface/40 grid-backdrop transition",
-          flash === "error" ? "border-alert/60" : flash === "sent" ? "border-amber/50" : "border-white/[0.08]")}>
+          flash === "error" ? "border-alert/60" : flash === "sent" ? "border-amber/50" : "border-border")}>
         {/* live target lock state */}
         <div className="flex flex-col items-center gap-3">
           {locked
