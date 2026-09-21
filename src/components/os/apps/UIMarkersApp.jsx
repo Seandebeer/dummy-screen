@@ -337,7 +337,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
     const id = ++rippleId.current;
     setRipples((rs) => [...rs, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }]);
     setTimeout(() => setRipples((rs) => rs.filter((r) => r.id !== id)), 650);
-    if (e.target.closest?.("[data-bar]")) setTrail({ points: [{ x: e.clientX - rect.left, y: e.clientY - rect.top }] });
+    setTrail({ points: [{ x: e.clientX - rect.left, y: e.clientY - rect.top }] });
   };
   const onRootPointerMove = (e) => {
     if (!trail || trail.fading) return;
