@@ -114,7 +114,7 @@ export default function MapCanvas({
 }) {
   const routePoints = origin ? [origin, ...stops.map((s) => s.pos)] : [];
   return (
-    <MapContainer center={center} zoom={zoom} zoomControl={false} doubleClickZoom={false}
+    <MapContainer center={center} zoom={zoom} zoomControl={false} doubleClickZoom={false} attributionControl={false}
       style={{ height: "100%", width: "100%" }}>
       <TileLayer key={layer} url={LAYERS[layer] || LAYERS.map}
         attribution={LAYER_ATTR[layer] || LAYER_ATTR.map} />
