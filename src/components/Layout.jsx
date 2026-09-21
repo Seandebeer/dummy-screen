@@ -18,7 +18,7 @@ export default function Layout() {
 
   if (isMobile) {
     return (
-      <div className="min-h-dvh bg-background pt-[env(safe-area-inset-top)]">
+      <div className="min-h-dvh bg-background">
         <main className="pb-20">
           <Outlet />
         </main>

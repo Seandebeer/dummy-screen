@@ -35,7 +35,7 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-background grid-backdrop">
-      <header className="home-header border-b border-border px-6 sm:px-8 py-5 flex md:grid md:grid-cols-6 items-center justify-between">
+      <header className="home-header border-b border-border px-6 sm:px-8 pb-5 pt-[calc(env(safe-area-inset-top)_+_1.25rem)] flex md:grid md:grid-cols-6 items-center justify-between">
         <div className="md:col-start-2 md:col-span-2 md:justify-self-center">
           <BrandLogo />
         </div>
