@@ -1,6 +1,7 @@
 import { base44 } from "@/api/base44Client";
 import { getLinkedDeviceId } from "@/lib/deviceLink";
 import { readCurrentOsConfig, slimConfig } from "@/lib/osConfigStore";
+import { markOsPushed } from "@/lib/osLiveSync";
 
 // Cloud sync for the shared on-set library. Everything keeps working from
 // the screen's local storage; changes are queued and pushed to the cloud
@@ -144,6 +145,7 @@ async function pushDeviceConfig(configJson) {
   // no linked device - this screen is a sandbox until its first save; the
   // OS layout stays local and nothing is pushed
   if (!id) return;
+  markOsPushed(configJson);
   try {
     await base44.entities.Device.update(id, fields);
   } catch {
@@ -180,6 +182,7 @@ async function runOp(op) {
     await pushDeviceConfig(op.payload);
   } else if (op.type === "device_update") {
     try {
+      markOsPushed(op.payload);
       await base44.entities.Device.update(op.deviceId, { config: op.payload });
     } catch {
       // the device was deleted - the save is moot, drop it; a transient
@@ -193,6 +196,7 @@ async function runOp(op) {
       const proj = await base44.entities.Project.create({ name: op.projectName });
       pid = proj.id;
     }
+    markOsPushed(op.payload);
     await base44.entities.Device.create({
       name: op.deviceName, kind: "phone", status: "offline",
       project_id: pid, config: op.payload,

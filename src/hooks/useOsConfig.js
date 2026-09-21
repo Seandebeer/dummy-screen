@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { allApps, coreApps, defaultHomeOrder } from "@/lib/osApps";
 import { makeDefaultContacts } from "@/lib/osData";
 import { makeDefaultSocials } from "@/lib/osSocial";
@@ -58,11 +58,11 @@ const defaults = {
   property: makeDefaultProperty(),
 };
 
-function loadConfig() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && Array.isArray(saved.order)) {
-      const known = allApps.map((a) => a.id);
+// merge a saved layout over the defaults (contact regeneration, layout
+// migrations) - null for anything that isn't a valid saved config
+function mergeConfig(saved) {
+  if (saved && Array.isArray(saved.order)) {
+    const known = allApps.map((a) => a.id);
       // gather the functional apps on the first page (once) - everything
       // else gets added from the App Library
       // core apps added after a layout was saved (e.g. Music) land on page 1
@@ -111,6 +111,12 @@ function loadConfig() {
       property: { ...defaults.property, ...(saved.property || {}) },
       dialCodes, dialCode: dialCodes[0], language, contactsLang: language, contactsVer: 2, contacts };
     }
+  return null;
+}
+
+function loadConfig() {
+  try {
+    return mergeConfig(JSON.parse(localStorage.getItem(STORAGE_KEY))) || defaults;
   } catch {}
   return defaults;
 }
@@ -128,5 +134,11 @@ export default function useOsConfig() {
   // factory reset - storage is wiped first, so this reloads the
   // out-of-the-box configuration
   const reset = () => setConfig(loadConfig());
-  return { config, update, reset };
+
+  // apply a layout saved on another screen (live device sync) - contact
+  // defaults regenerate over the carried custom ones, like a fresh open
+  const applyRemote = useCallback((saved) => {
+    setConfig(mergeConfig({ ...saved, contactsVer: 0 }) || defaults);
+  }, []);
+  return { config, update, reset, applyRemote };
 }

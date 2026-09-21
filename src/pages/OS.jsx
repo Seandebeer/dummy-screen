@@ -47,6 +47,7 @@ import { skinUi, OS_SKINS } from "@/lib/osSkins";
 import { base44 } from "@/api/base44Client";
 import { startPhoneVoice } from "@/lib/voiceLink";
 import { scheduleDeviceSync } from "@/lib/cloudSync";
+import { applyLiveOsConfig, isOsPushedHere } from "@/lib/osLiveSync";
 import { logTeamCall } from "@/lib/callLog";
 
 const parseJson = (s) => { try { return JSON.parse(s) || {}; } catch { return {}; } };
@@ -54,7 +55,7 @@ const parseJson = (s) => { try { return JSON.parse(s) || {}; } catch { return {}
 export default function OS() {
   const [app, setApp] = useState(null);
   const [locked, setLocked] = useState(true);
-  const { config, update, reset } = useOsConfig();
+  const { config, update, reset, applyRemote } = useOsConfig();
   const [fullscreen, setFullscreen] = useState(false);
   const [fsHint, setFsHint] = useState(false);
   const fsHintTimer = useRef(null);
@@ -81,6 +82,24 @@ export default function OS() {
   }, []);
 
   useEffect(() => { refreshDeviceName(); }, [refreshDeviceName]);
+
+  // live device sync: a layout saved onto this screen's device from any
+  // other screen applies here immediately, so the prop phone always shows
+  // the latest save. This screen's own pushes are ignored.
+  const remoteAppliedRef = useRef(false);
+  useEffect(() => {
+    const unsub = base44.entities.Device.subscribe((e) => {
+      if (e.type !== "update") return;
+      const id = getLinkedDeviceId();
+      if (!id || e.data?.id !== id || !e.data.config) return;
+      if (isOsPushedHere(e.data.config)) return;
+      try {
+        remoteAppliedRef.current = true;
+        applyLiveOsConfig(e.data.config, applyRemote);
+      } catch {}
+    });
+    return () => unsub();
+  }, [applyRemote]);
   const [ear, setEar] = useState(false);
   const voiceRef = useRef(null);
   const [messageTo, setMessageTo] = useState(null);
@@ -359,7 +378,12 @@ export default function OS() {
 
   // every OS change (contacts, settings, pages, social content) syncs to the
   // shared cloud library for the team - debounced, queued while offline
-  useEffect(() => { scheduleDeviceSync(); }, [config]);
+  // a layout arriving from another screen mustn't echo straight back to
+  // the device record - only local edits trigger a push
+  useEffect(() => {
+    if (remoteAppliedRef.current) { remoteAppliedRef.current = false; return; }
+    scheduleDeviceSync();
+  }, [config]);
 
   // opened via QR (?connect=1): bring the linked device record online -
   // a sandbox screen (nothing saved yet) stays unregistered
