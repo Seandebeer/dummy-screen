@@ -56,6 +56,7 @@ class StageStore extends ChangeNotifier {
   String operatorName = 'Operator';
   String operatorTitle = '';
   String operatorPhoto = '';
+  List<String> appFavorites = [];
 
   String? selectedProjectId;
   String? boundDeviceId;
@@ -705,6 +706,14 @@ class StageStore extends ChangeNotifier {
     _touch(null, sync: false);
   }
 
+  void toggleAppFavorite(String id) {
+    if (id.isEmpty) return;
+    appFavorites = appFavorites.contains(id)
+        ? appFavorites.where((item) => item != id).toList()
+        : [...appFavorites, id];
+    _touch(null, sync: false);
+  }
+
   void setOperator({String? name, String? title, String? photo}) {
     if (name != null) operatorName = name.trim().isEmpty ? 'Operator' : name.trim();
     if (title != null) operatorTitle = title.trim();
@@ -924,6 +933,9 @@ class StageStore extends ChangeNotifier {
     operatorName = json['operatorName'] as String? ?? 'Operator';
     operatorTitle = json['operatorTitle'] as String? ?? '';
     operatorPhoto = json['operatorPhoto'] as String? ?? '';
+    appFavorites = [
+      for (final item in jsonList(json['appFavorites'])) item.toString(),
+    ].where((id) => id.isNotEmpty).toList();
     clips = [
       for (final item in jsonList(json['clips']))
         if (item is Map) VideoClip.fromJson(jsonMap(item)),
@@ -1048,6 +1060,7 @@ class StageStore extends ChangeNotifier {
     'operatorName': operatorName,
     'operatorTitle': operatorTitle,
     'operatorPhoto': operatorPhoto,
+    'appFavorites': appFavorites,
     'clips': clips.map((clip) => clip.toJson()).toList(),
     'photos': {
       for (final entry in photos.entries)

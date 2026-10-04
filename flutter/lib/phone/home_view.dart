@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../os_catalog.dart';
+import 'app_catalog.dart';
 import 'catalog.dart';
 
 class PhoneHome extends StatelessWidget {
@@ -31,14 +32,14 @@ class PhoneHome extends StatelessWidget {
         childAspectRatio: 2.1,
         children: [
           for (final id in layout)
-            if (propAppById(id) case final app?)
+            if (homeAppFor(id) case final app?)
               _Tile(app: app, ink: ink, onTap: () => onOpen(app.id)),
         ],
       );
     }
     final grid = [
       for (final id in layout)
-        if (!kDockIds.contains(id) && propAppById(id) != null) propAppById(id)!,
+        if (homeAppFor(id) case final app? when !kDockIds.contains(id)) app,
     ];
     final pages = <List<PropApp>>[];
     for (var i = 0; i < grid.length; i += kPageSize) {

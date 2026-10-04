@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../models.dart';
 import '../widgets/prompt.dart';
+import 'social_feed.dart';
 
 const _stockIds = [
   'photo-1506744038136-46273834b3fb',
@@ -153,17 +154,7 @@ class _GrapevineAppState extends State<GrapevineApp> {
     _profile = profile['name'] as String? ?? _profile;
     _bio = profile['bio'] as String? ?? _bio;
     _friends = (profile['friends'] as num?)?.toInt() ?? _friends;
-    final posts = saved['posts'];
-    _posts = posts is List && posts.isNotEmpty
-        ? [for (final item in posts) if (item is Map) jsonMap(item)]
-        : [
-            _post('fp-1', 'Maya Kim', 0xFFE76F51, '30m', 'Golden hour at the coast never misses. Same spot, different light, every single time.', stock(1), 214, 18, 4),
-            _post('fp-2', 'Daniel Mokoena', 0xFF2A9D8F, '1h', 'Proud dad moment: Lily scored the winning goal today. Still shaking.', '', 89, 12, 1),
-            _post('fp-3', 'Sara Lane', 0xFF6A4C93, '2h', 'Last night was unreal. Best show of the tour so far. Ears still ringing.', stock(12), 342, 46, 9),
-            _post('fp-4', 'Tomas Rivera', 0xFF0077B6, '3h', 'Sunday morning breakfast experiment. 10/10 would flip again.', stock(10), 57, 6, 0),
-            _post('fp-5', 'Priya Nair', 0xFFF4A261, '5h', 'New recipe drop: chilli-garlic noodles that fixed my whole week.', stock(13), 143, 17, 2),
-            _post('fp-6', 'Owen Frost', 0xFF264653, '7h', 'Hiked the ridge before sunrise. Zero people, all clouds.', stock(3), 98, 9, 1),
-          ];
+    _posts = topUpFeed(saved['posts'], grapevinePosts());
   }
 
   Map<String, dynamic> _post(
@@ -439,30 +430,8 @@ class _LumeAppState extends State<LumeApp> {
     _bio = profile['bio'] as String? ?? _bio;
     _followers = (profile['followers'] as num?)?.toInt() ?? _followers;
     _following = (profile['following'] as num?)?.toInt() ?? _following;
-    final posts = saved['posts'];
-    _posts = posts is List && posts.isNotEmpty
-        ? [for (final item in posts) if (item is Map) jsonMap(item)]
-        : [
-            _shot('ig-1', 'alex.carter', 0xFF833AB4, 'chasing light', stock(0), 1204, 42),
-            _shot('ig-2', 'maya.k', 0xFFE76F51, 'my new assistant, clearly working hard', stock(8), 894, 31),
-            _shot('ig-3', 'sara.lane', 0xFF6A4C93, 'crowd went wild last night', stock(12), 2018, 154),
-            _shot('ig-4', 'tom.r', 0xFF0077B6, 'eat the rainbow', stock(11), 245, 12),
-            _shot('ig-5', 'alex.carter', 0xFF833AB4, 'fog season is the best season', stock(3), 1764, 66),
-            _shot('ig-6', 'dan.m', 0xFF2A9D8F, 'good boy alert', stock(9), 3421, 209),
-          ];
+    _posts = topUpFeed(saved['posts'], lumePosts());
   }
-
-  Map<String, dynamic> _shot(String id, String author, int hue, String caption, String image, int likes, int comments) => {
-    'id': id,
-    'author': author,
-    'hue': hue,
-    'caption': caption,
-    'image': image,
-    'likes': likes,
-    'comments': comments,
-    'liked': false,
-    'saved': false,
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -688,30 +657,8 @@ class _StreamlyAppState extends State<StreamlyApp> {
     _ready = true;
     final saved = _savedPage(context, 'vidtube');
     _name = saved['name'] as String? ?? _name;
-    final videos = saved['videos'];
-    _videos = videos is List && videos.isNotEmpty
-        ? [for (final item in videos) if (item is Map) jsonMap(item)]
-        : [
-            _video('yt-1', 'I Built a Camera Lens From Scratch', 'GearLab', 0xFFE63946, 1200000, '2 days ago', '14:32', stock(4), 'Tech'),
-            _video('yt-2', 'Sailing the Bay - 4K Drone Film', 'SkyFrame', 0xFF457B9D, 486000, '1 week ago', '10:05', stock(1), 'Travel'),
-            _video('yt-3', '24 Hours in the World\'s Quietest Cabin', 'Wild Stay', 0xFF2A9D8F, 2100000, '3 weeks ago', '22:18', stock(6), 'Travel'),
-            _video('yt-4', 'The Ultimate Sunday Brunch Guide', 'Fresh Kitchen', 0xFFE76F51, 312000, '5 days ago', '8:44', stock(10), 'Cooking'),
-            _video('yt-5', 'She Scored the Winning Goal - Full Highlights', 'SportsLoop', 0xFFD62828, 987000, '1 month ago', '6:12', stock(7), 'Sports'),
-            _video('yt-6', 'Mixing a Track in My Bedroom Studio', 'BeatRoom', 0xFF6A4C93, 154000, '2 weeks ago', '18:26', stock(12), 'Music'),
-          ];
+    _videos = topUpFeed(saved['videos'], streamlyVideos());
   }
-
-  Map<String, dynamic> _video(String id, String title, String channel, int hue, int views, String age, String duration, String image, String cat) => {
-    'id': id,
-    'title': title,
-    'channel': channel,
-    'chHue': hue,
-    'views': views,
-    'age': age,
-    'duration': duration,
-    'image': image,
-    'cat': cat,
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -897,30 +844,8 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
     if (_ready) return;
     _ready = true;
     final saved = _savedPage(context, 'quicktok');
-    final posts = saved['posts'];
-    _posts = posts is List && posts.isNotEmpty
-        ? [for (final item in posts) if (item is Map) jsonMap(item)]
-        : [
-            _clip('tt-1', 'maya.k', 'POV: your coffee order is right 10% of the time', stock(11), 45200, 1240, 890, 'Original sound - maya.k'),
-            _clip('tt-2', 'dan.m', 'teaching my dog to high-five... progress', stock(9), 128400, 3200, 2100, 'Happy little tune - lofi.beats'),
-            _clip('tt-3', 'sara.lane', 'concert fit check', stock(12), 89100, 2100, 1450, 'Original sound - sara.lane'),
-            _clip('tt-4', 'tom.r', 'sunset drives, no destination', stock(1), 210700, 4600, 3900, 'Golden hour - midnight.driver'),
-            _clip('tt-5', 'priya.n', 'cooking hacks my grandmother taught me', stock(10), 156800, 2900, 1800, 'Kitchen groove - the.vibes'),
-            _clip('tt-6', 'owen.f', '5am hike, no filter needed', stock(3), 98400, 1500, 940, 'Morning air - trail.mix'),
-          ];
+    _posts = topUpFeed(saved['posts'], flickdeckPosts());
   }
-
-  Map<String, dynamic> _clip(String id, String author, String caption, String image, int likes, int comments, int shares, String music) => {
-    'id': id,
-    'author': author,
-    'caption': caption,
-    'image': image,
-    'likes': likes,
-    'comments': comments,
-    'shares': shares,
-    'liked': false,
-    'music': music,
-  };
 
   @override
   Widget build(BuildContext context) {

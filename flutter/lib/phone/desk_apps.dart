@@ -8,7 +8,6 @@ import 'package:video_player/video_player.dart';
 import '../app.dart';
 import '../image_file.dart';
 import '../models.dart';
-import '../store.dart';
 import '../video_source.dart';
 import 'browser_frame.dart';
 import 'catalog.dart';
@@ -1156,87 +1155,6 @@ class _WebdeckAppState extends State<WebdeckApp> {
                       ),
                     ],
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LibraryApp extends StatelessWidget {
-  const LibraryApp({super.key, required this.store, required this.device});
-
-  final StageStore store;
-  final PropDevice device;
-
-  @override
-  Widget build(BuildContext context) {
-    final order = device.os.homeOrder.isEmpty ? kHomeOrder : device.os.homeOrder;
-    return ColoredBox(
-      color: Colors.black,
-      child: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('App Library', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 6),
-                  child: Text('FUNCTIONAL', style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1.2)),
-                ),
-                for (final app in kPropApps.where((app) => kHomeOrder.take(20).contains(app.id) || kDockIds.contains(app.id)))
-                  _row(context, app, order),
-                const SizedBox(height: 12),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 6),
-                  child: Text('DOWNLOADED', style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1.2)),
-                ),
-                for (final app in kPropApps.where((app) => kHomeOrder.skip(20).contains(app.id)))
-                  _row(context, app, order),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _row(BuildContext context, PropApp app, List<String> order) {
-    final visible = order.contains(app.id) || kDockIds.contains(app.id);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: visible ? Colors.white10 : const Color(0x08FFFFFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: visible ? Colors.white24 : Colors.white10),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundColor: app.color, child: Icon(app.icon, color: Colors.white, size: 16)),
-          const SizedBox(width: 10),
-          Expanded(child: Text(app.label, style: TextStyle(color: visible ? Colors.white : Colors.white38))),
-          IconButton(
-            tooltip: visible ? 'Hide from home' : 'Show on home',
-            onPressed: kDockIds.contains(app.id)
-                ? null
-                : () {
-                    final next = [...order];
-                    if (next.contains(app.id)) {
-                      next.remove(app.id);
-                    } else {
-                      next.add(app.id);
-                    }
-                    store.updateOs(device.id, (current) => current.copyWith(homeOrder: next));
-                  },
-            icon: Icon(visible ? Icons.visibility : Icons.visibility_off, color: Colors.white70, size: 18),
           ),
         ],
       ),

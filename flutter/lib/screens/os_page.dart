@@ -8,7 +8,9 @@ import '../store.dart';
 import '../format.dart';
 import '../models.dart';
 import '../os_catalog.dart';
+import '../phone/app_catalog.dart';
 import '../phone/home_view.dart';
+import '../phone/library_app.dart';
 import '../phone/lock_screen.dart';
 import '../phone/phone_apps.dart';
 import '../phone/phone_shell.dart';
@@ -350,6 +352,8 @@ class _OsPageState extends State<OsPage> {
         if (feed != null) {
           return PropFeed(title: feed.$1, accent: feed.$2, posts: feed.$3);
         }
+        final mock = catalogAppById(id);
+        if (mock != null) return MockScreen(app: mock);
         return const Center(
           child: Text('Prop screen', style: TextStyle(color: kMuted)),
         );
