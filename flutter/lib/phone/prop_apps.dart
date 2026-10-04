@@ -90,65 +90,6 @@ class CalendarApp extends StatelessWidget {
   }
 }
 
-class MapsApp extends StatelessWidget {
-  const MapsApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const ListTile(
-          title: Text('Set route'),
-          subtitle: Text('Stage door to holding'),
-        ),
-        Expanded(
-          child: CustomPaint(painter: _MapPainter(), child: SizedBox.expand()),
-        ),
-      ],
-    );
-  }
-}
-
-class _MapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = const Color(0xFF0E1A16),
-    );
-    final road = Paint()
-      ..color = const Color(0xFF2A3A34)
-      ..strokeWidth = 18
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(size.width * 0.15, size.height * 0.8)
-      ..lineTo(size.width * 0.15, size.height * 0.35)
-      ..lineTo(size.width * 0.72, size.height * 0.35)
-      ..lineTo(size.width * 0.72, size.height * 0.18);
-    canvas.drawPath(path, road);
-    final route = Paint()
-      ..color = kAccent
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(path, route);
-    canvas.drawCircle(
-      Offset(size.width * 0.15, size.height * 0.8),
-      7,
-      Paint()..color = kSignal,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.72, size.height * 0.18),
-      8,
-      Paint()..color = kAlert,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 class PropFeed extends StatelessWidget {
   const PropFeed({
     super.key,

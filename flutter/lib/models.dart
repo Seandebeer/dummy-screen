@@ -456,6 +456,48 @@ class LiveCall {
   );
 }
 
+/// A finished call kept on this device. The web app stores the same rows in
+/// Base44 CallLog; here they travel with the deck snapshot instead.
+class CallRecord {
+  const CallRecord({
+    required this.id,
+    required this.deviceId,
+    required this.deviceName,
+    required this.name,
+    required this.number,
+    required this.type,
+    required this.at,
+  });
+
+  final String id;
+  final String deviceId;
+  final String deviceName;
+  final String name;
+  final String number;
+  final String type;
+  final int at;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'deviceId': deviceId,
+    'deviceName': deviceName,
+    'name': name,
+    'number': number,
+    'type': type,
+    'at': at,
+  };
+
+  factory CallRecord.fromJson(Map<String, dynamic> json) => CallRecord(
+    id: json['id'] as String? ?? '',
+    deviceId: json['deviceId'] as String? ?? '',
+    deviceName: json['deviceName'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    number: json['number'] as String? ?? '',
+    type: json['type'] as String? ?? 'outgoing',
+    at: (json['at'] as num?)?.toInt() ?? 0,
+  );
+}
+
 class BannerNote {
   const BannerNote({
     required this.id,

@@ -280,124 +280,351 @@ class _CalculatorAppState extends State<CalculatorApp> {
   }
 }
 
-class CameraApp extends StatelessWidget {
-  const CameraApp({super.key, required this.onShutter});
+class CameraApp extends StatefulWidget {
+  const CameraApp({super.key, required this.photos, required this.onShutter});
 
+  final List<PropPhoto> photos;
   final VoidCallback onShutter;
 
   @override
+  State<CameraApp> createState() => _CameraAppState();
+}
+
+class _CameraAppState extends State<CameraApp> {
+  String _mode = 'camera';
+  String _lens = 'photo';
+  bool _flash = false;
+  bool _front = false;
+
+  void _capture() {
+    widget.onShutter();
+    setState(() => _flash = true);
+    Future<void>.delayed(const Duration(milliseconds: 160), () {
+      if (mounted) setState(() => _flash = false);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_mode == 'roll') {
+      return PhotosApp(
+        photos: widget.photos,
+        onBack: () => setState(() => _mode = 'camera'),
+      );
+    }
+    if (_mode == 'clips') {
+      return _ClipsGallery(onBack: () => setState(() => _mode = 'camera'));
+    }
     return Stack(
       fit: StackFit.expand,
       children: [
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF243044), Color(0xFF10151C), Color(0xFF05070A)],
-            ),
-          ),
-        ),
-        CustomPaint(painter: _GridPainter()),
-        const Align(
-          alignment: Alignment.topCenter,
+        const ColoredBox(color: Colors.black),
+        const Center(
           child: Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.circle, size: 10, color: kAlert),
-                SizedBox(width: 6),
-                Text('PROP', style: TextStyle(letterSpacing: 2, fontSize: 12)),
+                Icon(Icons.camera, size: 28, color: Colors.white30),
+                SizedBox(height: 8),
+                Text(
+                  'Camera unavailable',
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'The shutter saves a prop still until a live lens is available.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, color: Colors.white38),
+                ),
               ],
             ),
           ),
         ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: GestureDetector(
-              onTap: onShutter,
-              child: Container(
-                width: 68,
-                height: 68,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                ),
-                child: const Center(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
-                    child: SizedBox(width: 48, height: 48),
-                  ),
-                ),
+        if (_flash)
+          const ColoredBox(color: Color(0xCCFFFFFF)),
+        Positioned(
+          top: 8,
+          left: 12,
+          right: 12,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _CamButton(
+                icon: Icons.photo_library_outlined,
+                badge: widget.photos.length,
+                badgeColor: kAccent,
+                badgeInk: Colors.black,
+                onTap: () => setState(() => _mode = 'roll'),
               ),
-            ),
+              _CamButton(
+                icon: Icons.movie_outlined,
+                badge: 0,
+                badgeColor: kAlert,
+                badgeInk: Colors.white,
+                onTap: () => setState(() => _mode = 'clips'),
+              ),
+              _CamButton(
+                icon: Icons.flip_camera_ios_outlined,
+                badge: 0,
+                badgeColor: kAccent,
+                badgeInk: Colors.black,
+                iconColor: _front ? kAccent : Colors.white,
+                onTap: () => setState(() => _front = !_front),
+              ),
+            ],
           ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 96,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _lensButton('Photo', 'photo', kAccent),
+              const SizedBox(width: 28),
+              _lensButton('Video', 'video', kAlert),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 16,
+          child: Center(child: _shutter()),
         ),
       ],
     );
   }
-}
 
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white24
-      ..strokeWidth = 1;
-    for (var i = 1; i < 3; i++) {
-      final x = size.width * i / 3;
-      final y = size.height * i / 3;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
+  Widget _lensButton(String label, String id, Color active) {
+    final selected = _lens == id;
+    return GestureDetector(
+      onTap: () => setState(() => _lens = id),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.5,
+          color: selected ? active : Colors.white54,
+        ),
+      ),
+    );
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget _shutter() {
+    final video = _lens == 'video';
+    return GestureDetector(
+      onTap: video ? null : _capture,
+      child: Opacity(
+        opacity: video ? 0.4 : 1,
+        child: Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: video ? const Color(0xB3FF453A) : Colors.white,
+              width: 4,
+            ),
+            color: video ? const Color(0x26FF453A) : Colors.white24,
+          ),
+          child: video
+              ? const DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFFF453A),
+                  ),
+                  child: SizedBox(width: 36, height: 36),
+                )
+              : const DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
+                  child: SizedBox(width: 48, height: 48),
+                ),
+        ),
+      ),
+    );
+  }
 }
 
-class PhotosApp extends StatelessWidget {
-  const PhotosApp({super.key, required this.photos});
+class _CamButton extends StatelessWidget {
+  const _CamButton({
+    required this.icon,
+    required this.badge,
+    required this.badgeColor,
+    required this.badgeInk,
+    this.iconColor = Colors.white,
+    required this.onTap,
+  });
 
-  final List<PropPhoto> photos;
+  final IconData icon;
+  final int badge;
+  final Color badgeColor;
+  final Color badgeInk;
+  final Color iconColor;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    if (photos.isEmpty) {
-      return const Center(
-        child: Text(
-          'The camera roll is empty.',
-          style: TextStyle(color: kMuted),
-        ),
-      );
-    }
-    return GridView.count(
-      padding: const EdgeInsets.all(8),
-      crossAxisCount: 3,
-      mainAxisSpacing: 4,
-      crossAxisSpacing: 4,
-      children: [
-        for (final photo in photos.reversed)
-          ColoredBox(
-            color: Color(photo.color),
-            child: Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Text(
-                  formatStamp(photo.createdAt),
-                  style: const TextStyle(fontSize: 10),
-                ),
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Color(0x73000000),
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(icon, size: 16, color: iconColor),
               ),
             ),
+            if (badge > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      '$badge',
+                      style: TextStyle(
+                        color: badgeInk,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ClipsGallery extends StatelessWidget {
+  const _ClipsGallery({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Row(
+              children: [
+                TextButton.icon(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.chevron_left, color: kAccent),
+                  label: const Text('Camera', style: TextStyle(color: kAccent)),
+                ),
+                const Spacer(),
+                const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: Text(
+                    '0 clips',
+                    style: TextStyle(fontSize: 12, color: Colors.white60),
+                  ),
+                ),
+              ],
+            ),
           ),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.movie_outlined, size: 24, color: Colors.white30),
+                SizedBox(height: 8),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    'No clips yet - record one from the camera',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.white54),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PhotosApp extends StatelessWidget {
+  const PhotosApp({super.key, required this.photos, this.onBack});
+
+  final List<PropPhoto> photos;
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final grid = photos.isEmpty
+        ? const Center(
+            child: Text(
+              'The camera roll is empty.',
+              style: TextStyle(color: kMuted),
+            ),
+          )
+        : GridView.count(
+            padding: const EdgeInsets.all(8),
+            crossAxisCount: 3,
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            children: [
+              for (final photo in photos.reversed)
+                ColoredBox(
+                  color: Color(photo.color),
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Text(
+                        formatStamp(photo.createdAt),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+    if (onBack == null) return grid;
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: onBack,
+            icon: const Icon(Icons.chevron_left, color: kAccent),
+            label: const Text('Camera', style: TextStyle(color: kAccent)),
+          ),
+        ),
+        Expanded(child: grid),
       ],
     );
   }

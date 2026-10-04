@@ -16,6 +16,7 @@ import '../phone/desk_apps.dart';
 import '../phone/prop_apps.dart';
 import '../phone/settings_app.dart';
 import '../phone/social_apps.dart';
+import '../phone/maps_app.dart';
 import '../phone/utility_apps.dart';
 import '../theme.dart';
 import '../widgets/three_finger.dart';
@@ -275,6 +276,7 @@ class _OsPageState extends State<OsPage> {
             store: store,
             deviceId: device.id,
             contacts: contactsFor(device.os),
+            language: device.os.language,
           ),
         );
       case 'contacts':
@@ -301,6 +303,7 @@ class _OsPageState extends State<OsPage> {
         return const CalculatorApp();
       case 'camera':
         return CameraApp(
+          photos: store.photos[device.id] ?? const [],
           onShutter: () {
             store.addPhoto(
               device.id,

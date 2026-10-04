@@ -38,6 +38,7 @@ class StageStore extends ChangeNotifier {
   List<PropDevice> devices = [];
   List<StageMessage> messages = [];
   List<LiveCall> calls = [];
+  List<CallRecord> callHistory = [];
   Map<String, bool> alarms = {};
   List<BannerNote> banners = [];
   List<SavedLayout> saved = [];
@@ -353,6 +354,9 @@ class StageStore extends ChangeNotifier {
     devices = [...devices]..[index] = reset;
     messages = messages.where((message) => message.deviceId != id).toList();
     calls = calls.where((call) => call.deviceId != id).toList();
+    callHistory = callHistory
+        .where((record) => record.deviceId != id)
+        .toList();
     banners = banners.where((banner) => banner.deviceId != id).toList();
     if (alarms.containsKey(id)) {
       alarms = {...alarms}..remove(id);
@@ -480,9 +484,25 @@ class StageStore extends ChangeNotifier {
   }
 
   void endCall(String deviceId) {
-    if (!calls.any((call) => call.deviceId == deviceId)) return;
+    LiveCall? live;
+    for (final call in calls) {
+      if (call.deviceId == deviceId) live = call;
+    }
+    if (live == null) return;
     _cancelRing(deviceId);
     calls = calls.where((call) => call.deviceId != deviceId).toList();
+    final record = CallRecord(
+      id: _nid('ch'),
+      deviceId: live.deviceId,
+      deviceName: deviceById(live.deviceId)?.name ?? '',
+      name: live.contactName,
+      number: live.contactNumber,
+      type: live.direction == 'outgoing'
+          ? 'outgoing'
+          : (live.status == 'active' ? 'incoming' : 'missed'),
+      at: DateTime.now().millisecondsSinceEpoch,
+    );
+    callHistory = [record, ...callHistory].take(200).toList();
     _touch({'kind': 'call_end', 'deviceId': deviceId});
   }
 
@@ -871,6 +891,7 @@ class StageStore extends ChangeNotifier {
     'devices': devices.map((device) => device.toJson()).toList(),
     'messages': messages.map((message) => message.toJson()).toList(),
     'calls': calls.map((call) => call.toJson()).toList(),
+    'callHistory': callHistory.map((record) => record.toJson()).toList(),
     'alarms': alarms,
     'banners': banners.map((banner) => banner.toJson()).toList(),
     'saved': saved.map((layout) => layout.toJson()).toList(),
@@ -937,6 +958,10 @@ class StageStore extends ChangeNotifier {
       for (final item in jsonList(json['calls']))
         if (item is Map) LiveCall.fromJson(jsonMap(item)),
     ].where((call) => call.id.isNotEmpty).toList();
+    callHistory = [
+      for (final item in jsonList(json['callHistory']))
+        if (item is Map) CallRecord.fromJson(jsonMap(item)),
+    ].where((record) => record.id.isNotEmpty).take(200).toList();
     alarms = {};
     final rawAlarms = json['alarms'];
     if (rawAlarms is Map) {
@@ -967,6 +992,9 @@ class StageStore extends ChangeNotifier {
         .where((message) => !ids.contains(message.deviceId))
         .toList();
     calls = calls.where((call) => !ids.contains(call.deviceId)).toList();
+    callHistory = callHistory
+        .where((record) => !ids.contains(record.deviceId))
+        .toList();
     banners = banners
         .where((banner) => !ids.contains(banner.deviceId))
         .toList();

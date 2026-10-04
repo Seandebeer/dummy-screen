@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:flutter/material.dart';
 
 import '../format.dart';
@@ -7,6 +5,10 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import 'catalog.dart';
+import 'phone_copy.dart';
+
+const _phoneGreen = Color(0xFF34C759);
+const _missedRed = Color(0xFFFF3B30);
 
 class PhoneDialer extends StatefulWidget {
   const PhoneDialer({
@@ -14,11 +16,13 @@ class PhoneDialer extends StatefulWidget {
     required this.store,
     required this.deviceId,
     this.contacts = kContacts,
+    this.language = 'en',
   });
 
   final StageStore store;
   final String deviceId;
   final List<ContactCard> contacts;
+  final String language;
 
   @override
   State<PhoneDialer> createState() => _PhoneDialerState();
@@ -26,77 +30,374 @@ class PhoneDialer extends StatefulWidget {
 
 class _PhoneDialerState extends State<PhoneDialer> {
   String _digits = '';
+  String _tab = 'keypad';
+  bool _refreshing = false;
 
-  void _call() {
+  void _call({String? name, String? number}) {
+    final dialed = number ?? _digits;
+    if (dialed.isEmpty) return;
     final match = widget.contacts
         .where(
           (contact) =>
-              contact.number.replaceAll(' ', '') ==
-              _digits.replaceAll(' ', ''),
+              contact.number.replaceAll(' ', '') == dialed.replaceAll(' ', ''),
         )
         .firstOrNull;
     widget.store.startCall(
       deviceId: widget.deviceId,
-      contactName: match?.name ?? (_digits.isEmpty ? 'Unknown' : _digits),
-      contactNumber: _digits,
+      contactName: name ?? match?.name ?? dialed,
+      contactNumber: dialed,
       direction: 'outgoing',
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
-    return Column(
-      children: [
-        const SizedBox(height: 12),
-        Text(
-          _digits.isEmpty ? ' ' : _digits,
-          style: const TextStyle(fontSize: 28, letterSpacing: 1),
-        ),
-        Expanded(
-          child: GridView.count(
-            padding: const EdgeInsets.all(18),
-            crossAxisCount: 3,
-            childAspectRatio: 1.3,
-            children: [
-              for (final key in keys)
-                InkWell(
-                  onTap: () => setState(() => _digits += key),
-                  customBorder: const CircleBorder(),
-                  child: Center(
-                    child: Text(key, style: const TextStyle(fontSize: 28)),
-                  ),
-                ),
-            ],
+    final copy = phoneCopy(widget.language);
+    return ColoredBox(
+      color: Colors.black,
+      child: Column(
+        children: [
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0x1AFFFFFF))),
+            ),
+            child: Row(
+              children: [
+                _tabButton('recents', copy.recents),
+                _tabButton('history', 'History'),
+                _tabButton('keypad', copy.keypad),
+              ],
+            ),
+          ),
+          Expanded(
+            child: switch (_tab) {
+              'recents' => _recents(copy),
+              'history' => _history(copy),
+              _ => _keypad(),
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabButton(String id, String label) {
+    final selected = _tab == id;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _tab = id),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: selected ? _phoneGreen : Colors.transparent,
+                width: 2,
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: selected ? _phoneGreen : Colors.white38,
+            ),
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              onPressed: _digits.isEmpty
-                  ? null
-                  : () => setState(
-                      () => _digits = _digits.substring(0, _digits.length - 1),
-                    ),
-              icon: const Icon(Icons.backspace_outlined),
-            ),
-            const SizedBox(width: 18),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: kSignal,
-                shape: const CircleBorder(),
-                padding: const EdgeInsets.all(18),
-              ),
-              onPressed: _call,
-              child: const Icon(Icons.call),
-            ),
-          ],
+      ),
+    );
+  }
+
+  Widget _recents(PhoneCopy copy) {
+    final rows = widget.store.callHistory
+        .where((record) => record.deviceId == widget.deviceId)
+        .take(100)
+        .toList();
+    if (rows.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            copy.noCalls,
+            style: const TextStyle(color: Colors.white30, fontSize: 14),
+          ),
         ),
-        const SizedBox(height: 8),
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        for (final record in rows) _callRow(copy, record, showNumber: true),
       ],
     );
   }
+
+  Widget _history(PhoneCopy copy) {
+    final rows = widget.store.callHistory;
+    final count = rows.length;
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Color(0x0DFFFFFF))),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'On this device · $count call${count == 1 ? '' : 's'}',
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _refreshing
+                    ? null
+                    : () async {
+                        setState(() => _refreshing = true);
+                        await Future<void>.delayed(
+                          const Duration(milliseconds: 350),
+                        );
+                        if (mounted) setState(() => _refreshing = false);
+                      },
+                icon: _refreshing
+                    ? const SizedBox(
+                        width: 13,
+                        height: 13,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: _phoneGreen,
+                        ),
+                      )
+                    : const Icon(Icons.refresh, size: 13, color: _phoneGreen),
+                label: const Text(
+                  'Sync',
+                  style: TextStyle(color: _phoneGreen, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: rows.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No calls on this device yet',
+                    style: TextStyle(color: Colors.white30, fontSize: 14),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    for (final record in rows)
+                      _callRow(copy, record, showNumber: false),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _callRow(PhoneCopy copy, CallRecord record, {required bool showNumber}) {
+    final missed = record.type == 'missed';
+    final meta = switch (record.type) {
+      'missed' => (Icons.phone_missed, _missedRed),
+      'incoming' => (Icons.call_received, _phoneGreen),
+      _ => (Icons.call_made, const Color(0xFF8E8E93)),
+    };
+    final detail = showNumber
+        ? [
+            record.number,
+            copy.typeLabel(record.type),
+            _clock(record.at),
+          ].where((part) => part.isNotEmpty).join(' · ')
+        : [
+            copy.typeLabel(record.type),
+            _when(record.at),
+            record.deviceName,
+          ].where((part) => part.isNotEmpty).join(' · ');
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0x0DFFFFFF))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record.name.isEmpty
+                      ? (record.number.isEmpty ? 'Unknown' : record.number)
+                      : record.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: missed ? _missedRed : Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(meta.$1, size: 12, color: meta.$2),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        detail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Colors.white38),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _call(
+              name: record.name.isEmpty ? null : record.name,
+              number: record.number,
+            ),
+            icon: const Icon(Icons.phone, color: _phoneGreen, size: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _keypad() {
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final key = ((constraints.maxWidth - 48) / 3).clamp(44.0, 68.0);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 24, 12, 28),
+          child: Column(
+            children: [
+              Text(
+                _digits.isEmpty ? 'Enter number' : _digits,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 1,
+                  color: _digits.isEmpty ? Colors.white24 : Colors.white,
+                ),
+              ),
+              const Spacer(),
+              for (var row = 0; row < 4; row++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var col = 0; col < 3; col++) ...[
+                        if (col > 0) const SizedBox(width: 12),
+                        _key(keys[row * 3 + col], key),
+                      ],
+                    ],
+                  ),
+                ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 64),
+                  Material(
+                    color: _phoneGreen,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _digits.isEmpty ? null : () => _call(),
+                      child: const SizedBox(
+                        width: 72,
+                        height: 72,
+                        child: Icon(Icons.phone, color: Colors.black, size: 30),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 64,
+                    child: IconButton(
+                      onPressed: _digits.isEmpty
+                          ? null
+                          : () => setState(
+                              () => _digits = _digits.substring(
+                                0,
+                                _digits.length - 1,
+                              ),
+                            ),
+                      icon: const Icon(
+                        Icons.backspace_outlined,
+                        color: Colors.white60,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _key(String label, double size) {
+    return Material(
+      color: Colors.white10,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => setState(() => _digits += label),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Center(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w300),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _clock(int millis) {
+  final time = DateTime.fromMillisecondsSinceEpoch(millis);
+  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+  final minute = time.minute.toString().padLeft(2, '0');
+  final suffix = time.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $suffix';
+}
+
+String _when(int millis) {
+  final time = DateTime.fromMillisecondsSinceEpoch(millis);
+  final now = DateTime.now();
+  final clock = _clock(millis);
+  final today =
+      time.year == now.year && time.month == now.month && time.day == now.day;
+  if (today) return 'Today $clock';
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${months[time.month - 1]} ${time.day} $clock';
 }
 
 class MessagesApp extends StatefulWidget {

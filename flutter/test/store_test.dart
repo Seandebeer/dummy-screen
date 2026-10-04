@@ -79,6 +79,13 @@ void main() {
     expect(store.callFor('d-hero')!.status, 'active');
     store.endCall('d-hero');
     expect(store.callFor('d-hero'), isNull);
+    expect(store.callHistory, hasLength(1));
+    expect(store.callHistory.single.type, 'incoming');
+    expect(store.callHistory.single.name, 'Marcus Webb');
+    final copy = StageStore.demo();
+    copy.importState(store.exportState());
+    expect(copy.callHistory.single.name, 'Marcus Webb');
+    expect(copy.callFor('d-hero'), isNull);
   });
 
   test('saved layouts round-trip the screen color and skin', () {
