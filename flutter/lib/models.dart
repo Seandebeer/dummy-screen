@@ -3,28 +3,38 @@
 library;
 
 class Project {
-  const Project({required this.id, required this.name, this.description = ''});
+  const Project({
+    required this.id,
+    required this.name,
+    this.description = '',
+    this.sortOrder = 0,
+  });
 
   final String id;
   final String name;
   final String description;
+  final int sortOrder;
 
-  Project copyWith({String? name, String? description}) => Project(
-    id: id,
-    name: name ?? this.name,
-    description: description ?? this.description,
-  );
+  Project copyWith({String? name, String? description, int? sortOrder}) =>
+      Project(
+        id: id,
+        name: name ?? this.name,
+        description: description ?? this.description,
+        sortOrder: sortOrder ?? this.sortOrder,
+      );
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'description': description,
+    'sortOrder': sortOrder,
   };
 
   factory Project.fromJson(Map<String, dynamic> json) => Project(
     id: json['id'] as String? ?? '',
     name: json['name'] as String? ?? 'Project',
     description: json['description'] as String? ?? '',
+    sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
   );
 }
 
@@ -48,6 +58,7 @@ class OsSettings {
     this.callAnswer = 'tap',
     this.ringDelay = 4,
     this.autoRotate = true,
+    this.homeOrder = const [],
   });
 
   final String theme;
@@ -65,6 +76,9 @@ class OsSettings {
   final String callAnswer;
   final int ringDelay;
   final bool autoRotate;
+
+  /// Empty means the Base44 default home layout.
+  final List<String> homeOrder;
 
   bool get isLight => theme == 'light';
 
@@ -90,6 +104,7 @@ class OsSettings {
     String? callAnswer,
     int? ringDelay,
     bool? autoRotate,
+    List<String>? homeOrder,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -106,6 +121,7 @@ class OsSettings {
     callAnswer: callAnswer ?? this.callAnswer,
     ringDelay: ringDelay ?? this.ringDelay,
     autoRotate: autoRotate ?? this.autoRotate,
+    homeOrder: homeOrder ?? this.homeOrder,
   );
 
   Map<String, dynamic> toJson() => {
@@ -124,6 +140,7 @@ class OsSettings {
     'callAnswer': callAnswer,
     'ringDelay': ringDelay,
     'autoRotate': autoRotate,
+    'homeOrder': homeOrder,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -152,6 +169,9 @@ class OsSettings {
       callAnswer: answer,
       ringDelay: delay < 1 ? 1 : (delay > 60 ? 60 : delay),
       autoRotate: json['autoRotate'] as bool? ?? true,
+      homeOrder: [
+        for (final item in jsonList(json['homeOrder'])) item.toString(),
+      ].where((id) => id.isNotEmpty).toList(),
     );
   }
 
@@ -172,7 +192,8 @@ class OsSettings {
         callAnswer == other.callAnswer &&
         ringDelay == other.ringDelay &&
         autoRotate == other.autoRotate &&
-        _sameCodes(dialCodes, other.dialCodes);
+        _sameCodes(dialCodes, other.dialCodes) &&
+        _sameOrder(homeOrder, other.homeOrder);
   }
 
   @override
@@ -192,7 +213,16 @@ class OsSettings {
     ringDelay,
     autoRotate,
     Object.hashAll(dialCodes),
+    Object.hashAll(homeOrder),
   );
+}
+
+bool _sameOrder(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 bool _sameCodes(List<String> a, List<String> b) {
@@ -214,6 +244,13 @@ class PropDevice {
     this.clockOffsetMinutes = 0,
     this.notes = '',
     this.os = const OsSettings(),
+    this.make = '',
+    this.model = '',
+    this.colour = '',
+    this.serial = '',
+    this.photo = '',
+    this.status = 'offline',
+    this.sortOrder = 0,
   });
 
   final String id;
@@ -225,6 +262,15 @@ class PropDevice {
   final int clockOffsetMinutes;
   final String notes;
   final OsSettings os;
+  final String make;
+  final String model;
+  final String colour;
+  final String serial;
+  final String photo;
+  final String status;
+  final int sortOrder;
+
+  bool get online => status == 'online';
 
   PropDevice copyWith({
     String? name,
@@ -235,6 +281,13 @@ class PropDevice {
     int? clockOffsetMinutes,
     String? notes,
     OsSettings? os,
+    String? make,
+    String? model,
+    String? colour,
+    String? serial,
+    String? photo,
+    String? status,
+    int? sortOrder,
   }) => PropDevice(
     id: id,
     name: name ?? this.name,
@@ -245,6 +298,13 @@ class PropDevice {
     clockOffsetMinutes: clockOffsetMinutes ?? this.clockOffsetMinutes,
     notes: notes ?? this.notes,
     os: os ?? this.os,
+    make: make ?? this.make,
+    model: model ?? this.model,
+    colour: colour ?? this.colour,
+    serial: serial ?? this.serial,
+    photo: photo ?? this.photo,
+    status: status ?? this.status,
+    sortOrder: sortOrder ?? this.sortOrder,
   );
 
   Map<String, dynamic> toJson() => {
@@ -257,6 +317,13 @@ class PropDevice {
     'clockOffsetMinutes': clockOffsetMinutes,
     'notes': notes,
     'os': os.toJson(),
+    'make': make,
+    'model': model,
+    'colour': colour,
+    'serial': serial,
+    'photo': photo,
+    'status': status,
+    'sortOrder': sortOrder,
   };
 
   factory PropDevice.fromJson(Map<String, dynamic> json) => PropDevice(
@@ -269,6 +336,13 @@ class PropDevice {
     clockOffsetMinutes: (json['clockOffsetMinutes'] as num?)?.toInt() ?? 0,
     notes: json['notes'] as String? ?? '',
     os: OsSettings.fromJson(jsonMap(json['os'])),
+    make: json['make'] as String? ?? '',
+    model: json['model'] as String? ?? '',
+    colour: json['colour'] as String? ?? '',
+    serial: json['serial'] as String? ?? '',
+    photo: json['photo'] as String? ?? '',
+    status: json['status'] == 'online' ? 'online' : 'offline',
+    sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
   );
 }
 
@@ -281,6 +355,9 @@ class StageMessage {
     required this.senderName,
     required this.thread,
     required this.sentAt,
+    this.media = '',
+    this.mediaType = '',
+    this.read = false,
   });
 
   final String id;
@@ -290,6 +367,22 @@ class StageMessage {
   final String senderName;
   final String thread;
   final int sentAt;
+  final String media;
+  final String mediaType;
+  final bool read;
+
+  StageMessage copyWith({bool? read}) => StageMessage(
+    id: id,
+    deviceId: deviceId,
+    sender: sender,
+    text: text,
+    senderName: senderName,
+    thread: thread,
+    sentAt: sentAt,
+    media: media,
+    mediaType: mediaType,
+    read: read ?? this.read,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -299,6 +392,9 @@ class StageMessage {
     'senderName': senderName,
     'thread': thread,
     'sentAt': sentAt,
+    'media': media,
+    'mediaType': mediaType,
+    'read': read,
   };
 
   factory StageMessage.fromJson(Map<String, dynamic> json) => StageMessage(
@@ -309,6 +405,9 @@ class StageMessage {
     senderName: json['senderName'] as String? ?? '',
     thread: json['thread'] as String? ?? '',
     sentAt: (json['sentAt'] as num?)?.toInt() ?? 0,
+    media: json['media'] as String? ?? '',
+    mediaType: json['mediaType'] as String? ?? '',
+    read: json['read'] as bool? ?? false,
   );
 }
 
@@ -411,6 +510,10 @@ class SavedLayout {
     required this.vfxColor,
     required this.vfxMarks,
     required this.uiMarkers,
+    this.kind = 'os',
+    this.category = '',
+    this.deviceId = '',
+    this.payload = const {},
   });
 
   final String id;
@@ -421,6 +524,18 @@ class SavedLayout {
   final String vfxColor;
   final List<MarkPoint> vfxMarks;
   final List<String> uiMarkers;
+  final String kind;
+  final String category;
+  final String deviceId;
+  final Map<String, dynamic> payload;
+
+  String get savedCategory {
+    if (kind == 'os') return 'OS';
+    if (kind == 'markers') return 'UI Markers';
+    if (kind == 'screen') return 'Key Screens';
+    if (category.isNotEmpty) return category;
+    return 'Pages';
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -431,6 +546,10 @@ class SavedLayout {
     'vfxColor': vfxColor,
     'vfxMarks': vfxMarks.map((mark) => mark.toJson()).toList(),
     'uiMarkers': uiMarkers,
+    'kind': kind,
+    'category': category,
+    'deviceId': deviceId,
+    'payload': payload,
   };
 
   factory SavedLayout.fromJson(Map<String, dynamic> json) => SavedLayout(
@@ -444,22 +563,71 @@ class SavedLayout {
     uiMarkers: [
       for (final item in jsonList(json['uiMarkers'])) item.toString(),
     ],
+    kind: json['kind'] as String? ?? 'os',
+    category: json['category'] as String? ?? '',
+    deviceId: json['deviceId'] as String? ?? '',
+    payload: jsonMap(json['payload']),
   );
 }
 
 class VideoClip {
-  const VideoClip({required this.id, required this.name, this.path, this.url});
+  const VideoClip({
+    required this.id,
+    required this.name,
+    this.path,
+    this.url,
+    this.durationMs = 0,
+    this.trimStartMs = 0,
+    this.trimEndMs = 0,
+    this.loop = false,
+    this.aspect = 'fit',
+    this.order = 0,
+  });
 
   final String id;
   final String name;
   final String? path;
   final String? url;
+  final int durationMs;
+  final int trimStartMs;
+  final int trimEndMs;
+  final bool loop;
+  final String aspect;
+  final int order;
+
+  int get playEndMs => trimEndMs > 0 ? trimEndMs : durationMs;
+
+  VideoClip copyWith({
+    int? durationMs,
+    int? trimStartMs,
+    int? trimEndMs,
+    bool? loop,
+    String? aspect,
+    int? order,
+  }) => VideoClip(
+    id: id,
+    name: name,
+    path: path,
+    url: url,
+    durationMs: durationMs ?? this.durationMs,
+    trimStartMs: trimStartMs ?? this.trimStartMs,
+    trimEndMs: trimEndMs ?? this.trimEndMs,
+    loop: loop ?? this.loop,
+    aspect: aspect ?? this.aspect,
+    order: order ?? this.order,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'path': path,
     'url': url,
+    'durationMs': durationMs,
+    'trimStartMs': trimStartMs,
+    'trimEndMs': trimEndMs,
+    'loop': loop,
+    'aspect': aspect,
+    'order': order,
   };
 
   factory VideoClip.fromJson(Map<String, dynamic> json) => VideoClip(
@@ -467,6 +635,12 @@ class VideoClip {
     name: json['name'] as String? ?? 'Clip',
     path: json['path'] as String?,
     url: json['url'] as String?,
+    durationMs: (json['durationMs'] as num?)?.toInt() ?? 0,
+    trimStartMs: (json['trimStartMs'] as num?)?.toInt() ?? 0,
+    trimEndMs: (json['trimEndMs'] as num?)?.toInt() ?? 0,
+    loop: json['loop'] as bool? ?? false,
+    aspect: json['aspect'] as String? ?? 'fit',
+    order: (json['order'] as num?)?.toInt() ?? 0,
   );
 }
 

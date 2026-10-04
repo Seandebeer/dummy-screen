@@ -7,14 +7,15 @@ import '../app.dart';
 import '../store.dart';
 import '../format.dart';
 import '../models.dart';
-import '../phone/catalog.dart';
 import '../os_catalog.dart';
 import '../phone/home_view.dart';
 import '../phone/lock_screen.dart';
 import '../phone/phone_apps.dart';
 import '../phone/phone_shell.dart';
+import '../phone/desk_apps.dart';
 import '../phone/prop_apps.dart';
 import '../phone/settings_app.dart';
+import '../phone/social_apps.dart';
 import '../phone/utility_apps.dart';
 import '../theme.dart';
 import '../widgets/three_finger.dart';
@@ -39,6 +40,7 @@ class _OsPageState extends State<OsPage> {
   StreamSubscription<AccelerometerEvent>? _tilt;
   String? _app;
   String? _thread;
+  bool _openingPending = false;
   int _shutter = 0;
   int _side = 0;
 
@@ -60,6 +62,19 @@ class _OsPageState extends State<OsPage> {
         onError: (_) {},
       );
     } catch (_) {}
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final pending = StoreScope.of(context).pendingApp;
+    if (pending == null || _openingPending) return;
+    _openingPending = true;
+    StoreScope.of(context).pendingApp = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _openingPending = false;
+      if (mounted) _open(pending);
+    });
   }
 
   @override
@@ -109,21 +124,42 @@ class _OsPageState extends State<OsPage> {
       child: Column(
         children: [
           if (!store.filming)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 8, 0),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: kLine)),
+              ),
               child: Row(
                 children: [
+                  TextButton.icon(
+                    onPressed: () => store.openTab(0),
+                    icon: const Icon(Icons.arrow_back, size: 18),
+                    label: const Text('Back'),
+                  ),
                   Expanded(
-                    child: Text(
-                      device == null ? 'Sandbox' : device.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      children: [
+                        Text(
+                          device == null ? 'Sandbox' : device.name,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (device != null)
+                          Text(
+                            '${skinDisplayName(device.skin).toUpperCase()} · ${device.os.isLight ? 'LIGHT' : 'DARK'} THEME',
+                            style: const TextStyle(
+                              color: kMuted,
+                              fontSize: 10,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Hide chrome for camera',
+                    tooltip: 'Fullscreen',
                     onPressed: device == null ? null : _toggleFilming,
                     icon: const Icon(Icons.fullscreen),
                   ),
@@ -170,6 +206,15 @@ class _OsPageState extends State<OsPage> {
                     },
                   ),
           ),
+          if (!store.filming && device != null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                'Mock device · control deck can drive calls & messages',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: kMuted, fontSize: 11),
+              ),
+            ),
         ],
       ),
     );
@@ -194,9 +239,10 @@ class _OsPageState extends State<OsPage> {
     }
     final app = _app;
     if (app == null) {
-      return PhoneHome(
+        return PhoneHome(
         skin: device.skin,
         light: device.os.isLight,
+        order: device.os.homeOrder,
         onOpen: _open,
       );
     }
@@ -214,14 +260,9 @@ class _OsPageState extends State<OsPage> {
         ),
       );
     }
-    final title = propAppById(app)?.label ?? 'App';
     return Material(
       color: const Color(0xFF0B0B0F),
-      child: AppScaffold(
-        title: title,
-        onBack: () => setState(() => _app = null),
-        child: _appBody(store, device, app),
-      ),
+      child: _appBody(store, device, app),
     );
   }
 
@@ -272,11 +313,35 @@ class _OsPageState extends State<OsPage> {
         return PhotosApp(photos: store.photos[device.id] ?? const []);
       case 'email':
       case 'mail':
-        return const MailApp();
+        return const InboxApp();
       case 'calendar':
         return CalendarApp(offsetMinutes: device.clockOffsetMinutes);
       case 'maps':
         return const MapsApp();
+      case 'music':
+        return const PropMusic();
+      case 'browser':
+        return const PropBrowser();
+      case 'facepage':
+        return const GrapevineApp();
+      case 'photogram':
+        return const LumeApp();
+      case 'vidtube':
+        return const StreamlyApp();
+      case 'quicktok':
+        return const FlickdeckApp();
+      case 'news':
+        return const BulletinApp();
+      case 'fitness':
+        return const PulseApp();
+      case 'property':
+        return const RealtyApp();
+      case 'webdeck':
+        return const WebdeckApp();
+      case 'appstore':
+        return LibraryApp(store: store, device: device);
+      case 'videocall':
+        return VidcallApp(contacts: contactsFor(device.os));
       default:
         final feed = kFeeds[id];
         if (feed != null) {

@@ -9,16 +9,19 @@ class PhoneHome extends StatelessWidget {
     required this.skin,
     required this.onOpen,
     this.light = false,
+    this.order = const [],
   });
 
   final String skin;
   final void Function(String id) onOpen;
   final bool light;
+  final List<String> order;
 
   @override
   Widget build(BuildContext context) {
     final chrome = chromeFor(skin);
     final ink = light ? const Color(0xD9000000) : Colors.white;
+    final layout = order.isEmpty ? kHomeOrder : order;
     if (chrome == SkinChrome.tiles) {
       return GridView.count(
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -27,14 +30,14 @@ class PhoneHome extends StatelessWidget {
         crossAxisSpacing: 8,
         childAspectRatio: 2.1,
         children: [
-          for (final id in kHomeOrder)
+          for (final id in layout)
             if (propAppById(id) case final app?)
               _Tile(app: app, ink: ink, onTap: () => onOpen(app.id)),
         ],
       );
     }
     final grid = [
-      for (final id in kHomeOrder)
+      for (final id in layout)
         if (!kDockIds.contains(id) && propAppById(id) != null) propAppById(id)!,
     ];
     final pages = <List<PropApp>>[];

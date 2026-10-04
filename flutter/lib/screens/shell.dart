@@ -88,7 +88,9 @@ class _ShellState extends State<Shell> {
     }
 
     final page = _page(store.lastTab.clamp(0, 5));
-    if (store.filming) {
+    final immersive =
+        store.filming || store.lastTab == 1 || store.lastTab == 2 || store.lastTab == 3;
+    if (immersive) {
       return Scaffold(
         backgroundColor: Colors.black,
         body: CallbackShortcuts(

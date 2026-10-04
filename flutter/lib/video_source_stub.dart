@@ -7,6 +7,8 @@ Future<String?> persistPickedVideo(PlatformFile file) async => null;
 
 Future<void> deleteVideoFile(String? path) async {}
 
+VideoPlayerController? playerForPath(String path) => null;
+
 VideoPlayerController playerForClip(VideoClip clip) {
   final url = clip.url;
   if (url == null || url.isEmpty) {

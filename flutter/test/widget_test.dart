@@ -20,10 +20,13 @@ void main() {
 
     await tester.tap(find.byKey(const Key('nav-control')));
     await tester.pump();
+    await tester.tap(find.text('Message Push Console'));
+    await tester.pump();
     await tester.enterText(
       find.byKey(const Key('deck-message')),
       'Roll camera',
     );
+    await tester.pump();
     await tester.tap(find.byKey(const Key('deck-send')));
     await tester.pump();
 
@@ -49,6 +52,8 @@ void main() {
     await tester.pumpWidget(DummyPhoneApp(store: store));
     await tester.pump();
     await tester.tap(find.byKey(const Key('nav-control')));
+    await tester.pump();
+    await tester.tap(find.text('Call Trigger'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('deck-call')));
     await tester.pump();

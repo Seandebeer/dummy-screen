@@ -35,6 +35,11 @@ Future<void> deleteVideoFile(String? path) async {
   } catch (_) {}
 }
 
+VideoPlayerController? playerForPath(String path) {
+  if (path.isEmpty) return null;
+  return VideoPlayerController.file(File(path));
+}
+
 VideoPlayerController playerForClip(VideoClip clip) {
   final path = clip.path;
   if (path != null && path.isNotEmpty) {

@@ -46,6 +46,15 @@ class StageStore extends ChangeNotifier {
   String vfxColor = 'green';
   List<MarkPoint> vfxMarks = [];
   List<String> uiMarkers = [];
+  Map<String, dynamic> screenConfig = {};
+  Map<String, dynamic> markerConfig = {};
+  Map<String, dynamic> pages = {};
+  String? pendingApp;
+  String appTheme = 'black';
+  String appLanguage = 'en';
+  String operatorName = 'Operator';
+  String operatorTitle = '';
+  String operatorPhoto = '';
 
   String? selectedProjectId;
   String? boundDeviceId;
@@ -184,8 +193,8 @@ class StageStore extends ChangeNotifier {
     _touch(null, sync: false);
   }
 
-  void selectProject(String id) {
-    selectedProjectId = id;
+  void selectProject(String? id) {
+    selectedProjectId = (id == null || id.isEmpty) ? null : id;
     _touch(null, sync: false);
   }
 
@@ -224,7 +233,8 @@ class StageStore extends ChangeNotifier {
     if (index < 0) {
       projects = [...projects, project];
     } else if (projects[index].name == project.name &&
-        projects[index].description == project.description) {
+        projects[index].description == project.description &&
+        projects[index].sortOrder == project.sortOrder) {
       return;
     } else {
       projects = [...projects]..[index] = project;
@@ -331,6 +341,13 @@ class StageStore extends ChangeNotifier {
       projectId: current.projectId,
       kind: current.kind,
       locked: true,
+      make: current.make,
+      model: current.model,
+      colour: current.colour,
+      serial: current.serial,
+      photo: current.photo,
+      status: current.status,
+      sortOrder: current.sortOrder,
     );
     final index = devices.indexWhere((device) => device.id == id);
     devices = [...devices]..[index] = reset;
@@ -376,10 +393,12 @@ class StageStore extends ChangeNotifier {
     required String senderName,
     required String thread,
     int? sentAt,
+    String media = '',
+    String mediaType = '',
     BannerNote? banner,
   }) {
     final trimmed = text.trim();
-    if (trimmed.isEmpty || deviceId.isEmpty) return;
+    if ((trimmed.isEmpty && media.isEmpty) || deviceId.isEmpty) return;
     final message = StageMessage(
       id: id ?? _nid('m'),
       deviceId: deviceId,
@@ -388,6 +407,8 @@ class StageStore extends ChangeNotifier {
       senderName: senderName,
       thread: thread.trim().isEmpty ? senderName : thread.trim(),
       sentAt: sentAt ?? DateTime.now().millisecondsSinceEpoch,
+      media: media,
+      mediaType: mediaType,
     );
     if (message.id.isEmpty || messages.any((item) => item.id == message.id)) {
       return;
@@ -405,13 +426,21 @@ class StageStore extends ChangeNotifier {
     if (note != null &&
         note.id.isNotEmpty &&
         !banners.any((item) => item.id == note!.id)) {
-      banners = [note, ...banners].take(6).toList();
+      banners = [note, ...banners].take(20).toList();
     }
     _touch({
       'kind': 'message',
       'message': message.toJson(),
       if (note != null) 'banner': note.toJson(),
     });
+  }
+
+  void clearMessages(String deviceId) {
+    if (!messages.any((message) => message.deviceId == deviceId)) return;
+    messages = messages
+        .where((message) => message.deviceId != deviceId)
+        .toList();
+    _touch({'kind': 'clear_messages', 'deviceId': deviceId});
   }
 
   void startCall({
@@ -478,8 +507,14 @@ class StageStore extends ChangeNotifier {
       text: trimmed,
     );
     if (note.id.isEmpty || banners.any((item) => item.id == note.id)) return;
-    banners = [note, ...banners].take(6).toList();
+    banners = [note, ...banners].take(20).toList();
     _touch({'kind': 'banner', 'banner': note.toJson()});
+  }
+
+  void clearBanners(String deviceId) {
+    if (!banners.any((banner) => banner.deviceId == deviceId)) return;
+    banners = banners.where((banner) => banner.deviceId != deviceId).toList();
+    _touch({'kind': 'clear_banners', 'deviceId': deviceId});
   }
 
   void dismissBanner(String id) {
@@ -523,6 +558,47 @@ class StageStore extends ChangeNotifier {
   }
 
   void applyLayout(SavedLayout layout, String deviceId) {
+    if (layout.kind == 'screen') {
+      if (layout.payload.isNotEmpty) {
+        screenConfig = Map<String, dynamic>.from(layout.payload);
+        final color = screenConfig['colorId'];
+        if (color is String && kKnownVfx.contains(color)) vfxColor = color;
+      }
+      lastTab = 2;
+      _touch({
+        'kind': 'apply_layout',
+        'deviceId': deviceId,
+        'layout': layout.toJson(),
+      });
+      return;
+    }
+    if (layout.kind == 'page') {
+      final app = layout.payload['app'] as String? ?? '';
+      final data = layout.payload['data'];
+      if (app.isNotEmpty && data is Map) {
+        pages = {...pages, app: jsonMap(data)};
+        pendingApp = app;
+      }
+      lastTab = 1;
+      _touch({
+        'kind': 'apply_layout',
+        'deviceId': deviceId,
+        'layout': layout.toJson(),
+      });
+      return;
+    }
+    if (layout.kind == 'markers') {
+      if (layout.payload.isNotEmpty) {
+        markerConfig = Map<String, dynamic>.from(layout.payload);
+      }
+      lastTab = 3;
+      _touch({
+        'kind': 'apply_layout',
+        'deviceId': deviceId,
+        'layout': layout.toJson(),
+      });
+      return;
+    }
     final current = deviceById(deviceId);
     if (current != null) {
       final index = devices.indexWhere((device) => device.id == deviceId);
@@ -542,6 +618,98 @@ class StageStore extends ChangeNotifier {
       'deviceId': deviceId,
       'layout': layout.toJson(),
     });
+  }
+
+  void reorderProjects(int from, int to) {
+    if (from == to || from < 0 || to < 0) return;
+    final next = [...projects]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    if (from >= next.length || to >= next.length) return;
+    final item = next.removeAt(from);
+    next.insert(to, item);
+    projects = [
+      for (var i = 0; i < next.length; i++) next[i].copyWith(sortOrder: i),
+    ];
+    _touch({'kind': 'projects', 'projects': projects.map((p) => p.toJson()).toList()});
+  }
+
+  void reorderDevices(String projectId, int from, int to) {
+    if (from == to || from < 0 || to < 0) return;
+    final group = devicesFor(projectId)
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    if (from >= group.length || to >= group.length) return;
+    final item = group.removeAt(from);
+    group.insert(to, item);
+    final ordered = {
+      for (var i = 0; i < group.length; i++) group[i].id: i,
+    };
+    devices = [
+      for (final device in devices)
+        if (ordered.containsKey(device.id))
+          device.copyWith(sortOrder: ordered[device.id])
+        else
+          device,
+    ];
+    _touch({'kind': 'devices', 'devices': devices.map((d) => d.toJson()).toList()});
+  }
+
+  void setScreenConfig(Map<String, dynamic> config) {
+    screenConfig = Map<String, dynamic>.from(config);
+    final color = config['colorId'];
+    if (color is String && kKnownVfx.contains(color) && color != vfxColor) {
+      vfxColor = color;
+    }
+    _touch({'kind': 'screen', 'screen': screenConfig, 'color': vfxColor});
+  }
+
+  void setPage(String app, Map<String, dynamic> data) {
+    if (app.isEmpty) return;
+    pages = {...pages, app: data};
+    _touch({'kind': 'page', 'app': app, 'data': data});
+  }
+
+  void setMarkerConfig(Map<String, dynamic> config) {
+    markerConfig = Map<String, dynamic>.from(config);
+    _touch({'kind': 'marker_stage', 'markers': markerConfig});
+  }
+
+  void setAppTheme(String id) {
+    if (id != 'black' && id != 'grey' && id != 'white') return;
+    if (appTheme == id) return;
+    appTheme = id;
+    _touch(null, sync: false);
+  }
+
+  void setAppLanguage(String code) {
+    if (appLanguage == code) return;
+    appLanguage = code;
+    _touch(null, sync: false);
+  }
+
+  void setOperator({String? name, String? title, String? photo}) {
+    if (name != null) operatorName = name.trim().isEmpty ? 'Operator' : name.trim();
+    if (title != null) operatorTitle = title.trim();
+    if (photo != null) operatorPhoto = photo;
+    _touch(null, sync: false);
+  }
+
+  void updateClip(VideoClip clip) {
+    final index = clips.indexWhere((item) => item.id == clip.id);
+    if (index < 0) return;
+    clips = [...clips]..[index] = clip;
+    _touch(null, sync: false);
+  }
+
+  void moveClip(int from, int to) {
+    if (from == to || from < 0 || to < 0 || from >= clips.length || to >= clips.length) {
+      return;
+    }
+    final next = [...clips];
+    final item = next.removeAt(from);
+    next.insert(to, item);
+    clips = [
+      for (var i = 0; i < next.length; i++) next[i].copyWith(order: i),
+    ];
+    _touch(null, sync: false);
   }
 
   void setVfxColor(String color) {
@@ -657,6 +825,24 @@ class StageStore extends ChangeNotifier {
         );
       case 'banner_dismiss':
         dismissBanner(patch['id'] as String? ?? '');
+      case 'clear_messages':
+        clearMessages(patch['deviceId'] as String? ?? '');
+      case 'clear_banners':
+        clearBanners(patch['deviceId'] as String? ?? '');
+      case 'screen':
+        final next = jsonMap(patch['screen']);
+        screenConfig = next;
+        final color = patch['color'] as String? ?? vfxColor;
+        if (kKnownVfx.contains(color)) vfxColor = color;
+        _touch({'kind': 'screen', 'screen': screenConfig, 'color': vfxColor});
+      case 'marker_stage':
+        markerConfig = jsonMap(patch['markers']);
+        _touch({'kind': 'marker_stage', 'markers': markerConfig});
+      case 'page':
+        final app = patch['app'] as String? ?? '';
+        if (app.isEmpty) return;
+        pages = {...pages, app: jsonMap(patch['data'])};
+        _touch({'kind': 'page', 'app': app, 'data': pages[app]});
       case 'saved':
         upsertSaved(SavedLayout.fromJson(jsonMap(patch['layout'])));
       case 'delete_saved':
@@ -691,6 +877,9 @@ class StageStore extends ChangeNotifier {
     'vfxColor': vfxColor,
     'vfxMarks': vfxMarks.map((mark) => mark.toJson()).toList(),
     'uiMarkers': uiMarkers,
+    'screenConfig': screenConfig,
+    'markerConfig': markerConfig,
+    'pages': pages,
   };
 
   void importState(Map<String, dynamic> json) {
@@ -709,6 +898,11 @@ class StageStore extends ChangeNotifier {
     targetDeviceId = json['targetDeviceId'] as String?;
     filming = json['filming'] as bool? ?? false;
     lastTab = (json['lastTab'] as num?)?.toInt() ?? 0;
+    appTheme = json['appTheme'] as String? ?? 'black';
+    appLanguage = json['appLanguage'] as String? ?? 'en';
+    operatorName = json['operatorName'] as String? ?? 'Operator';
+    operatorTitle = json['operatorTitle'] as String? ?? '';
+    operatorPhoto = json['operatorPhoto'] as String? ?? '';
     clips = [
       for (final item in jsonList(json['clips']))
         if (item is Map) VideoClip.fromJson(jsonMap(item)),
@@ -763,6 +957,9 @@ class StageStore extends ChangeNotifier {
     uiMarkers = [
       for (final item in jsonList(json['uiMarkers'])) item.toString(),
     ];
+    screenConfig = jsonMap(json['screenConfig']);
+    markerConfig = jsonMap(json['markerConfig']);
+    pages = jsonMap(json['pages']);
   }
 
   void _dropDevices(Set<String> ids) {
@@ -778,7 +975,8 @@ class StageStore extends ChangeNotifier {
   }
 
   void _normalize() {
-    if (!projects.any((project) => project.id == selectedProjectId)) {
+    if (selectedProjectId != null &&
+        !projects.any((project) => project.id == selectedProjectId)) {
       selectedProjectId = projects.isEmpty ? null : projects.first.id;
     }
     if (!devices.any((device) => device.id == boundDeviceId)) {
@@ -817,6 +1015,11 @@ class StageStore extends ChangeNotifier {
     'targetDeviceId': targetDeviceId,
     'filming': filming,
     'lastTab': lastTab,
+    'appTheme': appTheme,
+    'appLanguage': appLanguage,
+    'operatorName': operatorName,
+    'operatorTitle': operatorTitle,
+    'operatorPhoto': operatorPhoto,
     'clips': clips.map((clip) => clip.toJson()).toList(),
     'photos': {
       for (final entry in photos.entries)
@@ -838,7 +1041,14 @@ bool _sameDevice(PropDevice a, PropDevice b) =>
     a.locked == b.locked &&
     a.clockOffsetMinutes == b.clockOffsetMinutes &&
     a.notes == b.notes &&
-    a.os == b.os;
+    a.os == b.os &&
+    a.make == b.make &&
+    a.model == b.model &&
+    a.colour == b.colour &&
+    a.serial == b.serial &&
+    a.photo == b.photo &&
+    a.status == b.status &&
+    a.sortOrder == b.sortOrder;
 
 OsSettings _skinWallpaper(OsSettings os, String skin) {
   final preset = presetForSkin(skin);
