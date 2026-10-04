@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../models.dart';
+import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
 
@@ -21,6 +22,7 @@ class _ControlPageState extends State<ControlPage> {
   late final TextEditingController _banner;
   late final TextEditingController _join;
   String _appLabel = 'Messages';
+  String _contactSignature = '';
 
   @override
   void initState() {
@@ -48,6 +50,17 @@ class _ControlPageState extends State<ControlPage> {
     final link = store.sync;
     final target = store.deviceById(store.targetDeviceId);
     final call = store.callFor(target?.id);
+    final contacts = contactsFor(target?.os ?? const OsSettings());
+    final signature = contacts
+        .map((contact) => '${contact.name}|${contact.number}')
+        .join(';');
+    if (_contactSignature != signature) {
+      _contactSignature = signature;
+      if (!contacts.any((contact) => contact.name == _name.text)) {
+        _name.text = contacts.first.name;
+        _number.text = contacts.first.number;
+      }
+    }
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       children: [
@@ -147,17 +160,22 @@ class _ControlPageState extends State<ControlPage> {
           child: Column(
             children: [
               DropdownButtonFormField<String>(
-                initialValue: kContacts.first.name,
+                key: ValueKey(signature),
+                initialValue: contacts
+                    .where((contact) => contact.name == _name.text)
+                    .firstOrNull
+                    ?.name ??
+                    contacts.first.name,
                 decoration: const InputDecoration(labelText: 'Contact'),
                 items: [
-                  for (final contact in kContacts)
+                  for (final contact in contacts)
                     DropdownMenuItem(
                       value: contact.name,
                       child: Text(contact.name),
                     ),
                 ],
                 onChanged: (name) {
-                  final contact = kContacts
+                  final contact = contacts
                       .where((item) => item.name == name)
                       .firstOrNull;
                   if (contact == null) return;

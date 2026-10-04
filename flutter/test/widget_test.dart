@@ -61,4 +61,42 @@ void main() {
     await tester.pump();
     expect(find.text('Connected'), findsOneWidget);
   });
+
+  testWidgets('os settings follow the base44 settings screen', (tester) async {
+    final store = StageStore.demo();
+    LanLink(store);
+    await tester.binding.setSurfaceSize(const Size(1400, 2200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(DummyPhoneApp(store: store));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('nav-os')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('lock-unlock')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('home-settings')));
+    await tester.pump();
+
+    expect(find.text('Current OS'), findsOneWidget);
+    expect(find.text('Current Android'), findsOneWidget);
+    expect(find.text('Graphite'), findsOneWidget);
+    expect(find.text('LEGACY'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('skin-android')));
+    await tester.pump();
+    expect(store.deviceById('d-hero')!.skin, 'android');
+    expect(store.deviceById('d-hero')!.os.backgroundPreset, 'droid');
+
+    for (
+      var i = 0;
+      i < 12 && find.byKey(const Key('os-build-footer')).evaluate().isEmpty;
+      i++
+    ) {
+      final origin = tester.getTopLeft(find.byKey(const Key('os-settings-list')));
+      await tester.dragFrom(origin + const Offset(30, 120), const Offset(0, -450));
+      await tester.pump();
+    }
+    expect(find.text('TAKEOVER OS · PROP BUILD 1.0'), findsOneWidget);
+    expect(find.text('Factory Reset'), findsOneWidget);
+  });
 }

@@ -9,10 +9,16 @@ import '../theme.dart';
 import 'catalog.dart';
 
 class PhoneDialer extends StatefulWidget {
-  const PhoneDialer({super.key, required this.store, required this.deviceId});
+  const PhoneDialer({
+    super.key,
+    required this.store,
+    required this.deviceId,
+    this.contacts = kContacts,
+  });
 
   final StageStore store;
   final String deviceId;
+  final List<ContactCard> contacts;
 
   @override
   State<PhoneDialer> createState() => _PhoneDialerState();
@@ -22,8 +28,12 @@ class _PhoneDialerState extends State<PhoneDialer> {
   String _digits = '';
 
   void _call() {
-    final match = kContacts
-        .where((contact) => contact.number == _digits)
+    final match = widget.contacts
+        .where(
+          (contact) =>
+              contact.number.replaceAll(' ', '') ==
+              _digits.replaceAll(' ', ''),
+        )
         .firstOrNull;
     widget.store.startCall(
       deviceId: widget.deviceId,
@@ -287,16 +297,22 @@ class _MessagesAppState extends State<MessagesApp> {
 }
 
 class ContactsApp extends StatelessWidget {
-  const ContactsApp({super.key, required this.onMessage, required this.onCall});
+  const ContactsApp({
+    super.key,
+    required this.onMessage,
+    required this.onCall,
+    this.contacts = kContacts,
+  });
 
   final void Function(ContactCard contact) onMessage;
   final void Function(ContactCard contact) onCall;
+  final List<ContactCard> contacts;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        for (final contact in kContacts)
+        for (final contact in contacts)
           ListTile(
             leading: CircleAvatar(
               backgroundColor: colorForName(contact.name),

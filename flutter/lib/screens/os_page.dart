@@ -1,16 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 import '../app.dart';
 import '../store.dart';
 import '../format.dart';
 import '../models.dart';
 import '../phone/catalog.dart';
+import '../os_catalog.dart';
 import '../phone/home_view.dart';
+import '../phone/lock_screen.dart';
 import '../phone/phone_apps.dart';
 import '../phone/phone_shell.dart';
 import '../phone/prop_apps.dart';
+import '../phone/settings_app.dart';
 import '../phone/utility_apps.dart';
 import '../theme.dart';
 import '../widgets/three_finger.dart';
@@ -32,9 +36,11 @@ class OsPage extends StatefulWidget {
 
 class _OsPageState extends State<OsPage> {
   Timer? _clock;
+  StreamSubscription<AccelerometerEvent>? _tilt;
   String? _app;
   String? _thread;
   int _shutter = 0;
+  int _side = 0;
 
   @override
   void initState() {
@@ -42,11 +48,24 @@ class _OsPageState extends State<OsPage> {
     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+    try {
+      _tilt = accelerometerEventStream().listen(
+        (event) {
+          if (!mounted) return;
+          final side = event.x.abs() > 6 && event.x.abs() > event.y.abs()
+              ? (event.x > 0 ? 1 : -1)
+              : 0;
+          if (side != _side) setState(() => _side = side);
+        },
+        onError: (_) {},
+      );
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     _clock?.cancel();
+    _tilt?.cancel();
     super.dispose();
   }
 
@@ -57,11 +76,7 @@ class _OsPageState extends State<OsPage> {
   }
 
   void _home(PropDevice device) {
-    final store = StoreScope.of(context);
-    if (device.locked) {
-      store.setLocked(device.id, false);
-      return;
-    }
+    if (device.locked) return;
     setState(() {
       _app = null;
       _thread = null;
@@ -121,7 +136,8 @@ class _OsPageState extends State<OsPage> {
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final framed = constraints.maxWidth >= 520;
-                      final aspect = 390 / 844;
+                      final landscape = device.os.autoRotate && _side != 0;
+                      final aspect = landscape ? 844 / 390 : 390 / 844;
                       var height = constraints.maxHeight - (framed ? 24 : 0);
                       var width = height * aspect;
                       if (width > constraints.maxWidth - (framed ? 24 : 0)) {
@@ -162,46 +178,76 @@ class _OsPageState extends State<OsPage> {
   Widget _body(StageStore store, PropDevice device, DateTime now) {
     if (device.locked) {
       return LockView(
+        device: device,
         timeLabel: formatClock(now),
         dateLabel: formatDay(now),
         onUnlock: () => store.setLocked(device.id, false),
+        onSetPasscode: (code) => store.updateOs(
+          device.id,
+          (current) => current.copyWith(passcode: code),
+        ),
+        onSetPattern: (code) => store.updateOs(
+          device.id,
+          (current) => current.copyWith(pattern: code),
+        ),
       );
     }
     final app = _app;
     if (app == null) {
-      return PhoneHome(skin: device.skin, onOpen: _open);
+      return PhoneHome(
+        skin: device.skin,
+        light: device.os.isLight,
+        onOpen: _open,
+      );
     }
     if (app == 'messages') {
-      return MessagesApp(
-        store: store,
-        deviceId: device.id,
-        initialThread: _thread,
-        onClose: () => setState(() {
-          _app = null;
-          _thread = null;
-        }),
+      return Material(
+        color: const Color(0xFF0B0B0F),
+        child: MessagesApp(
+          store: store,
+          deviceId: device.id,
+          initialThread: _thread,
+          onClose: () => setState(() {
+            _app = null;
+            _thread = null;
+          }),
+        ),
       );
     }
     final title = propAppById(app)?.label ?? 'App';
-    return AppScaffold(
-      title: title,
-      onBack: () => setState(() => _app = null),
-      child: _appBody(store, device, app),
+    return Material(
+      color: const Color(0xFF0B0B0F),
+      child: AppScaffold(
+        title: title,
+        onBack: () => setState(() => _app = null),
+        child: _appBody(store, device, app),
+      ),
     );
   }
 
   Widget _appBody(StageStore store, PropDevice device, String id) {
     switch (id) {
       case 'phone':
-        return PhoneDialer(store: store, deviceId: device.id);
-      case 'contacts':
-        return ContactsApp(
-          onMessage: (contact) => _open('messages', thread: contact.name),
-          onCall: (contact) => store.startCall(
+        return Material(
+          color: const Color(0xFF0B0B0F),
+          child: PhoneDialer(
+            store: store,
             deviceId: device.id,
-            contactName: contact.name,
-            contactNumber: contact.number,
-            direction: 'outgoing',
+            contacts: contactsFor(device.os),
+          ),
+        );
+      case 'contacts':
+        return Material(
+          color: const Color(0xFF0B0B0F),
+          child: ContactsApp(
+            contacts: contactsFor(device.os),
+            onMessage: (contact) => _open('messages', thread: contact.name),
+            onCall: (contact) => store.startCall(
+              deviceId: device.id,
+              contactName: contact.name,
+              contactNumber: contact.number,
+              direction: 'outgoing',
+            ),
           ),
         );
       case 'settings':
@@ -224,6 +270,7 @@ class _OsPageState extends State<OsPage> {
         );
       case 'photos':
         return PhotosApp(photos: store.photos[device.id] ?? const []);
+      case 'email':
       case 'mail':
         return const MailApp();
       case 'calendar':

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models.dart';
+import 'os_catalog.dart';
 
 enum LinkRole { solo, host, client }
 
@@ -31,6 +32,7 @@ class StageStore extends ChangeNotifier {
   bool persist = true;
   bool ready = false;
   bool _importing = false;
+  final Map<String, Timer> _ringTimers = {};
 
   List<Project> projects = [];
   List<PropDevice> devices = [];
@@ -59,6 +61,35 @@ class StageStore extends ChangeNotifier {
   }
 
   void attach(StageSync link) => sync = link;
+
+  @override
+  void dispose() {
+    for (final timer in _ringTimers.values) {
+      timer.cancel();
+    }
+    _ringTimers.clear();
+    super.dispose();
+  }
+
+  void _cancelRing(String deviceId) {
+    _ringTimers.remove(deviceId)?.cancel();
+  }
+
+  void _scheduleRing(LiveCall call) {
+    _cancelRing(call.deviceId);
+    if (call.direction != 'outgoing' || call.status != 'ringing') return;
+    final seconds = deviceById(call.deviceId)?.os.ringDelaySeconds ?? 4;
+    _ringTimers[call.deviceId] = Timer(Duration(seconds: seconds), () {
+      _ringTimers.remove(call.deviceId);
+      final current = callFor(call.deviceId);
+      if (current == null ||
+          current.id != call.id ||
+          current.status != 'ringing') {
+        return;
+      }
+      setCallStatus(call.deviceId, 'active');
+    });
+  }
 
   void refresh() => notifyListeners();
 
@@ -269,10 +300,51 @@ class StageStore extends ChangeNotifier {
         device.locked == locked ? device : device.copyWith(locked: locked),
   );
 
-  void setSkin(String id, String skin) => updateDevice(
-    id,
-    (device) => device.skin == skin ? device : device.copyWith(skin: skin),
-  );
+  void setSkin(String id, String skin) => updateDevice(id, (device) {
+    final preset = presetForSkin(skin);
+    final nextOs = preset == null || device.os.backgroundType == 'image'
+        ? device.os
+        : device.os.copyWith(
+            backgroundType: 'preset',
+            backgroundPreset: preset,
+            backgroundUrl: '',
+          );
+    if (device.skin == skin && device.os == nextOs) return device;
+    return device.copyWith(skin: skin, os: nextOs);
+  });
+
+  void updateOs(String id, OsSettings Function(OsSettings os) change) =>
+      updateDevice(id, (device) {
+        final next = change(device.os);
+        if (next == device.os) return device;
+        return device.copyWith(os: next);
+      });
+
+  /// Wipe this device's pages and settings. General saved layouts stay.
+  void factoryResetDevice(String id) {
+    final current = deviceById(id);
+    if (current == null) return;
+    _cancelRing(id);
+    final reset = PropDevice(
+      id: current.id,
+      name: current.name,
+      projectId: current.projectId,
+      kind: current.kind,
+      locked: true,
+    );
+    final index = devices.indexWhere((device) => device.id == id);
+    devices = [...devices]..[index] = reset;
+    messages = messages.where((message) => message.deviceId != id).toList();
+    calls = calls.where((call) => call.deviceId != id).toList();
+    banners = banners.where((banner) => banner.deviceId != id).toList();
+    if (alarms.containsKey(id)) {
+      alarms = {...alarms}..remove(id);
+    }
+    if (photos.containsKey(id)) {
+      photos = {...photos}..remove(id);
+    }
+    _touch({'kind': 'device_reset', 'device': reset.toJson()});
+  }
 
   void setNotes(String id, String notes) => updateDevice(
     id,
@@ -360,6 +432,7 @@ class StageStore extends ChangeNotifier {
     );
     if (call.id.isEmpty || calls.any((item) => item.id == call.id)) return;
     calls = [call, ...calls.where((item) => item.deviceId != deviceId)];
+    _scheduleRing(call);
     _touch({'kind': 'call_start', 'call': call.toJson()});
   }
 
@@ -373,11 +446,13 @@ class StageStore extends ChangeNotifier {
           call,
     ];
     if (!changed) return;
+    if (status != 'ringing') _cancelRing(deviceId);
     _touch({'kind': 'call_status', 'deviceId': deviceId, 'status': status});
   }
 
   void endCall(String deviceId) {
     if (!calls.any((call) => call.deviceId == deviceId)) return;
+    _cancelRing(deviceId);
     calls = calls.where((call) => call.deviceId != deviceId).toList();
     _touch({'kind': 'call_end', 'deviceId': deviceId});
   }
@@ -456,6 +531,7 @@ class StageStore extends ChangeNotifier {
           skin: layout.skin,
           clockOffsetMinutes: layout.clockOffsetMinutes,
           notes: layout.notes,
+          os: _skinWallpaper(current.os, layout.skin),
         );
     }
     vfxColor = layout.vfxColor;
@@ -531,6 +607,10 @@ class StageStore extends ChangeNotifier {
         upsertDevice(PropDevice.fromJson(jsonMap(patch['device'])));
       case 'delete_device':
         deleteDevice(patch['id'] as String? ?? '');
+      case 'device_reset':
+        factoryResetDevice(
+          PropDevice.fromJson(jsonMap(patch['device'])).id,
+        );
       case 'message':
         final message = StageMessage.fromJson(jsonMap(patch['message']));
         final banner = patch['banner'] == null
@@ -757,7 +837,18 @@ bool _sameDevice(PropDevice a, PropDevice b) =>
     a.skin == b.skin &&
     a.locked == b.locked &&
     a.clockOffsetMinutes == b.clockOffsetMinutes &&
-    a.notes == b.notes;
+    a.notes == b.notes &&
+    a.os == b.os;
+
+OsSettings _skinWallpaper(OsSettings os, String skin) {
+  final preset = presetForSkin(skin);
+  if (preset == null || os.backgroundType == 'image') return os;
+  return os.copyWith(
+    backgroundType: 'preset',
+    backgroundPreset: preset,
+    backgroundUrl: '',
+  );
+}
 
 bool _sameStrings(List<String> a, List<String> b) {
   if (a.length != b.length) return false;

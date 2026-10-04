@@ -28,6 +28,181 @@ class Project {
   );
 }
 
+/// On-device OS settings. Field names follow the Base44 `takeover-os-config`
+/// object: theme, wallpaper, lock screen, dial codes, language, answer mode,
+/// ring duration, and auto-rotate.
+class OsSettings {
+  const OsSettings({
+    this.theme = 'dark',
+    this.backgroundType = 'preset',
+    this.backgroundPreset = 'default',
+    this.backgroundUrl = '',
+    this.lockType = 'none',
+    this.lockBackgroundType = 'preset',
+    this.lockBackgroundPreset = 'default',
+    this.lockBackgroundUrl = '',
+    this.passcode = '',
+    this.pattern = '',
+    this.dialCodes = const ['026', '034', '049'],
+    this.language = 'en',
+    this.callAnswer = 'tap',
+    this.ringDelay = 4,
+    this.autoRotate = true,
+  });
+
+  final String theme;
+  final String backgroundType;
+  final String backgroundPreset;
+  final String backgroundUrl;
+  final String lockType;
+  final String lockBackgroundType;
+  final String lockBackgroundPreset;
+  final String lockBackgroundUrl;
+  final String passcode;
+  final String pattern;
+  final List<String> dialCodes;
+  final String language;
+  final String callAnswer;
+  final int ringDelay;
+  final bool autoRotate;
+
+  bool get isLight => theme == 'light';
+
+  int get ringDelaySeconds {
+    if (ringDelay < 1) return 1;
+    if (ringDelay > 60) return 60;
+    return ringDelay;
+  }
+
+  OsSettings copyWith({
+    String? theme,
+    String? backgroundType,
+    String? backgroundPreset,
+    String? backgroundUrl,
+    String? lockType,
+    String? lockBackgroundType,
+    String? lockBackgroundPreset,
+    String? lockBackgroundUrl,
+    String? passcode,
+    String? pattern,
+    List<String>? dialCodes,
+    String? language,
+    String? callAnswer,
+    int? ringDelay,
+    bool? autoRotate,
+  }) => OsSettings(
+    theme: theme ?? this.theme,
+    backgroundType: backgroundType ?? this.backgroundType,
+    backgroundPreset: backgroundPreset ?? this.backgroundPreset,
+    backgroundUrl: backgroundUrl ?? this.backgroundUrl,
+    lockType: lockType ?? this.lockType,
+    lockBackgroundType: lockBackgroundType ?? this.lockBackgroundType,
+    lockBackgroundPreset: lockBackgroundPreset ?? this.lockBackgroundPreset,
+    lockBackgroundUrl: lockBackgroundUrl ?? this.lockBackgroundUrl,
+    passcode: passcode ?? this.passcode,
+    pattern: pattern ?? this.pattern,
+    dialCodes: dialCodes ?? this.dialCodes,
+    language: language ?? this.language,
+    callAnswer: callAnswer ?? this.callAnswer,
+    ringDelay: ringDelay ?? this.ringDelay,
+    autoRotate: autoRotate ?? this.autoRotate,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'theme': theme,
+    'backgroundType': backgroundType,
+    'backgroundPreset': backgroundPreset,
+    'backgroundUrl': backgroundUrl,
+    'lockType': lockType,
+    'lockBackgroundType': lockBackgroundType,
+    'lockBackgroundPreset': lockBackgroundPreset,
+    'lockBackgroundUrl': lockBackgroundUrl,
+    'passcode': passcode,
+    'pattern': pattern,
+    'dialCodes': dialCodes,
+    'language': language,
+    'callAnswer': callAnswer,
+    'ringDelay': ringDelay,
+    'autoRotate': autoRotate,
+  };
+
+  factory OsSettings.fromJson(Map<String, dynamic> json) {
+    final codes = [
+      for (final item in jsonList(json['dialCodes'])) item.toString(),
+    ].where((code) => RegExp(r'^\d{3}$').hasMatch(code)).take(3).toList();
+    final theme = json['theme'] == 'light' ? 'light' : 'dark';
+    final answer = json['callAnswer'] == 'swipe' ? 'swipe' : 'tap';
+    final delay = (json['ringDelay'] as num?)?.toInt() ?? 4;
+    return OsSettings(
+      theme: theme,
+      backgroundType: json['backgroundType'] == 'image' ? 'image' : 'preset',
+      backgroundPreset: json['backgroundPreset'] as String? ?? 'default',
+      backgroundUrl: json['backgroundUrl'] as String? ?? '',
+      lockType: json['lockType'] as String? ?? 'none',
+      lockBackgroundType: json['lockBackgroundType'] == 'image'
+          ? 'image'
+          : 'preset',
+      lockBackgroundPreset:
+          json['lockBackgroundPreset'] as String? ?? 'default',
+      lockBackgroundUrl: json['lockBackgroundUrl'] as String? ?? '',
+      passcode: json['passcode'] as String? ?? '',
+      pattern: json['pattern'] as String? ?? '',
+      dialCodes: codes.isEmpty ? const ['026', '034', '049'] : codes,
+      language: json['language'] as String? ?? 'en',
+      callAnswer: answer,
+      ringDelay: delay < 1 ? 1 : (delay > 60 ? 60 : delay),
+      autoRotate: json['autoRotate'] as bool? ?? true,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! OsSettings) return false;
+    return theme == other.theme &&
+        backgroundType == other.backgroundType &&
+        backgroundPreset == other.backgroundPreset &&
+        backgroundUrl == other.backgroundUrl &&
+        lockType == other.lockType &&
+        lockBackgroundType == other.lockBackgroundType &&
+        lockBackgroundPreset == other.lockBackgroundPreset &&
+        lockBackgroundUrl == other.lockBackgroundUrl &&
+        passcode == other.passcode &&
+        pattern == other.pattern &&
+        language == other.language &&
+        callAnswer == other.callAnswer &&
+        ringDelay == other.ringDelay &&
+        autoRotate == other.autoRotate &&
+        _sameCodes(dialCodes, other.dialCodes);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    theme,
+    backgroundType,
+    backgroundPreset,
+    backgroundUrl,
+    lockType,
+    lockBackgroundType,
+    lockBackgroundPreset,
+    lockBackgroundUrl,
+    passcode,
+    pattern,
+    language,
+    callAnswer,
+    ringDelay,
+    autoRotate,
+    Object.hashAll(dialCodes),
+  );
+}
+
+bool _sameCodes(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
 class PropDevice {
   const PropDevice({
     required this.id,
@@ -38,6 +213,7 @@ class PropDevice {
     this.locked = true,
     this.clockOffsetMinutes = 0,
     this.notes = '',
+    this.os = const OsSettings(),
   });
 
   final String id;
@@ -48,6 +224,7 @@ class PropDevice {
   final bool locked;
   final int clockOffsetMinutes;
   final String notes;
+  final OsSettings os;
 
   PropDevice copyWith({
     String? name,
@@ -57,6 +234,7 @@ class PropDevice {
     bool? locked,
     int? clockOffsetMinutes,
     String? notes,
+    OsSettings? os,
   }) => PropDevice(
     id: id,
     name: name ?? this.name,
@@ -66,6 +244,7 @@ class PropDevice {
     locked: locked ?? this.locked,
     clockOffsetMinutes: clockOffsetMinutes ?? this.clockOffsetMinutes,
     notes: notes ?? this.notes,
+    os: os ?? this.os,
   );
 
   Map<String, dynamic> toJson() => {
@@ -77,6 +256,7 @@ class PropDevice {
     'locked': locked,
     'clockOffsetMinutes': clockOffsetMinutes,
     'notes': notes,
+    'os': os.toJson(),
   };
 
   factory PropDevice.fromJson(Map<String, dynamic> json) => PropDevice(
@@ -88,6 +268,7 @@ class PropDevice {
     locked: json['locked'] as bool? ?? true,
     clockOffsetMinutes: (json['clockOffsetMinutes'] as num?)?.toInt() ?? 0,
     notes: json['notes'] as String? ?? '',
+    os: OsSettings.fromJson(jsonMap(json['os'])),
   );
 }
 

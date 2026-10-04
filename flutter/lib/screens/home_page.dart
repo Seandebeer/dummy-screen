@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../models.dart';
+import '../os_catalog.dart';
 import '../theme.dart';
 import '../widgets/prompt.dart';
 
@@ -57,7 +58,7 @@ class HomePage extends StatelessWidget {
         const SizedBox(height: 16),
         _Section(
           title: 'Devices',
-          subtitle: 'Prop phones on this project',
+          subtitle: 'Prop devices & stage sync',
           trailing: IconButton(
             tooltip: 'Add device',
             onPressed: project == null
@@ -94,7 +95,7 @@ class HomePage extends StatelessWidget {
         const SizedBox(height: 16),
         _Section(
           title: 'Saved',
-          subtitle: 'Skins, notes, and marker layouts',
+          subtitle: 'Saved marker & screen configurations',
           trailing: IconButton(
             tooltip: 'Save current layout',
             onPressed: () async {
@@ -285,7 +286,7 @@ class _SavedRow extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(layout.name),
-      subtitle: Text(layout.skin),
+      subtitle: Text(skinDisplayName(layout.skin)),
       onTap: () {
         final deviceId = store.boundDeviceId ?? store.targetDeviceId;
         if (deviceId == null) return;

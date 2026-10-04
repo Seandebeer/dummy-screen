@@ -201,6 +201,38 @@ class PropFeed extends StatelessWidget {
 }
 
 const kFeeds = <String, (String, Color, List<(String, String)>)>{
+  'facepage': (
+    'Grapevine',
+    Color(0xFF1877F2),
+    [
+      ('Elena Frost', 'On set. Do not text the real number.'),
+      ('Unit', 'Picture is up. Phones on silent except the hero.'),
+    ],
+  ),
+  'photogram': (
+    'Lume',
+    Color(0xFF833AB4),
+    [
+      ('night exterior', 'Holding photo, loaded for the insert.'),
+      ('call sheet', 'Wardrobe still has the case.'),
+    ],
+  ),
+  'vidtube': (
+    'Streamly',
+    Color(0xFFFF3B30),
+    [
+      ('Continue watching', 'The interview cut, 12 minutes.'),
+      ('For you', 'City skyline, no audio.'),
+    ],
+  ),
+  'quicktok': (
+    'Flickdeck',
+    Color(0xFF111111),
+    [
+      ('Sound on set', 'The track is loaded. Do not scroll past it.'),
+      ('Hold', 'Loop the chorus until cut.'),
+    ],
+  ),
   'grapevine': (
     'Grapevine',
     Color(0xFF1877F2),

@@ -23,11 +23,11 @@ class _NavItem {
 
 const _items = [
   _NavItem('home', 'Home', Icons.home_outlined, 0),
-  _NavItem('os', 'OS', Icons.smartphone_outlined, 1),
-  _NavItem('screens', 'Screens', Icons.crop_square, 2),
-  _NavItem('markers', 'Markers', Icons.grid_on, 3),
-  _NavItem('playback', 'Playback', Icons.play_circle_outline, 4),
-  _NavItem('control', 'Control', Icons.settings_remote, 5),
+  _NavItem('os', 'OS', Icons.smartphone, 1),
+  _NavItem('screens', 'Screens', Icons.add, 2),
+  _NavItem('markers', 'UI Marker', Icons.my_location, 3),
+  _NavItem('playback', 'Playback', Icons.play_arrow, 4),
+  _NavItem('control', 'Control', Icons.podcasts, 5),
 ];
 
 class Shell extends StatefulWidget {
@@ -125,7 +125,7 @@ class _ShellState extends State<Shell> {
       backgroundColor: kBg,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 900;
+          final wide = constraints.maxWidth >= 768;
           final nav = _NavRail(vertical: wide);
           final body = SafeArea(
             child: wide
@@ -164,28 +164,54 @@ class _NavRail extends StatelessWidget {
           label: item.label,
           icon: item.icon,
           selected: store.lastTab == item.index,
+          compact: vertical,
           onTap: () => store.openTab(item.index),
         ),
     ];
     if (vertical) {
       return Material(
         color: kSurface,
-        child: SizedBox(
-          width: 96,
-          child: Column(
-            children: [
-              const SizedBox(height: 18),
-              const Text(
-                'D',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: kAccent,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            border: Border(right: BorderSide(color: kLine)),
+          ),
+          child: SizedBox(
+            width: 64,
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [kAccent, Color(0x99318DF6)],
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x40318DF6),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    'T',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              ...buttons,
-            ],
+                const SizedBox(height: 24),
+                ...buttons,
+              ],
+            ),
           ),
         ),
       );
@@ -209,16 +235,41 @@ class _NavButton extends StatelessWidget {
     required this.icon,
     required this.selected,
     required this.onTap,
+    this.compact = false,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final color = selected ? kAccent : kMuted;
+    if (compact) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Tooltip(
+          message: label,
+          preferBelow: false,
+          waitDuration: const Duration(milliseconds: 400),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: selected ? kAccent.withValues(alpha: 0.15) : null,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+          ),
+        ),
+      );
+    }
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -226,16 +277,16 @@ class _NavButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 22),
+            Icon(icon, color: color, size: 20),
             const SizedBox(height: 2),
-            FittedBox(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

@@ -7,43 +7,6 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 
-class SettingsApp extends StatelessWidget {
-  const SettingsApp({super.key, required this.store, required this.device});
-
-  final StageStore store;
-  final PropDevice device;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          device.name,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 4),
-        const Text('Interface skin', style: TextStyle(color: kMuted)),
-        const SizedBox(height: 10),
-        SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(value: 'modern', label: Text('Current')),
-            ButtonSegment(value: 'classic', label: Text('Classic')),
-            ButtonSegment(value: 'tiles', label: Text('Tiles')),
-          ],
-          selected: {device.skin},
-          onSelectionChanged: (value) => store.setSkin(device.id, value.first),
-        ),
-        const SizedBox(height: 18),
-        const Text(
-          'Three-finger tap, or the L key on a keyboard, hides the app chrome so the screen can sit on camera.',
-          style: TextStyle(color: kMuted, height: 1.4),
-        ),
-      ],
-    );
-  }
-}
-
 class ClockApp extends StatelessWidget {
   const ClockApp({super.key, required this.store, required this.device});
 

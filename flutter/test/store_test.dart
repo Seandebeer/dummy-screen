@@ -93,4 +93,63 @@ void main() {
     expect(store.vfxColor, 'blue');
     expect(store.saved.single.name, 'Night exterior');
   });
+
+  test('an outgoing call is picked up after the ring duration', () async {
+    final store = StageStore.demo();
+    store.updateOs('d-hero', (os) => os.copyWith(ringDelay: 2));
+    store.startCall(
+      deviceId: 'd-hero',
+      contactName: 'Sarah Chen',
+      contactNumber: '026 555 0142',
+      direction: 'outgoing',
+    );
+    expect(store.callFor('d-hero')!.status, 'ringing');
+    await Future<void>.delayed(const Duration(seconds: 2));
+    expect(store.callFor('d-hero')!.status, 'active');
+  });
+
+  test('factory reset keeps general saved layouts', () {
+    final store = StageStore.demo();
+    store.setSkin('d-hero', 'android');
+    store.updateOs('d-hero', (os) => os.copyWith(language: 'fr', ringDelay: 9));
+    store.sendMessage(
+      deviceId: 'd-hero',
+      sender: 'phone',
+      text: 'Cut',
+      senderName: 'Hero phone',
+      thread: 'Sarah Chen',
+    );
+    store.saveLayout('General');
+    store.factoryResetDevice('d-hero');
+    final device = store.deviceById('d-hero')!;
+    expect(device.locked, isTrue);
+    expect(device.skin, 'modern');
+    expect(device.os.language, 'en');
+    expect(device.os.ringDelay, 4);
+    expect(device.os.backgroundPreset, 'default');
+    expect(store.messages, isEmpty);
+    expect(store.saved.single.name, 'General');
+  });
+
+  test('os settings travel with the device snapshot', () {
+    final store = StageStore.demo();
+    store.updateOs(
+      'd-hero',
+      (os) => os.copyWith(
+        callAnswer: 'swipe',
+        dialCodes: ['111', '222', '333'],
+        lockType: 'passcode',
+        passcode: '1234',
+        autoRotate: false,
+      ),
+    );
+    final copy = StageStore.demo();
+    copy.importState(store.exportState());
+    final os = copy.deviceById('d-hero')!.os;
+    expect(os.callAnswer, 'swipe');
+    expect(os.dialCodes, ['111', '222', '333']);
+    expect(os.passcode, '1234');
+    expect(os.lockType, 'passcode');
+    expect(os.autoRotate, isFalse);
+  });
 }

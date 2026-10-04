@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../format.dart';
+import '../image_file.dart';
 import '../models.dart';
+import '../os_catalog.dart';
 import '../theme.dart';
 
 class PhoneShell extends StatelessWidget {
@@ -37,6 +39,13 @@ class PhoneShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = device.skin;
+    final chrome = chromeFor(skin);
+    final light = device.os.isLight;
+    final ink = light ? const Color(0xD9000000) : Colors.white;
+    final paper = wallpaperFor(device, locked: device.locked);
+    final image = paper.imagePath.isEmpty
+        ? null
+        : imageProviderForPath(paper.imagePath);
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(framed ? 40 : 0),
@@ -53,14 +62,26 @@ class PhoneShell extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(framed ? 40 : 0),
         child: DecoratedBox(
-          decoration: BoxDecoration(gradient: _wallpaper(skin)),
-          child: Stack(
+          decoration: BoxDecoration(
+            gradient: paper.gradient,
+            image: image == null
+                ? null
+                : DecorationImage(image: image, fit: BoxFit.cover),
+          ),
+          child: IconTheme(
+            data: IconThemeData(color: ink),
+            child: Stack(
             children: [
               Column(
                 children: [
-                  _StatusBar(timeLabel: timeLabel, framed: framed),
+                  _StatusBar(
+                    timeLabel: timeLabel,
+                    framed: framed,
+                    ink: ink,
+                  ),
                   Expanded(child: body),
-                  _HomeControl(skin: skin, onHome: onHome),
+                  if (!device.locked)
+                    _HomeControl(chrome: chrome, onHome: onHome, ink: ink),
                 ],
               ),
               if (banners.isNotEmpty && call == null && !alarm)
@@ -85,6 +106,7 @@ class PhoneShell extends StatelessWidget {
                 Positioned.fill(
                   child: _CallOverlay(
                     call: call!,
+                    answerMode: device.os.callAnswer,
                     onAccept: onAccept,
                     onEnd: onEnd,
                   ),
@@ -96,38 +118,22 @@ class PhoneShell extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
   }
 }
 
-LinearGradient _wallpaper(String skin) {
-  switch (skin) {
-    case 'classic':
-      return const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF1A3E66), Color(0xFF0C1B33), Color(0xFF05070D)],
-      );
-    case 'tiles':
-      return const LinearGradient(
-        colors: [Color(0xFF101010), Color(0xFF050505)],
-      );
-    default:
-      return const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF1A1D2E), Color(0xFF0A0B14), Color(0xFF000000)],
-        stops: [0, 0.6, 1],
-      );
-  }
-}
-
 class _StatusBar extends StatelessWidget {
-  const _StatusBar({required this.timeLabel, required this.framed});
+  const _StatusBar({
+    required this.timeLabel,
+    required this.framed,
+    required this.ink,
+  });
 
   final String timeLabel;
   final bool framed;
+  final Color ink;
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +144,11 @@ class _StatusBar extends StatelessWidget {
         children: [
           Text(
             timeLabel,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: ink,
+            ),
           ),
           const Spacer(),
           const Icon(Icons.signal_cellular_alt, size: 16),
@@ -150,14 +160,14 @@ class _StatusBar extends StatelessWidget {
             height: 11,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(3),
-              border: Border.all(color: Colors.white70),
+              border: Border.all(color: ink.withValues(alpha: 0.7)),
             ),
             alignment: Alignment.centerLeft,
             child: FractionallySizedBox(
               widthFactor: 0.7,
               child: Container(
                 margin: const EdgeInsets.all(1),
-                color: Colors.white,
+                color: ink,
               ),
             ),
           ),
@@ -168,14 +178,19 @@ class _StatusBar extends StatelessWidget {
 }
 
 class _HomeControl extends StatelessWidget {
-  const _HomeControl({required this.skin, required this.onHome});
+  const _HomeControl({
+    required this.chrome,
+    required this.onHome,
+    required this.ink,
+  });
 
-  final String skin;
+  final SkinChrome chrome;
   final VoidCallback onHome;
+  final Color ink;
 
   @override
   Widget build(BuildContext context) {
-    if (skin == 'tiles') {
+    if (chrome == SkinChrome.tiles) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 10, top: 4),
         child: Row(
@@ -197,7 +212,7 @@ class _HomeControl extends StatelessWidget {
         ),
       );
     }
-    if (skin == 'classic') {
+    if (chrome == SkinChrome.classic) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: Center(
@@ -230,6 +245,25 @@ class _HomeControl extends StatelessWidget {
         ),
       );
     }
+    if (chrome == SkinChrome.android) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12, top: 4),
+        child: Center(
+          child: InkWell(
+            onTap: onHome,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: ink.withValues(alpha: 0.75), width: 2),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 4),
       child: Center(
@@ -239,7 +273,7 @@ class _HomeControl extends StatelessWidget {
             width: 128,
             height: 5,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.85),
+              color: ink.withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(99),
             ),
           ),
@@ -298,9 +332,15 @@ class _Banner extends StatelessWidget {
 }
 
 class _CallOverlay extends StatelessWidget {
-  const _CallOverlay({required this.call, this.onAccept, this.onEnd});
+  const _CallOverlay({
+    required this.call,
+    required this.answerMode,
+    this.onAccept,
+    this.onEnd,
+  });
 
   final LiveCall call;
+  final String answerMode;
   final VoidCallback? onAccept;
   final VoidCallback? onEnd;
 
@@ -338,29 +378,114 @@ class _CallOverlay extends StatelessWidget {
               style: const TextStyle(color: kMuted, fontSize: 16),
             ),
             const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                if (ringing && incoming)
+            if (ringing && incoming && answerMode == 'swipe')
+              _SlideToAnswer(onAccept: onAccept, onDecline: onEnd)
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  if (ringing && incoming)
+                    _RoundAction(
+                      key: const Key('call-accept'),
+                      icon: Icons.call,
+                      label: 'Accept',
+                      color: kSignal,
+                      onTap: onAccept,
+                    ),
                   _RoundAction(
-                    key: const Key('call-accept'),
-                    icon: Icons.call,
-                    label: 'Accept',
-                    color: kSignal,
-                    onTap: onAccept,
+                    key: const Key('call-end'),
+                    icon: Icons.call_end,
+                    label: ringing && incoming ? 'Decline' : 'End',
+                    color: kAlert,
+                    onTap: onEnd,
                   ),
-                _RoundAction(
-                  key: const Key('call-end'),
-                  icon: Icons.call_end,
-                  label: ringing && incoming ? 'Decline' : 'End',
-                  color: kAlert,
-                  onTap: onEnd,
-                ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(height: 36),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SlideToAnswer extends StatefulWidget {
+  const _SlideToAnswer({this.onAccept, this.onDecline});
+
+  final VoidCallback? onAccept;
+  final VoidCallback? onDecline;
+
+  @override
+  State<_SlideToAnswer> createState() => _SlideToAnswerState();
+}
+
+class _SlideToAnswerState extends State<_SlideToAnswer> {
+  double _progress = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final travel = constraints.maxWidth - 64;
+              return GestureDetector(
+                onHorizontalDragUpdate: (details) {
+                  setState(() {
+                    _progress = (_progress + details.delta.dx / travel).clamp(
+                      0.0,
+                      1.0,
+                    );
+                  });
+                },
+                onHorizontalDragEnd: (_) {
+                  if (_progress > 0.82) {
+                    widget.onAccept?.call();
+                  } else {
+                    setState(() => _progress = 0);
+                  }
+                },
+                child: Container(
+                  key: const Key('call-accept'),
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  child: Stack(
+                    children: [
+                      const Center(
+                        child: Text(
+                          'slide to answer',
+                          style: TextStyle(color: kMuted),
+                        ),
+                      ),
+                      Positioned(
+                        left: 6 + travel * _progress,
+                        top: 6,
+                        child: const CircleAvatar(
+                          radius: 26,
+                          backgroundColor: kSignal,
+                          child: Icon(Icons.call, color: Colors.black),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 22),
+          _RoundAction(
+            key: const Key('call-end'),
+            icon: Icons.call_end,
+            label: 'Decline',
+            color: kAlert,
+            onTap: widget.onDecline,
+          ),
+        ],
       ),
     );
   }
