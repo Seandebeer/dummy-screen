@@ -81,6 +81,7 @@ class OsSettings {
     this.bankHolder = 'A. Ellis',
     this.bankBalance = 2480,
     this.bankCurrency = 'USD',
+    this.temperature = 18,
   });
 
   final String theme;
@@ -130,6 +131,9 @@ class OsSettings {
   final int bankBalance;
   final String bankCurrency;
 
+  /// Prop temperature shown on the ATM header, in Celsius.
+  final int temperature;
+
   bool get isLight => theme == 'light';
 
   int get ringDelaySeconds {
@@ -177,6 +181,7 @@ class OsSettings {
     String? bankHolder,
     int? bankBalance,
     String? bankCurrency,
+    int? temperature,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -216,6 +221,7 @@ class OsSettings {
     bankHolder: bankHolder ?? this.bankHolder,
     bankBalance: bankBalance ?? this.bankBalance,
     bankCurrency: bankCurrency ?? this.bankCurrency,
+    temperature: temperature ?? this.temperature,
   );
 
   Map<String, dynamic> toJson() => {
@@ -257,6 +263,7 @@ class OsSettings {
     'bankHolder': bankHolder,
     'bankBalance': bankBalance,
     'bankCurrency': bankCurrency,
+    'temperature': temperature,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -316,6 +323,7 @@ class OsSettings {
       bankHolder: json['bankHolder'] as String? ?? 'A. Ellis',
       bankBalance: (json['bankBalance'] as num?)?.toInt() ?? 2480,
       bankCurrency: json['bankCurrency'] as String? ?? 'USD',
+      temperature: _atmTemperature(json['temperature']),
     );
   }
 
@@ -356,6 +364,7 @@ class OsSettings {
         bankHolder == other.bankHolder &&
         bankBalance == other.bankBalance &&
         bankCurrency == other.bankCurrency &&
+        temperature == other.temperature &&
         _sameCodes(dialCodes, other.dialCodes) &&
         _sameOrder(homeOrder, other.homeOrder) &&
         _samePeople(people, other.people) &&
@@ -393,7 +402,15 @@ class OsSettings {
     Object.hashAll(homeOrder),
     Object.hashAll(people.map((person) => person.name)),
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
+    temperature,
   ]);
+}
+
+int _atmTemperature(Object? raw) {
+  final value = (raw as num?)?.toInt() ?? 18;
+  if (value < -99) return -99;
+  if (value > 99) return 99;
+  return value;
 }
 
 class PropPerson {
@@ -460,7 +477,9 @@ bool _samePeople(List<PropPerson> a, List<PropPerson> b) {
 bool _sameGlyphs(List<CustomGlyph> a, List<CustomGlyph> b) {
   if (a.length != b.length) return false;
   for (var i = 0; i < a.length; i++) {
-    if (a[i].id != b[i].id || a[i].name != b[i].name || a[i].image != b[i].image) {
+    if (a[i].id != b[i].id ||
+        a[i].name != b[i].name ||
+        a[i].image != b[i].image) {
       return false;
     }
   }

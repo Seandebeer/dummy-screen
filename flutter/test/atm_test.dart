@@ -1,3 +1,4 @@
+import 'package:dummy_phone/format.dart';
 import 'package:dummy_phone/models.dart';
 import 'package:dummy_phone/phone/atm_chrome.dart';
 import 'package:dummy_phone/phone/atm_home.dart';
@@ -161,6 +162,8 @@ void main() {
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('Bank name'), findsOneWidget);
     expect(find.text('User name'), findsOneWidget);
+    expect(find.text('Time'), findsOneWidget);
+    expect(find.text('Temperature'), findsOneWidget);
     expect(find.text('Currency'), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
 
@@ -176,8 +179,21 @@ void main() {
     );
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.bankHolder, 'Mara Quinn');
+
+    await tester.ensureVisible(find.byKey(const Key('atm-time')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('atm-time')), '21:15');
+    await tester.pump();
+    final shown = propNow(store.deviceById('atm-1')!.clockOffsetMinutes);
+    expect(shown.hour, 21);
+    expect(shown.minute, 15);
+    await tester.enterText(find.byKey(const Key('atm-temperature')), '27');
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.temperature, 27);
     expect(find.byKey(const Key('atm-upload-background')), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('atm-skin-gold')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-skin-gold')));
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.shell, 'gold');
@@ -188,6 +204,8 @@ void main() {
       containsAll(['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'UYU', 'XOF', 'ZWG']),
     );
 
+    await tester.ensureVisible(find.byKey(const Key('atm-currency')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-currency')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('atm-currency-UAH')));
@@ -195,6 +213,8 @@ void main() {
     expect(store.deviceById('atm-1')!.os.bankCurrency, 'UAH');
     expect(find.textContaining('UAH — Ukrainian hryvnia'), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('atm-language-es')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-language-es')));
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.language, 'es');
@@ -228,6 +248,8 @@ void main() {
     expect(find.text('Seleccione su transacción'), findsOneWidget);
     expect(find.text('Harbor Trust'), findsOneWidget);
     expect(find.textContaining('Mara Quinn'), findsOneWidget);
+    expect(find.textContaining('21:15'), findsOneWidget);
+    expect(find.text('27°C'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const Key('atm-slot-0')),
