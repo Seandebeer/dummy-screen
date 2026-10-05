@@ -152,6 +152,8 @@ class _FormOsState extends State<FormOs> {
         portrait: true,
       ),
       _ => _ComputerOs(
+        store: widget.store,
+        device: device,
         shell: _computerShell(os.shell),
         onShell: _shell,
         app: _app,
@@ -197,12 +199,16 @@ const _deskApps = [
 
 class _ComputerOs extends StatelessWidget {
   const _ComputerOs({
+    required this.store,
+    required this.device,
     required this.shell,
     required this.onShell,
     required this.app,
     required this.onOpen,
   });
 
+  final StageStore store;
+  final PropDevice device;
   final String shell;
   final ValueChanged<String> onShell;
   final String? app;
@@ -223,6 +229,8 @@ class _ComputerOs extends StatelessWidget {
           ? null
           : _deskApps.firstWhere((item) => item.$1 == app);
       return MacDesktop(
+        store: store,
+        device: device,
         appTitle: open?.$2,
         tool: open == null ? null : _DeskTool(id: open.$1),
         onOpen: onOpen,

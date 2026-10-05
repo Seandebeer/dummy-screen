@@ -192,7 +192,7 @@ class ExtraSettings extends StatelessWidget {
             ],
           ),
         ),
-        _block('Custom icons', _IconMaker(store: store, device: device)),
+        _block('Custom icons', CustomIconMaker(store: store, device: device)),
       ],
       ),
     );
@@ -228,17 +228,17 @@ class ExtraSettings extends StatelessWidget {
   }
 }
 
-class _IconMaker extends StatefulWidget {
-  const _IconMaker({required this.store, required this.device});
+class CustomIconMaker extends StatefulWidget {
+  const CustomIconMaker({super.key, required this.store, required this.device});
 
   final StageStore store;
   final PropDevice device;
 
   @override
-  State<_IconMaker> createState() => _IconMakerState();
+  State<CustomIconMaker> createState() => _CustomIconMakerState();
 }
 
-class _IconMakerState extends State<_IconMaker> {
+class _CustomIconMakerState extends State<CustomIconMaker> {
   final _name = TextEditingController();
   String _image = '';
   double _scale = 1;

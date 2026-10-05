@@ -1,12 +1,22 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+
+import '../format.dart';
+import '../image_file.dart';
+import '../models.dart';
+import '../os_catalog.dart';
+import '../store.dart';
+import 'mac_desk.dart';
 
 /// macOS desktop matched to the night-dune layout: a full-width menu bar,
 /// one moonlit dune, a compact file column, and a shelf dock.
 class MacDesktop extends StatefulWidget {
   const MacDesktop({
     super.key,
+    required this.store,
+    required this.device,
     required this.appTitle,
     required this.tool,
     required this.onOpen,
@@ -14,6 +24,8 @@ class MacDesktop extends StatefulWidget {
     required this.shells,
   });
 
+  final StageStore store;
+  final PropDevice device;
   final String? appTitle;
   final Widget? tool;
   final ValueChanged<String?> onOpen;
@@ -27,62 +39,221 @@ class MacDesktop extends StatefulWidget {
 class _MacDesktopState extends State<MacDesktop> {
   String? _folder;
   bool _trash = false;
+  String? _panel;
+  String? _loose;
+  String? _dragging;
+  Offset? _dragGlobal;
+  Offset? _dragLocal;
+  final _deskKey = GlobalKey();
+  final _dockKey = GlobalKey();
+  final _slotKeys = <String, GlobalKey>{};
 
-  static const _folders = [
-    ('Documents', _MacFile.page),
-    ('Images', _MacFile.image),
-    ('Movies', _MacFile.film),
-    ('Presentations', _MacFile.slides),
-    ('Spreadsheets', _MacFile.sheet),
-    ('Work', _MacFile.folder),
-    ('Projects', _MacFile.folder),
-  ];
+  PropDevice get _live =>
+      widget.store.deviceById(widget.device.id) ?? widget.device;
 
-  static const _dock = [
-    'call',
-    'tracking',
-    'markers',
-    'video',
-    'word',
-    'excel',
-    'terminal',
-    'social',
-    'photos',
-    'music',
-  ];
+  GlobalKey _slot(String id) => _slotKeys.putIfAbsent(id, GlobalKey.new);
 
-  static const _labels = {
-    'call': 'Call',
-    'tracking': 'Tracking',
-    'markers': 'UI Markers',
-    'video': 'Video',
-    'word': 'Word',
-    'excel': 'Excel',
-    'terminal': 'Terminal',
-    'social': 'Social',
-    'photos': 'Photos',
-    'music': 'Music',
-  };
+  Size get _area {
+    final box = _deskKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize && box.size.width > 0) return box.size;
+    return const Size(800, 500);
+  }
+
+  void _save(OsSettings Function(OsSettings current) change) {
+    widget.store.updateOs(widget.device.id, change);
+    setState(() {});
+  }
 
   void _openFolder(String name) {
     setState(() {
       _folder = name;
       _trash = false;
+      _panel = null;
+      _loose = null;
     });
     widget.onOpen(null);
   }
 
   void _openApp(String id) {
+    final desk = kMacDeskApps.contains(id);
     setState(() {
       _folder = null;
       _trash = false;
+      if (id == 'settings' || id == 'appstore') {
+        _panel = id;
+        _loose = null;
+      } else if (desk) {
+        _panel = null;
+        _loose = null;
+      } else {
+        _panel = null;
+        _loose = id;
+      }
     });
-    widget.onOpen(id);
+    widget.onOpen(desk ? id : null);
+  }
+
+  void _closeWindow() {
+    setState(() {
+      _folder = null;
+      _trash = false;
+      _panel = null;
+      _loose = null;
+    });
+    widget.onOpen(null);
+  }
+
+  void _pan(String id, DragUpdateDetails details) {
+    final box = _deskKey.currentContext?.findRenderObject() as RenderBox?;
+    setState(() {
+      _dragging = id;
+      _dragGlobal = details.globalPosition;
+      if (box != null && box.hasSize) {
+        _dragLocal = MacLayout.clampSpot(
+          box.globalToLocal(details.globalPosition) - const Offset(54, 32),
+          box.size,
+        );
+      }
+    });
+  }
+
+  void _endPan() {
+    final id = _dragging;
+    final global = _dragGlobal;
+    final local = _dragLocal;
+    setState(() {
+      _dragging = null;
+      _dragGlobal = null;
+      _dragLocal = null;
+    });
+    if (id == null || global == null) return;
+    final os = _live.os;
+    if (_hit(_dockKey, global) && !id.startsWith('file:')) {
+      _dropOnDock(os, id, global);
+      return;
+    }
+    if (local != null) _dropOnDesk(os, id, local);
+  }
+
+  bool _hit(GlobalKey key, Offset global) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return false;
+    final local = box.globalToLocal(global);
+    return local.dx >= 0 &&
+        local.dy >= 0 &&
+        local.dx <= box.size.width &&
+        local.dy <= box.size.height;
+  }
+
+  int _dockIndex(List<String> dock, Offset global) {
+    for (var i = 0; i < dock.length; i++) {
+      final box =
+          _slot('dock:${dock[i]}').currentContext?.findRenderObject()
+              as RenderBox?;
+      if (box == null || !box.hasSize) continue;
+      final center = box.localToGlobal(box.size.center(Offset.zero));
+      if (global.dx < center.dx) return i;
+    }
+    return dock.length;
+  }
+
+  void _dropOnDock(OsSettings os, String id, Offset global) {
+    final dock = [...MacLayout.dock(os)];
+    final from = dock.indexOf(id);
+    var to = _dockIndex(dock, global);
+    if (from >= 0 && to > from) to -= 1;
+    if (from >= 0) dock.removeAt(from);
+    dock.insert(to.clamp(0, dock.length), id);
+    final spots = Map<String, Offset>.from(MacLayout.spots(os, _area))
+      ..remove(id);
+    _save((current) {
+      var next = MacLayout.writeDock(current, dock);
+      if (MacLayout.desktop(current).contains(id) ||
+          MacLayout.deskCustom(current)) {
+        next = MacLayout.writeDesktop(next, spots, _area);
+      }
+      return next;
+    });
+  }
+
+  void _dropOnDesk(OsSettings os, String id, Offset local) {
+    final spots = Map<String, Offset>.from(MacLayout.spots(os, _area));
+    spots[id] = MacLayout.clampSpot(local, _area);
+    final dock = [...MacLayout.dock(os)]..remove(id);
+    _save((current) {
+      var next = MacLayout.writeDesktop(current, spots, _area);
+      if (!id.startsWith('file:') && MacLayout.dock(current).contains(id)) {
+        next = MacLayout.writeDock(next, dock);
+      }
+      return next;
+    });
+  }
+
+  void _shiftDock(String id, int delta) {
+    final dock = [...MacLayout.dock(_live.os)];
+    final index = dock.indexOf(id);
+    if (index < 0) return;
+    final next = index + delta;
+    if (next < 0 || next >= dock.length) return;
+    dock.removeAt(index);
+    dock.insert(next, id);
+    _save((current) => MacLayout.writeDock(current, dock));
+  }
+
+  void _toDesktop(String id) {
+    if (id.startsWith('file:')) return;
+    final os = _live.os;
+    final spots = Map<String, Offset>.from(MacLayout.spots(os, _area));
+    if (!spots.containsKey(id)) {
+      final extras = spots.keys.where((item) => !item.startsWith('file:')).length;
+      spots[id] = MacLayout.clampSpot(
+        Offset(16 + (extras % 4) * 116, 16 + (extras ~/ 4) * 86),
+        _area,
+      );
+    }
+    final dock = [...MacLayout.dock(os)]..remove(id);
+    _save(
+      (current) => MacLayout.writeDock(
+        MacLayout.writeDesktop(current, spots, _area),
+        dock,
+      ),
+    );
+  }
+
+  void _toDock(String id) {
+    if (id.startsWith('file:')) return;
+    final os = _live.os;
+    final dock = [...MacLayout.dock(os)];
+    if (!dock.contains(id)) dock.add(id);
+    final spots = Map<String, Offset>.from(MacLayout.spots(os, _area))
+      ..remove(id);
+    _save((current) {
+      var next = MacLayout.writeDock(current, dock);
+      if (MacLayout.desktop(current).contains(id) ||
+          MacLayout.deskCustom(current)) {
+        next = MacLayout.writeDesktop(next, spots, _area);
+      }
+      return next;
+    });
+  }
+
+  void _nudge(String id, double dx, double dy) {
+    final spots = MacLayout.spots(_live.os, _area);
+    final origin = spots[id] ?? const Offset(16, 16);
+    _dropOnDesk(_live.os, id, origin + Offset(dx, dy));
   }
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) => _scene(_live),
+    );
+  }
+
+  Widget _scene(PropDevice live) {
+    final os = live.os;
+    final now = propNow(live.clockOffsetMinutes);
     final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
     final minute = now.minute.toString().padLeft(2, '0');
     final day = const [
@@ -95,19 +266,20 @@ class _MacDesktopState extends State<MacDesktop> {
       'Sun',
     ][now.weekday - 1];
     final clock = '$day $hour:$minute ${now.hour < 12 ? 'AM' : 'PM'}';
+    final loose = _loose == null ? null : macGlyph(_loose!, os);
     return Material(
       type: MaterialType.transparency,
       child: Stack(
         key: const Key('mac-desktop'),
         fit: StackFit.expand,
         children: [
-          const CustomPaint(painter: _Dunes(), child: SizedBox.expand()),
+          _wallpaper(os),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _menu(clock),
-              Expanded(child: _files()),
-              _dockBar(),
+              _menu(clock, os),
+              Expanded(child: _desktop(os)),
+              _dockBar(os),
             ],
           ),
           if (_folder != null)
@@ -131,7 +303,51 @@ class _MacDesktopState extends State<MacDesktop> {
                 ),
               ),
             ),
-          if (widget.tool != null)
+          if (_panel == 'settings')
+            Center(
+              child: _MacWindow(
+                title: 'Settings',
+                large: true,
+                onClose: _closeWindow,
+                child: MacSettings(
+                  store: widget.store,
+                  device: live,
+                  onShiftDock: _shiftDock,
+                  onToDesktop: _toDesktop,
+                  onToDock: _toDock,
+                  onNudge: _nudge,
+                ),
+              ),
+            )
+          else if (_panel == 'appstore')
+            Center(
+              child: _MacWindow(
+                title: 'App Store',
+                large: true,
+                onClose: _closeWindow,
+                child: MacAppStore(
+                  store: widget.store,
+                  device: live,
+                  onDock: _toDock,
+                  onDesktop: _toDesktop,
+                ),
+              ),
+            )
+          else if (loose != null)
+            Center(
+              child: _MacWindow(
+                title: loose.label,
+                onClose: _closeWindow,
+                child: Center(
+                  child: Text(
+                    loose.label,
+                    key: const Key('mac-loose-title'),
+                    style: const TextStyle(color: Color(0xFF1D1D1F)),
+                  ),
+                ),
+              ),
+            )
+          else if (widget.tool != null)
             Center(
               child: _MacWindow(
                 title: widget.appTitle ?? '',
@@ -144,44 +360,142 @@ class _MacDesktopState extends State<MacDesktop> {
     );
   }
 
-  Widget _files() {
+  Widget _wallpaper(OsSettings os) {
+    final image = os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty
+        ? imageProviderForPath(os.backgroundUrl)
+        : null;
+    final dune = image == null && os.backgroundPreset == 'default' && !os.isLight;
+    if (dune) {
+      return const CustomPaint(
+        key: Key('mac-wall-dune'),
+        painter: _Dunes(),
+        child: SizedBox.expand(),
+      );
+    }
+    return DecoratedBox(
+      key: const Key('mac-wall-custom'),
+      decoration: BoxDecoration(
+        gradient: gradientFor(os.backgroundPreset, light: os.isLight),
+        image: image == null
+            ? null
+            : DecorationImage(image: image, fit: BoxFit.cover),
+      ),
+      child: const SizedBox.expand(),
+    );
+  }
+
+  Widget _desktop(OsSettings os) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const block = 64.0;
-        final gaps = _folders.length - 1;
-        final free = constraints.maxHeight - 12 - block * _folders.length;
-        final gap = gaps == 0 ? 0.0 : (free / gaps).clamp(12.0, 30.0);
-        return Padding(
-          padding: const EdgeInsets.only(top: 8, right: 18),
-          child: Align(
-            alignment: Alignment.topRight,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.topRight,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < _folders.length; i++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: i == _folders.length - 1 ? 0 : gap,
-                      ),
-                      child: _DesktopFile(
-                        name: _folders[i].$1,
-                        kind: _folders[i].$2,
-                        onTap: () => _openFolder(_folders[i].$1),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+        final area = constraints.biggest;
+        final spots = MacLayout.spots(os, area);
+        final ids = MacLayout.desktop(os);
+        return SizedBox(
+          key: _deskKey,
+          width: area.width,
+          height: area.height,
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              for (final id in ids)
+                if (spots[id] case final spot?)
+                  Positioned(
+                    left: _dragging == id && _dragLocal != null
+                        ? _dragLocal!.dx
+                        : spot.dx,
+                    top: _dragging == id && _dragLocal != null
+                        ? _dragLocal!.dy
+                        : spot.dy,
+                    child: _deskIcon(id, os),
+                  ),
+              if (_dragging != null &&
+                  _dragLocal != null &&
+                  !ids.contains(_dragging))
+                Positioned(
+                  left: _dragLocal!.dx,
+                  top: _dragLocal!.dy,
+                  child: IgnorePointer(
+                    child: _deskIcon(_dragging!, os, ghost: true),
+                  ),
+                ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _menu(String clock) {
+  Widget _deskIcon(String id, OsSettings os, {bool ghost = false}) {
+    final spec = macGlyph(id, os);
+    final dragging = _dragging == id && !ghost;
+    if (id.startsWith('file:')) {
+      return Opacity(
+        opacity: dragging ? 0.35 : 1,
+        child: _DesktopFile(
+          name: spec.label,
+          kind: _fileKind(spec.label),
+          onTap: ghost ? () {} : () => _openFolder(spec.label),
+          onPanUpdate: ghost ? null : (details) => _pan(id, details),
+          onPanEnd: ghost ? null : (_) => _endPan(),
+        ),
+      );
+    }
+    return Opacity(
+      opacity: dragging ? 0.35 : 1,
+      child: _DeskApp(
+        label: spec.label,
+        tileKey: Key('mac-desk-$id'),
+        onTap: ghost ? () {} : () => _openApp(id),
+        onPanUpdate: ghost ? null : (details) => _pan(id, details),
+        onPanEnd: ghost ? null : (_) => _endPan(),
+        child: _glyph(id, os),
+      ),
+    );
+  }
+
+  _MacFile _fileKind(String name) {
+    return switch (name) {
+      'Images' => _MacFile.image,
+      'Movies' => _MacFile.film,
+      'Presentations' => _MacFile.slides,
+      'Spreadsheets' => _MacFile.sheet,
+      'Documents' => _MacFile.page,
+      _ => _MacFile.folder,
+    };
+  }
+
+  Widget _glyph(String id, OsSettings os, {double size = 36}) {
+    final spec = macGlyph(id, os);
+    if (spec.image.isNotEmpty) {
+      final provider = imageProviderForPath(spec.image);
+      if (provider != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image(
+            image: provider,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+          ),
+        );
+      }
+    }
+    if (kMacPainted.contains(id)) {
+      return CustomPaint(painter: _DockGlyph(id), size: Size(size, size));
+    }
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: spec.color,
+        borderRadius: BorderRadius.circular(size * 0.24),
+      ),
+      child: Icon(spec.icon, color: Colors.white, size: size * 0.55),
+    );
+  }
+
+  Widget _menu(String clock, OsSettings os) {
     const itemStyle = TextStyle(
       color: Colors.white,
       fontSize: 13,
@@ -230,40 +544,11 @@ class _MacDesktopState extends State<MacDesktop> {
                       ),
                     ),
                   ),
-                  const CustomPaint(
-                    size: Size(15, 12),
-                    painter: _WifiPainter(),
-                  ),
-                  const SizedBox(width: 8),
-                  const CustomPaint(
-                    size: Size(23, 11),
-                    painter: _BatteryPainter(),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(clock, style: itemStyle.copyWith(fontSize: 12)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.search, color: Colors.white, size: 15),
-                  const SizedBox(width: 6),
-                  PopupMenuButton<String>(
-                    tooltip: 'Control Center',
-                    padding: EdgeInsets.zero,
-                    splashRadius: 12,
-                    offset: const Offset(0, 18),
-                    style: const ButtonStyle(
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                      padding: WidgetStatePropertyAll(EdgeInsets.zero),
-                      minimumSize: WidgetStatePropertyAll(Size(18, 18)),
-                    ),
-                    onSelected: widget.onShell,
-                    itemBuilder: (context) => [
-                      for (final item in widget.shells)
-                        PopupMenuItem(value: item.$1, child: Text(item.$2)),
-                    ],
-                    child: const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CustomPaint(painter: _ControlPainter()),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: _status(clock, os, itemStyle),
                     ),
                   ),
                 ],
@@ -275,10 +560,106 @@ class _MacDesktopState extends State<MacDesktop> {
     );
   }
 
-  Widget _dockBar() {
+  List<Widget> _status(String clock, OsSettings os, TextStyle itemStyle) {
+    final shown = MacLayout.status(os).toSet();
+    const gap = SizedBox(width: 8);
+    return [
+      if (shown.contains('network') && os.networkName.isNotEmpty) ...[
+        Text(
+          os.networkName,
+          key: const Key('mac-menu-network'),
+          style: itemStyle.copyWith(fontSize: 12),
+        ),
+        gap,
+      ],
+      if (shown.contains('wifi')) ...[
+        CustomPaint(
+          key: Key(os.wifi ? 'mac-menu-wifi' : 'mac-menu-wifi-off'),
+          size: const Size(15, 12),
+          painter: _WifiPainter(enabled: os.wifi),
+        ),
+        gap,
+      ],
+      if (shown.contains('battery')) ...[
+        CustomPaint(
+          size: const Size(23, 11),
+          painter: _BatteryPainter(level: os.battery / 100),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${os.battery}%',
+          key: const Key('mac-menu-battery'),
+          style: itemStyle.copyWith(fontSize: 12),
+        ),
+        gap,
+      ],
+      if (shown.contains('bluetooth') && os.bluetooth) ...[
+        Icon(
+          Icons.bluetooth,
+          key: const Key('mac-menu-bluetooth'),
+          color: Colors.white,
+          size: 14,
+        ),
+        gap,
+      ],
+      if (shown.contains('alarm') && os.showAlarm) ...[
+        Icon(
+          Icons.alarm,
+          key: const Key('mac-menu-alarm'),
+          color: Colors.white,
+          size: 14,
+        ),
+        gap,
+      ],
+      if (shown.contains('clock')) ...[
+        Text(
+          clock,
+          key: const Key('mac-menu-clock'),
+          style: itemStyle.copyWith(fontSize: 12),
+        ),
+        gap,
+      ],
+      if (shown.contains('search')) ...[
+        Icon(
+          Icons.search,
+          key: const Key('mac-menu-search'),
+          color: Colors.white,
+          size: 15,
+        ),
+        const SizedBox(width: 6),
+      ],
+      if (shown.contains('control'))
+        PopupMenuButton<String>(
+          tooltip: 'Control Center',
+          padding: EdgeInsets.zero,
+          splashRadius: 12,
+          offset: const Offset(0, 18),
+          style: const ButtonStyle(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            padding: WidgetStatePropertyAll(EdgeInsets.zero),
+            minimumSize: WidgetStatePropertyAll(Size(18, 18)),
+          ),
+          onSelected: widget.onShell,
+          itemBuilder: (context) => [
+            for (final item in widget.shells)
+              PopupMenuItem(value: item.$1, child: Text(item.$2)),
+          ],
+          child: const SizedBox(
+            key: Key('mac-menu-control'),
+            width: 18,
+            height: 18,
+            child: CustomPaint(painter: _ControlPainter()),
+          ),
+        ),
+    ];
+  }
+
+  Widget _dockBar(OsSettings os) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 5),
       child: FittedBox(
+        key: _dockKey,
         fit: BoxFit.scaleDown,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -295,14 +676,17 @@ class _MacDesktopState extends State<MacDesktop> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final id in _dock)
-                      _DockButton(
-                        label: _labels[id]!,
-                        tileKey: Key('mac-dock-$id'),
-                        onTap: () => _openApp(id),
-                        child: CustomPaint(
-                          painter: _DockGlyph(id),
-                          size: const Size(36, 36),
+                    for (final id in MacLayout.dock(os))
+                      KeyedSubtree(
+                        key: _slot('dock:$id'),
+                        child: _DockButton(
+                          label: macGlyph(id, os).label,
+                          tileKey: Key('mac-dock-$id'),
+                          dim: _dragging == id,
+                          onTap: () => _openApp(id),
+                          onPanUpdate: (details) => _pan(id, details),
+                          onPanEnd: (_) => _endPan(),
+                          child: _glyph(id, os),
                         ),
                       ),
                     const SizedBox(width: 8),
@@ -329,6 +713,8 @@ class _MacDesktopState extends State<MacDesktop> {
                         setState(() {
                           _folder = null;
                           _trash = true;
+                          _panel = null;
+                          _loose = null;
                         });
                       },
                       child: const CustomPaint(
@@ -374,11 +760,15 @@ class _DesktopFile extends StatelessWidget {
     required this.name,
     required this.kind,
     required this.onTap,
+    this.onPanUpdate,
+    this.onPanEnd,
   });
 
   final String name;
   final _MacFile kind;
   final VoidCallback onTap;
+  final GestureDragUpdateCallback? onPanUpdate;
+  final GestureDragEndCallback? onPanEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -386,6 +776,8 @@ class _DesktopFile extends StatelessWidget {
       key: Key('mac-file-$name'),
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
+      onPanUpdate: onPanUpdate,
+      onPanEnd: onPanEnd,
       child: SizedBox(
         width: 108,
         child: Column(
@@ -689,12 +1081,18 @@ class _DockButton extends StatelessWidget {
     required this.tileKey,
     required this.onTap,
     required this.child,
+    this.onPanUpdate,
+    this.onPanEnd,
+    this.dim = false,
   });
 
   final String label;
   final Key tileKey;
   final VoidCallback onTap;
   final Widget child;
+  final GestureDragUpdateCallback? onPanUpdate;
+  final GestureDragEndCallback? onPanEnd;
+  final bool dim;
 
   @override
   Widget build(BuildContext context) {
@@ -704,7 +1102,63 @@ class _DockButton extends StatelessWidget {
         key: tileKey,
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: SizedBox(width: 42, height: 40, child: Center(child: child)),
+        onPanUpdate: onPanUpdate,
+        onPanEnd: onPanEnd,
+        child: Opacity(
+          opacity: dim ? 0.35 : 1,
+          child: SizedBox(width: 42, height: 40, child: Center(child: child)),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeskApp extends StatelessWidget {
+  const _DeskApp({
+    required this.label,
+    required this.tileKey,
+    required this.onTap,
+    required this.child,
+    this.onPanUpdate,
+    this.onPanEnd,
+  });
+
+  final String label;
+  final Key tileKey;
+  final VoidCallback onTap;
+  final Widget child;
+  final GestureDragUpdateCallback? onPanUpdate;
+  final GestureDragEndCallback? onPanEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: tileKey,
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onPanUpdate: onPanUpdate,
+      onPanEnd: onPanEnd,
+      child: SizedBox(
+        width: 108,
+        child: Column(
+          children: [
+            child,
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                height: 1.1,
+                shadows: [Shadow(color: Color(0xE6000000), blurRadius: 3)],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -773,6 +1227,18 @@ class _DockGlyph extends CustomPainter {
           Color(0xFFFF375F),
         ]);
         _note(canvas, rect);
+      case 'settings':
+        _fill(canvas, rect, radius, const [
+          Color(0xFF8E8E93),
+          Color(0xFF636366),
+        ]);
+        _gear(canvas, rect);
+      case 'appstore':
+        _fill(canvas, rect, radius, const [
+          Color(0xFF64A0FF),
+          Color(0xFF0A84FF),
+        ]);
+        _bag(canvas, rect);
       default:
         _fill(canvas, rect, radius, const [
           Color(0xFF8E8E93),
@@ -1016,6 +1482,60 @@ class _DockGlyph extends CustomPainter {
     );
   }
 
+  void _gear(Canvas canvas, Rect rect) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    final center = rect.center;
+    canvas.drawCircle(center, rect.width * 0.16, paint);
+    canvas.drawCircle(center, rect.width * 0.28, paint);
+    final tooth = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 8; i++) {
+      final angle = i * math.pi / 4;
+      final inner = Offset(
+        center.dx + rect.width * 0.22 * math.cos(angle),
+        center.dy + rect.width * 0.22 * math.sin(angle),
+      );
+      final outer = Offset(
+        center.dx + rect.width * 0.34 * math.cos(angle),
+        center.dy + rect.width * 0.34 * math.sin(angle),
+      );
+      canvas.drawLine(inner, outer, tooth);
+    }
+  }
+
+  void _bag(Canvas canvas, Rect rect) {
+    final paint = Paint()..color = Colors.white;
+    final bag = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: rect.center.translate(0, 2),
+        width: rect.width * 0.46,
+        height: rect.height * 0.4,
+      ),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(bag, paint);
+    final handle = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: rect.center.translate(0, -2),
+        width: rect.width * 0.28,
+        height: rect.height * 0.28,
+      ),
+      3.4,
+      2.6,
+      false,
+      handle,
+    );
+  }
+
   void _note(Canvas canvas, Rect rect) {
     final paint = Paint()..color = Colors.white;
     canvas.drawCircle(
@@ -1092,7 +1612,9 @@ class _TrashPainter extends CustomPainter {
 }
 
 class _WifiPainter extends CustomPainter {
-  const _WifiPainter();
+  const _WifiPainter({this.enabled = true});
+
+  final bool enabled;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1121,14 +1643,26 @@ class _WifiPainter extends CustomPainter {
       1.15,
       Paint()..color = Colors.white,
     );
+    if (!enabled) {
+      canvas.drawLine(
+        Offset(size.width * 0.15, size.height * 0.2),
+        Offset(size.width * 0.85, size.height * 0.85),
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 1.2,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _WifiPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _WifiPainter oldDelegate) =>
+      oldDelegate.enabled != enabled;
 }
 
 class _BatteryPainter extends CustomPainter {
-  const _BatteryPainter();
+  const _BatteryPainter({this.level = 0.8});
+
+  final double level;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1141,9 +1675,10 @@ class _BatteryPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawRRect(body, stroke);
+    final fill = ((size.width - 7) * level.clamp(0, 1)).clamp(0, size.width - 7);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        const Rect.fromLTWH(2, 3, 14, 5),
+        Rect.fromLTWH(2, 3, fill.toDouble(), 5),
         const Radius.circular(0.8),
       ),
       Paint()..color = Colors.white,
@@ -1163,7 +1698,8 @@ class _BatteryPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _BatteryPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _BatteryPainter oldDelegate) =>
+      oldDelegate.level != level;
 }
 
 class _ControlPainter extends CustomPainter {
@@ -1199,16 +1735,21 @@ class _MacWindow extends StatelessWidget {
     required this.title,
     required this.child,
     required this.onClose,
+    this.large = false,
   });
 
   final String title;
   final Widget child;
   final VoidCallback onClose;
+  final bool large;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 460, maxHeight: 280),
+      constraints: BoxConstraints(
+        maxWidth: large ? 640 : 460,
+        maxHeight: large ? 420 : 280,
+      ),
       child: Material(
         color: const Color(0xFFF5F5F7),
         elevation: 18,

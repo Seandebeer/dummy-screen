@@ -85,6 +85,10 @@ class OsSettings {
     this.bankNotes = const [20, 50, 100],
     this.bankKeypad = 'screen',
     this.panelNames = const {},
+    this.macDock = const [],
+    this.macDesktop = const [],
+    this.macPlaces = const {},
+    this.macStatus = const [],
   });
 
   final String theme;
@@ -146,6 +150,22 @@ class OsSettings {
   /// Custom labels for smart-home panels, keyed by panel id.
   final Map<String, String> panelNames;
 
+  /// Mac dock app ids, left to right. Empty uses the built-in shelf.
+  /// A single `-` means the shelf was cleared on purpose.
+  final List<String> macDock;
+
+  /// Mac desktop icon ids. Empty uses the built-in file column until
+  /// [macPlaces] records a layout.
+  final List<String> macDesktop;
+
+  /// Desktop positions as `x,y` thousandths of the desktop area.
+  /// A `_` entry means the layout was saved.
+  final Map<String, String> macPlaces;
+
+  /// Menu-bar status tokens. Empty uses the built-in set.
+  /// A single `-` means every status item was hidden.
+  final List<String> macStatus;
+
   bool get isLight => theme == 'light';
 
   int get ringDelaySeconds {
@@ -197,6 +217,10 @@ class OsSettings {
     List<int>? bankNotes,
     String? bankKeypad,
     Map<String, String>? panelNames,
+    List<String>? macDock,
+    List<String>? macDesktop,
+    Map<String, String>? macPlaces,
+    List<String>? macStatus,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -240,6 +264,10 @@ class OsSettings {
     bankNotes: bankNotes ?? this.bankNotes,
     bankKeypad: bankKeypad ?? this.bankKeypad,
     panelNames: panelNames ?? this.panelNames,
+    macDock: macDock ?? this.macDock,
+    macDesktop: macDesktop ?? this.macDesktop,
+    macPlaces: macPlaces ?? this.macPlaces,
+    macStatus: macStatus ?? this.macStatus,
   );
 
   Map<String, dynamic> toJson() => {
@@ -285,6 +313,10 @@ class OsSettings {
     'bankNotes': bankNotes,
     'bankKeypad': bankKeypad,
     'panelNames': panelNames,
+    'macDock': macDock,
+    'macDesktop': macDesktop,
+    'macPlaces': macPlaces,
+    'macStatus': macStatus,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -348,6 +380,10 @@ class OsSettings {
       bankNotes: _atmNotes(json['bankNotes']),
       bankKeypad: json['bankKeypad'] == 'external' ? 'external' : 'screen',
       panelNames: _panelNames(json['panelNames']),
+      macDock: _idList(json['macDock']),
+      macDesktop: _idList(json['macDesktop']),
+      macPlaces: _panelNames(json['macPlaces']),
+      macStatus: _idList(json['macStatus']),
     );
   }
 
@@ -394,6 +430,10 @@ class OsSettings {
         _sameNames(panelNames, other.panelNames) &&
         _sameCodes(dialCodes, other.dialCodes) &&
         _sameOrder(homeOrder, other.homeOrder) &&
+        _sameOrder(macDock, other.macDock) &&
+        _sameOrder(macDesktop, other.macDesktop) &&
+        _sameOrder(macStatus, other.macStatus) &&
+        _sameNames(macPlaces, other.macPlaces) &&
         _samePeople(people, other.people) &&
         _sameGlyphs(glyphs, other.glyphs);
   }
@@ -427,6 +467,13 @@ class OsSettings {
     shell,
     Object.hashAll(dialCodes),
     Object.hashAll(homeOrder),
+    Object.hashAll(macDock),
+    Object.hashAll(macDesktop),
+    Object.hashAll(macStatus),
+    Object.hashAll([
+      for (final key in (macPlaces.keys.toList()..sort()))
+        '$key=${macPlaces[key]}',
+    ]),
     Object.hashAll(people.map((person) => person.name)),
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
     temperature,
@@ -518,6 +565,10 @@ bool _sameGlyphs(List<CustomGlyph> a, List<CustomGlyph> b) {
   }
   return true;
 }
+
+List<String> _idList(Object? raw) => [
+  for (final item in jsonList(raw)) item.toString(),
+].where((id) => id.isNotEmpty).toList();
 
 List<int> _atmNotes(Object? raw) {
   final notes = <int>{};
