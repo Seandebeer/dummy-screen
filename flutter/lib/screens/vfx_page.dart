@@ -10,6 +10,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../vfx/catalog.dart';
+import '../vfx/colour_picker.dart';
 import '../vfx/mark_glyph.dart';
 import '../widgets/prompt.dart';
 import '../widgets/three_finger.dart';
@@ -686,10 +687,13 @@ class _VfxPageState extends State<VfxPage> {
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xCC000000),
+      isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheet) {
             return SafeArea(
+              child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.86),
               child: ListView(
                 shrinkWrap: true,
                 padding: const EdgeInsets.all(16),
@@ -715,13 +719,10 @@ class _VfxPageState extends State<VfxPage> {
                           setSheet(() {});
                         },
                       ),
-                    ListTile(
-                      leading: const Icon(Icons.colorize, color: Colors.white70),
-                      title: const Text('Custom colour', style: TextStyle(color: Colors.white)),
-                      subtitle: Text(_bgColor ?? '', style: const TextStyle(color: Colors.white38)),
-                      onTap: () async {
-                        final hex = await _askHex('Background colour', _bgColor ?? '#00B140');
-                        if (hex == null) return;
+                    PaletteColourPicker(
+                      label: 'Custom colour',
+                      selected: _bgColor,
+                      onPick: (hex) {
                         setState(() => _bgColor = hex);
                         _persist();
                         setSheet(() {});
@@ -749,12 +750,10 @@ class _VfxPageState extends State<VfxPage> {
                         for (final color in markColors) _markDot(hexOf(color.$2), setSheet, fill: color.$2),
                       ],
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.colorize, color: Colors.white70),
-                      title: const Text('Custom mark colour', style: TextStyle(color: Colors.white)),
-                      onTap: () async {
-                        final hex = await _askHex('Mark colour', _markColor ?? '#FFFFFF');
-                        if (hex == null) return;
+                    PaletteColourPicker(
+                      label: 'Custom mark colour',
+                      selected: _markColor,
+                      onPick: (hex) {
                         setState(() => _markColor = hex);
                         _persist();
                         setSheet(() {});
@@ -788,6 +787,7 @@ class _VfxPageState extends State<VfxPage> {
                   ],
                 ],
               ),
+              ),
             );
           },
         );
@@ -816,38 +816,6 @@ class _VfxPageState extends State<VfxPage> {
         ),
       ),
     );
-  }
-
-  Future<String?> _askHex(String title, String initial) async {
-    final controller = TextEditingController(text: initial);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1E),
-          title: Text(title, style: const TextStyle(color: Colors.white)),
-          content: TextField(
-            controller: controller,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(hintText: '#00B140'),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                final raw = controller.text.trim();
-                final hex = raw.startsWith('#') ? raw : '#$raw';
-                if (!RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(hex)) return;
-                Navigator.pop(context, hex.toUpperCase());
-              },
-              child: const Text('Use'),
-            ),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    return result;
   }
 
   Future<void> _overlaySheet() async {

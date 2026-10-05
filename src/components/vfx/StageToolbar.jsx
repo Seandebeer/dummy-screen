@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Eye, EyeOff, ImagePlus, Lock, Palette, Plus, RotateCc
 import { base44 } from "@/api/base44Client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
+import CustomColour from "@/components/vfx/CustomColour";
 import { OverlayControl } from "@/components/vfx/OverlayImage";
 import { compositeMarks, trackingMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
@@ -84,14 +85,13 @@ export default function StageToolbar({
                     {colorId === c.id && <Check size={12} className="ml-auto text-amber" />}
                   </button>
                 ))}
-                <label className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10 cursor-pointer">
-                  <input type="color" title="Custom background colour"
-                    value={marks.bgColor || "#00A651"}
-                    onChange={(e) => onBgColor(e.target.value)}
-                    className="h-4 w-4 shrink-0 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
-                  Custom colour
-                  {marks.bgColor && <X size={12} className="ml-auto text-white/60" onClick={(e) => { e.preventDefault(); onBgColor(null); }} />}
-                </label>
+                <CustomColour value={marks.bgColor} onChange={onBgColor} />
+                {marks.bgColor && (
+                  <button type="button" onClick={() => onBgColor(null)}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10">
+                    <X size={14} /> Clear custom colour
+                  </button>
+                )}
               </>)}
               {marksId !== "checkerboard" && marksId !== "none" && (
                 <div className="mt-2 border-t border-white/10 pt-2">
@@ -108,13 +108,7 @@ export default function StageToolbar({
                         style={{ background: c.hex }} />
                     ))}
                   </div>
-                  <label className="mt-1.5 flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10 cursor-pointer">
-                    <input type="color" title="Custom mark colour"
-                      value={marks.markColor || "#FFFFFF"}
-                      onChange={(e) => onMarkColor(e.target.value)}
-                      className="h-4 w-4 shrink-0 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
-                    Custom colour
-                  </label>
+                  <CustomColour label="Custom mark colour" value={marks.markColor} onChange={onMarkColor} />
                 </div>
               )}
               {marksId !== "checkerboard" && (
