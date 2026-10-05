@@ -39,7 +39,9 @@ class _Ps5HomeState extends State<Ps5Home> {
   @override
   Widget build(BuildContext context) {
     final now = propNow(widget.device.clockOffsetMinutes);
-    final featured = widget.device.os.steamTitle.trim().isEmpty ? 'Night Run' : widget.device.os.steamTitle.trim();
+    final featured = widget.device.os.steamTitle.trim().isEmpty
+        ? 'Night Run'
+        : widget.device.os.steamTitle.trim();
     final cover = imageProviderForPath(widget.device.os.steamCover);
     return Stack(
       key: const Key('ps5-home'),
@@ -49,14 +51,24 @@ class _Ps5HomeState extends State<Ps5Home> {
         LayoutBuilder(
           builder: (context, constraints) {
             final metrics = _Metrics(constraints.biggest);
-            final chrome = metrics.pad + metrics.header + metrics.gap + metrics.strip + metrics.gap;
+            final chrome =
+                metrics.pad +
+                metrics.header +
+                metrics.gap +
+                metrics.strip +
+                metrics.gap;
             final room = math.max(0.0, metrics.h - chrome);
             final wanted = metrics.h * (metrics.tight ? 0.66 : 0.56);
             final cardsH = math.min(wanted, room);
             return _Scope(
               metrics: metrics,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(metrics.pad, metrics.pad * 0.45, 0, metrics.pad * 0.4),
+                padding: EdgeInsets.fromLTRB(
+                  metrics.pad,
+                  metrics.pad * 0.45,
+                  0,
+                  metrics.pad * 0.4,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -77,7 +89,14 @@ class _Ps5HomeState extends State<Ps5Home> {
                         child: _GameStrip(cover: cover, onOpen: widget.onOpen),
                       ),
                       const Spacer(),
-                      SizedBox(height: cardsH, child: _Cards(featured: featured, cover: cover, onOpen: widget.onOpen)),
+                      SizedBox(
+                        height: cardsH,
+                        child: _Cards(
+                          featured: featured,
+                          cover: cover,
+                          onOpen: widget.onOpen,
+                        ),
+                      ),
                     ] else
                       Expanded(
                         child: Padding(
@@ -174,16 +193,25 @@ class _Header extends StatelessWidget {
             color: const Color(0xFF1C1C1E),
             onSelected: onShell,
             itemBuilder: (context) => [
-              for (final item in shells) PopupMenuItem(value: item.$1, child: Text(item.$2)),
+              for (final item in shells)
+                PopupMenuItem(value: item.$1, child: Text(item.$2)),
             ],
-            child: Icon(Icons.settings, color: Colors.white, size: metrics.fs(18)),
+            child: Icon(
+              Icons.settings,
+              color: Colors.white,
+              size: metrics.fs(18),
+            ),
           ),
           SizedBox(width: metrics.gap),
           Icon(Icons.crop_square, color: Colors.white, size: metrics.fs(16)),
           SizedBox(width: metrics.gap),
           Text(
             time,
-            style: TextStyle(color: Colors.white, fontSize: metrics.fs(14), fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: metrics.fs(14),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -192,7 +220,11 @@ class _Header extends StatelessWidget {
 }
 
 class _TabLabel extends StatelessWidget {
-  const _TabLabel({required this.label, required this.selected, required this.onTap});
+  const _TabLabel({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
@@ -239,30 +271,61 @@ class _GameStripState extends State<_GameStrip> {
     final metrics = _Scope.of(context);
     final label = metrics.fs(11).clamp(9.0, 13.0);
     final box = math.max(28.0, metrics.strip - label - 4);
-    return ListView(
-      controller: _scroll,
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.zero,
-      children: [
-        _MarkTile(side: box * 0.92),
-        SizedBox(width: metrics.gap * 0.6),
-        _IconTile(icon: Icons.shopping_bag_outlined, side: box * 0.92),
-        SizedBox(width: metrics.gap * 0.6),
-        _WelcomeTile(side: box, label: label, onTap: () => widget.onOpen('Welcome')),
-        SizedBox(width: metrics.gap * 0.6),
-        _CoverTile(art: _Art.night, side: box * 0.92, image: widget.cover, onTap: () => widget.onOpen('steam')),
-        _CoverTile(art: _Art.harbor, side: box * 0.92, tileKey: const Key('ps5-game-harbor'), onTap: () => widget.onOpen('Harbor')),
-        _CoverTile(art: _Art.signal, side: box * 0.92, onTap: () => widget.onOpen('Signal')),
-        _CoverTile(art: _Art.relay, side: box * 0.92, onTap: () => widget.onOpen('Relay')),
-        _IconTile(icon: Icons.sports_esports, side: box * 0.92),
-        _GridTile(side: box * 0.92),
-      ],
+    return ClipRect(
+      child: Transform.translate(
+        offset: const Offset(-26, 0),
+        child: ListView(
+          controller: _scroll,
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.zero,
+          children: [
+            _MarkTile(side: box * 0.92),
+            SizedBox(width: metrics.gap * 0.6),
+            _IconTile(icon: Icons.shopping_bag_outlined, side: box * 0.92),
+            SizedBox(width: metrics.gap * 0.6),
+            _WelcomeTile(
+              side: box,
+              label: label,
+              onTap: () => widget.onOpen('Welcome'),
+            ),
+            SizedBox(width: metrics.gap * 0.6),
+            _CoverTile(
+              art: _Art.night,
+              side: box * 0.92,
+              image: widget.cover,
+              onTap: () => widget.onOpen('steam'),
+            ),
+            _CoverTile(
+              art: _Art.harbor,
+              side: box * 0.92,
+              tileKey: const Key('ps5-game-harbor'),
+              onTap: () => widget.onOpen('Harbor'),
+            ),
+            _CoverTile(
+              art: _Art.signal,
+              side: box * 0.92,
+              onTap: () => widget.onOpen('Signal'),
+            ),
+            _CoverTile(
+              art: _Art.relay,
+              side: box * 0.92,
+              onTap: () => widget.onOpen('Relay'),
+            ),
+            _IconTile(icon: Icons.sports_esports, side: box * 0.92),
+            _GridTile(side: box * 0.92),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class _WelcomeTile extends StatelessWidget {
-  const _WelcomeTile({required this.side, required this.label, required this.onTap});
+  const _WelcomeTile({
+    required this.side,
+    required this.label,
+    required this.onTap,
+  });
 
   final double side;
   final double label;
@@ -280,7 +343,10 @@ class _WelcomeTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF161820),
               borderRadius: BorderRadius.circular(side * 0.16),
-              border: Border.all(color: const Color(0xFFE4E7EE), width: math.max(1.6, side * 0.035)),
+              border: Border.all(
+                color: const Color(0xFFE4E7EE),
+                width: math.max(1.6, side * 0.035),
+              ),
             ),
             child: const CustomPaint(painter: _SymbolsPainter()),
           ),
@@ -289,7 +355,12 @@ class _WelcomeTile extends StatelessWidget {
             height: label,
             child: Text(
               'Welcome',
-              style: TextStyle(color: Colors.white, fontSize: label * 0.92, height: 1, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: label * 0.92,
+                height: 1,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -413,7 +484,10 @@ class _Cards extends StatelessWidget {
           flex: 5,
           child: Column(
             children: [
-              Expanded(flex: 3, child: _Friends(onTap: () => onOpen('Friends'))),
+              Expanded(
+                flex: 3,
+                child: _Friends(onTap: () => onOpen('Friends')),
+              ),
               SizedBox(height: gap),
               Expanded(flex: 2, child: _Store(onTap: () => onOpen('Harbor'))),
             ],
@@ -424,16 +498,26 @@ class _Cards extends StatelessWidget {
           flex: 5,
           child: Column(
             children: [
-              Expanded(flex: 2, child: _Access(onTap: () => onOpen('Accessibility'))),
+              Expanded(
+                flex: 2,
+                child: _Access(onTap: () => onOpen('Accessibility')),
+              ),
               SizedBox(height: gap),
-              Expanded(flex: 3, child: _Trophies(onTap: () => onOpen('Trophies'))),
+              Expanded(
+                flex: 3,
+                child: _Trophies(onTap: () => onOpen('Trophies')),
+              ),
             ],
           ),
         ),
         SizedBox(width: gap),
         Expanded(
           flex: 4,
-          child: _WishlistColumn(title: featured, image: cover, onOpen: () => onOpen('steam')),
+          child: _WishlistColumn(
+            title: featured,
+            image: cover,
+            onOpen: () => onOpen('steam'),
+          ),
         ),
         SizedBox(width: gap),
         const _ActivityPeek(),
@@ -455,10 +539,7 @@ class _Panel extends StatelessWidget {
       onTap: onTap,
       child: DecoratedBox(
         decoration: _cardDecoration(metrics),
-        child: Padding(
-          padding: EdgeInsets.all(metrics.cardPad),
-          child: child,
-        ),
+        child: Padding(padding: EdgeInsets.all(metrics.cardPad), child: child),
       ),
     );
   }
@@ -466,7 +547,7 @@ class _Panel extends StatelessWidget {
 
 BoxDecoration _cardDecoration(_Metrics metrics, {double? radius}) {
   return BoxDecoration(
-    color: const Color(0xD91A1D27),
+    color: const Color(0xFF1C1F29),
     borderRadius: BorderRadius.circular(radius ?? metrics.radius),
     border: Border.all(color: const Color(0x18FFFFFF)),
   );
@@ -495,18 +576,28 @@ class _Friends extends StatelessWidget {
             children: [
               Icon(Icons.group, color: Colors.white, size: metrics.fs(14)),
               const SizedBox(width: 6),
-              Flexible(
+              Expanded(
                 child: Text(
                   'Online Friends',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white, fontSize: metrics.fs(13), fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: metrics.fs(13),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Icon(Icons.circle, color: const Color(0xFF3DDC84), size: metrics.fs(8)),
+              Icon(
+                Icons.circle,
+                color: const Color(0xFF3DDC84),
+                size: metrics.fs(8),
+              ),
               const SizedBox(width: 4),
-              Text('4', style: TextStyle(color: Colors.white, fontSize: metrics.fs(13))),
+              Text(
+                '4',
+                style: TextStyle(color: Colors.white, fontSize: metrics.fs(13)),
+              ),
             ],
           ),
           Expanded(
@@ -532,7 +623,11 @@ class _Friends extends StatelessWidget {
             'Mara Quinn, Northline, Kiln, Glass',
             maxLines: metrics.tight ? 1 : 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: const Color(0xFFC5C8D2), fontSize: metrics.fs(11), height: 1.2),
+            style: TextStyle(
+              color: const Color(0xFFC5C8D2),
+              fontSize: metrics.fs(11),
+              height: 1.2,
+            ),
           ),
         ],
       ),
@@ -564,16 +659,30 @@ class _Store extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.shopping_bag_outlined, color: Colors.white, size: metrics.fs(14)),
+                      Icon(
+                        Icons.shopping_bag_outlined,
+                        color: Colors.white,
+                        size: metrics.fs(14),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Game Store',
-                        style: TextStyle(color: Colors.white, fontSize: metrics.fs(12), fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: metrics.fs(12),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('Harbor', style: TextStyle(color: Colors.white, fontSize: metrics.fs(13))),
+                  Text(
+                    'Harbor',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: metrics.fs(13),
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   const _Pills(),
                 ],
@@ -617,18 +726,29 @@ class _Access extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.accessibility_new, color: Colors.white, size: metrics.fs(14)),
+                      Icon(
+                        Icons.accessibility_new,
+                        color: Colors.white,
+                        size: metrics.fs(14),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Accessibility',
-                        style: TextStyle(color: Colors.white, fontSize: metrics.fs(13), fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: metrics.fs(13),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Make this console easier to use.',
-                    style: TextStyle(color: const Color(0xFFC5C8D2), fontSize: metrics.fs(11)),
+                    style: TextStyle(
+                      color: const Color(0xFFC5C8D2),
+                      fontSize: metrics.fs(11),
+                    ),
                   ),
                 ],
               ),
@@ -642,7 +762,11 @@ class _Access extends StatelessWidget {
               height: 36,
               child: CustomPaint(
                 painter: const _RingPainter(Color(0xFF7EB6FF)),
-                child: Icon(Icons.accessibility_new, color: const Color(0xFF7EB6FF), size: metrics.fs(16)),
+                child: Icon(
+                  Icons.accessibility_new,
+                  color: const Color(0xFF7EB6FF),
+                  size: metrics.fs(16),
+                ),
               ),
             ),
           ),
@@ -673,18 +797,28 @@ class _Trophies extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.emoji_events, color: Colors.white, size: metrics.fs(14)),
+              Icon(
+                Icons.emoji_events,
+                color: Colors.white,
+                size: metrics.fs(14),
+              ),
               const SizedBox(width: 6),
-              Flexible(
+              Expanded(
                 child: Text(
                   'Trophies',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white, fontSize: metrics.fs(13), fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: metrics.fs(13),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Text('Total: 236', style: TextStyle(color: Colors.white, fontSize: metrics.fs(12))),
+              Text(
+                'Total: 236',
+                style: TextStyle(color: Colors.white, fontSize: metrics.fs(12)),
+              ),
             ],
           ),
           Expanded(
@@ -699,7 +833,13 @@ class _Trophies extends StatelessWidget {
                         children: [
                           Icon(Icons.emoji_events, color: cup.$1, size: 22),
                           const SizedBox(height: 2),
-                          Text(cup.$2, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          Text(
+                            cup.$2,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -709,15 +849,21 @@ class _Trophies extends StatelessWidget {
           ),
           Row(
             children: [
-              Flexible(
-                child: Text(
-                  'Level 42',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: const Color(0xFFC5C8D2), fontSize: metrics.fs(11)),
+              Text(
+                'Level 42',
+                style: TextStyle(
+                  color: const Color(0xFFC5C8D2),
+                  fontSize: metrics.fs(11),
                 ),
               ),
-              Text('61%', style: TextStyle(color: const Color(0xFFC5C8D2), fontSize: metrics.fs(11))),
+              const Spacer(),
+              Text(
+                '61%',
+                style: TextStyle(
+                  color: const Color(0xFFC5C8D2),
+                  fontSize: metrics.fs(11),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 3),
@@ -737,7 +883,11 @@ class _Trophies extends StatelessWidget {
 }
 
 class _WishlistColumn extends StatelessWidget {
-  const _WishlistColumn({required this.title, required this.onOpen, this.image});
+  const _WishlistColumn({
+    required this.title,
+    required this.onOpen,
+    this.image,
+  });
 
   final String title;
   final ImageProvider? image;
@@ -753,7 +903,9 @@ class _WishlistColumn extends StatelessWidget {
           children: [
             SizedBox(height: orbsH, child: const _Orbs()),
             SizedBox(height: metrics.gap * 0.65),
-            Expanded(child: _Wishlist(title: title, image: image, onTap: onOpen)),
+            Expanded(
+              child: _Wishlist(title: title, image: image, onTap: onOpen),
+            ),
           ],
         );
       },
@@ -842,14 +994,22 @@ class _Wishlist extends StatelessWidget {
               right: 8,
               child: Row(
                 children: [
-                  Icon(Icons.favorite, color: Colors.white, size: metrics.fs(14)),
+                  Icon(
+                    Icons.favorite,
+                    color: Colors.white,
+                    size: metrics.fs(14),
+                  ),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       'Wishlist',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white, fontSize: metrics.fs(13), fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: metrics.fs(13),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -867,7 +1027,10 @@ class _Wishlist extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white, fontSize: metrics.fs(13)),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: metrics.fs(13),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   const _Pills(),
@@ -887,15 +1050,15 @@ class _ActivityPeek extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metrics = _Scope.of(context);
-    final width = metrics.peek;
+    final visible = (metrics.w * 0.072).clamp(52.0, 84.0);
     return SizedBox(
-      width: width,
+      width: visible,
       child: ClipRect(
         child: OverflowBox(
           alignment: Alignment.centerLeft,
-          minWidth: width + 42,
-          maxWidth: width + 42,
-          child: SizedBox(width: width + 42, child: const _Activity()),
+          minWidth: visible + 78,
+          maxWidth: visible + 78,
+          child: SizedBox(width: visible + 78, child: const _Activity()),
         ),
       ),
     );
@@ -917,7 +1080,11 @@ class _Activity extends StatelessWidget {
             'Friend activity',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.white, fontSize: metrics.fs(12), fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: metrics.fs(12),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const Spacer(),
           const CircleAvatar(
@@ -926,12 +1093,20 @@ class _Activity extends StatelessWidget {
             child: Icon(Icons.person, color: Colors.white, size: 14),
           ),
           const SizedBox(height: 6),
-          Text('Mara', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white, fontSize: metrics.fs(12))),
+          Text(
+            'Mara',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.white, fontSize: metrics.fs(12)),
+          ),
           Text(
             'playing now',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: const Color(0xFFC5C8D2), fontSize: metrics.fs(10)),
+            style: TextStyle(
+              color: const Color(0xFFC5C8D2),
+              fontSize: metrics.fs(10),
+            ),
           ),
         ],
       ),
@@ -969,7 +1144,14 @@ class _Pill extends StatelessWidget {
         borderRadius: BorderRadius.circular(3),
         border: Border.all(color: Colors.white24),
       ),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -997,14 +1179,25 @@ class _Media extends StatelessWidget {
                 borderRadius: BorderRadius.circular(metrics.radius),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: item.$3),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: item.$3,
+                    ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(item.$2, color: Colors.white, size: metrics.fs(36)),
                       const SizedBox(height: 8),
-                      Text(item.$1, style: TextStyle(color: Colors.white, fontSize: metrics.fs(16), fontWeight: FontWeight.w600)),
+                      Text(
+                        item.$1,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: metrics.fs(16),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1032,7 +1225,8 @@ class _ArtPaint extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         CustomPaint(painter: _ArtPainter(art)),
-        if (image != null && art == _Art.night) Image(image: image!, fit: BoxFit.cover),
+        if (image != null && art == _Art.night)
+          Image(image: image!, fit: BoxFit.cover),
       ],
     );
   }
@@ -1061,11 +1255,23 @@ class _SymbolsPainter extends CustomPainter {
       ..close();
     canvas.drawPath(tri, paint);
     canvas.drawCircle(Offset(right, top), d * 0.62, paint);
-    canvas.drawLine(Offset(left - d * 0.55, bottom - d * 0.55), Offset(left + d * 0.55, bottom + d * 0.55), paint);
-    canvas.drawLine(Offset(left - d * 0.55, bottom + d * 0.55), Offset(left + d * 0.55, bottom - d * 0.55), paint);
+    canvas.drawLine(
+      Offset(left - d * 0.55, bottom - d * 0.55),
+      Offset(left + d * 0.55, bottom + d * 0.55),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(left - d * 0.55, bottom + d * 0.55),
+      Offset(left + d * 0.55, bottom - d * 0.55),
+      paint,
+    );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(right, bottom), width: d * 1.15, height: d * 1.15),
+        Rect.fromCenter(
+          center: Offset(right, bottom),
+          width: d * 1.15,
+          height: d * 1.15,
+        ),
         Radius.circular(d * 0.12),
       ),
       paint,
@@ -1099,7 +1305,11 @@ class _RingPainter extends CustomPainter {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(center.dx, center.dy + radius), width: radius * 0.42, height: radius * 0.42),
+        Rect.fromCenter(
+          center: Offset(center.dx, center.dy + radius),
+          width: radius * 0.42,
+          height: radius * 0.42,
+        ),
         const Radius.circular(1.5),
       ),
       Paint()..color = color,
@@ -1107,7 +1317,8 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _GridPainter extends CustomPainter {
@@ -1118,12 +1329,20 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()..color = const Color(0xFFE6E8EE);
     final cell = size.shortestSide * 0.16;
     final gap = cell * 0.38;
-    final origin = Offset((size.width - cell * 2 - gap) / 2, (size.height - cell * 2 - gap) / 2);
+    final origin = Offset(
+      (size.width - cell * 2 - gap) / 2,
+      (size.height - cell * 2 - gap) / 2,
+    );
     for (var row = 0; row < 2; row++) {
       for (var col = 0; col < 2; col++) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromLTWH(origin.dx + col * (cell + gap), origin.dy + row * (cell + gap), cell, cell),
+            Rect.fromLTWH(
+              origin.dx + col * (cell + gap),
+              origin.dy + row * (cell + gap),
+              cell,
+              cell,
+            ),
             const Radius.circular(1.5),
           ),
           paint,
@@ -1155,7 +1374,11 @@ class _MarkPainter extends CustomPainter {
       ..color = const Color(0xFFE0B03A)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6;
-    canvas.drawCircle(size.center(Offset.zero), size.shortestSide * 0.22, paint);
+    canvas.drawCircle(
+      size.center(Offset.zero),
+      size.shortestSide * 0.22,
+      paint,
+    );
   }
 
   @override
@@ -1195,61 +1418,136 @@ class _ArtPainter extends CustomPainter {
   }
 
   void _night(Canvas canvas, Size size) {
-    _fill(canvas, size, const [Color(0xFF16345A), Color(0xFF8A2430), Color(0xFF101820)]);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(size.width * 0.5, size.height * 0.62), width: size.width * 0.72, height: size.height * 0.22),
-        Radius.circular(size.shortestSide * 0.08),
-      ),
-      Paint()..color = const Color(0xFFD5DCE8),
+    _fill(canvas, size, const [
+      Color(0xFF1A3A6A),
+      Color(0xFF16345A),
+      Color(0xFF8A2430),
+      Color(0xFF120810),
+    ]);
+    final body = Path()
+      ..moveTo(size.width * 0.08, size.height * 0.62)
+      ..lineTo(size.width * 0.22, size.height * 0.48)
+      ..lineTo(size.width * 0.4, size.height * 0.42)
+      ..lineTo(size.width * 0.62, size.height * 0.46)
+      ..lineTo(size.width * 0.9, size.height * 0.58)
+      ..lineTo(size.width * 0.9, size.height * 0.7)
+      ..lineTo(size.width * 0.08, size.height * 0.7)
+      ..close();
+    canvas.drawPath(body, Paint()..color = const Color(0xFFD5DCE8));
+    final cabin = Path()
+      ..moveTo(size.width * 0.4, size.height * 0.42)
+      ..lineTo(size.width * 0.48, size.height * 0.3)
+      ..lineTo(size.width * 0.66, size.height * 0.3)
+      ..lineTo(size.width * 0.74, size.height * 0.46)
+      ..close();
+    canvas.drawPath(cabin, Paint()..color = const Color(0xFF243044));
+    canvas.drawCircle(
+      Offset(size.width * 0.28, size.height * 0.7),
+      size.shortestSide * 0.07,
+      Paint()..color = const Color(0xFF101418),
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(size.width * 0.38, size.height * 0.52), width: size.width * 0.22, height: size.height * 0.12),
-        const Radius.circular(3),
-      ),
-      Paint()..color = const Color(0xFF8AA0C0),
+    canvas.drawCircle(
+      Offset(size.width * 0.74, size.height * 0.7),
+      size.shortestSide * 0.07,
+      Paint()..color = const Color(0xFF101418),
     );
-    canvas.drawCircle(Offset(size.width * 0.72, size.height * 0.28), size.shortestSide * 0.08, Paint()..color = const Color(0x55FFFFFF));
+    canvas.drawCircle(
+      Offset(size.width * 0.78, size.height * 0.22),
+      size.shortestSide * 0.06,
+      Paint()..color = const Color(0x66FFFFFF),
+    );
   }
 
   void _harbor(Canvas canvas, Size size) {
-    _fill(canvas, size, const [Color(0xFF8EC8E4), Color(0xFF1A6898), Color(0xFF08243A)]);
-    canvas.drawCircle(Offset(size.width * 0.72, size.height * 0.28), size.shortestSide * 0.1, Paint()..color = const Color(0xFFFFE2A0));
+    _fill(canvas, size, const [
+      Color(0xFF8EC8E4),
+      Color(0xFF1A6898),
+      Color(0xFF08243A),
+    ]);
+    canvas.drawCircle(
+      Offset(size.width * 0.72, size.height * 0.28),
+      size.shortestSide * 0.1,
+      Paint()..color = const Color(0xFFFFE2A0),
+    );
     final land = Path()
       ..moveTo(0, size.height * 0.62)
-      ..quadraticBezierTo(size.width * 0.35, size.height * 0.4, size.width, size.height * 0.58)
+      ..quadraticBezierTo(
+        size.width * 0.35,
+        size.height * 0.4,
+        size.width,
+        size.height * 0.58,
+      )
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
     canvas.drawPath(land, Paint()..color = const Color(0xFF14324A));
-    canvas.drawCircle(Offset(size.width * 0.42, size.height * 0.48), size.shortestSide * 0.05, Paint()..color = const Color(0xFF0C1C28));
+    canvas.drawCircle(
+      Offset(size.width * 0.42, size.height * 0.48),
+      size.shortestSide * 0.05,
+      Paint()..color = const Color(0xFF0C1C28),
+    );
   }
 
   void _signal(Canvas canvas, Size size) {
-    _fill(canvas, size, const [Color(0xFFE08A3A), Color(0xFF8A3018), Color(0xFF1A1010)]);
+    _fill(canvas, size, const [
+      Color(0xFFE08A3A),
+      Color(0xFF8A3018),
+      Color(0xFF1A1010),
+    ]);
     final body = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset(size.width * 0.5, size.height * 0.58), width: size.width * 0.62, height: size.height * 0.22),
+      Rect.fromCenter(
+        center: Offset(size.width * 0.5, size.height * 0.58),
+        width: size.width * 0.62,
+        height: size.height * 0.22,
+      ),
       Radius.circular(size.shortestSide * 0.06),
     );
     canvas.drawRRect(body, Paint()..color = const Color(0xFFF2E6D4));
-    canvas.drawCircle(Offset(size.width * 0.34, size.height * 0.72), size.shortestSide * 0.07, Paint()..color = const Color(0xFF1A1A1A));
-    canvas.drawCircle(Offset(size.width * 0.66, size.height * 0.72), size.shortestSide * 0.07, Paint()..color = const Color(0xFF1A1A1A));
+    canvas.drawCircle(
+      Offset(size.width * 0.34, size.height * 0.72),
+      size.shortestSide * 0.07,
+      Paint()..color = const Color(0xFF1A1A1A),
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.66, size.height * 0.72),
+      size.shortestSide * 0.07,
+      Paint()..color = const Color(0xFF1A1A1A),
+    );
   }
 
   void _relay(Canvas canvas, Size size) {
-    _fill(canvas, size, const [Color(0xFF4A1018), Color(0xFFC4471A), Color(0xFF1A0A0C)]);
+    _fill(canvas, size, const [
+      Color(0xFF4A1018),
+      Color(0xFFC4471A),
+      Color(0xFF1A0A0C),
+    ]);
     final flame = Path()
       ..moveTo(size.width * 0.5, size.height * 0.18)
-      ..quadraticBezierTo(size.width * 0.78, size.height * 0.48, size.width * 0.62, size.height * 0.78)
-      ..quadraticBezierTo(size.width * 0.5, size.height * 0.62, size.width * 0.38, size.height * 0.78)
-      ..quadraticBezierTo(size.width * 0.22, size.height * 0.48, size.width * 0.5, size.height * 0.18)
+      ..quadraticBezierTo(
+        size.width * 0.78,
+        size.height * 0.48,
+        size.width * 0.62,
+        size.height * 0.78,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.5,
+        size.height * 0.62,
+        size.width * 0.38,
+        size.height * 0.78,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.22,
+        size.height * 0.48,
+        size.width * 0.5,
+        size.height * 0.18,
+      )
       ..close();
     canvas.drawPath(flame, Paint()..color = const Color(0xFFFFC46A));
   }
 
   @override
-  bool shouldRepaint(covariant _ArtPainter oldDelegate) => oldDelegate.art != art;
+  bool shouldRepaint(covariant _ArtPainter oldDelegate) =>
+      oldDelegate.art != art;
 }
 
 class _BackdropPainter extends CustomPainter {
@@ -1264,11 +1562,19 @@ class _BackdropPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF140818), Color(0xFF07111F), Color(0xFF0A2048), Color(0xFF070E18)],
+          colors: [
+            Color(0xFF140818),
+            Color(0xFF07111F),
+            Color(0xFF0A2048),
+            Color(0xFF070E18),
+          ],
           stops: [0, 0.38, 0.74, 1],
         ).createShader(rect),
     );
-    final glow = Rect.fromCircle(center: Offset(size.width * 0.7, size.height * 0.2), radius: size.shortestSide * 0.42);
+    final glow = Rect.fromCircle(
+      center: Offset(size.width * 0.7, size.height * 0.2),
+      radius: size.shortestSide * 0.42,
+    );
     canvas.drawCircle(
       glow.center,
       glow.width / 2,
@@ -1289,13 +1595,41 @@ class _BackdropPainter extends CustomPainter {
 
     final sweep = Path()
       ..moveTo(-size.width * 0.02, size.height * 0.72)
-      ..cubicTo(size.width * 0.22, size.height * 0.48, size.width * 0.38, size.height * 0.9, size.width * 0.58, size.height * 0.4)
-      ..cubicTo(size.width * 0.72, size.height * 0.08, size.width * 0.86, size.height * 0.46, size.width * 1.04, size.height * 0.22);
+      ..cubicTo(
+        size.width * 0.22,
+        size.height * 0.48,
+        size.width * 0.38,
+        size.height * 0.9,
+        size.width * 0.58,
+        size.height * 0.4,
+      )
+      ..cubicTo(
+        size.width * 0.72,
+        size.height * 0.08,
+        size.width * 0.86,
+        size.height * 0.46,
+        size.width * 1.04,
+        size.height * 0.22,
+      );
     canvas.drawPath(sweep, dim);
     final sweep2 = Path()
       ..moveTo(size.width * 0.08, size.height * 0.9)
-      ..cubicTo(size.width * 0.3, size.height * 0.62, size.width * 0.5, size.height * 0.84, size.width * 0.78, size.height * 0.5)
-      ..cubicTo(size.width * 0.9, size.height * 0.34, size.width * 0.96, size.height * 0.42, size.width * 1.05, size.height * 0.36);
+      ..cubicTo(
+        size.width * 0.3,
+        size.height * 0.62,
+        size.width * 0.5,
+        size.height * 0.84,
+        size.width * 0.78,
+        size.height * 0.5,
+      )
+      ..cubicTo(
+        size.width * 0.9,
+        size.height * 0.34,
+        size.width * 0.96,
+        size.height * 0.42,
+        size.width * 1.05,
+        size.height * 0.36,
+      );
     canvas.drawPath(sweep2, line);
 
     final origin = Offset(size.width * 0.68, size.height * 0.22);
@@ -1309,28 +1643,68 @@ class _BackdropPainter extends CustomPainter {
     canvas.drawPath(tri, line);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: origin + Offset(reach * 0.2, reach * 0.05), width: reach * 0.14, height: reach * 0.14),
+        Rect.fromCenter(
+          center: origin + Offset(reach * 0.2, reach * 0.05),
+          width: reach * 0.14,
+          height: reach * 0.14,
+        ),
         const Radius.circular(4),
       ),
       dim,
     );
-    canvas.drawLine(origin + Offset(-reach * 0.16, reach * 0.02), origin + Offset(-reach * 0.02, reach * 0.16), dim);
-    canvas.drawLine(origin + Offset(-reach * 0.16, reach * 0.16), origin + Offset(-reach * 0.02, reach * 0.02), dim);
+    canvas.drawLine(
+      origin + Offset(-reach * 0.16, reach * 0.02),
+      origin + Offset(-reach * 0.02, reach * 0.16),
+      dim,
+    );
+    canvas.drawLine(
+      origin + Offset(-reach * 0.16, reach * 0.16),
+      origin + Offset(-reach * 0.02, reach * 0.02),
+      dim,
+    );
 
     final capsule = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = const Color(0x55C9D6FF);
-    for (var i = 0; i < 5; i++) {
-      final dy = size.height * (0.12 + i * 0.07);
+      ..strokeWidth = 1.15
+      ..color = const Color(0x44D5DEFF);
+    final marks = <(double, double, double, double)>[
+      (0.56, 0.34, 0.09, 0.028),
+      (0.7, 0.4, 0.12, 0.03),
+      (0.82, 0.16, 0.1, 0.026),
+      (0.88, 0.3, 0.08, 0.024),
+      (0.48, 0.58, 0.11, 0.026),
+      (0.74, 0.62, 0.09, 0.022),
+    ];
+    for (final mark in marks) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * (0.78 + (i % 2) * 0.04), dy, size.width * 0.11, size.height * 0.035),
-          const Radius.circular(12),
+          Rect.fromLTWH(
+            size.width * mark.$1,
+            size.height * mark.$2,
+            size.width * mark.$3,
+            size.height * mark.$4,
+          ),
+          const Radius.circular(20),
         ),
         capsule,
       );
     }
+    canvas.drawCircle(
+      Offset(size.width * 0.42, size.height * 0.46),
+      reach * 0.05,
+      dim,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.9, size.height * 0.48),
+      reach * 0.08,
+      line,
+    );
+    final smallTri = Path()
+      ..moveTo(size.width * 0.34, size.height * 0.3)
+      ..lineTo(size.width * 0.4, size.height * 0.42)
+      ..lineTo(size.width * 0.28, size.height * 0.42)
+      ..close();
+    canvas.drawPath(smallTri, dim);
   }
 
   @override
