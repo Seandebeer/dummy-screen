@@ -170,6 +170,7 @@ void main() {
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('Bank name'), findsOneWidget);
     expect(find.text('User name'), findsOneWidget);
+    expect(find.text('Account balance'), findsOneWidget);
     expect(find.text('Time'), findsOneWidget);
     expect(find.text('Temperature'), findsOneWidget);
     expect(find.text('Note sizes'), findsOneWidget);
@@ -188,6 +189,12 @@ void main() {
     );
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.bankHolder, 'Mara Quinn');
+    await tester.enterText(
+      find.byKey(const Key('atm-account-balance')),
+      '5000',
+    );
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.bankBalance, 5000);
 
     await tester.ensureVisible(find.byKey(const Key('atm-time')));
     await tester.pump();

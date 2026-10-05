@@ -38,6 +38,7 @@ class _AtmScreenState extends State<AtmScreen> {
   late final TextEditingController _userName;
   late final TextEditingController _time;
   late final TextEditingController _temperature;
+  late final TextEditingController _balance;
   late final TextEditingController _notes;
   late final TextEditingController _customAmount;
 
@@ -51,6 +52,7 @@ class _AtmScreenState extends State<AtmScreen> {
       text: atmClock(propNow(current.clockOffsetMinutes)),
     );
     _temperature = TextEditingController(text: '${current.os.temperature}');
+    _balance = TextEditingController(text: '${current.os.bankBalance}');
     _notes = TextEditingController(text: atmNotes(current.os).join(', '));
     _customAmount = TextEditingController();
   }
@@ -61,6 +63,7 @@ class _AtmScreenState extends State<AtmScreen> {
     _userName.dispose();
     _time.dispose();
     _temperature.dispose();
+    _balance.dispose();
     _notes.dispose();
     _customAmount.dispose();
     super.dispose();
@@ -100,6 +103,7 @@ class _AtmScreenState extends State<AtmScreen> {
     _step = step;
     _message = '';
     if (step == 'pin') _pin = '';
+    if (step == 'settings') _balance.text = '${os.bankBalance}';
     if (step != 'layout') _layoutPick = null;
   });
 
@@ -590,6 +594,16 @@ class _AtmScreenState extends State<AtmScreen> {
             SizedBox(height: 14 * scale),
             _nameField(
               scale,
+              _t('accountBalance'),
+              _balance,
+              _applyBalance,
+              key: const Key('atm-account-balance'),
+              keyboardType: TextInputType.number,
+              suffix: os.bankCurrency,
+            ),
+            SizedBox(height: 14 * scale),
+            _nameField(
+              scale,
               _t('time'),
               _time,
               _applyTime,
@@ -802,6 +816,13 @@ class _AtmScreenState extends State<AtmScreen> {
     if (parsed == null || parsed < -99 || parsed > 99) return;
     if (parsed == os.temperature) return;
     _save((current) => current.copyWith(temperature: parsed));
+  }
+
+  void _applyBalance(String value) {
+    final parsed = int.tryParse(value.trim());
+    if (parsed == null || parsed < 0 || parsed > 100000000) return;
+    if (parsed == os.bankBalance) return;
+    _save((current) => current.copyWith(bankBalance: parsed));
   }
 
   Widget _nameField(
