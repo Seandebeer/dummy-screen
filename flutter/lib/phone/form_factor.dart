@@ -5,6 +5,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'xbox_360.dart';
 import 'xbox_series.dart';
 
 class DeviceMetrics {
@@ -698,18 +699,25 @@ class _ConsoleOs extends StatelessWidget {
     final bg = switch (shell) {
       'ps5' => const Color(0xFF003791),
       'ps2' => const Color(0xFF0A0A12),
-      'x360' => const Color(0xFF1A1A1A),
+      'x360' => const Color(0xFF6E706F),
       _ => const Color(0xFF061803),
     };
     final cover = imageProviderForPath(device.os.steamCover);
-    final home = shell == 'xbox'
-        ? XboxSeriesHome(
-            store: store,
-            device: device,
-            onOpen: onOpen,
-            onShell: (id) => store.updateOs(device.id, (os) => os.copyWith(shell: id)),
-          )
-        : Padding(
+    void onShell(String id) => store.updateOs(device.id, (os) => os.copyWith(shell: id));
+    final home = switch (shell) {
+      'xbox' => XboxSeriesHome(
+          store: store,
+          device: device,
+          onOpen: onOpen,
+          onShell: onShell,
+        ),
+      'x360' => Xbox360Home(
+          store: store,
+          device: device,
+          onOpen: onOpen,
+          onShell: onShell,
+        ),
+      _ => Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,7 +756,8 @@ class _ConsoleOs extends StatelessWidget {
                 ),
               ],
             ),
-          );
+          ),
+    };
     return Material(
       color: bg,
       child: app == null
