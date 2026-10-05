@@ -5,6 +5,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import 'atm_home.dart';
+import 'mac_desktop.dart';
 import 'ps2_home.dart';
 import 'smart_home.dart';
 import 'ps5_home.dart';
@@ -240,8 +241,20 @@ class _ComputerOs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (shell == 'macos') {
+      final open = app == null
+          ? null
+          : _deskApps.firstWhere((item) => item.$1 == app);
+      return MacDesktop(
+        appTitle: open?.$2,
+        tool: open == null ? null : _DeskTool(id: open.$1),
+        onOpen: onOpen,
+        onShell: onShell,
+        shells: _computerShells,
+      );
+    }
     final ink = _classic ? Colors.black : Colors.white;
-    return ColoredBox(
+    return Material(
       color: _desktop,
       child: Column(
         children: [
