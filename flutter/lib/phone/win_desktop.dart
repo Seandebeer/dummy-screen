@@ -91,31 +91,31 @@ class _WinDesktopState extends State<WinDesktop> {
             child: const SizedBox.expand(),
           ),
         Positioned(
-          left: 10,
-          top: 8,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DesktopIcon(
-                label: 'Recycle Bin',
-                iconKey: const Key('win-recycle'),
-                onTap: () => _open('recycle'),
-                child: const CustomPaint(
-                  painter: _BinPainter(),
-                  child: SizedBox(width: 36, height: 36),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _DesktopIcon(
-                label: 'Edge',
-                iconKey: const Key('win-edge'),
-                onTap: () => _open('edge'),
-                child: const CustomPaint(
-                  painter: _WavePainter(),
-                  child: SizedBox(width: 36, height: 36),
-                ),
-              ),
-            ],
+          left: 2,
+          top: 2,
+          bottom: 48,
+          width: 246,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final rows = (_shortcuts.length / 3).ceil();
+              final cellH = constraints.maxHeight / rows;
+              return Wrap(
+                key: const Key('win-icons'),
+                direction: Axis.vertical,
+                spacing: 0,
+                runSpacing: 0,
+                children: [
+                  for (final shortcut in _shortcuts)
+                    _DesktopIcon(
+                      label: shortcut.label,
+                      iconKey: shortcut.key,
+                      height: cellH,
+                      onTap: () => _open(shortcut.id),
+                      child: shortcut.mark,
+                    ),
+                ],
+              );
+            },
           ),
         ),
         if (title != null)
@@ -179,6 +179,8 @@ class _WinDesktopState extends State<WinDesktop> {
             }),
             onFiles: () => _open('files'),
             onEdge: () => _open('edge'),
+            onMail: () => _open('mail'),
+            onBoards: () => _open('social'),
             onShell: widget.onShell,
             shells: widget.shells,
           ),
@@ -194,6 +196,19 @@ class _WinDesktopState extends State<WinDesktop> {
       'recycle' => 'Recycle Bin',
       'edge' => 'Edge',
       'files' => 'File Explorer',
+      'mail' => 'Mail',
+      'camera' => 'Camera',
+      'slides' => 'Slides',
+      'archive' => 'Archive',
+      'notes' => 'Notes',
+      'transfer' => 'Transfer',
+      'studio' => 'Studio',
+      'meet' => 'Meet',
+      'player' => 'Player',
+      'charts' => 'Charts',
+      'lens' => 'Lens',
+      'stage' => 'Stage',
+      'remote' => 'Remote',
       _ => appTitle,
     };
   }
@@ -203,10 +218,87 @@ class _WinDesktopState extends State<WinDesktop> {
       'recycle' => const _EmptyFolder(label: 'This folder is empty.'),
       'edge' => const _Browser(),
       'files' => const _Files(),
+      'mail' => const _NotePane(label: 'No new mail.'),
+      'camera' => const _NotePane(label: 'Camera is off.'),
+      'slides' => const _NotePane(label: 'No slides open.'),
+      'archive' => const _NotePane(label: 'The archive is empty.'),
+      'notes' => const _NotePane(label: 'A blank note.'),
+      'transfer' => const _NotePane(label: 'No transfers.'),
+      'studio' => const _NotePane(label: 'Studio is idle.'),
+      'meet' => const _NotePane(label: 'No meeting yet.'),
+      'player' => const _NotePane(label: 'Nothing is playing.'),
+      'charts' => const _NotePane(label: 'No samples yet.'),
+      'lens' => const _NotePane(label: 'Lens is covered.'),
+      'stage' => const _NotePane(label: 'The stage is dark.'),
+      'remote' => const _NotePane(label: 'Not connected.'),
       _ => widget.tool ?? const SizedBox.shrink(),
     };
   }
 }
+
+class _Shortcut {
+  const _Shortcut(this.id, this.label, this.mark, {this.key});
+
+  final String id;
+  final String label;
+  final Widget mark;
+  final Key? key;
+}
+
+class _Tile extends StatelessWidget {
+  const _Tile(this.color, this.icon);
+
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Icon(icon, color: Colors.white, size: 16),
+    );
+  }
+}
+
+const _shortcuts = <_Shortcut>[
+  _Shortcut(
+    'recycle',
+    'Recycle Bin',
+    CustomPaint(painter: _BinPainter(), child: SizedBox(width: 30, height: 30)),
+    key: Key('win-recycle'),
+  ),
+  _Shortcut('camera', 'Camera', _Tile(Color(0xFF3A7BD5), Icons.photo_camera_outlined)),
+  _Shortcut('slides', 'Slides', _Tile(Color(0xFF6A4C93), Icons.slideshow_outlined)),
+  _Shortcut(
+    'edge',
+    'Edge',
+    CustomPaint(painter: _WavePainter(), child: SizedBox(width: 30, height: 30)),
+    key: Key('win-edge'),
+  ),
+  _Shortcut('archive', 'Archive', _Tile(Color(0xFFC47B2B), Icons.inventory_2_outlined)),
+  _Shortcut('word', 'Word', _Tile(Color(0xFF2B6CB0), Icons.description_outlined)),
+  _Shortcut('studio', 'Studio', _Tile(Color(0xFF2F9E44), Icons.brush_outlined)),
+  _Shortcut('notes', 'Notes', _Tile(Color(0xFF3B8F6E), Icons.edit_note_outlined)),
+  _Shortcut('transfer', 'Transfer', _Tile(Color(0xFF0E8A7D), Icons.swap_horiz)),
+  _Shortcut('excel', 'Excel', _Tile(Color(0xFF2B8A3E), Icons.table_chart_outlined)),
+  _Shortcut('meet', 'Meet', _Tile(Color(0xFF3B5BDB), Icons.videocam_outlined)),
+  _Shortcut('player', 'Player', _Tile(Color(0xFF5C4DDB), Icons.movie_outlined)),
+  _Shortcut('charts', 'Charts', _Tile(Color(0xFFE8590C), Icons.bar_chart)),
+  _Shortcut('lens', 'Lens', _Tile(Color(0xFF0B7285), Icons.camera_outlined)),
+  _Shortcut('stage', 'Stage', _Tile(Color(0xFF7048E8), Icons.theater_comedy_outlined)),
+  _Shortcut('mail', 'Mail', _Tile(Color(0xFF1C7ED6), Icons.mail_outline)),
+  _Shortcut('photos', 'Photos', _Tile(Color(0xFF1971C2), Icons.photo_outlined)),
+  _Shortcut('music', 'Music', _Tile(Color(0xFFD6336C), Icons.library_music_outlined)),
+  _Shortcut('files', 'Files', _Tile(Color(0xFFE8B931), Icons.folder_outlined)),
+  _Shortcut('remote', 'Remote', _Tile(Color(0xFF495057), Icons.screen_share_outlined)),
+  _Shortcut('markers', 'Markers', _Tile(Color(0xFF0CA678), Icons.grid_on_outlined)),
+];
 
 class _Taskbar extends StatelessWidget {
   const _Taskbar({
@@ -218,6 +310,8 @@ class _Taskbar extends StatelessWidget {
     required this.onTasks,
     required this.onFiles,
     required this.onEdge,
+    required this.onMail,
+    required this.onBoards,
     required this.onShell,
     required this.shells,
   });
@@ -230,6 +324,8 @@ class _Taskbar extends StatelessWidget {
   final VoidCallback onTasks;
   final VoidCallback onFiles;
   final VoidCallback onEdge;
+  final VoidCallback onMail;
+  final VoidCallback onBoards;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
 
@@ -274,13 +370,13 @@ class _Taskbar extends StatelessWidget {
                   key: const Key('win-taskview'),
                   tooltip: 'Task view',
                   onTap: onTasks,
-                  child: const Icon(Icons.view_quilt_outlined, size: 20, color: Color(0xFF1A1A1A)),
+                  child: const Icon(Icons.view_quilt_outlined, size: 18, color: Color(0xFF1A1A1A)),
                 ),
                 _BarButton(
-                  key: const Key('win-files'),
-                  tooltip: 'File Explorer',
-                  onTap: onFiles,
-                  child: const Icon(Icons.folder, size: 20, color: Color(0xFFE8B931)),
+                  key: const Key('win-boards'),
+                  tooltip: 'Boards',
+                  onTap: onBoards,
+                  child: const Icon(Icons.grid_view_rounded, size: 18, color: Color(0xFF3B5BDB)),
                 ),
                 _BarButton(
                   tooltip: 'Edge',
@@ -289,6 +385,23 @@ class _Taskbar extends StatelessWidget {
                     painter: _WavePainter(),
                     child: SizedBox(width: 18, height: 18),
                   ),
+                ),
+                _BarButton(
+                  key: const Key('win-files'),
+                  tooltip: 'File Explorer',
+                  onTap: onFiles,
+                  child: const Icon(Icons.folder, size: 18, color: Color(0xFFE8B931)),
+                ),
+                _BarButton(
+                  key: const Key('win-mail'),
+                  tooltip: 'Mail',
+                  onTap: onMail,
+                  child: const Icon(Icons.mail, size: 18, color: Color(0xFF1C7ED6)),
+                ),
+                _BarButton(
+                  tooltip: 'Stage',
+                  onTap: onBoards,
+                  child: const Icon(Icons.crop_square_rounded, size: 18, color: Color(0xFFE03131)),
                 ),
               ],
             ),
@@ -373,8 +486,8 @@ class _BarButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 40,
-          height: 40,
+          width: 36,
+          height: 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? const Color(0x14000000) : Colors.transparent,
@@ -391,12 +504,14 @@ class _DesktopIcon extends StatelessWidget {
   const _DesktopIcon({
     required this.label,
     required this.iconKey,
+    required this.height,
     required this.onTap,
     required this.child,
   });
 
   final String label;
-  final Key iconKey;
+  final Key? iconKey;
+  final double height;
   final VoidCallback onTap;
   final Widget child;
 
@@ -406,18 +521,21 @@ class _DesktopIcon extends StatelessWidget {
       key: iconKey,
       onTap: onTap,
       child: SizedBox(
-        width: 74,
+        width: 78,
+        height: height,
         child: Column(
           children: [
             child,
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 11,
-                height: 1.15,
+                fontSize: 10,
+                height: 1.05,
                 shadows: [Shadow(color: Color(0xCC000000), blurRadius: 3)],
               ),
             ),
@@ -614,6 +732,19 @@ class _TaskPane extends StatelessWidget {
   }
 }
 
+class _NotePane extends StatelessWidget {
+  const _NotePane({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(label, style: const TextStyle(color: Color(0xFF5A5A5A), fontSize: 14)),
+    );
+  }
+}
+
 class _EmptyFolder extends StatelessWidget {
   const _EmptyFolder({required this.label});
 
@@ -685,71 +816,85 @@ class _BloomPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..color = const Color(0xFFD3E4F6));
-    final center = Offset(size.width * 0.50, size.height * 0.40);
-    final scale = math.min(size.width, size.height);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFFC5D9F2), Color(0xFFD7E8F8), Color(0xFFE9F3FC)],
+        ).createShader(rect),
+    );
+    final origin = Offset(size.width * 0.40, size.height * 0.46);
+    final unit = math.min(size.width, size.height);
     canvas.save();
-    canvas.translate(center.dx, center.dy);
-    const ribbons = <(double, Color, Color, double, double)>[
-      (0.2, Color(0xFF163E9A), Color(0xFF3E78D8), 0.62, 0.075),
-      (1.05, Color(0xFF1E56C4), Color(0xFF7EB6F6), 0.70, 0.082),
-      (1.85, Color(0xFF0E327C), Color(0xFF2F66C8), 0.58, 0.07),
-      (2.55, Color(0xFF4C92EA), Color(0xFFD4E8FC), 0.66, 0.078),
-      (3.35, Color(0xFF2158C0), Color(0xFF6AABF0), 0.74, 0.09),
-      (4.15, Color(0xFF12357A), Color(0xFF3A72D2), 0.52, 0.064),
-      (4.9, Color(0xFF5AA0F2), Color(0xFFE4F2FE), 0.60, 0.072),
-      (5.6, Color(0xFF1848B0), Color(0xFF4E8CE4), 0.48, 0.06),
+    canvas.translate(origin.dx, origin.dy);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(unit * 0.04, unit * 0.08), width: unit * 0.95, height: unit * 0.7),
+      Paint()
+        ..color = const Color(0x220A2A66)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28),
+    );
+    const sheets = <(Offset, Offset, Offset, Offset, Color, Color, double)>[
+      (Offset(-0.15, -0.5), Offset(-0.62, -0.05), Offset(0.42, -0.58), Offset(0.28, 0.22), Color(0xFFD7EBFC), Color(0xFF3D7AD8), 0.26),
+      (Offset(-0.48, -0.18), Offset(-0.05, 0.42), Offset(0.55, 0.05), Offset(0.22, -0.28), Color(0xFF8EBEF4), Color(0xFF14367C), 0.22),
+      (Offset(-0.32, -0.32), Offset(0.18, -0.5), Offset(0.05, 0.28), Offset(-0.22, 0.46), Color(0xFFB9D7FA), Color(0xFF1C4EAE), 0.24),
+      (Offset(-0.08, -0.22), Offset(0.38, 0.02), Offset(0.12, 0.38), Offset(-0.28, 0.08), Color(0xFFE7F4FE), Color(0xFF5C9AEE), 0.16),
+      (Offset(-0.5, 0.08), Offset(-0.12, 0.48), Offset(0.32, 0.42), Offset(0.48, 0.02), Color(0xFF6FA6EA), Color(0xFF0E2C68), 0.2),
+      (Offset(0.02, 0.02), Offset(0.48, -0.22), Offset(0.78, 0.28), Offset(0.62, 0.48), Color(0xFFC5DFF8), Color(0xFF2458C0), 0.2),
+      (Offset(-0.22, 0.18), Offset(0.15, 0.55), Offset(0.55, 0.18), Offset(0.18, -0.12), Color(0xFF9CC6F6), Color(0xFF184494), 0.18),
+      (Offset(0.12, -0.38), Offset(0.45, -0.12), Offset(0.2, 0.18), Offset(-0.08, 0.28), Color(0xFFF2F8FE), Color(0xFF4E8CE4), 0.14),
+      (Offset(-0.38, -0.42), Offset(0.05, -0.08), Offset(-0.15, 0.32), Offset(0.28, 0.38), Color(0xFF2E66C8), Color(0xFF102A60), 0.17),
     ];
-    for (final ribbon in ribbons) {
-      canvas.save();
-      canvas.rotate(ribbon.$1);
-      final length = scale * ribbon.$4;
-      final path = Path()
-        ..moveTo(-length * 0.08, length * 0.02)
-        ..cubicTo(
-          -length * 0.72,
-          -length * 0.18,
-          -length * 0.15,
-          -length * 0.95,
-          length * 0.42,
-          -length * 0.62,
-        )
-        ..cubicTo(
-          length * 0.78,
-          -length * 0.42,
-          length * 0.28,
-          length * 0.08,
-          -length * 0.02,
-          length * 0.22,
-        );
-      final bounds = Rect.fromCenter(
-        center: Offset.zero,
-        width: scale,
-        height: scale,
-      );
+    for (final sheet in sheets) {
+      final spine = <Offset>[
+        for (var i = 0; i <= 36; i++)
+          _cubic(sheet.$1, sheet.$2, sheet.$3, sheet.$4, i / 36) * unit,
+      ];
+      final path = _band(spine, unit * sheet.$7);
+      final bounds = Rect.fromCenter(center: Offset.zero, width: unit * 1.6, height: unit * 1.6);
       canvas.drawPath(
         path,
         Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = scale * ribbon.$5
-          ..strokeCap = StrokeCap.round
           ..shader = LinearGradient(
-            begin: const Alignment(-0.8, -1),
-            end: const Alignment(0.6, 0.4),
-            colors: [ribbon.$3, ribbon.$2],
+            begin: const Alignment(-0.6, -1),
+            end: const Alignment(0.8, 0.7),
+            colors: [sheet.$5, sheet.$6],
           ).createShader(bounds),
       );
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = scale * ribbon.$5 * 0.28
-          ..strokeCap = StrokeCap.round
-          ..color = const Color(0x66FFFFFF),
-      );
-      canvas.restore();
     }
     canvas.restore();
+  }
+
+  Offset _cubic(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
+    final u = 1 - t;
+    return (p0 * (u * u * u)) + (p1 * (3 * u * u * t)) + (p2 * (3 * u * t * t)) + (p3 * (t * t * t));
+  }
+
+  Path _band(List<Offset> spine, double width) {
+    final left = <Offset>[];
+    final right = <Offset>[];
+    for (var i = 0; i < spine.length; i++) {
+      final prev = spine[math.max(0, i - 1)];
+      final next = spine[math.min(spine.length - 1, i + 1)];
+      final dir = next - prev;
+      final len = dir.distance;
+      if (len == 0) continue;
+      final normal = Offset(-dir.dy / len, dir.dx / len);
+      final t = i / (spine.length - 1);
+      final taper = 0.62 + 0.38 * math.sin(t * math.pi);
+      left.add(spine[i] + normal * (width * taper));
+      right.add(spine[i] - normal * (width * taper * 0.72));
+    }
+    final path = Path()..moveTo(left.first.dx, left.first.dy);
+    for (final point in left.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    for (final point in right.reversed) {
+      path.lineTo(point.dx, point.dy);
+    }
+    path.close();
+    return path;
   }
 
   @override

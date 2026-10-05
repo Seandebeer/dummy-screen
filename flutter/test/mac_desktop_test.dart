@@ -77,6 +77,8 @@ void main() {
     expect(find.byKey(const Key('win-desktop')), findsOneWidget);
     expect(find.text('Recycle Bin'), findsOneWidget);
     expect(find.text('Edge'), findsOneWidget);
+    expect(find.text('Mail'), findsOneWidget);
+    expect(find.text('Remote'), findsOneWidget);
     expect(find.byKey(const Key('win-taskbar')), findsOneWidget);
     await tester.tap(find.byKey(const Key('win-edge')));
     await tester.pump();
