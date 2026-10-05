@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
@@ -41,6 +42,7 @@ class _AtmScreenState extends State<AtmScreen> {
   late final TextEditingController _balance;
   late final TextEditingController _notes;
   late final TextEditingController _customAmount;
+  Timer? _fundsTimer;
 
   @override
   void initState() {
@@ -59,6 +61,7 @@ class _AtmScreenState extends State<AtmScreen> {
 
   @override
   void dispose() {
+    _fundsTimer?.cancel();
     _bankName.dispose();
     _userName.dispose();
     _time.dispose();
@@ -99,13 +102,24 @@ class _AtmScreenState extends State<AtmScreen> {
     setState(() {});
   }
 
-  void _go(String step) => setState(() {
-    _step = step;
-    _message = '';
-    if (step == 'pin') _pin = '';
-    if (step == 'settings') _balance.text = '${os.bankBalance}';
-    if (step != 'layout') _layoutPick = null;
-  });
+  void _go(String step) {
+    _fundsTimer?.cancel();
+    setState(() {
+      _step = step;
+      _message = '';
+      if (step == 'pin') _pin = '';
+      if (step == 'settings') _balance.text = '${os.bankBalance}';
+      if (step != 'layout') _layoutPick = null;
+    });
+  }
+
+  void _insufficientFunds() {
+    _go('insufficient');
+    _fundsTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted || _step != 'insufficient') return;
+      _go('menu');
+    });
+  }
 
   void _digit(String value) {
     if (_pin.length >= 5) return;
@@ -125,11 +139,7 @@ class _AtmScreenState extends State<AtmScreen> {
   void _chooseAmount(int amount, {String errorBack = 'amount'}) {
     if (amount <= 0) return;
     if (amount > os.bankBalance) {
-      setState(() {
-        _message = _t('unavailable');
-        _errorBack = errorBack;
-        _step = 'error';
-      });
+      _insufficientFunds();
       return;
     }
     if (!atmCanDispense(amount, atmNotes(os))) {
@@ -508,6 +518,8 @@ class _AtmScreenState extends State<AtmScreen> {
           _f('statementBody', {'currency': os.bankCurrency}),
           [_choice(_t('done'), () => _go('menu'), primary: true)],
         );
+      case 'insufficient':
+        return _prompt(scale, _t('insufficient'), '', const []);
       case 'error':
         return _prompt(
           scale,

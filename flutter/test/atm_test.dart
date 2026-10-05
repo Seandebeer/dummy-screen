@@ -134,7 +134,9 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-amount-20')));
     await tester.pump();
-    expect(find.text('That amount is not available.'), findsOneWidget);
+    expect(find.text('Insufficient funds.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Please select your transaction'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
