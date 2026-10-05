@@ -76,6 +76,12 @@ void main() {
     expect(find.byKey(const Key('mac-desktop')), findsNothing);
     expect(find.text('Windows'), findsOneWidget);
     expect(find.text('Call'), findsWidgets);
+    await tester.tap(find.byTooltip('System'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mac'), findsOneWidget);
+    expect(find.text('Linux'), findsOneWidget);
+    expect(find.text('Ubuntu'), findsNothing);
+    expect(find.text('Windows 95'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

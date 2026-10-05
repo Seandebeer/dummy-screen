@@ -152,7 +152,7 @@ class _FormOsState extends State<FormOs> {
         portrait: true,
       ),
       _ => _ComputerOs(
-        shell: os.shell.isEmpty ? 'macos' : os.shell,
+        shell: _computerShell(os.shell),
         onShell: _shell,
         app: _app,
         onOpen: (id) => setState(() => _app = id),
@@ -162,21 +162,25 @@ class _FormOsState extends State<FormOs> {
 }
 
 const _computerShells = [
-  ('macos', 'macOS'),
+  ('macos', 'Mac'),
   ('windows', 'Windows'),
   ('linux', 'Linux'),
-  ('ubuntu', 'Ubuntu'),
-  ('system7', 'System 7'),
-  ('mac9', 'Mac OS 9'),
-  ('tiger', 'OS X Tiger'),
-  ('yosemite', 'OS X Yosemite'),
-  ('win95', 'Windows 95'),
-  ('win98', 'Windows 98'),
-  ('winxp', 'Windows XP'),
-  ('vista', 'Windows Vista'),
-  ('win7', 'Windows 7'),
-  ('win8', 'Windows 8'),
 ];
+
+/// Older saved shells still open as Mac, Windows, or Linux.
+String _computerShell(String shell) {
+  return switch (shell) {
+    'windows' ||
+    'win95' ||
+    'win98' ||
+    'winxp' ||
+    'vista' ||
+    'win7' ||
+    'win8' => 'windows',
+    'linux' || 'ubuntu' => 'linux',
+    _ => 'macos',
+  };
+}
 
 const _deskApps = [
   ('call', 'Call', Icons.video_call),
@@ -205,39 +209,12 @@ class _ComputerOs extends StatelessWidget {
   final ValueChanged<String?> onOpen;
 
   Color get _desktop {
-    switch (shell) {
-      case 'windows':
-      case 'win7':
-      case 'win8':
-        return const Color(0xFF0C3B6E);
-      case 'winxp':
-        return const Color(0xFF245EDC);
-      case 'win95':
-      case 'win98':
-        return const Color(0xFF008080);
-      case 'vista':
-        return const Color(0xFF1B3A4B);
-      case 'ubuntu':
-        return const Color(0xFF2C001E);
-      case 'linux':
-        return const Color(0xFF1C2833);
-      case 'system7':
-      case 'mac9':
-        return const Color(0xFFBFBFBF);
-      case 'tiger':
-        return const Color(0xFF6FA8D6);
-      case 'yosemite':
-        return const Color(0xFF3D4F66);
-      default:
-        return const Color(0xFF1D3E6E);
-    }
+    return switch (shell) {
+      'windows' => const Color(0xFF0C3B6E),
+      'linux' => const Color(0xFF1C2833),
+      _ => const Color(0xFF1D3E6E),
+    };
   }
-
-  bool get _classic =>
-      shell == 'system7' ||
-      shell == 'mac9' ||
-      shell == 'win95' ||
-      shell == 'win98';
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +230,7 @@ class _ComputerOs extends StatelessWidget {
         shells: _computerShells,
       );
     }
-    final ink = _classic ? Colors.black : Colors.white;
+    const ink = Colors.white;
     return Material(
       color: _desktop,
       child: Column(
@@ -282,7 +259,6 @@ class _ComputerOs extends StatelessWidget {
                   Center(
                     child: _Window(
                       title: _deskApps.firstWhere((item) => item.$1 == app).$2,
-                      classic: _classic,
                       onClose: () => onOpen(null),
                       child: _DeskTool(id: app!),
                     ),
@@ -305,9 +281,7 @@ class _ComputerOs extends StatelessWidget {
         .$2;
     return Container(
       height: 28,
-      color: _classic
-          ? const Color(0xFFF4F4F4)
-          : Colors.black.withValues(alpha: 0.35),
+      color: Colors.black.withValues(alpha: 0.35),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         children: [
@@ -339,7 +313,7 @@ class _ComputerOs extends StatelessWidget {
       height: 54,
       margin: const EdgeInsets.fromLTRB(40, 0, 40, 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: _classic ? 0.08 : 0.35),
+        color: Colors.black.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -397,28 +371,24 @@ class _Window extends StatelessWidget {
     required this.title,
     required this.child,
     required this.onClose,
-    required this.classic,
   });
 
   final String title;
   final Widget child;
   final VoidCallback onClose;
-  final bool classic;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 520, maxHeight: 360),
       child: Material(
-        color: classic ? const Color(0xFFE8E8E8) : const Color(0xF016161A),
+        color: const Color(0xF016161A),
         elevation: 12,
         child: Column(
           children: [
             Container(
               height: 32,
-              color: classic
-                  ? const Color(0xFF000080)
-                  : const Color(0xFF2A2A30),
+              color: const Color(0xFF2A2A30),
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
