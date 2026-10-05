@@ -159,8 +159,23 @@ void main() {
     await tester.tap(find.byKey(const Key('atm-settings')));
     await tester.pump();
     expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Bank name'), findsOneWidget);
+    expect(find.text('User name'), findsOneWidget);
     expect(find.text('Currency'), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('atm-bank-name')),
+      'Harbor Trust',
+    );
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.bankName, 'Harbor Trust');
+    await tester.enterText(
+      find.byKey(const Key('atm-user-name')),
+      'Mara Quinn',
+    );
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.bankHolder, 'Mara Quinn');
     expect(find.byKey(const Key('atm-upload-background')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('atm-skin-gold')));
@@ -184,11 +199,15 @@ void main() {
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.language, 'es');
 
+    await tester.ensureVisible(find.byKey(const Key('atm-remove-background')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-remove-background')));
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.backgroundType, 'preset');
     expect(find.byKey(const Key('atm-custom-background')), findsNothing);
 
+    await tester.ensureVisible(find.byKey(const Key('atm-edit-layout')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-edit-layout')));
     await tester.pump();
     expect(
@@ -202,9 +221,13 @@ void main() {
     expect(store.deviceById('atm-1')!.os.homeOrder.first, 'balance');
     await tester.tap(find.byKey(const Key('atm-layout-done')));
     await tester.pump();
-    await tester.tap(find.text('Listo'));
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-done')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-settings-done')));
     await tester.pump();
     expect(find.text('Seleccione su transacción'), findsOneWidget);
+    expect(find.text('Harbor Trust'), findsOneWidget);
+    expect(find.textContaining('Mara Quinn'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const Key('atm-slot-0')),

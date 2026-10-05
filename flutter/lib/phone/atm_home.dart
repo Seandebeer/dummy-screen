@@ -34,6 +34,24 @@ class _AtmScreenState extends State<AtmScreen> {
   String _action = '';
   int _amount = 0;
   String? _layoutPick;
+  late final TextEditingController _bankName;
+  late final TextEditingController _userName;
+
+  @override
+  void initState() {
+    super.initState();
+    final current =
+        widget.store.deviceById(widget.device.id)?.os ?? widget.device.os;
+    _bankName = TextEditingController(text: current.bankName);
+    _userName = TextEditingController(text: current.bankHolder);
+  }
+
+  @override
+  void dispose() {
+    _bankName.dispose();
+    _userName.dispose();
+    super.dispose();
+  }
 
   OsSettings get os {
     final live = widget.store.deviceById(widget.device.id);
@@ -506,6 +524,22 @@ class _AtmScreenState extends State<AtmScreen> {
               ),
             ),
             SizedBox(height: 14 * scale),
+            _nameField(
+              scale,
+              _t('bankName'),
+              _bankName,
+              (name) => _save((current) => current.copyWith(bankName: name)),
+              key: const Key('atm-bank-name'),
+            ),
+            SizedBox(height: 14 * scale),
+            _nameField(
+              scale,
+              _t('userName'),
+              _userName,
+              (name) => _save((current) => current.copyWith(bankHolder: name)),
+              key: const Key('atm-user-name'),
+            ),
+            SizedBox(height: 14 * scale),
             _section(_t('theme'), scale),
             Wrap(
               alignment: WrapAlignment.center,
@@ -584,7 +618,11 @@ class _AtmScreenState extends State<AtmScreen> {
               primary: true,
             ),
             SizedBox(height: 12 * scale),
-            _choice(_t('done'), () => _go('menu')),
+            _choice(
+              _t('done'),
+              () => _go('menu'),
+              key: const Key('atm-settings-done'),
+            ),
           ],
         ),
       ),
@@ -617,6 +655,57 @@ class _AtmScreenState extends State<AtmScreen> {
           () => _go('settings'),
           key: const Key('atm-layout-done'),
           primary: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _nameField(
+    double scale,
+    String label,
+    TextEditingController controller,
+    ValueChanged<String> onName, {
+    required Key key,
+  }) {
+    return Column(
+      children: [
+        _section(label, scale),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Material(
+              color: skin.keyFill,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: skin.rule),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: TextField(
+                key: key,
+                controller: controller,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: skin.keyInk,
+                  fontSize: 16 * scale,
+                  fontWeight: FontWeight.w700,
+                ),
+                cursorColor: skin.primary,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                ),
+                onChanged: (value) {
+                  final name = value.trim();
+                  if (name.isEmpty) return;
+                  onName(name);
+                },
+              ),
+            ),
+          ),
         ),
       ],
     );
