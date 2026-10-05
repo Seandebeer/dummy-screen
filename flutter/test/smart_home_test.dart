@@ -35,7 +35,7 @@ void main() {
       ),
     );
     expect(find.byKey(const Key('home-wall')), findsOneWidget);
-    expect(find.text('Harbor'), findsOneWidget);
+    expect(find.text('Smart home'), findsOneWidget);
     expect(find.text('On'), findsWidgets);
     expect(tester.takeException(), isNull);
 
@@ -67,7 +67,7 @@ void main() {
       ),
     );
     expect(find.byKey(const Key('home-phone')), findsOneWidget);
-    expect(find.text('Harbor'), findsOneWidget);
+    expect(find.text('Smart home'), findsOneWidget);
     expect(find.byKey(const Key('home-lights')), findsOneWidget);
     await tester.tap(find.byKey(const Key('home-temp-up')));
     await tester.pump();

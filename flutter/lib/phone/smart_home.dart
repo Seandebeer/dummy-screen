@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 
-/// Harbor house control panel.
+/// Smart home control panel.
 ///
 /// [portrait] is the phone mounted as the screen. The wall panel is landscape.
 /// Panels are frosted glass over a colored wash.
@@ -141,7 +141,7 @@ class _HomePanelState extends State<HomePanel> {
         const _ColorThread(),
         const SizedBox(height: 8),
         Text(
-          'Harbor',
+          'Smart home',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
