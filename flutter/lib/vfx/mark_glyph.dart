@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'catalog.dart';
+import 'composite_mark.dart';
 
 class MarkGlyph extends StatelessWidget {
   const MarkGlyph({
@@ -68,13 +69,8 @@ class _GlyphPainter extends CustomPainter {
     final arm = size.width;
     switch (kind) {
       case 'circles':
-      case 'dotcircle':
         canvas.drawCircle(c, size.width * 0.38, paint);
-        canvas.drawCircle(
-          c,
-          kind == 'dotcircle' ? size.width * 0.12 : math.max(1, 5 * scale),
-          fill,
-        );
+        canvas.drawCircle(c, math.max(1, 5 * scale), fill);
       case 'squares':
       case 'diamond':
         final inset = size.width * 0.12;
@@ -99,33 +95,24 @@ class _GlyphPainter extends CustomPainter {
         canvas.drawRect(Rect.fromLTWH(0, 0, arm * 0.7, th), fill);
         canvas.drawRect(Rect.fromLTWH(0, 0, th, arm * 0.7), fill);
       case 'cross':
-      case 'plusgrid':
-      case 'crosshair':
-        final th = kind == 'cross'
-            ? math.max(1.0, 10 * thickness)
-            : size.width * (kind == 'crosshair' ? 0.12 : 0.2);
+        final th = math.max(1.0, 10 * thickness);
         canvas.drawRect(
-          Rect.fromCenter(
-            center: c,
-            width: arm * (kind == 'cross' ? 1 : 0.86),
-            height: th,
-          ),
+          Rect.fromCenter(center: c, width: arm, height: th),
           fill,
         );
         canvas.drawRect(
-          Rect.fromCenter(
-            center: c,
-            width: th,
-            height: arm * (kind == 'cross' ? 1 : 0.86),
-          ),
+          Rect.fromCenter(center: c, width: th, height: arm),
           fill,
         );
-        if (kind == 'crosshair' || kind == 'plusgrid') {
-          canvas.drawCircle(c, size.width * 0.38, paint);
-        }
       default:
         if (kCompositeIds.contains(kind)) {
-          _composite(canvas, size, paint, fill);
+          paintCompositeMark(
+            canvas,
+            size,
+            kind: kind,
+            color: color,
+            thickness: thickness,
+          );
         } else {
           final th = math.max(1.0, 10 * thickness);
           canvas.drawRect(
@@ -137,36 +124,6 @@ class _GlyphPainter extends CustomPainter {
             fill,
           );
         }
-    }
-  }
-
-  void _composite(Canvas canvas, Size size, Paint stroke, Paint fill) {
-    final c = Offset(size.width / 2, size.height / 2);
-    canvas.drawCircle(c, size.width * 0.38, stroke);
-    final tri = Path()
-      ..moveTo(c.dx, size.height * 0.22)
-      ..lineTo(size.width * 0.72, size.height * 0.74)
-      ..lineTo(size.width * 0.28, size.height * 0.74)
-      ..close();
-    if (kind == 'solidtri' || kind == 'squaretri' || kind == 'invtri') {
-      canvas.drawPath(tri, fill);
-    } else if (kind == 'quads' || kind == 'squads') {
-      canvas.drawArc(
-        Rect.fromCircle(center: c, radius: size.width * 0.28),
-        -math.pi / 2,
-        math.pi / 2,
-        true,
-        fill,
-      );
-      canvas.drawArc(
-        Rect.fromCircle(center: c, radius: size.width * 0.28),
-        math.pi / 2,
-        math.pi / 2,
-        true,
-        fill,
-      );
-    } else {
-      canvas.drawPath(tri, stroke);
     }
   }
 
