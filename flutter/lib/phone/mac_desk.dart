@@ -9,8 +9,10 @@ import 'app_catalog.dart';
 import 'catalog.dart';
 import 'extra_settings.dart';
 
-/// Built-in Mac shelf, left to right. Settings and App Store sit on the end.
+/// Built-in Mac shelf, left to right: the same daily drivers the phone docks,
+/// then the desk tools. Settings and App Store sit on the end.
 const kMacDockIds = [
+  ...kDockIds,
   'call',
   'tracking',
   'markers',
@@ -18,9 +20,6 @@ const kMacDockIds = [
   'word',
   'excel',
   'terminal',
-  'social',
-  'photos',
-  'music',
   'settings',
   'appstore',
 ];
@@ -38,7 +37,8 @@ const kMacFileNames = [
 /// Menu-bar tokens. An empty saved list still means this set.
 const kMacStatusDefault = ['wifi', 'battery', 'clock', 'search', 'control'];
 
-const kMacDeskApps = {
+/// Tools that exist only on a computer.
+const kDeskTools = {
   'call',
   'tracking',
   'markers',
@@ -46,22 +46,10 @@ const kMacDeskApps = {
   'word',
   'excel',
   'terminal',
-  'social',
-  'photos',
-  'music',
 };
 
 const kMacPainted = {
-  'call',
-  'tracking',
-  'markers',
-  'video',
-  'word',
-  'excel',
-  'terminal',
-  'social',
-  'photos',
-  'music',
+  ...kDeskTools,
   'settings',
   'appstore',
 };
@@ -135,10 +123,16 @@ class MacLayout {
 
   static bool deskCustom(OsSettings os) => os.macPlaces.containsKey('_');
 
+  /// The desktop starts with page one of the home screen on the left and the
+  /// file column on the right.
+  static List<String> defaultDesktop() => [
+    for (final id in homePageOne())
+      if (!kMacDockIds.contains(id)) id,
+    for (final name in kMacFileNames) 'file:$name',
+  ];
+
   static List<String> desktop(OsSettings os) {
-    if (!deskCustom(os)) {
-      return [for (final name in kMacFileNames) 'file:$name'];
-    }
+    if (!deskCustom(os)) return defaultDesktop();
     return [for (final id in os.macDesktop) if (id.isNotEmpty) id];
   }
 
@@ -150,6 +144,29 @@ class MacLayout {
   static Map<String, Offset> defaultSpots(Size area) {
     const itemWidth = 108.0;
     const itemHeight = 64.0;
+    final spots = <String, Offset>{};
+    final apps = [
+      for (final id in homePageOne())
+        if (!kMacDockIds.contains(id)) id,
+    ];
+    const appWidth = 84.0;
+    const appHeight = 72.0;
+    final rows = ((area.height - 16) / appHeight).floor().clamp(1, 12);
+    for (var i = 0; i < apps.length; i++) {
+      spots[apps[i]] = Offset(
+        10 + (i ~/ rows) * appWidth,
+        10 + (i % rows) * appHeight,
+      );
+    }
+    spots.addAll(_fileSpots(area, itemWidth, itemHeight));
+    return spots;
+  }
+
+  static Map<String, Offset> _fileSpots(
+    Size area,
+    double itemWidth,
+    double itemHeight,
+  ) {
     final count = kMacFileNames.length;
     final gaps = count - 1;
     final free = area.height - 12 - itemHeight * count;

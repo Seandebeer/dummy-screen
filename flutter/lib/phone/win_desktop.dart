@@ -7,6 +7,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import 'catalog.dart';
 
 /// Windows desktop: bloom wallpaper, left-hand icons, and a centered taskbar.
 class WinDesktop extends StatefulWidget {
@@ -97,7 +98,8 @@ class _WinDesktopState extends State<WinDesktop> {
           width: 246,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final rows = (_shortcuts.length / 3).ceil();
+              final count = _shortcuts.length + widget.apps.length;
+              final rows = (count / 3).ceil().clamp(1, 99);
               final cellH = constraints.maxHeight / rows;
               return Wrap(
                 key: const Key('win-icons'),
@@ -113,6 +115,14 @@ class _WinDesktopState extends State<WinDesktop> {
                       onTap: () => _open(shortcut.id),
                       child: shortcut.mark,
                     ),
+                  for (final app in widget.apps)
+                    _DesktopIcon(
+                      label: app.$2,
+                      iconKey: Key('win-icon-${app.$1}'),
+                      height: cellH,
+                      onTap: () => _open(app.$1),
+                      child: _Tile(_tint(app.$1), app.$3),
+                    ),
                 ],
               );
             },
@@ -122,6 +132,7 @@ class _WinDesktopState extends State<WinDesktop> {
           Center(
             child: _WinWindow(
               title: title,
+              tall: !_native.contains(widget.appId),
               onClose: () => _open(null),
               child: _body(widget.appId),
             ),
@@ -179,8 +190,7 @@ class _WinDesktopState extends State<WinDesktop> {
             }),
             onFiles: () => _open('files'),
             onEdge: () => _open('edge'),
-            onMail: () => _open('mail'),
-            onBoards: () => _open('social'),
+            onPinned: _open,
             onShell: widget.onShell,
             shells: widget.shells,
           ),
@@ -196,19 +206,6 @@ class _WinDesktopState extends State<WinDesktop> {
       'recycle' => 'Recycle Bin',
       'edge' => 'Edge',
       'files' => 'File Explorer',
-      'mail' => 'Mail',
-      'camera' => 'Camera',
-      'slides' => 'Slides',
-      'archive' => 'Archive',
-      'notes' => 'Notes',
-      'transfer' => 'Transfer',
-      'studio' => 'Studio',
-      'meet' => 'Meet',
-      'player' => 'Player',
-      'charts' => 'Charts',
-      'lens' => 'Lens',
-      'stage' => 'Stage',
-      'remote' => 'Remote',
       _ => appTitle,
     };
   }
@@ -218,23 +215,13 @@ class _WinDesktopState extends State<WinDesktop> {
       'recycle' => const _EmptyFolder(label: 'This folder is empty.'),
       'edge' => const _Browser(),
       'files' => const _Files(),
-      'mail' => const _NotePane(label: 'No new mail.'),
-      'camera' => const _NotePane(label: 'Camera is off.'),
-      'slides' => const _NotePane(label: 'No slides open.'),
-      'archive' => const _NotePane(label: 'The archive is empty.'),
-      'notes' => const _NotePane(label: 'A blank note.'),
-      'transfer' => const _NotePane(label: 'No transfers.'),
-      'studio' => const _NotePane(label: 'Studio is idle.'),
-      'meet' => const _NotePane(label: 'No meeting yet.'),
-      'player' => const _NotePane(label: 'Nothing is playing.'),
-      'charts' => const _NotePane(label: 'No samples yet.'),
-      'lens' => const _NotePane(label: 'Lens is covered.'),
-      'stage' => const _NotePane(label: 'The stage is dark.'),
-      'remote' => const _NotePane(label: 'Not connected.'),
       _ => widget.tool ?? const SizedBox.shrink(),
     };
   }
 }
+
+/// Shortcuts Windows draws itself, rather than from the shared app set.
+const _native = {'recycle', 'edge', 'files'};
 
 class _Shortcut {
   const _Shortcut(this.id, this.label, this.mark, {this.key});
@@ -266,6 +253,7 @@ class _Tile extends StatelessWidget {
   }
 }
 
+/// Windows keeps its own shortcuts; the shared apps follow them.
 const _shortcuts = <_Shortcut>[
   _Shortcut(
     'recycle',
@@ -273,32 +261,22 @@ const _shortcuts = <_Shortcut>[
     CustomPaint(painter: _BinPainter(), child: SizedBox(width: 30, height: 30)),
     key: Key('win-recycle'),
   ),
-  _Shortcut('camera', 'Camera', _Tile(Color(0xFF3A7BD5), Icons.photo_camera_outlined)),
-  _Shortcut('slides', 'Slides', _Tile(Color(0xFF6A4C93), Icons.slideshow_outlined)),
   _Shortcut(
     'edge',
     'Edge',
     CustomPaint(painter: _WavePainter(), child: SizedBox(width: 30, height: 30)),
     key: Key('win-edge'),
   ),
-  _Shortcut('archive', 'Archive', _Tile(Color(0xFFC47B2B), Icons.inventory_2_outlined)),
-  _Shortcut('word', 'Word', _Tile(Color(0xFF2B6CB0), Icons.description_outlined)),
-  _Shortcut('studio', 'Studio', _Tile(Color(0xFF2F9E44), Icons.brush_outlined)),
-  _Shortcut('notes', 'Notes', _Tile(Color(0xFF3B8F6E), Icons.edit_note_outlined)),
-  _Shortcut('transfer', 'Transfer', _Tile(Color(0xFF0E8A7D), Icons.swap_horiz)),
-  _Shortcut('excel', 'Excel', _Tile(Color(0xFF2B8A3E), Icons.table_chart_outlined)),
-  _Shortcut('meet', 'Meet', _Tile(Color(0xFF3B5BDB), Icons.videocam_outlined)),
-  _Shortcut('player', 'Player', _Tile(Color(0xFF5C4DDB), Icons.movie_outlined)),
-  _Shortcut('charts', 'Charts', _Tile(Color(0xFFE8590C), Icons.bar_chart)),
-  _Shortcut('lens', 'Lens', _Tile(Color(0xFF0B7285), Icons.camera_outlined)),
-  _Shortcut('stage', 'Stage', _Tile(Color(0xFF7048E8), Icons.theater_comedy_outlined)),
-  _Shortcut('mail', 'Mail', _Tile(Color(0xFF1C7ED6), Icons.mail_outline)),
-  _Shortcut('photos', 'Photos', _Tile(Color(0xFF1971C2), Icons.photo_outlined)),
-  _Shortcut('music', 'Music', _Tile(Color(0xFFD6336C), Icons.library_music_outlined)),
-  _Shortcut('files', 'Files', _Tile(Color(0xFFE8B931), Icons.folder_outlined)),
-  _Shortcut('remote', 'Remote', _Tile(Color(0xFF495057), Icons.screen_share_outlined)),
-  _Shortcut('markers', 'Markers', _Tile(Color(0xFF0CA678), Icons.grid_on_outlined)),
+  _Shortcut(
+    'files',
+    'File Explorer',
+    _Tile(Color(0xFFE8B931), Icons.folder_outlined),
+    key: Key('win-files-icon'),
+  ),
 ];
+
+Color _tint(String id) =>
+    propAppById(id)?.color ?? const Color(0xFF4C6EF5);
 
 class _Taskbar extends StatelessWidget {
   const _Taskbar({
@@ -310,8 +288,7 @@ class _Taskbar extends StatelessWidget {
     required this.onTasks,
     required this.onFiles,
     required this.onEdge,
-    required this.onMail,
-    required this.onBoards,
+    required this.onPinned,
     required this.onShell,
     required this.shells,
   });
@@ -324,8 +301,7 @@ class _Taskbar extends StatelessWidget {
   final VoidCallback onTasks;
   final VoidCallback onFiles;
   final VoidCallback onEdge;
-  final VoidCallback onMail;
-  final VoidCallback onBoards;
+  final ValueChanged<String> onPinned;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
 
@@ -373,12 +349,6 @@ class _Taskbar extends StatelessWidget {
                   child: const Icon(Icons.view_quilt_outlined, size: 18, color: Color(0xFF1A1A1A)),
                 ),
                 _BarButton(
-                  key: const Key('win-boards'),
-                  tooltip: 'Boards',
-                  onTap: onBoards,
-                  child: const Icon(Icons.grid_view_rounded, size: 18, color: Color(0xFF3B5BDB)),
-                ),
-                _BarButton(
                   tooltip: 'Edge',
                   onTap: onEdge,
                   child: const CustomPaint(
@@ -392,17 +362,14 @@ class _Taskbar extends StatelessWidget {
                   onTap: onFiles,
                   child: const Icon(Icons.folder, size: 18, color: Color(0xFFE8B931)),
                 ),
-                _BarButton(
-                  key: const Key('win-mail'),
-                  tooltip: 'Mail',
-                  onTap: onMail,
-                  child: const Icon(Icons.mail, size: 18, color: Color(0xFF1C7ED6)),
-                ),
-                _BarButton(
-                  tooltip: 'Stage',
-                  onTap: onBoards,
-                  child: const Icon(Icons.crop_square_rounded, size: 18, color: Color(0xFFE03131)),
-                ),
+                for (final id in kDockIds)
+                  if (propAppById(id) case final prop?)
+                    _BarButton(
+                      key: Key('win-bar-$id'),
+                      tooltip: appLabel(prop, branded: os.branded),
+                      onTap: () => onPinned(id),
+                      child: Icon(prop.icon, size: 18, color: prop.color),
+                    ),
               ],
             ),
             Positioned(
@@ -551,16 +518,22 @@ class _WinWindow extends StatelessWidget {
     required this.title,
     required this.onClose,
     required this.child,
+    required this.tall,
   });
 
   final String title;
   final VoidCallback onClose;
   final Widget child;
 
+  /// Shared apps are phone shaped, so they get a narrow, tall window.
+  final bool tall;
+
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 360),
+      constraints: tall
+          ? const BoxConstraints(maxWidth: 420, maxHeight: 720)
+          : const BoxConstraints(maxWidth: 560, maxHeight: 360),
       child: Material(
         color: Colors.white,
         elevation: 16,
@@ -728,19 +701,6 @@ class _TaskPane extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _NotePane extends StatelessWidget {
-  const _NotePane({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(label, style: const TextStyle(color: Color(0xFF5A5A5A), fontSize: 14)),
     );
   }
 }

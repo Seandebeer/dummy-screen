@@ -4,34 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../app.dart';
-import '../image_file.dart';
 import '../store.dart';
 import '../format.dart';
 import '../models.dart';
-import '../os_catalog.dart';
-import '../phone/app_catalog.dart';
 import '../phone/home_view.dart';
-import '../phone/library_app.dart';
 import '../phone/lock_screen.dart';
-import '../phone/phone_apps.dart';
+import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
-import '../phone/desk_apps.dart';
-import '../phone/prop_apps.dart';
 import '../phone/form_factor.dart';
-import '../phone/settings_app.dart';
-import '../phone/social_apps.dart';
-import '../phone/maps_app.dart';
-import '../phone/utility_apps.dart';
 import '../theme.dart';
 import '../widgets/three_finger.dart';
-
-const _shutterColors = [
-  0xFF318DF6,
-  0xFF30D158,
-  0xFFFF9F0A,
-  0xFFFF453A,
-  0xFF5E5CE6,
-];
 
 class OsPage extends StatefulWidget {
   const OsPage({super.key});
@@ -46,7 +28,6 @@ class _OsPageState extends State<OsPage> {
   String? _app;
   String? _thread;
   bool _openingPending = false;
-  int _shutter = 0;
   int _side = 0;
   StageStore? _store;
 
@@ -106,15 +87,6 @@ class _OsPageState extends State<OsPage> {
       _app = null;
       _thread = null;
     });
-  }
-
-  List<Map<String, dynamic>> _mail(StageStore store, String deviceId) {
-    final raw = store.pages['mail-$deviceId'];
-    if (raw is! Map) return const [];
-    return [
-      for (final item in jsonList(raw['items']))
-        if (item is Map) jsonMap(item),
-    ];
   }
 
   Widget _deviceMenu(StageStore store, PropDevice? device) {
@@ -300,125 +272,19 @@ class _OsPageState extends State<OsPage> {
         onOpen: _open,
       );
     }
-    if (app == 'messages') {
-      return Material(
-        color: const Color(0xFF0B0B0F),
-        child: MessagesApp(
-          store: store,
-          deviceId: device.id,
-          initialThread: _thread,
-          chrome: chromeFor(device.skin),
-          onClose: () => setState(() {
-            _app = null;
-            _thread = null;
-          }),
-        ),
-      );
-    }
-    return Material(
-      color: const Color(0xFF0B0B0F),
-      child: _appBody(store, device, app),
+    return OsAppView(
+      store: store,
+      device: device,
+      appId: app,
+      thread: _thread,
+      onOpen: _open,
+      onClose: () => setState(() {
+        _app = null;
+        _thread = null;
+      }),
     );
   }
 
-  Widget _appBody(StageStore store, PropDevice device, String id) {
-    switch (id) {
-      case 'phone':
-        return Material(
-          color: const Color(0xFF0B0B0F),
-          child: PhoneDialer(
-            store: store,
-            deviceId: device.id,
-            contacts: contactsFor(device.os),
-            language: device.os.language,
-            chrome: chromeFor(device.skin),
-          ),
-        );
-      case 'contacts':
-        return Material(
-          color: const Color(0xFF0B0B0F),
-          child: ContactsApp(
-            contacts: contactsFor(device.os),
-            onAdd: (person) => store.updateOs(
-              device.id,
-              (current) => current.copyWith(people: [...current.people, person]),
-            ),
-            onMessage: (contact) => _open('messages', thread: contact.name),
-            onCall: (contact) => store.startCall(
-              deviceId: device.id,
-              contactName: contact.name,
-              contactNumber: contact.number,
-              direction: 'outgoing',
-            ),
-          ),
-        );
-      case 'settings':
-        return SettingsApp(store: store, device: device);
-      case 'clock':
-        return ClockApp(store: store, device: device);
-      case 'notes':
-        return NotesApp(store: store, device: device);
-      case 'calculator':
-        return CalculatorApp(chrome: chromeFor(device.skin));
-      case 'camera':
-        return CameraApp(
-          photos: store.photos[device.id] ?? const [],
-          onShutter: (bytes) async {
-            final color = _shutterColors[_shutter % _shutterColors.length];
-            var image = '';
-            if (bytes != null && bytes.isNotEmpty) {
-              image = await persistImageBytes(bytes) ?? '';
-            }
-            if (!mounted) return;
-            store.addPhoto(device.id, color, image: image);
-            setState(() => _shutter += 1);
-          },
-        );
-      case 'photos':
-        return PhotosApp(photos: store.photos[device.id] ?? const []);
-      case 'email':
-      case 'mail':
-        return InboxApp(extra: _mail(store, device.id), chrome: chromeFor(device.skin));
-      case 'calendar':
-        return CalendarApp(offsetMinutes: device.clockOffsetMinutes);
-      case 'maps':
-        return const MapsApp();
-      case 'music':
-        return const PropMusic();
-      case 'browser':
-        return PropBrowser(chrome: chromeFor(device.skin));
-      case 'facepage':
-        return const GrapevineApp();
-      case 'photogram':
-        return const LumeApp();
-      case 'vidtube':
-        return const StreamlyApp();
-      case 'quicktok':
-        return const FlickdeckApp();
-      case 'news':
-        return const BulletinApp();
-      case 'fitness':
-        return const PulseApp();
-      case 'property':
-        return const RealtyApp();
-      case 'webdeck':
-        return const WebdeckApp();
-      case 'appstore':
-        return LibraryApp(store: store, device: device);
-      case 'videocall':
-        return VidcallApp(contacts: contactsFor(device.os));
-      default:
-        final feed = kFeeds[id];
-        if (feed != null) {
-          return PropFeed(title: feed.$1, accent: feed.$2, posts: feed.$3);
-        }
-        final mock = catalogAppById(id);
-        if (mock != null) return MockScreen(app: mock);
-        return const Center(
-          child: Text('Prop screen', style: TextStyle(color: kMuted)),
-        );
-    }
-  }
 }
 
 class _Sandbox extends StatelessWidget {

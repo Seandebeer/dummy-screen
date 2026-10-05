@@ -6,7 +6,9 @@ import '../models.dart';
 import '../store.dart';
 import 'atm_home.dart';
 import 'console_apps.dart';
+import 'catalog.dart';
 import 'mac_desktop.dart';
+import 'os_apps.dart';
 import 'win_desktop.dart';
 import 'ps2_home.dart';
 import 'smart_home.dart';
@@ -186,18 +188,37 @@ String _computerShell(String shell) {
   };
 }
 
-const _deskApps = [
-  ('call', 'Call', Icons.video_call),
-  ('tracking', 'Tracking', Icons.center_focus_strong),
-  ('markers', 'UI Markers', Icons.grid_on),
-  ('video', 'Video', Icons.movie),
-  ('word', 'Word', Icons.description),
-  ('excel', 'Excel', Icons.table_chart),
-  ('terminal', 'Terminal', Icons.terminal),
-  ('social', 'Social', Icons.forum),
-  ('photos', 'Photos', Icons.photo_library),
-  ('music', 'Music', Icons.library_music),
-];
+/// Tools that exist only on a computer, shown after the shared apps.
+const _toolIcons = <String, (String, IconData)>{
+  'call': ('Call', Icons.video_call),
+  'tracking': ('Tracking', Icons.center_focus_strong),
+  'markers': ('UI Markers', Icons.grid_on),
+  'video': ('Video', Icons.movie),
+  'word': ('Word', Icons.description),
+  'excel': ('Excel', Icons.table_chart),
+  'terminal': ('Terminal', Icons.terminal),
+};
+
+/// A computer starts with the same apps as a phone, then the desk tools.
+List<(String, String, IconData)> deskApps(OsSettings os) {
+  final out = <(String, String, IconData)>[];
+  for (final id in homePageOne()) {
+    final prop = propAppById(id);
+    if (prop != null) {
+      out.add((id, appLabel(prop, branded: os.branded), prop.icon));
+    }
+  }
+  for (final entry in _toolIcons.entries) {
+    out.add((entry.key, entry.value.$1, entry.value.$2));
+  }
+  return out;
+}
+
+String deskTitle(String id, OsSettings os) {
+  final tool = _toolIcons[id];
+  if (tool != null) return tool.$1;
+  return osAppTitle(id, os);
+}
 
 class _ComputerOs extends StatelessWidget {
   const _ComputerOs({
@@ -224,32 +245,42 @@ class _ComputerOs extends StatelessWidget {
     };
   }
 
+  Widget _window(String id) {
+    if (_toolIcons.containsKey(id)) return _DeskTool(id: id);
+    return OsAppPane(
+      child: OsAppView(
+        store: store,
+        device: device,
+        appId: id,
+        onOpen: (next, {String? thread}) => onOpen(next),
+        onClose: () => onOpen(null),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final apps = deskApps(device.os);
     if (shell == 'macos') {
-      final open = app == null
-          ? null
-          : _deskApps.firstWhere((item) => item.$1 == app);
       return MacDesktop(
         store: store,
         device: device,
-        appTitle: open?.$2,
-        tool: open == null ? null : _DeskTool(id: open.$1),
+        appTitle: app == null ? null : deskTitle(app!, device.os),
+        tool: app == null ? null : _window(app!),
+        toolTall: app != null && !_toolIcons.containsKey(app),
         onOpen: onOpen,
         onShell: onShell,
         shells: _computerShells,
       );
     }
     if (shell == 'windows') {
-      final known = _deskApps.where((item) => item.$1 == app);
-      final open = known.isEmpty ? null : known.first;
       return WinDesktop(
         store: store,
         device: device,
-        apps: _deskApps,
+        apps: apps,
         appId: app,
-        appTitle: open?.$2,
-        tool: open == null ? null : _DeskTool(id: open.$1),
+        appTitle: app == null ? null : deskTitle(app!, device.os),
+        tool: app == null ? null : _window(app!),
         onOpen: onOpen,
         onShell: onShell,
         shells: _computerShells,
@@ -265,33 +296,36 @@ class _ComputerOs extends StatelessWidget {
             child: Stack(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Wrap(
-                    spacing: 18,
-                    runSpacing: 16,
-                    children: [
-                      for (final item in _deskApps)
-                        _DeskIcon(
-                          label: item.$2,
-                          icon: item.$3,
-                          ink: ink,
-                          onTap: () => onOpen(item.$1),
-                        ),
-                    ],
+                  padding: const EdgeInsets.all(12),
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final item in apps)
+                          _DeskIcon(
+                            label: item.$2,
+                            icon: item.$3,
+                            ink: ink,
+                            onTap: () => onOpen(item.$1),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 if (app != null)
                   Center(
                     child: _Window(
-                      title: _deskApps.firstWhere((item) => item.$1 == app).$2,
+                      title: deskTitle(app!, device.os),
+                      tall: !_toolIcons.containsKey(app),
                       onClose: () => onOpen(null),
-                      child: _DeskTool(id: app!),
+                      child: _window(app!),
                     ),
                   ),
               ],
             ),
           ),
-          _dock(ink),
+          _dock(ink, apps),
         ],
       ),
     );
@@ -333,7 +367,13 @@ class _ComputerOs extends StatelessWidget {
     );
   }
 
-  Widget _dock(Color ink) {
+  Widget _dock(Color ink, List<(String, String, IconData)> apps) {
+    final docked = [
+      for (final id in kDockIds)
+        if (propAppById(id) case final prop?)
+          (id, appLabel(prop, branded: device.os.branded), prop.icon),
+      ...apps.where((item) => item.$1 == 'appstore' || item.$1 == 'settings'),
+    ];
     return Container(
       height: 54,
       margin: const EdgeInsets.fromLTRB(40, 0, 40, 8),
@@ -344,7 +384,7 @@ class _ComputerOs extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          for (final item in _deskApps.take(6))
+          for (final item in docked)
             IconButton(
               tooltip: item.$2,
               onPressed: () => onOpen(item.$1),
@@ -396,16 +436,22 @@ class _Window extends StatelessWidget {
     required this.title,
     required this.child,
     required this.onClose,
+    required this.tall,
   });
 
   final String title;
   final Widget child;
   final VoidCallback onClose;
 
+  /// Shared apps are phone shaped, so they get a narrow, tall window.
+  final bool tall;
+
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 520, maxHeight: 360),
+      constraints: tall
+          ? const BoxConstraints(maxWidth: 400, maxHeight: 720)
+          : const BoxConstraints(maxWidth: 520, maxHeight: 360),
       child: Material(
         color: const Color(0xF016161A),
         elevation: 12,

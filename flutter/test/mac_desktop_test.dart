@@ -77,20 +77,20 @@ void main() {
     expect(find.byKey(const Key('win-desktop')), findsOneWidget);
     expect(find.text('Recycle Bin'), findsOneWidget);
     expect(find.text('Edge'), findsOneWidget);
-    expect(find.text('Mail'), findsOneWidget);
-    expect(find.text('Remote'), findsOneWidget);
+    expect(find.byKey(const Key('win-icon-calendar')), findsOneWidget);
+    expect(find.byKey(const Key('win-icon-notes')), findsOneWidget);
+    expect(find.byKey(const Key('win-bar-phone')), findsOneWidget);
     expect(find.byKey(const Key('win-taskbar')), findsOneWidget);
     await tester.tap(find.byKey(const Key('win-edge')));
     await tester.pump();
     expect(find.text('northline.example'), findsOneWidget);
     await tester.tap(find.byKey(const Key('win-window-close')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('win-start')));
+    await tester.tap(find.byKey(const Key('win-icon-calculator')));
     await tester.pump();
-    expect(find.text('Call'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('win-pin-call')));
+    expect(find.text('AC'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('win-window-close')));
     await tester.pump();
-    expect(find.text('Call'), findsOneWidget);
     await tester.tap(find.byTooltip('System'));
     await tester.pumpAndSettle();
     expect(find.text('Windows'), findsOneWidget);
@@ -140,6 +140,14 @@ void main() {
 
     Future<void> page(String id) async {
       await tester.tap(find.byKey(Key('mac-settings-$id')));
+      await tester.pump();
+    }
+
+    Future<void> toTop() async {
+      await tester.drag(
+        find.byKey(const Key('mac-settings-scroll')),
+        const Offset(0, 4000),
+      );
       await tester.pump();
     }
 
@@ -206,6 +214,7 @@ void main() {
       greaterThan(tester.getCenter(find.byKey(const Key('mac-dock-excel'))).dx),
     );
 
+    await toTop();
     await show(const Key('mac-dock-desk-music'));
     await tester.tap(find.byKey(const Key('mac-dock-desk-music')));
     await tester.pump();

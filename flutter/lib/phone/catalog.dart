@@ -70,6 +70,10 @@ const kHomeOrder = [
 
 const kPageSize = 20;
 
+/// Page one of the default home screen: every functional app.
+/// Phones, tablets, and computers all start with these.
+List<String> homePageOne() => kHomeOrder.take(kPageSize).toList();
+
 /// Real product names used only while App Branding is set to Branded.
 /// Icons stay simple glyphs so the prop never ships another company's artwork.
 const kBrandNames = <String, String>{
