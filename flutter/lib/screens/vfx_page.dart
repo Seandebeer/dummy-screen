@@ -376,17 +376,17 @@ class _VfxPageState extends State<VfxPage> {
                   _menu(
                     icon: Icons.category_outlined,
                     title: 'Tracking marks',
+                    onSelected: (index) {
+                      final style = kTrackingStyles[index];
+                      setState(() {
+                        _marksId = style.id;
+                        if (style.point) _addKind = style.id;
+                        _persist();
+                      });
+                    },
                     children: [
                       for (final style in kTrackingStyles)
-                        _menuItem(
-                          style.name,
-                          selected: _marksId == style.id,
-                          onTap: () => setState(() {
-                            _marksId = style.id;
-                            if (style.point) _addKind = style.id;
-                            _persist();
-                          }),
-                        ),
+                        _menuItem(style.name, selected: _marksId == style.id),
                     ],
                   ),
                   if (_marksId != 'none')
@@ -417,13 +417,10 @@ class _VfxPageState extends State<VfxPage> {
                     _menu(
                       icon: Icons.my_location,
                       title: 'Marker type',
+                      onSelected: (index) => setState(() => _addKind = kMarkerKinds[index].id),
                       children: [
                         for (final kind in kMarkerKinds)
-                          _menuItem(
-                            kind.name,
-                            selected: _addKind == kind.id,
-                            onTap: () => setState(() => _addKind = kind.id),
-                          ),
+                          _menuItem(kind.name, selected: _addKind == kind.id),
                       ],
                     ),
                     IconButton(
@@ -562,11 +559,13 @@ class _VfxPageState extends State<VfxPage> {
     required IconData icon,
     required String title,
     required List<Widget> children,
+    required ValueChanged<int> onSelected,
   }) {
     return PopupMenuButton<int>(
       tooltip: title,
       color: const Color(0xCC000000),
       icon: Icon(icon, color: Colors.white, size: 18),
+      onSelected: onSelected,
       itemBuilder: (context) => [
         for (var i = 0; i < children.length; i++)
           PopupMenuItem(value: i, child: children[i]),
@@ -577,28 +576,21 @@ class _VfxPageState extends State<VfxPage> {
   Widget _menuItem(
     String label, {
     required bool selected,
-    required VoidCallback onTap,
     Widget? leading,
   }) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            if (leading != null) ...[leading, const SizedBox(width: 8)],
-            Expanded(
-              child: Text(
-                label.toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontSize: 10, letterSpacing: 0.6),
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          if (leading != null) ...[leading, const SizedBox(width: 8)],
+          Expanded(
+            child: Text(
+              label.toUpperCase(),
+              style: const TextStyle(color: Colors.white, fontSize: 10, letterSpacing: 0.6),
             ),
-            if (selected) const Icon(Icons.check, color: kAccent, size: 14),
-          ],
-        ),
+          ),
+          if (selected) const Icon(Icons.check, color: kAccent, size: 14),
+        ],
       ),
     );
   }

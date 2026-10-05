@@ -102,6 +102,16 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('Hold & drag'), findsOneWidget);
     expect(find.byTooltip('Tracking marks'), findsOneWidget);
+    await tester.tap(find.byTooltip('Tracking marks'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('SOLID TRI'));
+    await tester.pumpAndSettle();
+    expect(store.screenConfig['marksId'], 'solidtri');
+    await tester.tap(find.byTooltip('Tracking marks'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PLUS GRID'));
+    await tester.pumpAndSettle();
+    expect(store.screenConfig['marksId'], 'plusgrid');
   });
 
   test('tri circle draws the centre and corner pluses', () async {
