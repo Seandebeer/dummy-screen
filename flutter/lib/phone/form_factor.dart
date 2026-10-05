@@ -7,6 +7,7 @@ import '../store.dart';
 import 'atm_home.dart';
 import 'console_apps.dart';
 import 'mac_desktop.dart';
+import 'win_desktop.dart';
 import 'ps2_home.dart';
 import 'smart_home.dart';
 import 'ps5_home.dart';
@@ -232,6 +233,21 @@ class _ComputerOs extends StatelessWidget {
       return MacDesktop(
         store: store,
         device: device,
+        appTitle: open?.$2,
+        tool: open == null ? null : _DeskTool(id: open.$1),
+        onOpen: onOpen,
+        onShell: onShell,
+        shells: _computerShells,
+      );
+    }
+    if (shell == 'windows') {
+      final known = _deskApps.where((item) => item.$1 == app);
+      final open = known.isEmpty ? null : known.first;
+      return WinDesktop(
+        store: store,
+        device: device,
+        apps: _deskApps,
+        appId: app,
         appTitle: open?.$2,
         tool: open == null ? null : _DeskTool(id: open.$1),
         onOpen: onOpen,

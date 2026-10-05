@@ -74,10 +74,24 @@ void main() {
       ),
     );
     expect(find.byKey(const Key('mac-desktop')), findsNothing);
-    expect(find.text('Windows'), findsOneWidget);
-    expect(find.text('Call'), findsWidgets);
+    expect(find.byKey(const Key('win-desktop')), findsOneWidget);
+    expect(find.text('Recycle Bin'), findsOneWidget);
+    expect(find.text('Edge'), findsOneWidget);
+    expect(find.byKey(const Key('win-taskbar')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('win-edge')));
+    await tester.pump();
+    expect(find.text('northline.example'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('win-window-close')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('win-start')));
+    await tester.pump();
+    expect(find.text('Call'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('win-pin-call')));
+    await tester.pump();
+    expect(find.text('Call'), findsOneWidget);
     await tester.tap(find.byTooltip('System'));
     await tester.pumpAndSettle();
+    expect(find.text('Windows'), findsOneWidget);
     expect(find.text('Mac'), findsOneWidget);
     expect(find.text('Linux'), findsOneWidget);
     expect(find.text('Ubuntu'), findsNothing);
