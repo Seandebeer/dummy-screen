@@ -43,7 +43,7 @@ class PhoneHome extends StatelessWidget {
     final chrome = chromeFor(skin);
     final ink = light ? const Color(0xD9000000) : Colors.white;
     final layout = os.homeOrder.isEmpty ? kHomeOrder : os.homeOrder;
-    final columns = wide ? 6 : 4;
+    final columns = wide ? 5 : 4;
     if (chrome == SkinChrome.tiles) {
       return GridView.count(
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -68,10 +68,9 @@ class PhoneHome extends StatelessWidget {
       for (final id in layout)
         if (_resolve(id) case final app? when !kDockIds.contains(id)) app,
     ];
-    final pageSize = wide ? 30 : kPageSize;
     final pages = <List<PropApp>>[];
-    for (var i = 0; i < grid.length; i += pageSize) {
-      final end = i + pageSize > grid.length ? grid.length : i + pageSize;
+    for (var i = 0; i < grid.length; i += kPageSize) {
+      final end = i + kPageSize > grid.length ? grid.length : i + kPageSize;
       pages.add(grid.sublist(i, end));
     }
     if (pages.isEmpty) pages.add(const []);
