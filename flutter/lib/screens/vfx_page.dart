@@ -719,7 +719,7 @@ class _VfxPageState extends State<VfxPage> {
                           setSheet(() {});
                         },
                       ),
-                    PaletteColourPicker(
+                    SpectrumColourPicker(
                       label: 'Custom colour',
                       selected: _bgColor,
                       onPick: (hex) {
@@ -750,7 +750,7 @@ class _VfxPageState extends State<VfxPage> {
                         for (final color in markColors) _markDot(hexOf(color.$2), setSheet, fill: color.$2),
                       ],
                     ),
-                    PaletteColourPicker(
+                    SpectrumColourPicker(
                       label: 'Custom mark colour',
                       selected: _markColor,
                       onPick: (hex) {
