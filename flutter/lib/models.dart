@@ -420,6 +420,7 @@ class LiveCall {
     required this.direction,
     required this.status,
     this.kind = 'voice',
+    this.scene = const {},
   });
 
   final String id;
@@ -432,7 +433,23 @@ class LiveCall {
   /// `voice` or `video`. Older snapshots omit it and stay voice calls.
   final String kind;
 
-  LiveCall copyWith({String? status}) => LiveCall(
+  /// What the actor sees after answering a video call: `mode` is
+  /// `live`, `vfx`, `video`, or `photo`, plus the colour, mark, and file.
+  final Map<String, dynamic> scene;
+
+  /// Far-end content. A video call with no scene is a live camera.
+  String get sceneMode {
+    if (kind != 'video') return 'voice';
+    final mode = scene['mode'] as String? ?? 'live';
+    if (mode == 'vfx' || mode == 'video' || mode == 'photo' || mode == 'live') {
+      return mode;
+    }
+    return 'live';
+  }
+
+  bool get liveCamera => sceneMode == 'live';
+
+  LiveCall copyWith({String? status, Map<String, dynamic>? scene}) => LiveCall(
     id: id,
     deviceId: deviceId,
     contactName: contactName,
@@ -440,6 +457,7 @@ class LiveCall {
     direction: direction,
     status: status ?? this.status,
     kind: kind,
+    scene: scene ?? this.scene,
   );
 
   Map<String, dynamic> toJson() => {
@@ -450,6 +468,7 @@ class LiveCall {
     'direction': direction,
     'status': status,
     'kind': kind,
+    'scene': scene,
   };
 
   factory LiveCall.fromJson(Map<String, dynamic> json) => LiveCall(
@@ -460,6 +479,9 @@ class LiveCall {
     direction: json['direction'] as String? ?? 'incoming',
     status: json['status'] as String? ?? 'ringing',
     kind: json['kind'] as String? ?? 'voice',
+    scene: json['scene'] is Map
+        ? Map<String, dynamic>.from(json['scene'] as Map)
+        : const {},
   );
 }
 

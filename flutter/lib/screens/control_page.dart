@@ -10,6 +10,8 @@ import '../os_catalog.dart';
 import '../phone/catalog.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../video_source.dart';
+import '../vfx/catalog.dart';
 
 class _Reply {
   _Reply(this.text);
@@ -47,6 +49,10 @@ class _ControlPageState extends State<ControlPage> {
   String _videoMode = 'live';
   bool _cam = true;
   bool _videoMic = true;
+  String _farPhoto = '';
+  String _farVideo = '';
+  String _vfxHex = '#00B140';
+  String _vfxMark = 'cross';
   String _notifScreen = 'lock';
   String _notifApp = 'messages';
   final List<_Reply> _replies = [];
@@ -90,6 +96,42 @@ class _ControlPageState extends State<ControlPage> {
     if (_broadcast) return store.devices.map((device) => device.id).toList();
     final id = store.targetDeviceId;
     return id == null ? const [] : [id];
+  }
+
+  Map<String, dynamic> _videoScene() => {
+    'mode': _videoMode,
+    'photo': _farPhoto,
+    'video': _farVideo,
+    'bg': _vfxHex,
+    'mark': _vfxMark,
+    'camOff': !_cam,
+  };
+
+  void _pushVideoScene(StageStore store) {
+    for (final id in _targets(store)) {
+      final live = store.callFor(id);
+      if (live != null && live.kind == 'video') {
+        store.updateCallScene(id, _videoScene());
+      }
+    }
+  }
+
+  Future<void> _pickFar(StageStore store, bool video) async {
+    final file = await FilePicker.pickFile(
+      type: video ? FileType.video : FileType.image,
+      dialogTitle: video ? 'Video clip' : 'Photo',
+    );
+    if (file == null || !mounted) return;
+    final saved = video ? await persistPickedVideo(file) : await persistPickedImage(file);
+    if (!mounted || saved == null || saved.isEmpty) return;
+    setState(() {
+      if (video) {
+        _farVideo = saved;
+      } else {
+        _farPhoto = saved;
+      }
+    });
+    _pushVideoScene(store);
   }
 
   @override
@@ -209,10 +251,31 @@ class _ControlPageState extends State<ControlPage> {
                       cam: _cam,
                       mic: _videoMic,
                       status: media?.videoStatus ?? 'off',
-                      onMode: (value) => setState(() => _videoMode = value),
+                      vfxHex: _vfxHex,
+                      vfxMark: _vfxMark,
+                      hasPhoto: _farPhoto.isNotEmpty,
+                      hasVideo: _farVideo.isNotEmpty,
+                      onColor: (hex) {
+                        setState(() => _vfxHex = hex);
+                        _pushVideoScene(store);
+                      },
+                      onMark: (id) {
+                        setState(() => _vfxMark = id);
+                        _pushVideoScene(store);
+                      },
+                      onUpload: () => _pickFar(store, _videoMode == 'video'),
+                      onMode: (value) {
+                        setState(() => _videoMode = value);
+                        if (value == 'live') {
+                          media?.arm(mic: _videoMic, speaker: false, camera: _cam);
+                          media?.promoteLive();
+                        }
+                        _pushVideoScene(store);
+                      },
                       onCam: () {
                         setState(() => _cam = !_cam);
                         media?.setCam(_cam);
+                        _pushVideoScene(store);
                       },
                       onMic: () {
                         setState(() => _videoMic = !_videoMic);
@@ -232,7 +295,8 @@ class _ControlPageState extends State<ControlPage> {
                             contactName: _name.text,
                             contactNumber: _number.text,
                             direction: 'incoming',
-                            kind: _videoMode == 'live' ? 'video' : 'voice',
+                            kind: 'video',
+                            scene: _videoScene(),
                           );
                         }
                       },
@@ -907,9 +971,16 @@ class _VideoCallBody extends StatelessWidget {
     required this.cam,
     required this.mic,
     required this.status,
+    required this.vfxHex,
+    required this.vfxMark,
+    required this.hasPhoto,
+    required this.hasVideo,
     required this.onMode,
     required this.onCam,
     required this.onMic,
+    required this.onColor,
+    required this.onMark,
+    required this.onUpload,
     required this.onStart,
     required this.onEnd,
   });
@@ -921,9 +992,16 @@ class _VideoCallBody extends StatelessWidget {
   final bool cam;
   final bool mic;
   final String status;
+  final String vfxHex;
+  final String vfxMark;
+  final bool hasPhoto;
+  final bool hasVideo;
   final ValueChanged<String> onMode;
   final VoidCallback onCam;
   final VoidCallback onMic;
+  final ValueChanged<String> onColor;
+  final ValueChanged<String> onMark;
+  final VoidCallback onUpload;
   final VoidCallback onStart;
   final VoidCallback onEnd;
 
@@ -967,6 +1045,58 @@ class _VideoCallBody extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+        if (mode == 'vfx') ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              for (final color in kVfxPalette)
+                GestureDetector(
+                  onTap: () => onColor(_hex(color.hex)),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: color.hex,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: vfxHex == _hex(color.hex) ? kSignal : palette.line,
+                        width: vfxHex == _hex(color.hex) ? 2 : 1,
+                      ),
+                    ),
+                  ),
+                ),
+              DropdownButton<String>(
+                value: vfxMark,
+                dropdownColor: palette.surface,
+                style: TextStyle(color: palette.ink, fontSize: 11),
+                items: [
+                  for (final style in kTrackingStyles)
+                    DropdownMenuItem(value: style.id, child: Text(style.name)),
+                ],
+                onChanged: (value) {
+                  if (value != null) onMark(value);
+                },
+              ),
+            ],
+          ),
+        ],
+        if (mode == 'video' || mode == 'photo') ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onUpload,
+              icon: Icon(mode == 'video' ? Icons.movie_outlined : Icons.image_outlined, size: 14),
+              label: Text(
+                mode == 'video'
+                    ? (hasVideo ? 'Replace video clip' : 'Upload video clip')
+                    : (hasPhoto ? 'Replace photo' : 'Upload photo'),
+              ),
+            ),
           ),
         ],
         const SizedBox(height: 8),
@@ -1421,6 +1551,11 @@ class _ActionTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String _hex(Color color) {
+  final rgb = color.toARGB32() & 0xFFFFFF;
+  return '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
 }
 
 String _videoModeLabel(String mode) {

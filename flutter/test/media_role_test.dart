@@ -37,6 +37,14 @@ void main() {
     );
     expect(LiveCall.fromJson(video.toJson()).kind, 'video');
     expect(video.copyWith(status: 'active').kind, 'video');
+    expect(video.liveCamera, isTrue);
+    final vfx = LiveCall.fromJson({
+      ...video.toJson(),
+      'scene': {'mode': 'vfx', 'bg': '#0047BB', 'mark': 'circles'},
+    });
+    expect(vfx.sceneMode, 'vfx');
+    expect(vfx.liveCamera, isFalse);
+    expect(vfx.copyWith(status: 'active').scene['mark'], 'circles');
   });
 
   test('a photo keeps its captured frame', () {

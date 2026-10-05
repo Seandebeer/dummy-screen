@@ -1,11 +1,15 @@
 import 'dart:convert';
+import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/painting.dart';
+import 'package:web/web.dart';
 
 ImageProvider? imageProviderForPath(String path) {
-  if (path.startsWith('http://') || path.startsWith('https://')) {
+  if (path.startsWith('http://') ||
+      path.startsWith('https://') ||
+      path.startsWith('blob:')) {
     return NetworkImage(path);
   }
   return _memoryImage(path);
@@ -19,7 +23,18 @@ Future<String?> persistImageBytes(Uint8List bytes) async {
   return url;
 }
 
-Future<String?> persistPickedImage(PlatformFile file) async => null;
+Future<String?> persistPickedImage(PlatformFile file) async {
+  final bytes = await file.readAsBytes();
+  if (bytes.isEmpty) return null;
+  final data = await persistImageBytes(bytes);
+  if (data != null) return data;
+  return _blobUrl(bytes, 'image/jpeg');
+}
+
+String _blobUrl(Uint8List bytes, String type) {
+  final blob = Blob([bytes.toJS].toJS, BlobPropertyBag(type: type));
+  return URL.createObjectURL(blob);
+}
 
 ImageProvider? _memoryImage(String path) {
   if (!path.startsWith('data:image')) return null;

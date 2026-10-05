@@ -7,7 +7,9 @@ import 'package:flutter/painting.dart';
 import 'package:path_provider/path_provider.dart';
 
 ImageProvider? imageProviderForPath(String path) {
-  if (path.startsWith('http://') || path.startsWith('https://')) {
+  if (path.startsWith('http://') ||
+      path.startsWith('https://') ||
+      path.startsWith('blob:')) {
     return NetworkImage(path);
   }
   if (path.startsWith('data:image')) {

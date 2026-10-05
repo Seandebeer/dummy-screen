@@ -5,6 +5,7 @@ import '../format.dart';
 import '../image_file.dart';
 import '../media/call_media.dart';
 import '../models.dart';
+import 'call_stage.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
 
@@ -359,17 +360,14 @@ class _CallOverlay extends StatelessWidget {
     final initial = call.contactName.isEmpty
         ? '?'
         : call.contactName.characters.first.toUpperCase();
-    final showing = feed?.srcObject != null;
+    final stage = !ringing && call.kind == 'video';
+    final showing = stage;
     return ColoredBox(
       color: const Color(0xFF101014),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (showing)
-            RTCVideoView(
-              feed!,
-              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-            ),
+          if (stage) Positioned.fill(child: CallStage(call: call, feed: feed)),
           SafeArea(
         child: Column(
           children: [

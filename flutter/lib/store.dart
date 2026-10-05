@@ -455,6 +455,7 @@ class StageStore extends ChangeNotifier {
     required String contactNumber,
     required String direction,
     String kind = 'voice',
+    Map<String, dynamic> scene = const {},
   }) {
     if (deviceId.isEmpty) return;
     final call = LiveCall(
@@ -465,6 +466,7 @@ class StageStore extends ChangeNotifier {
       direction: direction,
       status: 'ringing',
       kind: kind == 'video' ? 'video' : 'voice',
+      scene: Map<String, dynamic>.from(scene),
     );
     if (call.id.isEmpty || calls.any((item) => item.id == call.id)) return;
     calls = [call, ...calls.where((item) => item.deviceId != deviceId)];
@@ -484,6 +486,25 @@ class StageStore extends ChangeNotifier {
     if (!changed) return;
     if (status != 'ringing') _cancelRing(deviceId);
     _touch({'kind': 'call_status', 'deviceId': deviceId, 'status': status});
+  }
+
+  void updateCallScene(String deviceId, Map<String, dynamic> patch) {
+    if (deviceId.isEmpty || patch.isEmpty) return;
+    var changed = false;
+    calls = [
+      for (final call in calls)
+        if (call.deviceId == deviceId)
+          _markChanged(
+            call.copyWith(scene: {...call.scene, ...patch}),
+            () => changed = true,
+          )
+        else
+          call,
+    ];
+    if (!changed) return;
+    final scene = callFor(deviceId)?.scene;
+    if (scene == null) return;
+    _touch({'kind': 'call_scene', 'deviceId': deviceId, 'scene': scene});
   }
 
   void endCall(String deviceId) {
@@ -834,6 +855,13 @@ class StageStore extends ChangeNotifier {
           contactName: call.contactName,
           contactNumber: call.contactNumber,
           direction: call.direction,
+          kind: call.kind,
+          scene: call.scene,
+        );
+      case 'call_scene':
+        updateCallScene(
+          patch['deviceId'] as String? ?? '',
+          jsonMap(patch['scene']),
         );
       case 'call_status':
         setCallStatus(

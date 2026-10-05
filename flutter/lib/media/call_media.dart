@@ -39,6 +39,7 @@ class CallMedia extends ChangeNotifier {
   bool _sessionArmed = false;
   String? _session;
   bool _video = false;
+  bool _recvVideo = false;
   bool _phoneStarted = false;
   RTCPeerConnection? _controlPc;
   RTCPeerConnection? _phonePc;
@@ -77,6 +78,31 @@ class CallMedia extends ChangeNotifier {
     _controlFar?.setVolume(on ? 1 : 0);
   }
 
+  /// The deck switched a running video call onto the live camera.
+  void promoteLive() {
+    _sessionArmed = true;
+    _video = true;
+    _recvVideo = true;
+    LiveCall? call;
+    for (final item in store.calls) {
+      if (item.id == _session) call = item;
+    }
+    if (call == null) return;
+    unawaited(_promote(call));
+  }
+
+  Future<void> _promote(LiveCall call) async {
+    if (_session != call.id) return;
+    if (_controlHere && _controlPc == null) {
+      await _startControl(call);
+    }
+    if (_session != call.id) return;
+    if (call.status == 'active' && !_phoneStarted && _shouldPhone) {
+      _phoneStarted = true;
+      await _startPhone(call);
+    }
+  }
+
   void setCam(bool on) {
     _camOn = on;
     final stream = _controlStream;
@@ -96,7 +122,8 @@ class CallMedia extends ChangeNotifier {
       _sessionArmed = _armed;
       _armed = false;
       _session = call.id;
-      _video = call.kind == 'video';
+      _video = call.liveCamera;
+      _recvVideo = call.kind == 'video';
       _phoneStarted = false;
       unawaited(_open(call));
       return;
@@ -121,10 +148,11 @@ class CallMedia extends ChangeNotifier {
     _phoneStarted = false;
     await _releasePeers();
     if (token != _generation || _session != call.id) return;
-    _video = call.kind == 'video';
+    _video = call.liveCamera;
+    _recvVideo = call.kind == 'video';
     voiceStatus = 'off';
     videoStatus = 'off';
-    if (_controlHere && _sessionArmed) {
+    if (_controlHere && _sessionArmed && call.liveCamera) {
       await _startControl(call);
     } else {
       notifyListeners();
@@ -250,7 +278,7 @@ class CallMedia extends ChangeNotifier {
         return;
       }
       _phonePc = pc;
-      if (_video) {
+      if (_recvVideo) {
         await pc.addTransceiver(
           kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
           init: RTCRtpTransceiverInit(direction: TransceiverDirection.RecvOnly),
@@ -415,6 +443,7 @@ class CallMedia extends ChangeNotifier {
     _sessionArmed = false;
     _phoneStarted = false;
     _video = false;
+    _recvVideo = false;
     voiceStatus = 'off';
     videoStatus = 'off';
     await _releasePeers();
