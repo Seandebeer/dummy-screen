@@ -1156,6 +1156,18 @@ String _kindLabel(String kind) {
   switch (kind) {
     case 'tablet':
       return 'Tablet';
+    case 'computer':
+      return 'Computer';
+    case 'tv':
+      return 'Smart TV';
+    case 'console':
+      return 'Game console';
+    case 'atm':
+      return 'ATM';
+    case 'cctv':
+      return 'CCTV';
+    case 'smarthome':
+      return 'Smart home';
     case 'screen':
       return 'Screen';
     case 'remote':

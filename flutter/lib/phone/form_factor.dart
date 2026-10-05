@@ -5,6 +5,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'xbox_series.dart';
 
 class DeviceMetrics {
   const DeviceMetrics(this.aspect, this.frame);
@@ -698,53 +699,63 @@ class _ConsoleOs extends StatelessWidget {
       'ps5' => const Color(0xFF003791),
       'ps2' => const Color(0xFF0A0A12),
       'x360' => const Color(0xFF1A1A1A),
-      _ => const Color(0xFF107C10),
+      _ => const Color(0xFF061803),
     };
     final cover = imageProviderForPath(device.os.steamCover);
-    return ColoredBox(
-      color: bg,
-      child: app == null
-          ? Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        _shells.firstWhere((item) => item.$1 == shell, orElse: () => _shells.first).$2,
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.settings, color: Colors.white),
-                        onSelected: (id) => store.updateOs(device.id, (os) => os.copyWith(shell: id)),
-                        itemBuilder: (context) => [
-                          for (final item in _shells)
-                            PopupMenuItem(value: item.$1, child: Text(item.$2)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _GameTile(
-                          title: device.os.steamTitle.isEmpty ? 'Steam game' : device.os.steamTitle,
-                          image: cover,
-                          onTap: () => onOpen('steam'),
-                        ),
-                        for (final title in ['Night Run', 'Harbor', 'Signal', 'Relay'])
-                          _GameTile(title: title, onTap: () => onOpen(title)),
+    final home = shell == 'xbox'
+        ? XboxSeriesHome(
+            store: store,
+            device: device,
+            onOpen: onOpen,
+            onShell: (id) => store.updateOs(device.id, (os) => os.copyWith(shell: id)),
+          )
+        : Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      _shells.firstWhere((item) => item.$1 == shell, orElse: () => _shells.first).$2,
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                    ),
+                    const Spacer(),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      onSelected: (id) => store.updateOs(device.id, (os) => os.copyWith(shell: id)),
+                      itemBuilder: (context) => [
+                        for (final item in _shells)
+                          PopupMenuItem(value: item.$1, child: Text(item.$2)),
                       ],
                     ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _GameTile(
+                        title: device.os.steamTitle.isEmpty ? 'Steam game' : device.os.steamTitle,
+                        image: cover,
+                        onTap: () => onOpen('steam'),
+                      ),
+                      for (final title in ['Night Run', 'Harbor', 'Signal', 'Relay'])
+                        _GameTile(title: title, onTap: () => onOpen(title)),
+                    ],
                   ),
-                ],
-              ),
-            )
-          : _SteamPane(store: store, device: device, onBack: () => onOpen(null)),
+                ),
+              ],
+            ),
+          );
+    return Material(
+      color: bg,
+      child: app == null
+          ? home
+          : app == 'steam'
+              ? _SteamPane(store: store, device: device, onBack: () => onOpen(null))
+              : _NowPlaying(title: app!, onBack: () => onOpen(null)),
     );
   }
 }
@@ -773,6 +784,31 @@ class _GameTile extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
         ),
+      ),
+    );
+  }
+}
+
+class _NowPlaying extends StatelessWidget {
+  const _NowPlaying({required this.title, required this.onBack});
+
+  final String title;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back, color: Colors.white)),
+          Expanded(
+            child: Center(
+              child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ],
       ),
     );
   }
