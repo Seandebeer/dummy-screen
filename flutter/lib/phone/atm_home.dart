@@ -1289,7 +1289,8 @@ class _AtmScreenState extends State<AtmScreen> {
   /// A physical pad shifted so only its right column stays in frame.
   Widget _externalCue(double scale) {
     const labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
-    final lit = _pin.isEmpty ? -1 : ((_pin.length - 1) * 3 + 2) % labels.length;
+    // The pad is slid off the right edge, so the left column is what stays in frame.
+    final lit = _pin.isEmpty ? -1 : ((_pin.length - 1) * 3) % labels.length;
     final width = 320.0 * scale;
     final peek = width * 0.34;
     return ClipRect(
