@@ -1,10 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../format.dart';
 import '../models.dart';
 import '../store.dart';
 
-/// ATM menu for a landscape iPad mounted in a machine.
+/// Landscape ATM for an iPad mounted in a machine.
+///
+/// The screen opens on a 5-digit PIN. Any five digits unlock it. Every
+/// later screen stays centered, and withdrawal runs from account through
+/// cash, receipt, and card.
 class AtmScreen extends StatefulWidget {
   const AtmScreen({super.key, required this.store, required this.device});
 
@@ -16,23 +22,103 @@ class AtmScreen extends StatefulWidget {
 }
 
 class _AtmScreenState extends State<AtmScreen> {
-  String _step = 'menu';
+  String _step = 'pin';
   String _pin = '';
+  String _draft = '';
   String _message = '';
+  String _errorBack = 'menu';
+  String _account = 'Checking';
+  String _action = '';
   int _amount = 0;
 
-  OsSettings get os => widget.device.os;
+  OsSettings get os {
+    final live = widget.store.deviceById(widget.device.id);
+    return live?.os ?? widget.device.os;
+  }
 
   void _go(String step) => setState(() {
     _step = step;
     _message = '';
-    if (step == 'pin' || step == 'enter') _pin = '';
+    if (step == 'pin' || step == 'pinchange' || step == 'pinagain') {
+      _pin = '';
+    }
   });
 
-  void _withdraw(int amount) {
+  void _digit(String value) {
+    if (_pin.length >= 5) return;
+    setState(() {
+      _pin += value;
+      if (_pin.length < 5) return;
+      if (_step == 'pin') {
+        _pin = '';
+        _step = 'menu';
+      } else if (_step == 'pinchange') {
+        _draft = _pin;
+        _pin = '';
+        _step = 'pinagain';
+      } else if (_step == 'pinagain') {
+        final matched = _pin == _draft;
+        _pin = '';
+        if (matched) {
+          _step = 'pinchanged';
+        } else {
+          _message = 'Those PINs do not match.';
+          _errorBack = 'pinchange';
+          _step = 'error';
+        }
+      }
+    });
+  }
+
+  void _backspace() {
+    if (_pin.isEmpty) return;
+    setState(() => _pin = _pin.substring(0, _pin.length - 1));
+  }
+
+  void _chooseAmount(int amount) {
     if (amount > os.bankBalance) {
       setState(() {
         _message = 'That amount is not available.';
+        _errorBack = 'amount';
+        _step = 'error';
+      });
+      return;
+    }
+    setState(() {
+      _amount = amount;
+      _step = 'review';
+    });
+  }
+
+  void _commitWithdraw() {
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => current.copyWith(bankBalance: current.bankBalance - _amount),
+    );
+    setState(() {
+      _action = 'Withdrawal';
+      _step = 'cash';
+    });
+  }
+
+  void _commitDeposit(int amount) {
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => current.copyWith(bankBalance: current.bankBalance + amount),
+    );
+    setState(() {
+      _amount = amount;
+      _action = 'Deposit';
+      _step = 'accepted';
+    });
+  }
+
+  void _payBill() {
+    const amount = 40;
+    if (amount > os.bankBalance) {
+      setState(() {
+        _message = 'That amount is not available.';
+        _errorBack = 'bills';
         _step = 'error';
       });
       return;
@@ -43,7 +129,8 @@ class _AtmScreenState extends State<AtmScreen> {
     );
     setState(() {
       _amount = amount;
-      _step = 'confirm';
+      _action = 'Bill payment';
+      _step = 'accepted';
     });
   }
 
@@ -57,7 +144,9 @@ class _AtmScreenState extends State<AtmScreen> {
         const Positioned.fill(child: CustomPaint(painter: _AtmBackdrop())),
         LayoutBuilder(
           builder: (context, constraints) {
-            final scale = (constraints.maxWidth / 1100).clamp(0.62, 1.15);
+            final scale = math
+                .min(constraints.maxWidth / 1000, constraints.maxHeight / 720)
+                .clamp(0.56, 1.15);
             return Padding(
               padding: EdgeInsets.fromLTRB(
                 22 * scale,
@@ -66,10 +155,9 @@ class _AtmScreenState extends State<AtmScreen> {
                 12 * scale,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _Header(name: os.bankName, now: now, scale: scale),
-                  SizedBox(height: 14 * scale),
+                  SizedBox(height: 12 * scale),
                   Expanded(child: _body(scale, now)),
                   SizedBox(height: 8 * scale),
                   _Footer(scale: scale, onService: () => _go('down')),
@@ -84,126 +172,17 @@ class _AtmScreenState extends State<AtmScreen> {
 
   Widget _body(double scale, DateTime now) {
     switch (_step) {
-      case 'withdraw':
-        return _sheet(
-          scale,
-          'Money Withdrawal',
-          _amount == 0 ? 'Choose an amount' : '${os.bankCurrency} $_amount',
-          [
-            for (final amount in [20, 40, 60, 100])
-              _choice(
-                '${os.bankCurrency} $amount',
-                () => _withdraw(amount),
-                key: Key('atm-amount-$amount'),
-              ),
-          ],
-        );
-      case 'deposit':
-        return _sheet(scale, 'Money Deposit', 'Notes stay on this screen.', [
-          _choice('Deposit ${os.bankCurrency} 100', () {
-            widget.store.updateOs(
-              widget.device.id,
-              (current) =>
-                  current.copyWith(bankBalance: current.bankBalance + 100),
-            );
-            _go('confirm');
-          }),
-          _choice('Cancel', () => _go('menu')),
-        ]);
-      case 'balance':
-        return _sheet(
-          scale,
-          'Balance Inquiry',
-          '${os.bankCurrency} ${os.bankBalance}',
-          [
-            _choice('Receipt', () => _go('receipt')),
-            _choice('Another transaction', () => _go('menu')),
-          ],
-        );
-      case 'transfer':
-        return _sheet(
-          scale,
-          'Internal Transfer',
-          'Move ${os.bankCurrency} 50 to savings.',
-          [
-            _choice('Confirm transfer', () => _go('confirm')),
-            _choice('Cancel', () => _go('menu')),
-          ],
-        );
-      case 'bills':
-        return _sheet(scale, 'Bill Payment', 'Power · ${os.bankCurrency} 40', [
-          _choice('Pay', () {
-            if (40 > os.bankBalance) {
-              setState(() {
-                _message = 'That amount is not available.';
-                _step = 'error';
-              });
-            } else {
-              widget.store.updateOs(
-                widget.device.id,
-                (current) =>
-                    current.copyWith(bankBalance: current.bankBalance - 40),
-              );
-              _go('confirm');
-            }
-          }),
-          _choice('Cancel', () => _go('menu')),
-        ]);
-      case 'statement':
-        return _sheet(scale, 'Mini Statement', 'Market · Transit · Power', [
-          _choice('Done', () => _go('menu')),
-        ]);
       case 'pin':
-        return _sheet(scale, 'PIN Change', _pin.padRight(4, '·'), [
-          _pad(onDone: () => _go('confirm')),
-        ]);
-      case 'enter':
-        return _sheet(scale, 'Enter PIN', _pin.padRight(4, '·'), [
-          _pad(onDone: () => _go('menu')),
-        ]);
-      case 'card':
-        return _sheet(scale, 'Insert card', 'The card stays on this screen.', [
-          _choice(
-            'Card inserted',
-            () => _go('enter'),
-            key: const Key('atm-inserted'),
-          ),
-          _choice('Cancel', () => _go('menu')),
-        ]);
-      case 'take':
-        return _sheet(
+        return _pinStage(
           scale,
-          'Please take your card',
-          'The session is finished.',
-          [
-            _choice('Done', () => _go('menu')),
-            _choice('New customer', () => _go('card')),
-          ],
+          'Enter PIN',
+          'Any 5 digits unlock this machine.',
         );
-      case 'confirm':
-        return _sheet(scale, 'Confirmed', 'The transaction is complete.', [
-          _choice('Receipt', () => _go('receipt')),
-          _choice('Done', () => _go('menu')),
-        ]);
-      case 'receipt':
-        return _sheet(
-          scale,
-          'Receipt',
-          '${os.bankName}\n${os.bankHolder}\nBalance ${os.bankCurrency} ${os.bankBalance}',
-          [_choice('Finish', () => _go('menu'))],
-        );
-      case 'error':
-        return _sheet(
-          scale,
-          'Unable to continue',
-          _message.isEmpty ? 'Try again.' : _message,
-          [_choice('Back', () => _go('menu'))],
-        );
-      case 'down':
-        return _sheet(scale, 'Out of service', 'This machine is closed.', [
-          _choice('Restore', () => _go('menu'), key: const Key('atm-restore')),
-        ]);
-      default:
+      case 'pinchange':
+        return _pinStage(scale, 'Choose a new PIN', 'Enter 5 digits.');
+      case 'pinagain':
+        return _pinStage(scale, 'Enter it again', 'Repeat the new PIN.');
+      case 'menu':
         return _Menu(
           scale: scale,
           holder: os.bankHolder,
@@ -214,99 +193,399 @@ class _AtmScreenState extends State<AtmScreen> {
           onBills: () => _go('bills'),
           onStatement: () => _go('statement'),
           onTransfer: () => _go('transfer'),
-          onPin: () => _go('pin'),
-          onTake: () => _go('take'),
+          onPin: () => _go('pinchange'),
+          onTake: () => _go('card'),
         );
+      case 'withdraw':
+        return _prompt(scale, 'Withdrawal', 'Which account?', [
+          _choice(
+            'Checking',
+            () => setState(() {
+              _account = 'Checking';
+              _step = 'amount';
+            }),
+            key: const Key('atm-account-checking'),
+            primary: true,
+          ),
+          _choice(
+            'Savings',
+            () => setState(() {
+              _account = 'Savings';
+              _step = 'amount';
+            }),
+            key: const Key('atm-account-savings'),
+          ),
+          _choice('Cancel', () => _go('menu')),
+        ]);
+      case 'amount':
+        return _prompt(
+          scale,
+          'Choose an amount',
+          '$_account · ${os.bankCurrency} ${os.bankBalance} available',
+          [
+            for (final amount in [20, 40, 60, 100])
+              _choice(
+                '${os.bankCurrency} $amount',
+                () => _chooseAmount(amount),
+                key: Key('atm-amount-$amount'),
+                primary: amount == 20,
+              ),
+            _choice('Back', () => _go('withdraw')),
+          ],
+        );
+      case 'review':
+        return _prompt(
+          scale,
+          'Confirm withdrawal',
+          '${os.bankCurrency} $_amount from $_account',
+          [
+            _choice(
+              'Confirm',
+              _commitWithdraw,
+              key: const Key('atm-confirm'),
+              primary: true,
+            ),
+            _choice('Cancel', () => _go('menu')),
+          ],
+        );
+      case 'cash':
+        return _prompt(
+          scale,
+          'Please take your cash',
+          '${os.bankCurrency} $_amount',
+          [
+            _choice(
+              'Cash taken',
+              () => _go('receiptAsk'),
+              key: const Key('atm-cash-taken'),
+              primary: true,
+            ),
+          ],
+        );
+      case 'receiptAsk':
+        return _prompt(scale, 'Would you like a receipt?', '', [
+          _choice('Print receipt', () => _go('receipt'), primary: true),
+          _choice(
+            'No receipt',
+            () => _go('another'),
+            key: const Key('atm-no-receipt'),
+          ),
+        ]);
+      case 'receipt':
+        return _prompt(
+          scale,
+          'Receipt',
+          '${os.bankName}\n${os.bankHolder}\n$_action\n${os.bankCurrency} $_amount\nBalance ${os.bankCurrency} ${os.bankBalance}',
+          [_choice('Finish', () => _go('another'), primary: true)],
+        );
+      case 'another':
+        return _prompt(scale, 'Another transaction?', '', [
+          _choice('Yes', () => _go('menu'), primary: true),
+          _choice('No', () => _go('card'), key: const Key('atm-no-another')),
+        ]);
+      case 'card':
+        return _prompt(
+          scale,
+          'Please take your card',
+          'This session is finished.',
+          [
+            _choice(
+              'Done',
+              () => _go('pin'),
+              key: const Key('atm-card-done'),
+              primary: true,
+            ),
+          ],
+        );
+      case 'deposit':
+        return _prompt(scale, 'Deposit', 'Choose an amount to add.', [
+          for (final amount in [20, 50, 100])
+            _choice(
+              '${os.bankCurrency} $amount',
+              () => setState(() {
+                _amount = amount;
+                _step = 'depositReview';
+              }),
+              primary: amount == 20,
+            ),
+          _choice('Cancel', () => _go('menu')),
+        ]);
+      case 'depositReview':
+        return _prompt(
+          scale,
+          'Confirm deposit',
+          '${os.bankCurrency} $_amount into Checking',
+          [
+            _choice('Confirm', () => _commitDeposit(_amount), primary: true),
+            _choice('Cancel', () => _go('menu')),
+          ],
+        );
+      case 'accepted':
+        return _prompt(
+          scale,
+          '$_action accepted',
+          '${os.bankCurrency} $_amount\nBalance ${os.bankCurrency} ${os.bankBalance}',
+          [
+            _choice('Receipt', () => _go('receipt'), primary: true),
+            _choice('Done', () => _go('another')),
+          ],
+        );
+      case 'balance':
+        return _prompt(
+          scale,
+          'Balance Inquiry',
+          '${os.bankHolder}\n${os.bankCurrency} ${os.bankBalance}',
+          [
+            _choice('Receipt', () {
+              setState(() {
+                _action = 'Balance';
+                _amount = os.bankBalance;
+              });
+              _go('receipt');
+            }, primary: true),
+            _choice('Another transaction', () => _go('menu')),
+          ],
+        );
+      case 'transfer':
+        return _prompt(
+          scale,
+          'Internal transfer',
+          'Move ${os.bankCurrency} 50 from Checking to Savings.',
+          [
+            _choice('Confirm transfer', () {
+              setState(() {
+                _action = 'Transfer';
+                _amount = 50;
+                _step = 'accepted';
+                _message = '';
+              });
+            }, primary: true),
+            _choice('Cancel', () => _go('menu')),
+          ],
+        );
+      case 'bills':
+        return _prompt(scale, 'Bill payment', 'Power · ${os.bankCurrency} 40', [
+          _choice('Pay', _payBill, primary: true),
+          _choice('Cancel', () => _go('menu')),
+        ]);
+      case 'statement':
+        return _prompt(
+          scale,
+          'Mini statement',
+          'Market · ${os.bankCurrency} 18\nTransit · ${os.bankCurrency} 12\nPower · ${os.bankCurrency} 40',
+          [_choice('Done', () => _go('menu'), primary: true)],
+        );
+      case 'pinchanged':
+        return _prompt(scale, 'PIN updated', 'The next customer can use it.', [
+          _choice('Done', () => _go('menu'), primary: true),
+        ]);
+      case 'error':
+        return _prompt(
+          scale,
+          'Unable to continue',
+          _message.isEmpty ? 'Try again.' : _message,
+          [_choice('Back', () => _go(_errorBack), primary: true)],
+        );
+      case 'down':
+        return _prompt(scale, 'Out of service', 'This machine is closed.', [
+          _choice(
+            'Restore',
+            () => _go('pin'),
+            key: const Key('atm-restore'),
+            primary: true,
+          ),
+        ]);
+      default:
+        return _prompt(scale, 'Enter PIN', '', [
+          _choice('Continue', () => _go('pin'), primary: true),
+        ]);
     }
   }
 
-  Widget _sheet(double scale, String title, String body, List<Widget> actions) {
+  Widget _pinStage(double scale, String title, String subtitle) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
+          key: title == 'Enter PIN' ? const Key('atm-enter-pin') : null,
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 26 * scale,
-            fontWeight: FontWeight.w700,
+            fontSize: 28 * scale,
+            fontWeight: FontWeight.w800,
           ),
         ),
         SizedBox(height: 6 * scale),
         Text(
-          body,
+          subtitle,
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFFB7B3C7),
-            fontSize: 16 * scale,
+            fontSize: 14 * scale,
           ),
         ),
+        SizedBox(height: 14 * scale),
+        _dots(scale),
         SizedBox(height: 16 * scale),
         Expanded(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Wrap(
-              spacing: 10 * scale,
-              runSpacing: 10 * scale,
-              children: actions,
-            ),
-          ),
+          child: FittedBox(fit: BoxFit.scaleDown, child: _pad(scale)),
         ),
       ],
     );
   }
 
-  Widget _choice(String label, VoidCallback onTap, {Key? key}) {
-    return GestureDetector(
-      key: key,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2638),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+  Widget _dots(double scale) {
+    return Row(
+      key: const Key('atm-pin-dots'),
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < 5; i++)
+          Container(
+            width: 16 * scale,
+            height: 16 * scale,
+            margin: EdgeInsets.symmetric(horizontal: 6 * scale),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: i < _pin.length ? Colors.white : Colors.transparent,
+              border: Border.all(color: Colors.white, width: 1.6),
+            ),
           ),
+      ],
+    );
+  }
+
+  Widget _pad(double scale) {
+    final gap = 10 * scale;
+    Widget key(String label, VoidCallback onTap, {Key? widgetKey}) {
+      return GestureDetector(
+        key: widgetKey,
+        onTap: onTap,
+        child: Container(
+          width: 74 * scale,
+          height: 58 * scale,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2638),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22 * scale,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final rows = [
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+      ['7', '8', '9'],
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final row in rows) ...[
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final n in row) ...[
+                key(n, () => _digit(n), widgetKey: Key('atm-digit-$n')),
+                if (n != row.last) SizedBox(width: gap),
+              ],
+            ],
+          ),
+          SizedBox(height: gap),
+        ],
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            key(
+              'C',
+              () => setState(() => _pin = ''),
+              widgetKey: const Key('atm-pin-clear'),
+            ),
+            SizedBox(width: gap),
+            key('0', () => _digit('0'), widgetKey: const Key('atm-digit-0')),
+            SizedBox(width: gap),
+            key('⌫', _backspace, widgetKey: const Key('atm-pin-delete')),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _prompt(
+    double scale,
+    String title,
+    String body,
+    List<Widget> actions,
+  ) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28 * scale,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (body.isNotEmpty) ...[
+              SizedBox(height: 10 * scale),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: const Color(0xFFB7B3C7),
+                  fontSize: 16 * scale,
+                  height: 1.35,
+                ),
+              ),
+            ],
+            SizedBox(height: 18 * scale),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12 * scale,
+              runSpacing: 12 * scale,
+              children: actions,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _pad({required VoidCallback onDone}) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (var n = 1; n <= 9; n++) _digit('$n', onDone),
-        _digit('0', onDone),
-      ],
-    );
-  }
-
-  Widget _digit(String n, VoidCallback onDone) {
+  Widget _choice(
+    String label,
+    VoidCallback onTap, {
+    Key? key,
+    bool primary = false,
+  }) {
     return GestureDetector(
-      onTap: () => setState(() {
-        if (_pin.length < 4) _pin += n;
-        if (_pin.length == 4) onDone();
-      }),
+      key: key,
+      onTap: onTap,
       child: Container(
-        width: 56,
-        height: 48,
+        constraints: const BoxConstraints(minWidth: 148, minHeight: 52),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2638),
-          borderRadius: BorderRadius.circular(10),
+          color: primary ? const Color(0xFFF4F1EA) : const Color(0xFF2A2638),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
-          n,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: primary ? const Color(0xFF16141C) : Colors.white,
+            fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -350,10 +629,10 @@ class _Menu extends StatelessWidget {
         ? 'Afternoon'
         : 'Evening';
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Good $part, $holder',
+          textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -365,6 +644,7 @@ class _Menu extends StatelessWidget {
         SizedBox(height: 4 * scale),
         Text(
           'Please select your transaction',
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFFB7B3C7),
             fontSize: 14 * scale,
@@ -509,9 +789,9 @@ class _Major extends StatelessWidget {
       onTap: onTap,
       child: ColoredBox(
         color: const Color(0xFFF4F1EA),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 width: 42,
@@ -522,18 +802,17 @@ class _Major extends StatelessWidget {
                 ),
                 child: Icon(icon, color: const Color(0xFF16141C), size: 22),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF16141C),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF16141C),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
                 ),
               ),
             ],
@@ -607,24 +886,31 @@ class _Header extends StatelessWidget {
     final month = _months[now.month - 1];
     final clock =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    return Row(
+    return Column(
       children: [
-        const _Mark(),
-        SizedBox(width: 10 * scale),
-        Expanded(
-          child: Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22 * scale,
-              fontWeight: FontWeight.w800,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const _Mark(),
+            SizedBox(width: 10 * scale),
+            Flexible(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22 * scale,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        SizedBox(height: 6 * scale),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '$month ${now.day}, $clock',
@@ -633,30 +919,18 @@ class _Header extends StatelessWidget {
                 fontSize: 12 * scale,
               ),
             ),
+            SizedBox(width: 10 * scale),
             Text(
               '18°C',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16 * scale,
+                fontSize: 14 * scale,
                 fontWeight: FontWeight.w700,
               ),
             ),
+            SizedBox(width: 6 * scale),
+            Icon(Icons.cloud, color: Colors.white, size: 16 * scale),
           ],
-        ),
-        SizedBox(width: 8 * scale),
-        Container(
-          width: 42 * scale,
-          height: 32 * scale,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(
-            Icons.cloud,
-            color: const Color(0xFF16141C),
-            size: 18 * scale,
-          ),
         ),
       ],
     );
@@ -717,6 +991,7 @@ class _Footer extends StatelessWidget {
             'Contact center: 0800 414 220    Free SMS: 414 220',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: style,
           ),
         ),

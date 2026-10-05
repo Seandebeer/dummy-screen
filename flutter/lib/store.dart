@@ -26,6 +26,8 @@ String sandboxName(String kind) {
       return 'CCTV';
     case 'smarthome':
       return 'Smart home';
+    case 'homephone':
+      return 'Smart home phone';
     default:
       return 'Phone';
   }

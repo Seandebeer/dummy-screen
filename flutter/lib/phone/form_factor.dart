@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
-import '../theme.dart';
 import 'atm_home.dart';
 import 'ps2_home.dart';
+import 'smart_home.dart';
 import 'ps5_home.dart';
 import 'xbox_360.dart';
 import 'xbox_series.dart';
@@ -33,6 +33,8 @@ DeviceMetrics metricsFor(String kind, {bool landscape = false}) {
       return const DeviceMetrics(4 / 3, 'kiosk');
     case 'smarthome':
       return const DeviceMetrics(4 / 3, 'panel');
+    case 'homephone':
+      return const DeviceMetrics(390 / 844, 'phone');
     default:
       return DeviceMetrics(landscape ? 844 / 390 : 390 / 844, 'phone');
   }
@@ -47,6 +49,7 @@ const kSandboxKinds = [
   ('atm', 'ATM'),
   ('cctv', 'CCTV'),
   ('smarthome', 'Smart home'),
+  ('homephone', 'Smart home phone'),
 ];
 
 class DeviceBezel extends StatelessWidget {
@@ -141,7 +144,12 @@ class _FormOsState extends State<FormOs> {
       ),
       'atm' => AtmScreen(store: widget.store, device: device),
       'cctv' => const _CctvOs(),
-      'smarthome' => _HomeOs(store: widget.store, device: device),
+      'smarthome' => HomePanel(store: widget.store, device: device),
+      'homephone' => HomePanel(
+        store: widget.store,
+        device: device,
+        portrait: true,
+      ),
       _ => _ComputerOs(
         shell: os.shell.isEmpty ? 'macos' : os.shell,
         onShell: _shell,
@@ -1243,148 +1251,6 @@ class _CctvOsState extends State<_CctvOs> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _HomeOs extends StatefulWidget {
-  const _HomeOs({required this.store, required this.device});
-
-  final StageStore store;
-  final PropDevice device;
-
-  @override
-  State<_HomeOs> createState() => _HomeOsState();
-}
-
-class _HomeOsState extends State<_HomeOs> {
-  bool _lights = true;
-  double _temp = 21;
-  bool _locked = true;
-  bool _garage = false;
-  bool _music = false;
-  double _blinds = 0.4;
-  bool _oven = false;
-  bool _alarm = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFF10141C),
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text(
-            'Home',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _tile(
-            'Lights',
-            _lights ? 'ON' : 'OFF',
-            Icons.lightbulb,
-            _lights,
-            (value) => setState(() => _lights = value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.thermostat, color: Colors.white),
-            title: const Text(
-              'Thermostat',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              '${_temp.toStringAsFixed(0)}°',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: () => setState(() => _temp -= 1),
-                  icon: const Icon(Icons.remove, color: Colors.white),
-                ),
-                IconButton(
-                  onPressed: () => setState(() => _temp += 1),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-          _tile(
-            'Front door',
-            _locked ? 'LOCKED' : 'UNLOCKED',
-            Icons.lock,
-            _locked,
-            (value) => setState(() => _locked = value),
-          ),
-          _tile(
-            'Garage',
-            _garage ? 'OPEN' : 'CLOSED',
-            Icons.garage,
-            _garage,
-            (value) => setState(() => _garage = value),
-          ),
-          _tile(
-            'Music',
-            _music ? 'PLAYING' : 'OFF',
-            Icons.music_note,
-            _music,
-            (value) => setState(() => _music = value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.blinds, color: Colors.white),
-            title: Text(
-              'Blinds ${(100 * _blinds).round()}%',
-              style: const TextStyle(color: Colors.white),
-            ),
-            subtitle: Slider(
-              value: _blinds,
-              onChanged: (value) => setState(() => _blinds = value),
-            ),
-          ),
-          _tile(
-            'Oven',
-            _oven ? 'ON' : 'OFF',
-            Icons.kitchen,
-            _oven,
-            (value) => setState(() => _oven = value),
-          ),
-          _tile('Alarm', _alarm ? 'ARMED' : 'DISARMED', Icons.shield, _alarm, (
-            value,
-          ) {
-            setState(() => _alarm = value);
-            widget.store.setAlarm(widget.device.id, value);
-          }),
-          const ListTile(
-            leading: Icon(Icons.videocam, color: Colors.white),
-            title: Text('Door camera', style: TextStyle(color: Colors.white)),
-            subtitle: Text('Idle', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tile(
-    String name,
-    String status,
-    IconData icon,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: Colors.white),
-      title: Text(name, style: const TextStyle(color: Colors.white)),
-      subtitle: Text(
-        status,
-        style: const TextStyle(color: kSignal, fontSize: 12),
-      ),
-      value: value,
-      onChanged: onChanged,
     );
   }
 }

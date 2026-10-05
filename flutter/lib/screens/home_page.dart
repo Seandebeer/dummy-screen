@@ -668,6 +668,7 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
                   DropdownMenuItem(value: 'atm', child: Text('ATM')),
                   DropdownMenuItem(value: 'cctv', child: Text('CCTV')),
                   DropdownMenuItem(value: 'smarthome', child: Text('Smart home')),
+                  DropdownMenuItem(value: 'homephone', child: Text('Smart home phone')),
                   DropdownMenuItem(value: 'screen', child: Text('Screen')),
                   DropdownMenuItem(value: 'remote', child: Text('Remote')),
                 ],
@@ -1168,6 +1169,8 @@ String _kindLabel(String kind) {
       return 'CCTV';
     case 'smarthome':
       return 'Smart home';
+    case 'homephone':
+      return 'Smart home phone';
     case 'screen':
       return 'Screen';
     case 'remote':
