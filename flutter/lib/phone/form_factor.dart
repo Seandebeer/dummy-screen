@@ -5,6 +5,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'ps5_home.dart';
 import 'xbox_360.dart';
 import 'xbox_series.dart';
 
@@ -697,7 +698,7 @@ class _ConsoleOs extends StatelessWidget {
   Widget build(BuildContext context) {
     final shell = device.os.shell.isEmpty ? 'xbox' : device.os.shell;
     final bg = switch (shell) {
-      'ps5' => const Color(0xFF003791),
+      'ps5' => const Color(0xFF07111F),
       'ps2' => const Color(0xFF0A0A12),
       'x360' => const Color(0xFF6E706F),
       _ => const Color(0xFF061803),
@@ -712,6 +713,12 @@ class _ConsoleOs extends StatelessWidget {
           onShell: onShell,
         ),
       'x360' => Xbox360Home(
+          store: store,
+          device: device,
+          onOpen: onOpen,
+          onShell: onShell,
+        ),
+      'ps5' => Ps5Home(
           store: store,
           device: device,
           onOpen: onOpen,

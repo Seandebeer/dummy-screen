@@ -37,15 +37,57 @@ void main() {
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
   });
 
-  testWidgets('other console shells keep their own home', (tester) async {
+  testWidgets('the playstation 5 console uses the games dashboard', (tester) async {
     final store = StageStore.demo();
     addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(960, 540));
     final device = PropDevice(
       id: 'console-2',
       name: 'Stage console',
       projectId: 'sandbox',
       kind: 'console',
       os: const OsSettings(shell: 'ps5'),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: FormOs(store: store, device: device),
+      ),
+    );
+    expect(find.byKey(const Key('ps5-home')), findsOneWidget);
+    expect(find.text('Games'), findsOneWidget);
+    expect(find.text('Media'), findsOneWidget);
+    expect(find.text('Trophies'), findsOneWidget);
+    expect(find.text('Online Friends'), findsOneWidget);
+    expect(find.text('Welcome'), findsOneWidget);
+    expect(find.byKey(const Key('xbox-home')), findsNothing);
+
+    await tester.tap(find.text('Media'));
+    await tester.pump();
+    expect(find.text('Music'), findsOneWidget);
+    expect(find.text('Gallery'), findsOneWidget);
+    expect(find.text('Trophies'), findsNothing);
+
+    await tester.tap(find.text('Games'));
+    await tester.pump();
+    expect(find.text('Welcome'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('ps5-game-harbor')));
+    await tester.pump();
+    expect(find.text('Harbor'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+  });
+
+  testWidgets('the playstation 2 shell keeps its own row', (tester) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    final device = PropDevice(
+      id: 'console-ps2',
+      name: 'Stage console',
+      projectId: 'sandbox',
+      kind: 'console',
+      os: const OsSettings(shell: 'ps2'),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -56,9 +98,33 @@ void main() {
         ),
       ),
     );
-    expect(find.byKey(const Key('xbox-home')), findsNothing);
-    expect(find.text('PlayStation 5'), findsOneWidget);
+    expect(find.byKey(const Key('ps5-home')), findsNothing);
+    expect(find.text('PlayStation 2'), findsOneWidget);
     expect(find.text('Night Run'), findsOneWidget);
+  });
+
+  testWidgets('the playstation 5 dashboard fits a short console frame', (tester) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final device = PropDevice(
+      id: 'console-ps5-short',
+      name: 'Stage console',
+      projectId: 'sandbox',
+      kind: 'console',
+      os: const OsSettings(shell: 'ps5'),
+    );
+    for (final size in const [Size(480, 270), Size(800, 600), Size(1280, 720)]) {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: FormOs(store: store, device: device),
+        ),
+      );
+      expect(find.byKey(const Key('ps5-home')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('the xbox 360 console uses the tile dashboard', (tester) async {
