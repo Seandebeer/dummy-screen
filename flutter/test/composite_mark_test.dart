@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 
+import 'package:dummy_phone/app.dart';
+import 'package:dummy_phone/store.dart';
 import 'package:dummy_phone/vfx/composite_mark.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,6 +89,19 @@ void main() {
     addTearDown(hair.dispose);
     expect(await sample(hair, 50, 50), [255, 255, 255, 255]);
     expect(await sample(hair, 35, 35), [0, 0, 0, 0]);
+  });
+
+  testWidgets('the screens stage fills the page', (tester) async {
+    final store = StageStore.demo();
+    await tester.binding.setSurfaceSize(const Size(1400, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(DummyPhoneApp(store: store));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('nav-screens')));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Hold & drag'), findsOneWidget);
+    expect(find.byTooltip('Tracking marks'), findsOneWidget);
   });
 
   test('tri circle draws the centre and corner pluses', () async {

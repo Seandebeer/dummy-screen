@@ -151,7 +151,10 @@ class _VfxPageState extends State<VfxPage> {
   Widget build(BuildContext context) {
     final point = isPointStyle(_marksId);
     final image = imageProviderForPath(_bgImage ?? '');
-    return ThreeFingerToggle(
+    // The shell gives this page loose constraints. Expand so the stage
+    // fills the screen even when every stack child is positioned.
+    return SizedBox.expand(
+      child: ThreeFingerToggle(
       onToggle: () => _locked ? _unlock() : _lock(),
       child: CallbackShortcuts(
         bindings: {
@@ -336,6 +339,7 @@ class _VfxPageState extends State<VfxPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -614,7 +618,7 @@ class _VfxPageState extends State<VfxPage> {
   Widget _overlayLayer() {
     final url = _overlay['url'] as String?;
     if (url == null || url.isEmpty || _overlay['hidden'] == true) {
-      return const SizedBox.shrink();
+      return const Positioned.fill(child: SizedBox.shrink());
     }
     final image = imageProviderForPath(url);
     if (image == null) return const SizedBox.shrink();
