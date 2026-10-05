@@ -8,6 +8,7 @@ import 'atm_home.dart';
 import 'console_apps.dart';
 import 'catalog.dart';
 import 'desk_os_apps.dart';
+import 'desk_settings.dart';
 import 'mac_desktop.dart';
 import 'os_apps.dart';
 import 'win_desktop.dart';
@@ -159,34 +160,13 @@ class _FormOsState extends State<FormOs> {
       _ => _ComputerOs(
         store: widget.store,
         device: device,
-        shell: _computerShell(os.shell),
+        shell: computerShell(os.shell),
         onShell: _shell,
         app: _app,
         onOpen: (id) => setState(() => _app = id),
       ),
     };
   }
-}
-
-const _computerShells = [
-  ('macos', 'Mac'),
-  ('windows', 'Windows'),
-  ('linux', 'Linux'),
-];
-
-/// Older saved shells still open as Mac, Windows, or Linux.
-String _computerShell(String shell) {
-  return switch (shell) {
-    'windows' ||
-    'win95' ||
-    'win98' ||
-    'winxp' ||
-    'vista' ||
-    'win7' ||
-    'win8' => 'windows',
-    'linux' || 'ubuntu' => 'linux',
-    _ => 'macos',
-  };
 }
 
 /// Tools that exist only on a computer, shown after the shared apps.
@@ -267,7 +247,7 @@ class _ComputerOs extends StatelessWidget {
         tool: app == null ? null : _window(app!),
         onOpen: onOpen,
         onShell: onShell,
-        shells: _computerShells,
+        shells: kComputerShells,
       );
     }
     if (shell == 'windows') {
@@ -280,7 +260,7 @@ class _ComputerOs extends StatelessWidget {
         tool: app == null ? null : _window(app!),
         onOpen: onOpen,
         onShell: onShell,
-        shells: _computerShells,
+        shells: kComputerShells,
       );
     }
     const ink = Colors.white;
@@ -328,10 +308,10 @@ class _ComputerOs extends StatelessWidget {
   }
 
   Widget _menu(Color ink) {
-    final label = _computerShells
+    final label = kComputerShells
         .firstWhere(
           (item) => item.$1 == shell,
-          orElse: () => _computerShells.first,
+          orElse: () => kComputerShells.first,
         )
         .$2;
     return Container(
@@ -354,7 +334,7 @@ class _ComputerOs extends StatelessWidget {
             icon: Icon(Icons.settings, size: 14, color: ink),
             onSelected: onShell,
             itemBuilder: (context) => [
-              for (final item in _computerShells)
+              for (final item in kComputerShells)
                 PopupMenuItem(value: item.$1, child: Text(item.$2)),
             ],
           ),

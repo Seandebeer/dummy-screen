@@ -12,11 +12,11 @@ import 'app_catalog.dart';
 import 'browser_frame.dart';
 import 'catalog.dart';
 import 'desk_apps.dart';
+import 'desk_settings.dart';
 import 'library_app.dart';
 import 'maps_app.dart';
 import 'os_apps.dart';
 import 'prop_apps.dart';
-import 'settings_app.dart';
 import 'social_apps.dart';
 import 'utility_apps.dart';
 
@@ -95,7 +95,7 @@ class DeskAppView extends StatelessWidget {
       case 'maps':
         return const MapsApp();
       case 'settings':
-        return SettingsApp(store: store, device: live);
+        return ComputerSettings(store: store, device: live);
       case 'appstore':
         return LibraryApp(store: store, device: live);
       default:

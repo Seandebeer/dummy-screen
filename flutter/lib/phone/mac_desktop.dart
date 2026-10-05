@@ -8,6 +8,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import 'desk_settings.dart';
 import 'mac_desk.dart';
 
 /// macOS desktop matched to the night-dune layout: a full-width menu bar,
@@ -296,7 +297,7 @@ class _MacDesktopState extends State<MacDesktop> {
                 title: 'Settings',
                 large: true,
                 onClose: _closeWindow,
-                child: MacSettings(
+                child: ComputerSettings(
                   store: widget.store,
                   device: live,
                   onShiftDock: _shiftDock,

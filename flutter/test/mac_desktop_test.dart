@@ -129,56 +129,64 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mac-dock-settings')));
     await tester.pump();
-    expect(find.text('Theme'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('mac-theme-midnight')));
-    await tester.pump();
-    expect(find.byKey(const Key('mac-wall-custom')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('mac-bg-dune')));
-    await tester.pump();
-    expect(find.byKey(const Key('mac-wall-dune')), findsOneWidget);
-
-    Future<void> page(String id) async {
-      await tester.tap(find.byKey(Key('mac-settings-$id')));
-      await tester.pump();
-    }
+    expect(find.text('Settings'), findsWidgets);
+    expect(find.text('INTERFACE'), findsOneWidget);
+    expect(find.text('Mac'), findsOneWidget);
+    expect(find.text('Ring Duration'), findsNothing);
+    expect(find.text('Contacts Dial Codes'), findsNothing);
 
     Future<void> toTop() async {
       await tester.drag(
-        find.byKey(const Key('mac-settings-scroll')),
-        const Offset(0, 4000),
+        find.byKey(const Key('desk-settings-list')),
+        const Offset(0, 6000),
       );
       await tester.pump();
     }
 
-    Future<void> show(Key key) => tester.dragUntilVisible(
-      find.byKey(key),
-      find.byKey(const Key('mac-settings-scroll')),
-      const Offset(0, -80),
-    );
+    // Scroll the row into the settings window, then settle it fully inside
+    // the window so the title bar cannot cover the control being tapped.
+    Future<void> show(Key key) async {
+      final target = find.byKey(key);
+      await tester.dragUntilVisible(
+        target,
+        find.byKey(const Key('desk-settings-list')),
+        const Offset(0, -80),
+      );
+      await tester.ensureVisible(target);
+      await tester.pump();
+    }
 
-    await page('menu');
-    await show(const Key('mac-status-wifi'));
-    await tester.tap(find.byKey(const Key('mac-status-wifi')));
+    await show(const Key('desk-theme-midnight'));
+    await tester.tap(find.byKey(const Key('desk-theme-midnight')));
+    await tester.pump();
+    expect(find.byKey(const Key('mac-wall-custom')), findsOneWidget);
+    await show(const Key('desk-preset-default'));
+    await tester.tap(find.byKey(const Key('desk-preset-default')));
+    await tester.pump();
+    expect(find.byKey(const Key('mac-wall-dune')), findsOneWidget);
+
+    await toTop();
+    await show(const Key('desk-status-wifi'));
+    await tester.tap(find.byKey(const Key('desk-status-wifi')));
     await tester.pump();
     expect(find.byKey(const Key('mac-menu-wifi-off')), findsOneWidget);
 
-    await show(const Key('mac-battery-down'));
-    await tester.tap(find.byKey(const Key('mac-battery-down')));
+    await show(const Key('desk-battery-down'));
+    await tester.tap(find.byKey(const Key('desk-battery-down')));
     await tester.pump();
     expect(
       tester.widget<Text>(find.byKey(const Key('mac-menu-battery'))).data,
       '70%',
     );
 
-    await show(const Key('mac-status-bluetooth'));
-    await tester.tap(find.byKey(const Key('mac-status-bluetooth')));
+    await show(const Key('desk-status-bluetooth'));
+    await tester.tap(find.byKey(const Key('desk-status-bluetooth')));
     await tester.pump();
     expect(find.byKey(const Key('mac-menu-bluetooth')), findsOneWidget);
 
-    await show(const Key('mac-status-network'));
+    await show(const Key('desk-status-network'));
     await tester.enterText(
-      find.byKey(const Key('mac-status-network')),
+      find.byKey(const Key('desk-status-network')),
       'Northline',
     );
     await tester.pump();
@@ -187,27 +195,24 @@ void main() {
     final beforeClock = tester
         .widget<Text>(find.byKey(const Key('mac-menu-clock')))
         .data;
-    await show(const Key('mac-clock-forward'));
-    await tester.tap(find.byKey(const Key('mac-clock-forward')));
+    await show(const Key('desk-clock-forward'));
+    await tester.tap(find.byKey(const Key('desk-clock-forward')));
     await tester.pump();
     expect(
       tester.widget<Text>(find.byKey(const Key('mac-menu-clock'))).data,
       isNot(beforeClock),
     );
 
-    await show(const Key('mac-show-search'));
-    await tester.tap(find.byKey(const Key('mac-show-search')));
+    await show(const Key('desk-show-search'));
+    await tester.tap(find.byKey(const Key('desk-show-search')));
     await tester.pump();
     expect(find.byKey(const Key('mac-menu-search')), findsNothing);
 
-    await page('icons');
-    expect(find.text('Add to library'), findsOneWidget);
-    await page('layout');
-    await show(const Key('mac-dock-right-word'));
+    await show(const Key('desk-dock-right-word'));
     final excelBefore = tester.getCenter(find.byKey(const Key('mac-dock-excel')));
     final wordBefore = tester.getCenter(find.byKey(const Key('mac-dock-word')));
     expect(wordBefore.dx, lessThan(excelBefore.dx));
-    await tester.tap(find.byKey(const Key('mac-dock-right-word')));
+    await tester.tap(find.byKey(const Key('desk-dock-right-word')));
     await tester.pump();
     expect(
       tester.getCenter(find.byKey(const Key('mac-dock-word'))).dx,
@@ -215,22 +220,35 @@ void main() {
     );
 
     await toTop();
-    await show(const Key('mac-dock-desk-music'));
-    await tester.tap(find.byKey(const Key('mac-dock-desk-music')));
+    await show(const Key('desk-dock-desk-music'));
+    await tester.tap(find.byKey(const Key('desk-dock-desk-music')));
     await tester.pump();
     expect(find.byKey(const Key('mac-dock-music')), findsNothing);
     expect(find.byKey(const Key('mac-desk-music')), findsOneWidget);
 
-    await show(const Key('mac-nudge-left-file:Documents'));
+    await show(const Key('desk-nudge-left-file:Documents'));
     final documents = tester.getCenter(
       find.byKey(const Key('mac-file-Documents')),
     );
-    await tester.tap(find.byKey(const Key('mac-nudge-left-file:Documents')));
+    await tester.tap(find.byKey(const Key('desk-nudge-left-file:Documents')));
     await tester.pump();
     expect(
       tester.getCenter(find.byKey(const Key('mac-file-Documents'))).dx,
       lessThan(documents.dx - 40),
     );
+
+    await tester.dragUntilVisible(
+      find.text('Add to library'),
+      find.byKey(const Key('desk-settings-list')),
+      const Offset(0, -80),
+    );
+    expect(find.text('Add to library'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.byKey(const Key('factory-reset')),
+      find.byKey(const Key('desk-settings-list')),
+      const Offset(0, -80),
+    );
+    expect(find.text('Factory Reset'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('mac-window-close')));
     await tester.pump();
