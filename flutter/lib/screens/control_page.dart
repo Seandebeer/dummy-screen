@@ -185,25 +185,46 @@ class _ControlPageState extends State<ControlPage> {
                     store: store,
                     channel: channel,
                     broadcast: _broadcast,
-                    onBroadcast: (value) => setState(() => _broadcast = value),
+                    onBroadcast: (value) {
+                      setState(() => _broadcast = value);
+                      store.setDeckBroadcast(value);
+                    },
                     link: link,
                     join: _join,
                   ),
                   const SizedBox(height: 20),
-                  _ContactCard(
+                  CollapsibleCard(
                     palette: palette,
-                    name: _name,
-                    number: _number,
-                    email: _email,
-                    photo: _photo,
-                    onPhoto: (value) => setState(() => _photo = value),
-                    os: target?.os ?? const OsSettings(),
+                    icon: Icons.person_outline,
+                    title: 'Contact',
+                    child: _ContactCard(
+                      palette: palette,
+                      name: _name,
+                      number: _number,
+                      email: _email,
+                      photo: _photo,
+                      photoMode: _photoMode,
+                      onPhotoMode: (value) {
+                        setState(() => _photoMode = value);
+                        for (final id in _targets(store)) {
+                          store.updateOs(id, (os) => os.copyWith(callerPhoto: value));
+                          store.updateCallScene(id, {'caller': value, 'photo': _photo});
+                        }
+                      },
+                      onPhoto: (value) {
+                        setState(() => _photo = value);
+                        for (final id in _targets(store)) {
+                          store.updateCallScene(id, {'photo': value, 'caller': _photoMode});
+                        }
+                      },
+                      os: target?.os ?? const OsSettings(),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   CollapsibleCard(
                     palette: palette,
                     icon: Icons.phone_callback,
-                    title: 'Call Trigger',
+                    title: 'Call',
                     child: _CallBody(
                       palette: palette,
                       channel: channel,
@@ -229,6 +250,7 @@ class _ControlPageState extends State<ControlPage> {
                             contactName: _name.text,
                             contactNumber: _number.text,
                             direction: 'incoming',
+                            scene: {'photo': _photo, 'caller': _photoMode},
                           );
                         }
                       },
@@ -243,7 +265,7 @@ class _ControlPageState extends State<ControlPage> {
                   CollapsibleCard(
                     palette: palette,
                     icon: Icons.videocam_outlined,
-                    title: 'Video Call',
+                    title: 'Video call',
                     child: _VideoCallBody(
                       palette: palette,
                       enabled: channel != null && _name.text.trim().isNotEmpty,
@@ -312,7 +334,7 @@ class _ControlPageState extends State<ControlPage> {
                   CollapsibleCard(
                     palette: palette,
                     icon: Icons.chat_bubble_outline,
-                    title: 'Message Push Console',
+                    title: 'Message',
                     child: _MessageBody(
                       palette: palette,
                       messages: messages,
@@ -403,7 +425,7 @@ class _ControlPageState extends State<ControlPage> {
                   CollapsibleCard(
                     palette: palette,
                     icon: Icons.notifications_none,
-                    title: 'Notification Banner',
+                    title: 'Notification',
                     child: _NotifBody(
                       palette: palette,
                       screen: _notifScreen,
@@ -458,7 +480,7 @@ class _ControlPageState extends State<ControlPage> {
                     palette: palette,
                     icon: Icons.alarm,
                     iconColor: kAccent,
-                    title: 'Alarm Trigger',
+                    title: 'Alarm',
                     badge: alarm
                         ? const Text(
                             'RINGING',
@@ -482,6 +504,26 @@ class _ControlPageState extends State<ControlPage> {
                         icon: const Icon(Icons.alarm),
                         label: Text(alarm ? 'Stop Alarm' : 'Trigger Alarm'),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  CollapsibleCard(
+                    palette: palette,
+                    icon: Icons.mail_outline,
+                    title: 'Email',
+                    child: _EmailBody(
+                      palette: palette,
+                      enabled: channel != null,
+                      onSend: (from, subject, body) {
+                        for (final id in _targets(store)) {
+                          store.pushMail(
+                            deviceId: id,
+                            from: from,
+                            subject: subject,
+                            body: body,
+                          );
+                        }
+                      },
                     ),
                   ),
                   if (channel != null) ...[
@@ -623,7 +665,7 @@ class _TargetCard extends StatelessWidget {
                         style: TextStyle(color: palette.muted),
                       ),
                       items: [
-                        for (final device in store.devices)
+                        for (final device in store.activeDevices)
                           DropdownMenuItem(
                             value: device.id,
                             child: Text(device.name),
@@ -710,7 +752,9 @@ class _ContactCard extends StatelessWidget {
     required this.number,
     required this.email,
     required this.photo,
+    required this.photoMode,
     required this.onPhoto,
+    required this.onPhotoMode,
     required this.os,
   });
 
@@ -719,15 +763,15 @@ class _ContactCard extends StatelessWidget {
   final TextEditingController number;
   final TextEditingController email;
   final String photo;
+  final String photoMode;
   final ValueChanged<String> onPhoto;
+  final ValueChanged<String> onPhotoMode;
   final OsSettings os;
 
   @override
   Widget build(BuildContext context) {
     final contacts = contactsFor(os);
-    return DeckCard(
-      palette: palette,
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -737,7 +781,7 @@ class _ContactCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ON-SCREEN CONTACT',
+                      'CALLER DETAILS',
                       style: TextStyle(
                         color: palette.muted,
                         fontSize: 11,
@@ -843,8 +887,86 @@ class _ContactCard extends StatelessWidget {
             icon: const Icon(Icons.smartphone, size: 14),
             label: const Text('Choose from contacts'),
           ),
+          const SizedBox(height: 12),
+          Text('Caller photo', style: TextStyle(color: palette.muted, fontSize: 11)),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Round avatar'),
+                selected: photoMode != 'full',
+                onSelected: (_) => onPhotoMode('circle'),
+              ),
+              ChoiceChip(
+                label: const Text('Full screen'),
+                selected: photoMode == 'full',
+                onSelected: (_) => onPhotoMode('full'),
+              ),
+            ],
+          ),
         ],
-      ),
+    );
+  }
+}
+
+class _EmailBody extends StatefulWidget {
+  const _EmailBody({
+    required this.palette,
+    required this.enabled,
+    required this.onSend,
+  });
+
+  final DeckPalette palette;
+  final bool enabled;
+  final void Function(String from, String subject, String body) onSend;
+
+  @override
+  State<_EmailBody> createState() => _EmailBodyState();
+}
+
+class _EmailBodyState extends State<_EmailBody> {
+  final _from = TextEditingController(text: 'Production Desk');
+  final _subject = TextEditingController();
+  final _body = TextEditingController();
+
+  @override
+  void dispose() {
+    _from.dispose();
+    _subject.dispose();
+    _body.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    return Column(
+      children: [
+        TextField(controller: _from, decoration: deckField(palette, 'From')),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _subject,
+          onChanged: (_) => setState(() {}),
+          decoration: deckField(palette, 'Subject'),
+        ),
+        const SizedBox(height: 8),
+        TextField(controller: _body, minLines: 2, maxLines: 4, decoration: deckField(palette, 'Message')),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            onPressed: !widget.enabled || _subject.text.trim().isEmpty
+                ? null
+                : () {
+                    widget.onSend(_from.text.trim(), _subject.text.trim(), _body.text.trim());
+                    _subject.clear();
+                    _body.clear();
+                  },
+            child: const Text('Send'),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -10,6 +10,7 @@ import '../image_file.dart';
 import '../media/live_lens.dart';
 import '../models.dart';
 import '../video_source.dart';
+import 'ios_keyboard.dart';
 import 'browser_frame.dart';
 import 'catalog.dart';
 import 'social_apps.dart';
@@ -542,7 +543,9 @@ class _RealtyAppState extends State<RealtyApp> {
 }
 
 class InboxApp extends StatefulWidget {
-  const InboxApp({super.key});
+  const InboxApp({super.key, this.extra = const []});
+
+  final List<Map<String, dynamic>> extra;
 
   @override
   State<InboxApp> createState() => _InboxAppState();
@@ -551,7 +554,9 @@ class InboxApp extends StatefulWidget {
 class _InboxAppState extends State<InboxApp> {
   final _query = TextEditingController();
   int? _openId;
-  final List<Map<String, dynamic>> _emails = [
+  late final List<Map<String, dynamic>> _emails = [
+    ...widget.extra,
+
     {
       'id': 1,
       'from': 'Production Desk',
@@ -641,6 +646,13 @@ class _InboxAppState extends State<InboxApp> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: TextField(
               controller: _query,
+              readOnly: true,
+              showCursor: true,
+              onTap: () => openIosKeyboard(
+                context,
+                _query,
+                onChanged: (_) => setState(() {}),
+              ),
               onChanged: (_) => setState(() {}),
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
@@ -786,6 +798,15 @@ class _PropBrowserState extends State<PropBrowser> {
                 Expanded(
                   child: TextField(
                     controller: _url,
+                    readOnly: true,
+                    showCursor: true,
+                    onTap: () => openIosKeyboard(
+                      context,
+                      _url,
+                      onChanged: (value) {
+                        if (value.endsWith(' ')) _go(value.trim());
+                      },
+                    ),
                     onSubmitted: _go,
                     style: const TextStyle(fontSize: 12, color: Colors.black),
                     decoration: InputDecoration(

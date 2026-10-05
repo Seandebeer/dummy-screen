@@ -5,6 +5,7 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import 'catalog.dart';
+import 'ios_keyboard.dart';
 import 'phone_copy.dart';
 
 const _phoneGreen = Color(0xFF34C759);
@@ -581,6 +582,9 @@ class _MessagesAppState extends State<MessagesApp> {
               Expanded(
                 child: TextField(
                   controller: _reply,
+                  readOnly: true,
+                  showCursor: true,
+                  onTap: () => openIosKeyboard(context, _reply),
                   decoration: const InputDecoration(hintText: 'Reply'),
                   onSubmitted: (_) => _send(),
                 ),
@@ -602,16 +606,32 @@ class ContactsApp extends StatelessWidget {
     super.key,
     required this.onMessage,
     required this.onCall,
+    this.onAdd,
     this.contacts = kContacts,
   });
 
   final void Function(ContactCard contact) onMessage;
   final void Function(ContactCard contact) onCall;
+  final ValueChanged<PropPerson>? onAdd;
   final List<ContactCard> contacts;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text('Contacts', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+              ),
+              TextButton(onPressed: onAdd == null ? null : () => _add(context), child: const Text('Add')),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView(
       children: [
         for (final contact in contacts)
           ListTile(
@@ -636,7 +656,59 @@ class ContactsApp extends StatelessWidget {
             ),
           ),
       ],
+          ),
+        ),
+      ],
     );
+  }
+
+  Future<void> _add(BuildContext context) async {
+    final first = TextEditingController();
+    final last = TextEditingController();
+    final company = TextEditingController();
+    final phone = TextEditingController();
+    final email = TextEditingController();
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        title: const Text('New Contact'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: first, decoration: const InputDecoration(hintText: 'First name')),
+              TextField(controller: last, decoration: const InputDecoration(hintText: 'Last name')),
+              TextField(controller: company, decoration: const InputDecoration(hintText: 'Company')),
+              TextField(controller: phone, decoration: const InputDecoration(hintText: 'Phone')),
+              TextField(controller: email, decoration: const InputDecoration(hintText: 'Email')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Done')),
+        ],
+      ),
+    );
+    if (saved == true && onAdd != null) {
+      final name = '${first.text.trim()} ${last.text.trim()}'.trim();
+      if (name.isNotEmpty) {
+        onAdd!(
+          PropPerson(
+            name: name,
+            number: phone.text.trim(),
+            email: email.text.trim(),
+            company: company.text.trim(),
+          ),
+        );
+      }
+    }
+    first.dispose();
+    last.dispose();
+    company.dispose();
+    phone.dispose();
+    email.dispose();
   }
 }
 

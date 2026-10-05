@@ -776,6 +776,9 @@ List<ContactCard> contactsFor(OsSettings os) {
   return [
     for (var i = 0; i < table.length; i++)
       ContactCard(table[i].$1, '${codes[i % codes.length]} ${table[i].$2}'),
+    for (final person in os.people)
+      if (person.name.trim().isNotEmpty)
+        ContactCard(person.name, person.number),
   ];
 }
 

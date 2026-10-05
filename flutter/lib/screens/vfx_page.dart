@@ -26,6 +26,7 @@ class _VfxPageState extends State<VfxPage> {
   String _marksId = 'cross';
   double _scale = 1;
   double _thickness = 1;
+  double _opacity = 1;
   String? _markColor;
   String? _bgColor;
   String? _bgImage;
@@ -62,6 +63,7 @@ class _VfxPageState extends State<VfxPage> {
     _marksId = config['marksId'] as String? ?? 'cross';
     _scale = (config['scale'] as num?)?.toDouble() ?? 1;
     _thickness = (config['thickness'] as num?)?.toDouble() ?? 1;
+    _opacity = (config['opacity'] as num?)?.toDouble() ?? 1;
     _markColor = config['markColor'] as String?;
     _bgColor = config['bgColor'] as String?;
     _bgImage = config['bgImage'] as String?;
@@ -94,6 +96,7 @@ class _VfxPageState extends State<VfxPage> {
       'marksId': _marksId,
       'scale': _scale,
       'thickness': _thickness,
+      'opacity': _opacity,
       'markColor': _markColor,
       'bgColor': _bgColor,
       'bgImage': _bgImage,
@@ -193,6 +196,29 @@ class _VfxPageState extends State<VfxPage> {
                     builder: (context, constraints) {
                       return Stack(
                         children: [
+                          Positioned.fill(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTapUp: _locked
+                                  ? null
+                                  : (details) {
+                                      final box = context.findRenderObject() as RenderBox?;
+                                      if (box == null || !box.hasSize) return;
+                                      final local = box.globalToLocal(details.globalPosition);
+                                      final x = snapX(local.dx / box.size.width * 100);
+                                      final y = snapY(local.dy / box.size.height * 100);
+                                      _setLayout([
+                                        ..._layout,
+                                        StageMark(
+                                          id: 'm-${DateTime.now().microsecondsSinceEpoch}',
+                                          kind: _addKind,
+                                          x: x,
+                                          y: y,
+                                        ),
+                                      ]);
+                                    },
+                            ),
+                          ),
                           for (final mark in _layout)
                             Positioned(
                               left: mark.x / 100 * constraints.maxWidth - 22,
@@ -263,14 +289,17 @@ class _VfxPageState extends State<VfxPage> {
                                   width: 44,
                                   height: 44,
                                   child: Center(
-                                    child: MarkGlyph(
-                                      kind: mark.kind,
-                                      color: _ink,
-                                      scale: _scale,
-                                      thickness: _thickness,
-                                      rotation: mark.rot,
-                                      x: mark.x,
-                                      y: mark.y,
+                                    child: Opacity(
+                                      opacity: _opacity.clamp(0.05, 1),
+                                      child: MarkGlyph(
+                                        kind: mark.kind,
+                                        color: _ink,
+                                        scale: _scale,
+                                        thickness: _thickness,
+                                        rotation: mark.rot,
+                                        x: mark.x,
+                                        y: mark.y,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -328,7 +357,7 @@ class _VfxPageState extends State<VfxPage> {
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         child: Text(
-                          'Hold & drag to move · tap to rotate · double-tap to delete',
+                          'Tap empty space to add · Hold & drag to move · tap to rotate · double-tap to delete',
                           style: TextStyle(color: Colors.white, fontSize: 10),
                         ),
                       ),
@@ -359,9 +388,9 @@ class _VfxPageState extends State<VfxPage> {
             ),
             child: Padding(
               padding: const EdgeInsets.all(6),
-              child: Wrap(
-                spacing: 2,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
                 children: [
                   IconButton(
                     tooltip: 'Exit stage',
@@ -424,19 +453,6 @@ class _VfxPageState extends State<VfxPage> {
                       ],
                     ),
                     IconButton(
-                      tooltip: 'Add marker',
-                      onPressed: () => _setLayout([
-                        ..._layout,
-                        StageMark(
-                          id: 'm-${DateTime.now().microsecondsSinceEpoch}',
-                          kind: _addKind,
-                          x: 50,
-                          y: 50,
-                        ),
-                      ]),
-                      icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                    ),
-                    IconButton(
                       tooltip: 'Rotate all markers 45°',
                       onPressed: () => _setLayout([
                         for (final mark in _layout)
@@ -464,6 +480,7 @@ class _VfxPageState extends State<VfxPage> {
                       icon: const Icon(Icons.restart_alt, color: Colors.white, size: 18),
                     ),
                 ],
+                ),
               ),
             ),
           ),
@@ -475,6 +492,7 @@ class _VfxPageState extends State<VfxPage> {
   Future<void> _sizeSheet() async {
     var scale = _scale;
     var thick = _thickness;
+    var fade = _opacity;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xCC000000),
@@ -502,6 +520,13 @@ class _VfxPageState extends State<VfxPage> {
                     divisions: 10,
                     onChanged: (value) => setSheet(() => thick = value),
                   ),
+                  Text('OPACITY  ${(fade * 100).round()}%', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  Slider(
+                    value: fade,
+                    min: 0.15,
+                    max: 1,
+                    onChanged: (value) => setSheet(() => fade = value),
+                  ),
                 ],
               ),
             );
@@ -512,6 +537,7 @@ class _VfxPageState extends State<VfxPage> {
     setState(() {
       _scale = scale;
       _thickness = thick;
+      _opacity = fade;
     });
     _persist();
   }
@@ -537,6 +563,7 @@ class _VfxPageState extends State<VfxPage> {
         vfxMarks: const [],
         uiMarkers: const [],
         kind: 'screen',
+        deviceId: store.boundDeviceId ?? '',
         payload: {
           'colorId': _colorId,
           'marksId': _marksId,

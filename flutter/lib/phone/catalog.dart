@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 class PropApp {
-  const PropApp(this.id, this.label, this.color, this.icon);
+  const PropApp(this.id, this.label, this.color, this.icon, {this.image = ''});
 
   final String id;
   final String label;
   final Color color;
   final IconData icon;
+  final String image;
 }
 
 /// Core apps, in the same order and colors as the Base44 OS.
@@ -68,6 +69,55 @@ const kHomeOrder = [
 ];
 
 const kPageSize = 20;
+
+/// Real product names used only while App Branding is set to Branded.
+/// Icons stay simple glyphs so the prop never ships another company's artwork.
+const kBrandNames = <String, String>{
+  'phone': 'Phone',
+  'messages': 'Messages',
+  'email': 'Mail',
+  'clock': 'Clock',
+  'music': 'Music',
+  'contacts': 'Contacts',
+  'settings': 'Settings',
+  'calculator': 'Calculator',
+  'calendar': 'Calendar',
+  'notes': 'Notes',
+  'camera': 'Camera',
+  'photos': 'Photos',
+  'videocall': 'FaceTime',
+  'maps': 'Maps',
+  'appstore': 'App Store',
+  'facepage': 'Facebook',
+  'photogram': 'Instagram',
+  'vidtube': 'YouTube',
+  'quicktok': 'TikTok',
+  'browser': 'Safari',
+  'webdeck': 'Chrome',
+  'news': 'News',
+  'property': 'Zillow',
+  'fitness': 'Fitness',
+  'ping': 'Messenger',
+  'buzz': 'X',
+  'visage': 'Zoom',
+  'flixiq': 'Netflix',
+  'waveform': 'Spotify',
+  'questly': 'Steam',
+  'headlines24': 'Headlines',
+  'skycast': 'Weather',
+  'findit': 'Amazon',
+  'zippyride': 'Uber',
+  'wandermap': 'Maps',
+  'recipebox': 'Recipes',
+  'flexr': 'Fitness',
+  'walletto': 'Wallet',
+  'teamly': 'Slack',
+};
+
+String appLabel(PropApp app, {required bool branded}) {
+  if (!branded) return app.label;
+  return kBrandNames[app.id] ?? app.label;
+}
 
 PropApp? propAppById(String id) {
   for (final app in kPropApps) {

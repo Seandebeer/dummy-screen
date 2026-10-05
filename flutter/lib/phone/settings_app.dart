@@ -6,6 +6,8 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'extra_settings.dart';
+import 'ios_keyboard.dart';
 
 /// OS Settings, laid out like the Base44 Settings app: interface, themes,
 /// wallpaper, lock screen, dial codes, language, answer mode, ring duration,
@@ -171,7 +173,7 @@ class _SettingsAppState extends State<SettingsApp> {
                           ),
                         ),
                         for (final skin in osSkins)
-                          if (skin.era != 'modern') ...[
+                          if (skin.era != 'modern' && skin.id != 'blackberry') ...[
                             _skinButton(skin),
                             const SizedBox(height: 8),
                           ],
@@ -182,6 +184,7 @@ class _SettingsAppState extends State<SettingsApp> {
                       ],
                     ),
                   ),
+                  ExtraSettings(store: widget.store, device: device),
                   _Section(
                     title: copy.themes,
                     child: GridView.count(
@@ -401,7 +404,13 @@ class _SettingsAppState extends State<SettingsApp> {
                                 child: _editingCode == i
                                     ? TextField(
                                         key: Key('dial-edit-$i'),
-                                        autofocus: true,
+                                        readOnly: true,
+                                        showCursor: true,
+                                        onTap: () => openIosKeyboard(
+                                          context,
+                                          _codeController,
+                                          numeric: true,
+                                        ),
                                         controller: _codeController,
                                         keyboardType: TextInputType.number,
                                         textAlign: TextAlign.center,

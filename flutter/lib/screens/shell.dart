@@ -23,7 +23,7 @@ class _NavItem {
 
 const _items = [
   _NavItem('home', 'Home', Icons.home_outlined, 0),
-  _NavItem('os', 'OS', Icons.smartphone, 1),
+  _NavItem('os', 'OS', Icons.devices, 1),
   _NavItem('screens', 'Screens', Icons.add, 2),
   _NavItem('markers', 'UI Marker', Icons.my_location, 3),
   _NavItem('playback', 'Playback', Icons.play_arrow, 4),

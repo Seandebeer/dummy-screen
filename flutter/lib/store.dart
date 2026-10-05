@@ -10,6 +10,27 @@ import 'os_catalog.dart';
 
 enum LinkRole { solo, host, client }
 
+String sandboxName(String kind) {
+  switch (kind) {
+    case 'tablet':
+      return 'Tablet';
+    case 'computer':
+      return 'Computer';
+    case 'tv':
+      return 'Smart TV';
+    case 'console':
+      return 'Game console';
+    case 'atm':
+      return 'ATM';
+    case 'cctv':
+      return 'CCTV';
+    case 'smarthome':
+      return 'Smart home';
+    default:
+      return 'Phone';
+  }
+}
+
 /// Talks to other copies of the app. The store stays the source of truth
 /// on the machine that is hosting; clients send patches and accept snapshots.
 abstract class StageSync {
@@ -188,6 +209,83 @@ class StageStore extends ChangeNotifier {
   void bindDevice(String id) {
     boundDeviceId = id;
     _touch(null, sync: false);
+  }
+
+  /// A local preview device used when no project is open.
+  void openSandbox(String kind) {
+    const id = 'sandbox-device';
+    final current = deviceById(id);
+    final next = PropDevice(
+      id: id,
+      name: sandboxName(kind),
+      projectId: 'sandbox',
+      kind: kind,
+      skin: 'modern',
+      locked: false,
+      os: current?.os ?? const OsSettings(),
+    );
+    if (current == null) {
+      devices = [...devices, next];
+    } else {
+      devices = [
+        for (final device in devices)
+          if (device.id == id) next else device,
+      ];
+    }
+    boundDeviceId = id;
+    _touch(null, sync: false);
+  }
+
+  /// Devices the operator can still assign work to: the open project,
+  /// skipping the sandbox preview and anything already deleted.
+  List<PropDevice> get activeDevices {
+    final projectId = selectedProjectId;
+    final source = projectId == null
+        ? devices.where((device) => device.projectId != 'sandbox')
+        : devicesFor(projectId);
+    return source.toList();
+  }
+
+  bool deckBroadcast = false;
+  String? drivenDeviceId;
+  String? drivenApp;
+
+  bool remoteDriving(String deviceId) =>
+      !deckBroadcast && drivenDeviceId == deviceId;
+
+  void setDeckBroadcast(bool value) {
+    if (deckBroadcast == value) return;
+    deckBroadcast = value;
+    if (value) {
+      drivenDeviceId = null;
+      drivenApp = null;
+    }
+    notifyListeners();
+  }
+
+  /// Direct trigger-to-target control. Broadcast decks do not drive a screen.
+  void driveOs(String deviceId, String? app) {
+    if (deckBroadcast || deviceId.isEmpty) return;
+    if ((sync?.role ?? LinkRole.solo) != LinkRole.client) return;
+    sync?.sendPatch({
+      'kind': 'os_drive',
+      'deviceId': deviceId,
+      'app': app,
+    });
+  }
+
+  void _applyDrive(String? deviceId, String? app) {
+    if (deckBroadcast) return;
+    if (app == null || deviceId == null || deviceId.isEmpty) {
+      drivenDeviceId = null;
+      drivenApp = null;
+    } else {
+      drivenDeviceId = deviceId;
+      drivenApp = app.isEmpty ? null : app;
+      boundDeviceId = deviceId;
+      lastTab = 1;
+    }
+    if (!_importing) notifyListeners();
   }
 
   void setTarget(String? id) {
@@ -438,6 +536,34 @@ class StageStore extends ChangeNotifier {
       'message': message.toJson(),
       if (note != null) 'banner': note.toJson(),
     });
+  }
+
+  void pushMail({
+    required String deviceId,
+    required String from,
+    required String subject,
+    required String body,
+  }) {
+    if (deviceId.isEmpty) return;
+    final key = 'mail-$deviceId';
+    final current = pages[key];
+    final items = current is Map ? jsonList(current['items']) : const <dynamic>[];
+    final mail = {
+      'id': DateTime.now().microsecondsSinceEpoch,
+      'from': from,
+      'subject': subject,
+      'time': 'Now',
+      'unread': true,
+      'thread': [
+        {'who': 'them', 'body': body, 'time': 'Now'},
+      ],
+    };
+    pages = {
+      ...pages,
+      key: {'items': [mail, ...items]},
+    };
+    _touch({'kind': 'page', 'app': key, 'data': pages[key]});
+    pushBanner(deviceId: deviceId, appLabel: 'Mail', text: subject);
   }
 
   void clearMessages(String deviceId) {
@@ -911,6 +1037,11 @@ class StageStore extends ChangeNotifier {
         applyLayout(
           SavedLayout.fromJson(jsonMap(patch['layout'])),
           patch['deviceId'] as String? ?? '',
+        );
+      case 'os_drive':
+        _applyDrive(
+          patch['deviceId'] as String?,
+          patch.containsKey('app') ? patch['app'] as String? : null,
         );
       case 'vfx_color':
         setVfxColor(patch['color'] as String? ?? 'green');

@@ -9,6 +9,7 @@ import '../media/live_lens.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'ios_keyboard.dart';
 
 class ClockApp extends StatelessWidget {
   const ClockApp({super.key, required this.store, required this.device});
@@ -99,6 +100,18 @@ class _NotesAppState extends State<NotesApp> {
       child: TextField(
         controller: _controller,
         focusNode: _focus,
+        readOnly: true,
+        showCursor: true,
+        onTap: () => openIosKeyboard(
+          context,
+          _controller,
+          onChanged: (value) {
+            _debounce?.cancel();
+            _debounce = Timer(const Duration(milliseconds: 350), () {
+              widget.store.setNotes(widget.device.id, value);
+            });
+          },
+        ),
         maxLines: null,
         expands: true,
         decoration: const InputDecoration(

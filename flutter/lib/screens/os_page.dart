@@ -17,6 +17,7 @@ import '../phone/phone_apps.dart';
 import '../phone/phone_shell.dart';
 import '../phone/desk_apps.dart';
 import '../phone/prop_apps.dart';
+import '../phone/form_factor.dart';
 import '../phone/settings_app.dart';
 import '../phone/social_apps.dart';
 import '../phone/maps_app.dart';
@@ -47,6 +48,7 @@ class _OsPageState extends State<OsPage> {
   bool _openingPending = false;
   int _shutter = 0;
   int _side = 0;
+  StageStore? _store;
 
   @override
   void initState() {
@@ -71,6 +73,7 @@ class _OsPageState extends State<OsPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _store = StoreScope.of(context);
     final pending = StoreScope.of(context).pendingApp;
     if (pending == null || _openingPending) return;
     _openingPending = true;
@@ -85,6 +88,8 @@ class _OsPageState extends State<OsPage> {
   void dispose() {
     _clock?.cancel();
     _tilt?.cancel();
+    final id = _store?.boundDeviceId;
+    if (id != null) _store!.driveOs(id, null);
     super.dispose();
   }
 
@@ -96,13 +101,67 @@ class _OsPageState extends State<OsPage> {
 
   void _home(PropDevice device) {
     if (device.locked) return;
+    StoreScope.of(context).driveOs(device.id, '');
     setState(() {
       _app = null;
       _thread = null;
     });
   }
 
+  List<Map<String, dynamic>> _mail(StageStore store, String deviceId) {
+    final raw = store.pages['mail-$deviceId'];
+    if (raw is! Map) return const [];
+    return [
+      for (final item in jsonList(raw['items']))
+        if (item is Map) jsonMap(item),
+    ];
+  }
+
+  Widget _deviceMenu(StageStore store, PropDevice? device) {
+    final projectDevices = store.selectedProjectId == null
+        ? const <PropDevice>[]
+        : store.activeDevices;
+    final sandbox = projectDevices.isEmpty || device?.projectId == 'sandbox';
+    if (sandbox) {
+      return DropdownButton<String>(
+        isExpanded: true,
+        value: kSandboxKinds.any((item) => item.$1 == device?.kind)
+            ? device!.kind
+            : 'phone',
+        underline: const SizedBox.shrink(),
+        items: [
+          for (final item in kSandboxKinds)
+            DropdownMenuItem(value: item.$1, child: Text(item.$2)),
+        ],
+        onChanged: (value) {
+          if (value != null) store.openSandbox(value);
+        },
+      );
+    }
+    final devices = projectDevices;
+    return DropdownButton<String>(
+      isExpanded: true,
+      value: device != null && devices.any((item) => item.id == device.id)
+          ? device.id
+          : null,
+      hint: Text(device?.name ?? 'Device'),
+      underline: const SizedBox.shrink(),
+      items: [
+        for (final item in devices)
+          DropdownMenuItem(value: item.id, child: Text(item.name)),
+      ],
+      onChanged: (value) {
+        if (value != null) store.bindDevice(value);
+      },
+    );
+  }
+
   void _open(String id, {String? thread}) {
+    final store = StoreScope.of(context);
+    final deviceId = store.boundDeviceId;
+    if (deviceId != null && !store.remoteDriving(deviceId)) {
+      store.driveOs(deviceId, id);
+    }
     if (id == 'messages') {
       final store = StoreScope.of(context);
       final deviceId = store.boundDeviceId;
@@ -140,28 +199,7 @@ class _OsPageState extends State<OsPage> {
                     icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Back'),
                   ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          device == null ? 'Sandbox' : device.name,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (device != null)
-                          Text(
-                            '${skinDisplayName(device.skin).toUpperCase()} · ${device.os.isLight ? 'LIGHT' : 'DARK'} THEME',
-                            style: const TextStyle(
-                              color: kMuted,
-                              fontSize: 10,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                  Expanded(child: _deviceMenu(store, device)),
                   IconButton(
                     tooltip: 'Fullscreen',
                     onPressed: device == null ? null : _toggleFilming,
@@ -175,9 +213,10 @@ class _OsPageState extends State<OsPage> {
                 ? const _Sandbox()
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      final framed = constraints.maxWidth >= 520;
+                      final framed = constraints.maxWidth >= 520 && !store.filming;
                       final landscape = device.os.autoRotate && _side != 0;
-                      final aspect = landscape ? 844 / 390 : 390 / 844;
+                      final metrics = metricsFor(device.kind, landscape: landscape);
+                      final aspect = metrics.aspect;
                       var height = constraints.maxHeight - (framed ? 24 : 0);
                       var width = height * aspect;
                       if (width > constraints.maxWidth - (framed ? 24 : 0)) {
@@ -185,25 +224,35 @@ class _OsPageState extends State<OsPage> {
                         height = width / aspect;
                       }
                       final now = propNow(device.clockOffsetMinutes);
+                      final phone = device.kind == 'phone' || device.kind == 'tablet';
+                      final driven = store.remoteDriving(device.id);
+                      final stage = phone
+                          ? PhoneShell(
+                          framed: framed && device.kind == 'phone',
+                          timeLabel: formatClock(now),
+                          onHome: () => _home(device),
+                          call: store.callFor(device.id),
+                          onAccept: () =>
+                              store.setCallStatus(device.id, 'active'),
+                          onEnd: () => store.endCall(device.id),
+                          alarm: store.alarms[device.id] ?? false,
+                          onDismissAlarm: () =>
+                              store.setAlarm(device.id, false),
+                          banners: store.bannersFor(device.id),
+                          onDismissBanner: store.dismissBanner,
+                          body: _body(store, device, now),
+                          device: device,
+                        )
+                          : FormOs(store: store, device: device);
                       return Center(
                         child: SizedBox(
                           width: framed ? width : constraints.maxWidth,
                           height: framed ? height : constraints.maxHeight,
-                          child: PhoneShell(
-                            device: device,
-                            framed: framed,
-                            timeLabel: formatClock(now),
-                            onHome: () => _home(device),
-                            call: store.callFor(device.id),
-                            onAccept: () =>
-                                store.setCallStatus(device.id, 'active'),
-                            onEnd: () => store.endCall(device.id),
-                            alarm: store.alarms[device.id] ?? false,
-                            onDismissAlarm: () =>
-                                store.setAlarm(device.id, false),
-                            banners: store.bannersFor(device.id),
-                            onDismissBanner: store.dismissBanner,
-                            body: _body(store, device, now),
+                          child: IgnorePointer(
+                            ignoring: driven,
+                            child: framed && device.kind != 'phone'
+                                ? DeviceBezel(frame: metrics.frame, child: stage)
+                                : stage,
                           ),
                         ),
                       );
@@ -241,12 +290,13 @@ class _OsPageState extends State<OsPage> {
         ),
       );
     }
-    final app = _app;
+    final app = store.remoteDriving(device.id) ? store.drivenApp : _app;
     if (app == null) {
         return PhoneHome(
         skin: device.skin,
+        os: device.os,
+        wide: device.kind == 'tablet',
         light: device.os.isLight,
-        order: device.os.homeOrder,
         onOpen: _open,
       );
     }
@@ -287,6 +337,10 @@ class _OsPageState extends State<OsPage> {
           color: const Color(0xFF0B0B0F),
           child: ContactsApp(
             contacts: contactsFor(device.os),
+            onAdd: (person) => store.updateOs(
+              device.id,
+              (current) => current.copyWith(people: [...current.people, person]),
+            ),
             onMessage: (contact) => _open('messages', thread: contact.name),
             onCall: (contact) => store.startCall(
               deviceId: device.id,
@@ -322,7 +376,7 @@ class _OsPageState extends State<OsPage> {
         return PhotosApp(photos: store.photos[device.id] ?? const []);
       case 'email':
       case 'mail':
-        return const InboxApp();
+        return InboxApp(extra: _mail(store, device.id));
       case 'calendar':
         return CalendarApp(offsetMinutes: device.clockOffsetMinutes);
       case 'maps':

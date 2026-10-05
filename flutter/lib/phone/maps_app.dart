@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'geo_fix.dart';
 import 'place_search.dart';
+import 'ios_keyboard.dart';
 import 'route_math.dart';
 
 const _speeds = [1, 8, 32];
@@ -151,6 +152,15 @@ class _MapsAppState extends State<MapsApp> {
     });
   }
 
+  void _resetTrip() {
+    _play?.cancel();
+    setState(() {
+      _dist = 0;
+      _playing = false;
+    });
+    _togglePlay();
+  }
+
   void _clear() {
     _play?.cancel();
     setState(() {
@@ -246,6 +256,11 @@ class _MapsAppState extends State<MapsApp> {
                           : const Icon(Icons.my_location, size: 14),
                     ),
                     if (_origin != null || _stops.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      _IconChip(
+                        onTap: _resetTrip,
+                        child: const Text('Reset', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
                       const SizedBox(width: 6),
                       _IconChip(
                         onTap: _clear,
@@ -355,6 +370,13 @@ class _MapsAppState extends State<MapsApp> {
               Expanded(
                 child: TextField(
                   controller: _query,
+                  readOnly: true,
+                  showCursor: true,
+                  onTap: () => openIosKeyboard(
+                    context,
+                    _query,
+                    onChanged: (_) => setState(() {}),
+                  ),
                   style: const TextStyle(fontSize: 12, color: Colors.white),
                   decoration: const InputDecoration(
                     isDense: true,

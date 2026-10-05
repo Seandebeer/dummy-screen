@@ -84,6 +84,7 @@ class PhoneShell extends StatelessWidget {
                     timeLabel: timeLabel,
                     framed: framed,
                     ink: ink,
+                    os: device.os,
                   ),
                   Expanded(child: body),
                   if (!device.locked)
@@ -113,10 +114,15 @@ class PhoneShell extends StatelessWidget {
                   child: _CallOverlay(
                     call: call!,
                     answerMode: device.os.callAnswer,
+                    callerPhoto: device.os.callerPhoto,
                     onAccept: onAccept,
                     onEnd: onEnd,
                     feed: feed,
                   ),
+                ),
+              if (!device.locked && call == null)
+                Positioned.fill(
+                  child: _ControlShade(ink: ink),
                 ),
               if (alarm)
                 Positioned.fill(
@@ -136,15 +142,18 @@ class _StatusBar extends StatelessWidget {
     required this.timeLabel,
     required this.framed,
     required this.ink,
+    required this.os,
   });
 
   final String timeLabel;
   final bool framed;
   final Color ink;
+  final OsSettings os;
 
   @override
   Widget build(BuildContext context) {
     final top = framed ? 10.0 : MediaQuery.paddingOf(context).top;
+    final bars = os.signal.clamp(0, 4);
     return Padding(
       padding: EdgeInsets.fromLTRB(22, top + 8, 18, 6),
       child: Row(
@@ -157,10 +166,37 @@ class _StatusBar extends StatelessWidget {
               color: ink,
             ),
           ),
+          if (os.networkName.isNotEmpty) ...[
+            const SizedBox(width: 6),
+            Text(
+              os.networkName,
+              style: TextStyle(color: ink.withValues(alpha: 0.85), fontSize: 12),
+            ),
+          ],
           const Spacer(),
-          const Icon(Icons.signal_cellular_alt, size: 16),
-          const SizedBox(width: 4),
-          const Icon(Icons.wifi, size: 16),
+          if (os.showAlarm) ...[
+            Icon(Icons.alarm, size: 14, color: ink),
+            const SizedBox(width: 4),
+          ],
+          if (os.bluetooth) ...[
+            Icon(Icons.bluetooth, size: 14, color: ink),
+            const SizedBox(width: 4),
+          ],
+          Row(
+            children: [
+              for (var i = 0; i < 4; i++)
+                Container(
+                  width: 3,
+                  height: 6 + i * 2.0,
+                  margin: const EdgeInsets.only(right: 1),
+                  color: i < bars ? ink : ink.withValues(alpha: 0.25),
+                ),
+            ],
+          ),
+          if (os.wifi) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.wifi, size: 16, color: ink),
+          ],
           const SizedBox(width: 6),
           Container(
             width: 24,
@@ -171,14 +207,117 @@ class _StatusBar extends StatelessWidget {
             ),
             alignment: Alignment.centerLeft,
             child: FractionallySizedBox(
-              widthFactor: 0.7,
+              widthFactor: (os.battery.clamp(0, 100)) / 100,
               child: Container(
                 margin: const EdgeInsets.all(1),
-                color: ink,
+                color: os.battery < 20 ? kAlert : ink,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ControlShade extends StatefulWidget {
+  const _ControlShade({required this.ink});
+
+  final Color ink;
+
+  @override
+  State<_ControlShade> createState() => _ControlShadeState();
+}
+
+class _ControlShadeState extends State<_ControlShade> {
+  bool _open = false;
+  bool _torch = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 36,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onVerticalDragEnd: (details) {
+              if ((details.primaryVelocity ?? 0) > 80) setState(() => _open = true);
+            },
+          ),
+        ),
+        if (_torch)
+          const ColoredBox(color: Colors.white, child: SizedBox.expand()),
+        if (_open)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => setState(() => _open = false),
+              child: ColoredBox(
+                color: const Color(0xCC1C1C1E),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _shadeButton(
+                            icon: Icons.flashlight_on,
+                            label: _torch ? 'Torch on' : 'Torch',
+                            on: _torch,
+                            onTap: () => setState(() => _torch = !_torch),
+                          ),
+                          _shadeButton(
+                            icon: Icons.wifi,
+                            label: 'Wi-Fi',
+                            on: true,
+                            onTap: () {},
+                          ),
+                          _shadeButton(
+                            icon: Icons.bluetooth,
+                            label: 'Bluetooth',
+                            on: false,
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _shadeButton({
+    required IconData icon,
+    required String label,
+    required bool on,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color: on ? Colors.white : Colors.white24,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: on ? Colors.black : Colors.white),
+            Text(label, style: TextStyle(color: on ? Colors.black : Colors.white, fontSize: 10)),
+          ],
+        ),
       ),
     );
   }
@@ -342,6 +481,7 @@ class _CallOverlay extends StatelessWidget {
   const _CallOverlay({
     required this.call,
     required this.answerMode,
+    required this.callerPhoto,
     this.onAccept,
     this.onEnd,
     this.feed,
@@ -349,6 +489,7 @@ class _CallOverlay extends StatelessWidget {
 
   final LiveCall call;
   final String answerMode;
+  final String callerPhoto;
   final VoidCallback? onAccept;
   final VoidCallback? onEnd;
   final RTCVideoRenderer? feed;
@@ -362,11 +503,16 @@ class _CallOverlay extends StatelessWidget {
         : call.contactName.characters.first.toUpperCase();
     final stage = !ringing && call.kind == 'video';
     final showing = stage;
+    final photo = call.scene['photo'] as String? ?? '';
+    final full = (call.scene['caller'] as String? ?? callerPhoto) == 'full' && photo.isNotEmpty;
+    final portrait = imageProviderForPath(photo);
     return ColoredBox(
       color: const Color(0xFF101014),
       child: Stack(
         fit: StackFit.expand,
         children: [
+          if (full && portrait != null)
+            Image(image: portrait, fit: BoxFit.cover),
           if (stage) Positioned.fill(child: CallStage(call: call, feed: feed)),
           SafeArea(
         child: Column(
@@ -381,11 +527,14 @@ class _CallOverlay extends StatelessWidget {
               style: const TextStyle(color: kMuted, letterSpacing: 0.4),
             ),
             const SizedBox(height: 22),
-            if (!showing)
+            if (!showing && !full)
               CircleAvatar(
                 radius: 48,
                 backgroundColor: kAccent,
-                child: Text(initial, style: const TextStyle(fontSize: 36)),
+                backgroundImage: portrait,
+                child: portrait == null
+                    ? Text(initial, style: const TextStyle(fontSize: 36))
+                    : null,
               ),
             if (!showing) const SizedBox(height: 16),
             Text(

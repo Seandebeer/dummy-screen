@@ -36,6 +36,7 @@ class _LockViewState extends State<LockView> {
   int _shake = 0;
   Timer? _faceTimer;
   bool _scanning = false;
+  bool _reveal = false;
 
   String get _method =>
       resolvedLockMethod(widget.device.skin, widget.device.os.lockType);
@@ -204,10 +205,28 @@ class _LockViewState extends State<LockView> {
 
   @override
   Widget build(BuildContext context) {
-    final compact = _method == 'passcode' ||
+    final secure = _method == 'passcode' ||
         _method == 'pattern' ||
         _method == 'face' ||
         _method == 'fingerprint';
+    final compact = secure && _reveal;
+    if (secure && !_reveal) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _reveal = true),
+        child: Center(
+          child: Text(
+            widget.timeLabel,
+            style: TextStyle(
+              color: _ink,
+              fontSize: 86,
+              fontWeight: FontWeight.w200,
+              letterSpacing: -2,
+            ),
+          ),
+        ),
+      );
+    }
     return Column(
       children: [
         SizedBox(height: compact ? 12 : 28),

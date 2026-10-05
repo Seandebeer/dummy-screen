@@ -5,6 +5,7 @@ import '../store.dart';
 import '../theme.dart';
 import 'app_catalog.dart';
 import 'catalog.dart';
+import 'ios_keyboard.dart';
 
 /// Core phone apps, in the same order as `coreApps` in the Base44 OS.
 const _coreIds = [
@@ -114,6 +115,14 @@ class _LibraryAppState extends State<LibraryApp> {
             if (favs.contains(app.id)) app,
         ],
       ),
+      (
+        id: 'custom',
+        name: 'Custom',
+        apps: [
+          for (final glyph in widget.device.os.glyphs)
+            _LibApp(glyph.id, glyph.name, const Color(0xFF3A3A3C), Icons.apps, 'Your icon'),
+        ],
+      ),
       (id: 'functional', name: 'Functional', apps: _coreApps()),
       for (final section in categories)
         (
@@ -172,6 +181,13 @@ class _LibraryAppState extends State<LibraryApp> {
                   Expanded(
                     child: TextField(
                       controller: _query,
+                      readOnly: true,
+                      showCursor: true,
+                      onTap: () => openIosKeyboard(
+                        context,
+                        _query,
+                        onChanged: (_) => setState(() {}),
+                      ),
                       onChanged: (_) => setState(() {}),
                       style: const TextStyle(color: Colors.white, fontSize: 12),
                       cursorColor: Colors.white,

@@ -166,6 +166,11 @@ double snapX(double value) {
   return (50 - value).abs() < (grid - value).abs() ? 50 : grid;
 }
 
+double snapY(double value) {
+  final grid = snapCells(value, 8);
+  return (50 - value).abs() < (grid - value).abs() ? 50 : grid;
+}
+
 /// Button-gap lines for the 5×8 marker grid, matching `snapLines` in UIMarkersApp.
 /// [width] and [height] are the full stage, including the 4px page padding.
 ({List<double> xs, List<double> ys}) markerSnapLines(double width, double height) {

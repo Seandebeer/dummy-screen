@@ -59,6 +59,28 @@ class OsSettings {
     this.ringDelay = 4,
     this.autoRotate = true,
     this.homeOrder = const [],
+    this.networkName = '',
+    this.wifi = true,
+    this.signal = 4,
+    this.battery = 80,
+    this.bluetooth = false,
+    this.showAlarm = false,
+    this.ringtone = 'Reflection',
+    this.vibrate = 'Standard',
+    this.customRingtone = '',
+    this.ringtoneIn = 0,
+    this.ringtoneOut = 30,
+    this.callerPhoto = 'circle',
+    this.branded = false,
+    this.shell = '',
+    this.people = const [],
+    this.glyphs = const [],
+    this.steamTitle = '',
+    this.steamCover = '',
+    this.bankName = 'Northline Mutual',
+    this.bankHolder = 'A. Ellis',
+    this.bankBalance = 2480,
+    this.bankCurrency = 'USD',
   });
 
   final String theme;
@@ -79,6 +101,34 @@ class OsSettings {
 
   /// Empty means the Base44 default home layout.
   final List<String> homeOrder;
+
+  /// Carrier label drawn beside the clock. Empty keeps the clock alone.
+  final String networkName;
+  final bool wifi;
+  final int signal;
+  final int battery;
+  final bool bluetooth;
+  final bool showAlarm;
+  final String ringtone;
+  final String vibrate;
+  final String customRingtone;
+  final double ringtoneIn;
+  final double ringtoneOut;
+
+  /// `circle` or `full` — how an incoming caller photo is drawn.
+  final String callerPhoto;
+  final bool branded;
+
+  /// Desktop, TV, or console skin. Empty uses the kind's default.
+  final String shell;
+  final List<PropPerson> people;
+  final List<CustomGlyph> glyphs;
+  final String steamTitle;
+  final String steamCover;
+  final String bankName;
+  final String bankHolder;
+  final int bankBalance;
+  final String bankCurrency;
 
   bool get isLight => theme == 'light';
 
@@ -105,6 +155,28 @@ class OsSettings {
     int? ringDelay,
     bool? autoRotate,
     List<String>? homeOrder,
+    String? networkName,
+    bool? wifi,
+    int? signal,
+    int? battery,
+    bool? bluetooth,
+    bool? showAlarm,
+    String? ringtone,
+    String? vibrate,
+    String? customRingtone,
+    double? ringtoneIn,
+    double? ringtoneOut,
+    String? callerPhoto,
+    bool? branded,
+    String? shell,
+    List<PropPerson>? people,
+    List<CustomGlyph>? glyphs,
+    String? steamTitle,
+    String? steamCover,
+    String? bankName,
+    String? bankHolder,
+    int? bankBalance,
+    String? bankCurrency,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -122,6 +194,28 @@ class OsSettings {
     ringDelay: ringDelay ?? this.ringDelay,
     autoRotate: autoRotate ?? this.autoRotate,
     homeOrder: homeOrder ?? this.homeOrder,
+    networkName: networkName ?? this.networkName,
+    wifi: wifi ?? this.wifi,
+    signal: signal ?? this.signal,
+    battery: battery ?? this.battery,
+    bluetooth: bluetooth ?? this.bluetooth,
+    showAlarm: showAlarm ?? this.showAlarm,
+    ringtone: ringtone ?? this.ringtone,
+    vibrate: vibrate ?? this.vibrate,
+    customRingtone: customRingtone ?? this.customRingtone,
+    ringtoneIn: ringtoneIn ?? this.ringtoneIn,
+    ringtoneOut: ringtoneOut ?? this.ringtoneOut,
+    callerPhoto: callerPhoto ?? this.callerPhoto,
+    branded: branded ?? this.branded,
+    shell: shell ?? this.shell,
+    people: people ?? this.people,
+    glyphs: glyphs ?? this.glyphs,
+    steamTitle: steamTitle ?? this.steamTitle,
+    steamCover: steamCover ?? this.steamCover,
+    bankName: bankName ?? this.bankName,
+    bankHolder: bankHolder ?? this.bankHolder,
+    bankBalance: bankBalance ?? this.bankBalance,
+    bankCurrency: bankCurrency ?? this.bankCurrency,
   );
 
   Map<String, dynamic> toJson() => {
@@ -141,6 +235,28 @@ class OsSettings {
     'ringDelay': ringDelay,
     'autoRotate': autoRotate,
     'homeOrder': homeOrder,
+    'networkName': networkName,
+    'wifi': wifi,
+    'signal': signal,
+    'battery': battery,
+    'bluetooth': bluetooth,
+    'showAlarm': showAlarm,
+    'ringtone': ringtone,
+    'vibrate': vibrate,
+    'customRingtone': customRingtone,
+    'ringtoneIn': ringtoneIn,
+    'ringtoneOut': ringtoneOut,
+    'callerPhoto': callerPhoto,
+    'branded': branded,
+    'shell': shell,
+    'people': people.map((person) => person.toJson()).toList(),
+    'glyphs': glyphs.map((glyph) => glyph.toJson()).toList(),
+    'steamTitle': steamTitle,
+    'steamCover': steamCover,
+    'bankName': bankName,
+    'bankHolder': bankHolder,
+    'bankBalance': bankBalance,
+    'bankCurrency': bankCurrency,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -172,6 +288,34 @@ class OsSettings {
       homeOrder: [
         for (final item in jsonList(json['homeOrder'])) item.toString(),
       ].where((id) => id.isNotEmpty).toList(),
+      networkName: json['networkName'] as String? ?? '',
+      wifi: json['wifi'] as bool? ?? true,
+      signal: ((json['signal'] as num?)?.toInt() ?? 4).clamp(0, 4),
+      battery: ((json['battery'] as num?)?.toInt() ?? 80).clamp(0, 100),
+      bluetooth: json['bluetooth'] as bool? ?? false,
+      showAlarm: json['showAlarm'] as bool? ?? false,
+      ringtone: json['ringtone'] as String? ?? 'Reflection',
+      vibrate: json['vibrate'] as String? ?? 'Standard',
+      customRingtone: json['customRingtone'] as String? ?? '',
+      ringtoneIn: (json['ringtoneIn'] as num?)?.toDouble() ?? 0,
+      ringtoneOut: (json['ringtoneOut'] as num?)?.toDouble() ?? 30,
+      callerPhoto: json['callerPhoto'] == 'full' ? 'full' : 'circle',
+      branded: json['branded'] as bool? ?? false,
+      shell: json['shell'] as String? ?? '',
+      people: [
+        for (final item in jsonList(json['people']))
+          if (item is Map) PropPerson.fromJson(jsonMap(item)),
+      ],
+      glyphs: [
+        for (final item in jsonList(json['glyphs']))
+          if (item is Map) CustomGlyph.fromJson(jsonMap(item)),
+      ],
+      steamTitle: json['steamTitle'] as String? ?? '',
+      steamCover: json['steamCover'] as String? ?? '',
+      bankName: json['bankName'] as String? ?? 'Northline Mutual',
+      bankHolder: json['bankHolder'] as String? ?? 'A. Ellis',
+      bankBalance: (json['bankBalance'] as num?)?.toInt() ?? 2480,
+      bankCurrency: json['bankCurrency'] as String? ?? 'USD',
     );
   }
 
@@ -192,12 +336,34 @@ class OsSettings {
         callAnswer == other.callAnswer &&
         ringDelay == other.ringDelay &&
         autoRotate == other.autoRotate &&
+        networkName == other.networkName &&
+        wifi == other.wifi &&
+        signal == other.signal &&
+        battery == other.battery &&
+        bluetooth == other.bluetooth &&
+        showAlarm == other.showAlarm &&
+        ringtone == other.ringtone &&
+        vibrate == other.vibrate &&
+        customRingtone == other.customRingtone &&
+        ringtoneIn == other.ringtoneIn &&
+        ringtoneOut == other.ringtoneOut &&
+        callerPhoto == other.callerPhoto &&
+        branded == other.branded &&
+        shell == other.shell &&
+        steamTitle == other.steamTitle &&
+        steamCover == other.steamCover &&
+        bankName == other.bankName &&
+        bankHolder == other.bankHolder &&
+        bankBalance == other.bankBalance &&
+        bankCurrency == other.bankCurrency &&
         _sameCodes(dialCodes, other.dialCodes) &&
-        _sameOrder(homeOrder, other.homeOrder);
+        _sameOrder(homeOrder, other.homeOrder) &&
+        _samePeople(people, other.people) &&
+        _sameGlyphs(glyphs, other.glyphs);
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     theme,
     backgroundType,
     backgroundPreset,
@@ -212,9 +378,93 @@ class OsSettings {
     callAnswer,
     ringDelay,
     autoRotate,
+    networkName,
+    wifi,
+    signal,
+    battery,
+    bluetooth,
+    showAlarm,
+    ringtone,
+    vibrate,
+    callerPhoto,
+    branded,
+    shell,
     Object.hashAll(dialCodes),
     Object.hashAll(homeOrder),
+    Object.hashAll(people.map((person) => person.name)),
+    Object.hashAll(glyphs.map((glyph) => glyph.id)),
+  ]);
+}
+
+class PropPerson {
+  const PropPerson({
+    required this.name,
+    this.number = '',
+    this.email = '',
+    this.company = '',
+  });
+
+  final String name;
+  final String number;
+  final String email;
+  final String company;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'number': number,
+    'email': email,
+    'company': company,
+  };
+
+  factory PropPerson.fromJson(Map<String, dynamic> json) => PropPerson(
+    name: json['name'] as String? ?? '',
+    number: json['number'] as String? ?? '',
+    email: json['email'] as String? ?? '',
+    company: json['company'] as String? ?? '',
   );
+}
+
+class CustomGlyph {
+  const CustomGlyph({
+    required this.id,
+    required this.name,
+    required this.image,
+  });
+
+  final String id;
+  final String name;
+  final String image;
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'image': image};
+
+  factory CustomGlyph.fromJson(Map<String, dynamic> json) => CustomGlyph(
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? 'Icon',
+    image: json['image'] as String? ?? '',
+  );
+}
+
+bool _samePeople(List<PropPerson> a, List<PropPerson> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i].name != b[i].name ||
+        a[i].number != b[i].number ||
+        a[i].email != b[i].email ||
+        a[i].company != b[i].company) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _sameGlyphs(List<CustomGlyph> a, List<CustomGlyph> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i].id != b[i].id || a[i].name != b[i].name || a[i].image != b[i].image) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool _sameOrder(List<String> a, List<String> b) {

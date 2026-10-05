@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../image_file.dart';
+import '../models.dart';
 import '../os_catalog.dart';
-import 'app_catalog.dart';
 import 'catalog.dart';
 
 class PhoneHome extends StatelessWidget {
@@ -9,41 +10,67 @@ class PhoneHome extends StatelessWidget {
     super.key,
     required this.skin,
     required this.onOpen,
+    required this.os,
     this.light = false,
-    this.order = const [],
+    this.wide = false,
   });
 
   final String skin;
   final void Function(String id) onOpen;
+  final OsSettings os;
   final bool light;
-  final List<String> order;
+  final bool wide;
+
+  PropApp? _resolve(String id) {
+    final app = propAppById(id);
+    if (app != null) return app;
+    for (final glyph in os.glyphs) {
+      if (glyph.id == id && glyph.name.isNotEmpty) {
+        return PropApp(
+          glyph.id,
+          glyph.name,
+          const Color(0xFF3A3A3C),
+          Icons.apps,
+          image: glyph.image,
+        );
+      }
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
     final chrome = chromeFor(skin);
     final ink = light ? const Color(0xD9000000) : Colors.white;
-    final layout = order.isEmpty ? kHomeOrder : order;
+    final layout = os.homeOrder.isEmpty ? kHomeOrder : os.homeOrder;
+    final columns = wide ? 6 : 4;
     if (chrome == SkinChrome.tiles) {
       return GridView.count(
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-        crossAxisCount: 2,
+        crossAxisCount: wide ? 3 : 2,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
         childAspectRatio: 2.1,
         children: [
           for (final id in layout)
-            if (homeAppFor(id) case final app?)
-              _Tile(app: app, ink: ink, onTap: () => onOpen(app.id)),
+            if (_resolve(id) case final app?)
+              _Tile(
+                app: app,
+                ink: ink,
+                branded: os.branded,
+                onTap: () => onOpen(app.id),
+              ),
         ],
       );
     }
     final grid = [
       for (final id in layout)
-        if (homeAppFor(id) case final app? when !kDockIds.contains(id)) app,
+        if (_resolve(id) case final app? when !kDockIds.contains(id)) app,
     ];
+    final pageSize = wide ? 30 : kPageSize;
     final pages = <List<PropApp>>[];
-    for (var i = 0; i < grid.length; i += kPageSize) {
-      final end = i + kPageSize > grid.length ? grid.length : i + kPageSize;
+    for (var i = 0; i < grid.length; i += pageSize) {
+      final end = i + pageSize > grid.length ? grid.length : i + pageSize;
       pages.add(grid.sublist(i, end));
     }
     if (pages.isEmpty) pages.add(const []);
@@ -53,9 +80,11 @@ class PhoneHome extends StatelessWidget {
         Expanded(
           child: _HomePages(
             pages: pages,
+            columns: columns,
             glossy: chrome == SkinChrome.classic,
             round: chrome == SkinChrome.android,
             labelColor: ink,
+            branded: os.branded,
             onOpen: onOpen,
           ),
         ),
@@ -79,6 +108,7 @@ class PhoneHome extends StatelessWidget {
                   glossy: chrome == SkinChrome.classic,
                   round: chrome == SkinChrome.android,
                   labelColor: ink,
+                  branded: os.branded,
                   onTap: () => onOpen(app.id),
                 ),
             ],
@@ -92,16 +122,20 @@ class PhoneHome extends StatelessWidget {
 class _HomePages extends StatefulWidget {
   const _HomePages({
     required this.pages,
+    required this.columns,
     required this.glossy,
     required this.round,
     required this.labelColor,
+    required this.branded,
     required this.onOpen,
   });
 
   final List<List<PropApp>> pages;
+  final int columns;
   final bool glossy;
   final bool round;
   final Color labelColor;
+  final bool branded;
   final void Function(String id) onOpen;
 
   @override
@@ -130,12 +164,14 @@ class _HomePagesState extends State<_HomePages> {
               for (final page in widget.pages)
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final rows = (page.length / 4).ceil().clamp(1, 5);
-                    final aspect = constraints.maxWidth / 4 / (constraints.maxHeight / rows);
+                    final rows = (page.length / widget.columns).ceil().clamp(1, 5);
+                    final aspect = constraints.maxWidth /
+                        widget.columns /
+                        (constraints.maxHeight / rows);
                     return GridView.count(
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
-                      crossAxisCount: 4,
+                      crossAxisCount: widget.columns,
                       mainAxisSpacing: 2,
                       crossAxisSpacing: 2,
                       childAspectRatio: aspect.isFinite && aspect > 0 ? aspect : 1,
@@ -147,6 +183,7 @@ class _HomePagesState extends State<_HomePages> {
                             glossy: widget.glossy,
                             round: widget.round,
                             labelColor: widget.labelColor,
+                            branded: widget.branded,
                             onTap: () => widget.onOpen(app.id),
                           ),
                       ],
@@ -182,6 +219,24 @@ class _HomePagesState extends State<_HomePages> {
   }
 }
 
+Widget _glyph(PropApp app) {
+  final provider = app.image.isEmpty ? null : imageProviderForPath(app.image);
+  if (provider == null) {
+    return Icon(app.icon, color: Colors.white, size: 22);
+  }
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: Image(
+      image: provider,
+      width: 40,
+      height: 40,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stack) =>
+          Icon(app.icon, color: Colors.white, size: 22),
+    ),
+  );
+}
+
 class _IconApp extends StatelessWidget {
   const _IconApp({
     super.key,
@@ -190,6 +245,7 @@ class _IconApp extends StatelessWidget {
     this.glossy = false,
     this.round = false,
     this.labelColor = Colors.white,
+    this.branded = false,
   });
 
   final PropApp app;
@@ -197,6 +253,7 @@ class _IconApp extends StatelessWidget {
   final bool glossy;
   final bool round;
   final Color labelColor;
+  final bool branded;
 
   @override
   Widget build(BuildContext context) {
@@ -221,11 +278,11 @@ class _IconApp extends StatelessWidget {
                     )
                   : null,
             ),
-            child: Icon(app.icon, color: Colors.white, size: 22),
+            child: _glyph(app),
           ),
           const SizedBox(height: 4),
           Text(
-            app.label,
+            appLabel(app, branded: branded),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 11, color: labelColor),
@@ -237,11 +294,17 @@ class _IconApp extends StatelessWidget {
 }
 
 class _Tile extends StatelessWidget {
-  const _Tile({required this.app, required this.onTap, required this.ink});
+  const _Tile({
+    required this.app,
+    required this.onTap,
+    required this.ink,
+    this.branded = false,
+  });
 
   final PropApp app;
   final VoidCallback onTap;
   final Color ink;
+  final bool branded;
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +320,7 @@ class _Tile extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  app.label,
+                  appLabel(app, branded: branded),
                   style: TextStyle(fontWeight: FontWeight.w600, color: ink),
                 ),
               ),

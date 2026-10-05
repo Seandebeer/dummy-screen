@@ -645,6 +645,12 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
                 items: const [
                   DropdownMenuItem(value: 'phone', child: Text('Phone')),
                   DropdownMenuItem(value: 'tablet', child: Text('Tablet')),
+                  DropdownMenuItem(value: 'computer', child: Text('Computer')),
+                  DropdownMenuItem(value: 'tv', child: Text('Smart TV')),
+                  DropdownMenuItem(value: 'console', child: Text('Game console')),
+                  DropdownMenuItem(value: 'atm', child: Text('ATM')),
+                  DropdownMenuItem(value: 'cctv', child: Text('CCTV')),
+                  DropdownMenuItem(value: 'smarthome', child: Text('Smart home')),
                   DropdownMenuItem(value: 'screen', child: Text('Screen')),
                   DropdownMenuItem(value: 'remote', child: Text('Remote')),
                 ],
@@ -1059,13 +1065,13 @@ class _SavedBodyState extends State<_SavedBody> {
 
   Future<void> _assign(BuildContext context, SavedLayout layout) async {
     final store = StoreScope.of(context);
-    if (store.devices.isEmpty) return;
+    if (store.activeDevices.isEmpty) return;
     final id = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
         title: const Text('Assign to device'),
         children: [
-          for (final device in store.devices)
+          for (final device in store.activeDevices)
             SimpleDialogOption(
               onPressed: () => Navigator.pop(context, device.id),
               child: Text(device.name),
@@ -1279,13 +1285,13 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Support'),
-            subtitle: const Text('Send a message to the dev team'),
+            subtitle: const Text('Send a note about this build'),
             trailing: OutlinedButton(onPressed: () => _support(context), child: const Text('Open')),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Report a bug'),
-            subtitle: const Text('Something not working? Let the team know'),
+            subtitle: const Text('Something not working? Send a report'),
             trailing: OutlinedButton(onPressed: () => _bug(context), child: const Text('Report')),
           ),
           ListTile(
@@ -1365,7 +1371,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           children: [
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text('Send a message to the dev team'),
+              child: Text('Send a note about this build'),
             ),
             const SizedBox(height: 8),
             TextField(controller: subject, decoration: const InputDecoration(hintText: 'Subject (optional)')),
@@ -1442,7 +1448,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Report copied - paste it into a message to the team')),
+          const SnackBar(content: Text('Report copied')),
         );
       }
     }

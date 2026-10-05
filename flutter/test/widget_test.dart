@@ -20,7 +20,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('nav-control')));
     await tester.pump();
-    await tester.tap(find.text('Message Push Console'));
+    await tester.tap(find.text('Message'));
     await tester.pump();
     await tester.enterText(
       find.byKey(const Key('deck-message')),
@@ -53,7 +53,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('nav-control')));
     await tester.pump();
-    await tester.tap(find.text('Call Trigger'));
+    await tester.tap(find.text('Call'));
     await tester.pump();
     await tester.tap(find.byKey(const Key('deck-call')));
     await tester.pump();
