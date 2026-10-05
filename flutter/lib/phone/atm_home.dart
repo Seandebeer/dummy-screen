@@ -524,22 +524,7 @@ class _AtmScreenState extends State<AtmScreen> {
             ),
             SizedBox(height: 14 * scale),
             _section(_t('currency'), scale),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final code in kAtmCurrencies)
-                  _chip(
-                    code,
-                    os.bankCurrency == code,
-                    () => _save(
-                      (current) => current.copyWith(bankCurrency: code),
-                    ),
-                    key: Key('atm-currency-$code'),
-                  ),
-              ],
-            ),
+            _currencyMenu(scale),
             SizedBox(height: 14 * scale),
             _section(_t('language'), scale),
             SizedBox(
@@ -634,6 +619,64 @@ class _AtmScreenState extends State<AtmScreen> {
           primary: true,
         ),
       ],
+    );
+  }
+
+  Widget _currencyMenu(double scale) {
+    final choices = atmCurrencyChoices(os.bankCurrency);
+    final value = choices.any((item) => item.code == os.bankCurrency)
+        ? os.bankCurrency
+        : 'USD';
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Material(
+          color: skin.keyFill,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: skin.rule),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                key: const Key('atm-currency'),
+                isExpanded: true,
+                value: value,
+                menuMaxHeight: 320,
+                dropdownColor: skin.keyFill,
+                borderRadius: BorderRadius.circular(14),
+                iconEnabledColor: skin.keyInk,
+                style: TextStyle(
+                  color: skin.keyInk,
+                  fontSize: 15 * scale,
+                  fontWeight: FontWeight.w700,
+                ),
+                items: [
+                  for (final currency in choices)
+                    DropdownMenuItem(
+                      key: Key('atm-currency-${currency.code}'),
+                      value: currency.code,
+                      child: Text(
+                        currency.label,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: skin.keyInk,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+                onChanged: (code) {
+                  if (code == null) return;
+                  _save((current) => current.copyWith(bankCurrency: code));
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

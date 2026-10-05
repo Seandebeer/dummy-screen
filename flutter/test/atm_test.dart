@@ -1,4 +1,5 @@
 import 'package:dummy_phone/models.dart';
+import 'package:dummy_phone/phone/atm_chrome.dart';
 import 'package:dummy_phone/phone/atm_home.dart';
 import 'package:dummy_phone/phone/form_factor.dart';
 import 'package:dummy_phone/store.dart';
@@ -166,9 +167,18 @@ void main() {
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.shell, 'gold');
 
-    await tester.tap(find.byKey(const Key('atm-currency-EUR')));
-    await tester.pump();
-    expect(store.deviceById('atm-1')!.os.bankCurrency, 'EUR');
+    expect(kAtmCurrencies.length, greaterThanOrEqualTo(150));
+    expect(
+      kAtmCurrencies.map((item) => item.code),
+      containsAll(['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'UYU', 'XOF', 'ZWG']),
+    );
+
+    await tester.tap(find.byKey(const Key('atm-currency')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('atm-currency-UAH')));
+    await tester.pumpAndSettle();
+    expect(store.deviceById('atm-1')!.os.bankCurrency, 'UAH');
+    expect(find.textContaining('UAH — Ukrainian hryvnia'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('atm-language-es')));
     await tester.pump();
