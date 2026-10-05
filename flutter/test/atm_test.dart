@@ -140,8 +140,7 @@ void main() {
       kind: 'atm',
       os: const OsSettings(
         backgroundType: 'image',
-        backgroundUrl:
-            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        backgroundUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
       ),
     );
     store.upsertDevice(device);
@@ -182,7 +181,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('atm-edit-layout')));
     await tester.pump();
-    expect(find.text('Toque dos paneles para intercambiarlos.'), findsOneWidget);
+    expect(
+      find.text('Toque dos paneles para intercambiarlos.'),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const Key('atm-withdraw')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-balance')));
