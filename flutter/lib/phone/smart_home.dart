@@ -105,6 +105,7 @@ class _HomePanelState extends State<HomePanel> {
   }
 
   Widget _wall() {
+    final tiles = _tiles();
     return Column(
       children: [
         _mast(compact: false),
@@ -113,13 +114,35 @@ class _HomePanelState extends State<HomePanel> {
         const SizedBox(height: 16),
         Expanded(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(flex: 4, child: _climate(wide: false)),
+              Expanded(child: _tileBlock(tiles.sublist(0, 4))),
               const SizedBox(width: 16),
-              Expanded(flex: 8, child: _grid(columns: 4)),
+              Expanded(child: _climate(wide: false)),
+              const SizedBox(width: 16),
+              Expanded(child: _tileBlock(tiles.sublist(4))),
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _tileBlock(List<Widget> tiles) {
+    return Column(
+      children: [
+        for (var row = 0; row < tiles.length; row += 2) ...[
+          if (row > 0) const SizedBox(height: 10),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: tiles[row]),
+                const SizedBox(width: 10),
+                Expanded(child: tiles[row + 1]),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -283,7 +306,18 @@ class _HomePanelState extends State<HomePanel> {
   }
 
   Widget _grid({required int columns}) {
-    final tiles = [
+    return GridView.count(
+      crossAxisCount: columns,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: columns == 4 ? 1.15 : 1.35,
+      physics: const ClampingScrollPhysics(),
+      children: _tiles(),
+    );
+  }
+
+  List<Widget> _tiles() {
+    return [
       _Tile(
         name: 'Lights',
         status: _lights ? 'On' : 'Off',
@@ -362,14 +396,6 @@ class _HomePanelState extends State<HomePanel> {
         onTap: () => setState(() => _camera = !_camera),
       ),
     ];
-    return GridView.count(
-      crossAxisCount: columns,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: columns == 4 ? 1.15 : 1.35,
-      physics: const ClampingScrollPhysics(),
-      children: tiles,
-    );
   }
 }
 
