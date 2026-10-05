@@ -232,6 +232,7 @@ class _MapsAppState extends State<MapsApp> {
                     const Spacer(),
                     _IconChip(
                       onTap: _cycleLayer,
+                      wide: true,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -819,26 +820,34 @@ class _Chip extends StatelessWidget {
 }
 
 class _IconChip extends StatelessWidget {
-  const _IconChip({required this.child, required this.onTap});
+  const _IconChip({required this.child, required this.onTap, this.wide = false});
 
   final Widget child;
   final VoidCallback? onTap;
 
+  /// A chip with a label beside the icon grows into a pill.
+  final bool wide;
+
   @override
   Widget build(BuildContext context) {
+    final shape = wide
+        ? const StadiumBorder()
+        : const CircleBorder() as OutlinedBorder;
     return Material(
       color: const Color(0xCC000000),
-      shape: const CircleBorder(),
+      shape: shape,
       child: InkWell(
-        customBorder: const CircleBorder(),
+        customBorder: shape,
         onTap: onTap,
         child: Container(
-          width: 32,
+          width: wide ? null : 32,
           height: 32,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white24),
+          padding: wide ? const EdgeInsets.symmetric(horizontal: 10) : null,
+          decoration: ShapeDecoration(
+            shape: shape.copyWith(
+              side: const BorderSide(color: Colors.white24),
+            ),
           ),
           child: child,
         ),

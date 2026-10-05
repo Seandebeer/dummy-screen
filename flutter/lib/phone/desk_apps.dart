@@ -543,6 +543,109 @@ class _RealtyAppState extends State<RealtyApp> {
   }
 }
 
+/// The prop inbox, shared by the phone app and the desktop mail window.
+List<Map<String, dynamic>> inboxSeed() => [
+  for (final mail in _inboxSeed)
+    {
+      ...mail,
+      'thread': [for (final part in mail['thread'] as List) {...part as Map}],
+    },
+];
+
+const _inboxSeed = <Map<String, dynamic>>[
+  {
+    'id': 1,
+    'from': 'Production Desk',
+    'subject': 'Call sheet - Day 14',
+    'time': '9:41 AM',
+    'unread': true,
+    'thread': [
+      {
+        'who': 'them',
+        'body':
+            "Crew,\n\nWe're relocating to the warehouse unit for the night shoot tonight. Call time 18:00 sharp. Parking is on the east lot - do not block the loading bay.\n\nThe VFX team will be running the chroma inserts after midnight, so keep the prop phones on the control channel until wrap.\n\n- Production",
+        'time': '9:41 AM',
+      },
+    ],
+  },
+  {
+    'id': 2,
+    'from': 'VFX Supervisor',
+    'subject': 'Tracking marks - approved',
+    'time': '8:02 AM',
+    'unread': true,
+    'thread': [
+      {
+        'who': 'them',
+        'body':
+            'Tracking marks are cleared for the insert shots. Crosshair and L-bar are good to go. Skip the dot grid for the close-ups - it reads on the lens.',
+        'time': '8:02 AM',
+      },
+    ],
+  },
+  {
+    'id': 3,
+    'from': 'Script',
+    'subject': 'Revised pages - Scene 47',
+    'time': 'Yesterday',
+    'unread': false,
+    'thread': [
+      {
+        'who': 'them',
+        'body':
+            'Revised pages attached. The phone call beats in Scene 47 have been trimmed - we lose the second ring and the voicemail. New sides are in your inbox.',
+        'time': 'Yesterday',
+      },
+    ],
+  },
+  {
+    'id': 4,
+    'from': 'Post',
+    'subject': 'Playback reference uploaded',
+    'time': 'Yesterday',
+    'unread': false,
+    'thread': [
+      {
+        'who': 'them',
+        'body':
+            'Reference clips for the prop screen inserts are ready to review. Link in the shared drive under /prop-screens/ref.',
+        'time': 'Yesterday',
+      },
+    ],
+  },
+  {
+    'id': 5,
+    'from': 'Locations',
+    'subject': 'Unit move confirmed',
+    'time': 'Mon',
+    'unread': false,
+    'thread': [
+      {
+        'who': 'them',
+        'body':
+            'Company move confirmed for 16:30. Trucks roll at 16:00. Everyone off the lot by 15:45.',
+        'time': 'Mon',
+      },
+    ],
+  },
+];
+
+/// Sites pinned in the phone browser and on the desktop browser's new tab.
+const kQuickSites = [
+  ('Wikipedia', 'https://en.wikipedia.org/wiki/Main_Page', Color(0xFF64748B)),
+  (
+    'Wiktionary',
+    'https://en.wiktionary.org/wiki/Wiktionary:Main_Page',
+    Color(0xFF475569),
+  ),
+  (
+    'OpenStreetMap',
+    'https://www.openstreetmap.org/export/embed.html?bbox=18.35,-33.95,18.55,-33.85&layer=mapnik',
+    Color(0xFF3F8F5F),
+  ),
+  ('Example.com', 'https://example.com', Color(0xFF8A8A8E)),
+];
+
 class InboxApp extends StatefulWidget {
   const InboxApp({super.key, this.extra = const [], this.chrome = SkinChrome.modern});
 
@@ -558,57 +661,7 @@ class _InboxAppState extends State<InboxApp> {
   int? _openId;
   late final List<Map<String, dynamic>> _emails = [
     ...widget.extra,
-
-    {
-      'id': 1,
-      'from': 'Production Desk',
-      'subject': 'Call sheet - Day 14',
-      'time': '9:41 AM',
-      'unread': true,
-      'thread': [
-        {'who': 'them', 'body': "Crew,\n\nWe're relocating to the warehouse unit for the night shoot tonight. Call time 18:00 sharp. Parking is on the east lot - do not block the loading bay.\n\nThe VFX team will be running the chroma inserts after midnight, so keep the prop phones on the control channel until wrap.\n\n- Production", 'time': '9:41 AM'},
-      ],
-    },
-    {
-      'id': 2,
-      'from': 'VFX Supervisor',
-      'subject': 'Tracking marks - approved',
-      'time': '8:02 AM',
-      'unread': true,
-      'thread': [
-        {'who': 'them', 'body': 'Tracking marks are cleared for the insert shots. Crosshair and L-bar are good to go. Skip the dot grid for the close-ups - it reads on the lens.', 'time': '8:02 AM'},
-      ],
-    },
-    {
-      'id': 3,
-      'from': 'Script',
-      'subject': 'Revised pages - Scene 47',
-      'time': 'Yesterday',
-      'unread': false,
-      'thread': [
-        {'who': 'them', 'body': 'Revised pages attached. The phone call beats in Scene 47 have been trimmed - we lose the second ring and the voicemail. New sides are in your inbox.', 'time': 'Yesterday'},
-      ],
-    },
-    {
-      'id': 4,
-      'from': 'Post',
-      'subject': 'Playback reference uploaded',
-      'time': 'Yesterday',
-      'unread': false,
-      'thread': [
-        {'who': 'them', 'body': 'Reference clips for the prop screen inserts are ready to review. Link in the shared drive under /prop-screens/ref.', 'time': 'Yesterday'},
-      ],
-    },
-    {
-      'id': 5,
-      'from': 'Locations',
-      'subject': 'Unit move confirmed',
-      'time': 'Mon',
-      'unread': false,
-      'thread': [
-        {'who': 'them', 'body': 'Company move confirmed for 16:30. Trucks roll at 16:00. Everyone off the lot by 15:45.', 'time': 'Mon'},
-      ],
-    },
+    ...inboxSeed(),
   ];
 
   @override
@@ -805,12 +858,7 @@ class _PropBrowserState extends State<PropBrowser> {
   String? _current;
   bool _loading = false;
 
-  static const _quick = [
-    ('Wikipedia', 'https://en.wikipedia.org/wiki/Main_Page', Color(0xFF64748B)),
-    ('Wiktionary', 'https://en.wiktionary.org/wiki/Wiktionary:Main_Page', Color(0xFF475569)),
-    ('OpenStreetMap', 'https://www.openstreetmap.org/export/embed.html?bbox=18.35,-33.95,18.55,-33.85&layer=mapnik', Color(0xFF3F8F5F)),
-    ('Example.com', 'https://example.com', Color(0xFF8A8A8E)),
-  ];
+  static const _quick = kQuickSites;
 
   @override
   void dispose() {
@@ -1449,7 +1497,7 @@ class _VidcallAppState extends State<VidcallApp> {
         ),
       );
     }
-    return ColoredBox(
+    return Material(
       color: Colors.black,
       child: ListView(
         children: [

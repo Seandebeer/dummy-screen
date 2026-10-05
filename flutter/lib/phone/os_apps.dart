@@ -35,41 +35,7 @@ String osAppTitle(String id, OsSettings os) {
   return 'App';
 }
 
-/// Apps are laid out for a phone canvas, so a desktop window scales one down
-/// to fit instead of clipping it.
-class OsAppPane extends StatelessWidget {
-  const OsAppPane({super.key, required this.child});
-
-  static const canvas = Size(390, 760);
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFF07070B),
-      child: Center(
-        child: FittedBox(
-          child: SizedBox(
-            width: canvas.width,
-            height: canvas.height,
-            child: MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                size: canvas,
-                viewInsets: EdgeInsets.zero,
-                viewPadding: EdgeInsets.zero,
-                padding: EdgeInsets.zero,
-              ),
-              child: child,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Every Base44 app, drawn the same way on a phone, a tablet, and a computer.
+/// Every Base44 app, drawn the same way on a phone and a tablet.
 class OsAppView extends StatefulWidget {
   const OsAppView({
     super.key,

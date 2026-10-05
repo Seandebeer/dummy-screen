@@ -7,6 +7,7 @@ import '../store.dart';
 import 'atm_home.dart';
 import 'console_apps.dart';
 import 'catalog.dart';
+import 'desk_os_apps.dart';
 import 'mac_desktop.dart';
 import 'os_apps.dart';
 import 'win_desktop.dart';
@@ -247,14 +248,11 @@ class _ComputerOs extends StatelessWidget {
 
   Widget _window(String id) {
     if (_toolIcons.containsKey(id)) return _DeskTool(id: id);
-    return OsAppPane(
-      child: OsAppView(
-        store: store,
-        device: device,
-        appId: id,
-        onOpen: (next, {String? thread}) => onOpen(next),
-        onClose: () => onOpen(null),
-      ),
+    return DeskAppView(
+      store: store,
+      device: device,
+      appId: id,
+      onOpen: (next, {String? thread}) => onOpen(next),
     );
   }
 
@@ -267,7 +265,6 @@ class _ComputerOs extends StatelessWidget {
         device: device,
         appTitle: app == null ? null : deskTitle(app!, device.os),
         tool: app == null ? null : _window(app!),
-        toolTall: app != null && !_toolIcons.containsKey(app),
         onOpen: onOpen,
         onShell: onShell,
         shells: _computerShells,
@@ -317,7 +314,6 @@ class _ComputerOs extends StatelessWidget {
                   Center(
                     child: _Window(
                       title: deskTitle(app!, device.os),
-                      tall: !_toolIcons.containsKey(app),
                       onClose: () => onOpen(null),
                       child: _window(app!),
                     ),
@@ -436,22 +432,16 @@ class _Window extends StatelessWidget {
     required this.title,
     required this.child,
     required this.onClose,
-    required this.tall,
   });
 
   final String title;
   final Widget child;
   final VoidCallback onClose;
 
-  /// Shared apps are phone shaped, so they get a narrow, tall window.
-  final bool tall;
-
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: tall
-          ? const BoxConstraints(maxWidth: 400, maxHeight: 720)
-          : const BoxConstraints(maxWidth: 520, maxHeight: 360),
+      constraints: const BoxConstraints(maxWidth: 520, maxHeight: 360),
       child: Material(
         color: const Color(0xF016161A),
         elevation: 12,

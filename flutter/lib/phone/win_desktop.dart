@@ -132,7 +132,6 @@ class _WinDesktopState extends State<WinDesktop> {
           Center(
             child: _WinWindow(
               title: title,
-              tall: !_native.contains(widget.appId),
               onClose: () => _open(null),
               child: _body(widget.appId),
             ),
@@ -219,9 +218,6 @@ class _WinDesktopState extends State<WinDesktop> {
     };
   }
 }
-
-/// Shortcuts Windows draws itself, rather than from the shared app set.
-const _native = {'recycle', 'edge', 'files'};
 
 class _Shortcut {
   const _Shortcut(this.id, this.label, this.mark, {this.key});
@@ -518,22 +514,16 @@ class _WinWindow extends StatelessWidget {
     required this.title,
     required this.onClose,
     required this.child,
-    required this.tall,
   });
 
   final String title;
   final VoidCallback onClose;
   final Widget child;
 
-  /// Shared apps are phone shaped, so they get a narrow, tall window.
-  final bool tall;
-
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: tall
-          ? const BoxConstraints(maxWidth: 420, maxHeight: 720)
-          : const BoxConstraints(maxWidth: 560, maxHeight: 360),
+      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 360),
       child: Material(
         color: Colors.white,
         elevation: 16,

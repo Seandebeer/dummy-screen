@@ -19,7 +19,6 @@ class MacDesktop extends StatefulWidget {
     required this.device,
     required this.appTitle,
     required this.tool,
-    required this.toolTall,
     required this.onOpen,
     required this.onShell,
     required this.shells,
@@ -29,9 +28,6 @@ class MacDesktop extends StatefulWidget {
   final PropDevice device;
   final String? appTitle;
   final Widget? tool;
-
-  /// Shared apps are phone shaped, so they get a narrow, tall window.
-  final bool toolTall;
   final ValueChanged<String?> onOpen;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
@@ -328,7 +324,6 @@ class _MacDesktopState extends State<MacDesktop> {
             Center(
               child: _MacWindow(
                 title: widget.appTitle ?? '',
-                tall: widget.toolTall,
                 onClose: () => widget.onOpen(null),
                 child: widget.tool!,
               ),
@@ -1713,21 +1708,19 @@ class _MacWindow extends StatelessWidget {
     required this.child,
     required this.onClose,
     this.large = false,
-    this.tall = false,
   });
 
   final String title;
   final Widget child;
   final VoidCallback onClose;
   final bool large;
-  final bool tall;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxWidth: tall ? 400 : (large ? 640 : 460),
-        maxHeight: tall ? 700 : (large ? 420 : 280),
+        maxWidth: large ? 640 : 460,
+        maxHeight: large ? 420 : 280,
       ),
       child: Material(
         color: const Color(0xFFF5F5F7),

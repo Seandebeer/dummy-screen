@@ -154,54 +154,63 @@ class _NotesAppState extends State<NotesApp> {
   }
 }
 
-class CalculatorApp extends StatefulWidget {
-  const CalculatorApp({super.key, this.chrome = SkinChrome.modern});
-
-  final SkinChrome chrome;
-
-  @override
-  State<CalculatorApp> createState() => _CalculatorAppState();
-}
-
-class _CalculatorAppState extends State<CalculatorApp> {
-  String _display = '0';
+/// Calculator maths, shared by the phone keypad and the desktop window.
+class CalcEngine {
+  String display = '0';
+  String? op;
+  bool fresh = true;
   double? _acc;
-  String? _op;
-  bool _fresh = true;
 
-  double get _value => double.tryParse(_display) ?? 0;
+  double get _value => double.tryParse(display) ?? 0;
 
-  void _digit(String digit) {
-    setState(() {
-      if (_display == 'Error' || _fresh) {
-        _display = digit == '.' ? '0.' : digit;
-        _fresh = false;
-        return;
-      }
-      if (digit == '.' && _display.contains('.')) return;
-      if (_display == '0' && digit != '.') {
-        _display = digit;
-      } else {
-        _display += digit;
-      }
-    });
+  /// `AC` clears the whole sum; `C` clears the entry being typed.
+  String get clearLabel => fresh ? 'AC' : 'C';
+
+  bool holding(String label) => op == label && fresh;
+
+  void digit(String digit) {
+    if (display == 'Error' || fresh) {
+      display = digit == '.' ? '0.' : digit;
+      fresh = false;
+      return;
+    }
+    if (digit == '.' && display.contains('.')) return;
+    if (display == '0' && digit != '.') {
+      display = digit;
+    } else {
+      display += digit;
+    }
   }
 
-  void _operate(String op) {
-    setState(() {
-      _reduce();
-      _acc = _value;
-      _op = op;
-      _fresh = true;
-    });
+  void operate(String next) {
+    reduce();
+    _acc = _value;
+    op = next;
+    fresh = true;
   }
 
-  void _reduce() {
-    if (_acc == null || _op == null || _fresh) return;
+  void equals() {
+    reduce();
+    fresh = true;
+  }
+
+  void clear() {
+    if (fresh) {
+      display = '0';
+      _acc = null;
+      op = null;
+      return;
+    }
+    display = '0';
+    fresh = true;
+  }
+
+  void reduce() {
+    if (_acc == null || op == null || fresh) return;
     final left = _acc!;
     final right = _value;
     double result;
-    switch (_op) {
+    switch (op) {
       case '+':
         result = left + right;
       case '−':
@@ -213,9 +222,21 @@ class _CalculatorAppState extends State<CalculatorApp> {
       default:
         result = right;
     }
-    _display = result.isNaN ? 'Error' : _trim(result);
+    display = result.isNaN ? 'Error' : _trim(result);
     _acc = null;
-    _op = null;
+    op = null;
+  }
+
+  void sign() {
+    if (display == 'Error' || display == '0') return;
+    display = display.startsWith('-') ? display.substring(1) : '-$display';
+  }
+
+  void percent() {
+    final current = _value;
+    final result = _acc == null ? current / 100 : _acc! * current / 100;
+    display = _trim(result);
+    fresh = true;
   }
 
   String _trim(double value) {
@@ -228,22 +249,21 @@ class _CalculatorAppState extends State<CalculatorApp> {
         .replaceFirst(RegExp(r'\.$'), '');
     return text;
   }
+}
 
-  void _sign() {
-    setState(() {
-      if (_display == 'Error' || _display == '0') return;
-      _display = _display.startsWith('-') ? _display.substring(1) : '-$_display';
-    });
-  }
+class CalculatorApp extends StatefulWidget {
+  const CalculatorApp({super.key, this.chrome = SkinChrome.modern});
 
-  void _percent() {
-    setState(() {
-      final current = _value;
-      final result = _acc == null ? current / 100 : _acc! * current / 100;
-      _display = _trim(result);
-      _fresh = true;
-    });
-  }
+  final SkinChrome chrome;
+
+  @override
+  State<CalculatorApp> createState() => _CalculatorAppState();
+}
+
+class _CalculatorAppState extends State<CalculatorApp> {
+  final _calc = CalcEngine();
+
+  String get _display => _calc.display;
 
   @override
   Widget build(BuildContext context) {
@@ -305,9 +325,9 @@ class _CalculatorAppState extends State<CalculatorApp> {
 
   Widget _calcKey(String label, double width, double height) {
     final clear = label == 'fn';
-    final shown = clear ? (_fresh ? 'AC' : 'C') : label;
+    final shown = clear ? _calc.clearLabel : label;
     final operator = '÷×−+='.contains(label);
-    final active = operator && label != '=' && _op == label && _fresh;
+    final active = operator && label != '=' && _calc.holding(label);
     final function = clear || label == '±' || label == '%';
     final accent = switch (widget.chrome) {
       SkinChrome.android => const Color(0xFF8AB4F8),
@@ -332,35 +352,21 @@ class _CalculatorAppState extends State<CalculatorApp> {
       borderRadius: BorderRadius.circular(radius),
       child: InkWell(
         borderRadius: BorderRadius.circular(radius),
-        onTap: () {
+        onTap: () => setState(() {
           if (clear) {
-            if (_fresh) {
-              setState(() {
-                _display = '0';
-                _acc = null;
-                _op = null;
-              });
-            } else {
-              setState(() {
-                _display = '0';
-                _fresh = true;
-              });
-            }
+            _calc.clear();
           } else if (label == '±') {
-            _sign();
+            _calc.sign();
           } else if (label == '%') {
-            _percent();
+            _calc.percent();
           } else if (label == '=') {
-            setState(() {
-              _reduce();
-              _fresh = true;
-            });
+            _calc.equals();
           } else if (operator) {
-            _operate(label);
+            _calc.operate(label);
           } else {
-            _digit(label);
+            _calc.digit(label);
           }
-        },
+        }),
         child: SizedBox(
           width: width,
           height: height,
