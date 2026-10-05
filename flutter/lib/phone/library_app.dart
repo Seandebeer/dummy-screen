@@ -360,91 +360,107 @@ class _AppGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: apps.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        mainAxisExtent: 56,
-      ),
-      itemBuilder: (context, index) {
-        final app = apps[index];
-        final docked = kDockIds.contains(app.id);
-        final visible = docked || order.contains(app.id);
-        final faved = favs.contains(app.id);
-        return Opacity(
-          opacity: visible ? 1 : 0.5,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: visible
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: visible
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.white.withValues(alpha: 0.05),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                children: [
-                  AppIconBadge(color: app.color, icon: app.icon),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          app.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                        Text(
-                          app.sub,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            fontSize: 9,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _RoundIcon(
-                    tooltip: 'Favourite',
-                    onTap: () => onStar(app.id),
-                    background: faved
-                        ? kAccent.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.05),
-                    icon: faved ? Icons.star : Icons.star_border,
-                    color: faved ? kAccent : Colors.white.withValues(alpha: 0.4),
-                    size: 13,
-                  ),
-                  const SizedBox(width: 4),
-                  _RoundIcon(
-                    tooltip: docked
-                        ? 'Stays in the dock'
-                        : (visible ? 'Hide from home' : 'Show on home'),
-                    onTap: docked ? null : () => onEye(app.id),
-                    background: visible
-                        ? Colors.white.withValues(alpha: 0.20)
-                        : Colors.white.withValues(alpha: 0.05),
-                    icon: visible ? Icons.visibility : Icons.visibility_off,
-                    color: visible ? Colors.white : Colors.white.withValues(alpha: 0.5),
-                    size: 14,
-                  ),
-                ],
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cell = (constraints.maxWidth - 8) / 2;
+        final compact = cell < 168;
+        final icon = compact ? 26.0 : 36.0;
+        final button = compact ? 22.0 : 28.0;
+        final gap = compact ? 4.0 : 8.0;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: apps.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            mainAxisExtent: compact ? 48 : 56,
           ),
+          itemBuilder: (context, index) {
+            final app = apps[index];
+            final docked = kDockIds.contains(app.id);
+            final visible = docked || order.contains(app.id);
+            final faved = favs.contains(app.id);
+            return Opacity(
+              opacity: visible ? 1 : 0.5,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: visible
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: visible
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      AppIconBadge(
+                        color: app.color,
+                        icon: app.icon,
+                        size: icon,
+                        iconSize: compact ? 13 : 16,
+                      ),
+                      SizedBox(width: gap),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              app.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.white, fontSize: compact ? 11 : 12),
+                            ),
+                            Text(
+                              app.sub,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.4),
+                                fontSize: compact ? 8 : 9,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _RoundIcon(
+                        tooltip: 'Favourite',
+                        onTap: () => onStar(app.id),
+                        background: faved
+                            ? kAccent.withValues(alpha: 0.2)
+                            : Colors.white.withValues(alpha: 0.05),
+                        icon: faved ? Icons.star : Icons.star_border,
+                        color: faved ? kAccent : Colors.white.withValues(alpha: 0.4),
+                        size: compact ? 11 : 13,
+                        box: button,
+                      ),
+                      SizedBox(width: compact ? 2 : 4),
+                      _RoundIcon(
+                        tooltip: docked
+                            ? 'Stays in the dock'
+                            : (visible ? 'Hide from home' : 'Show on home'),
+                        onTap: docked ? null : () => onEye(app.id),
+                        background: visible
+                            ? Colors.white.withValues(alpha: 0.20)
+                            : Colors.white.withValues(alpha: 0.05),
+                        icon: visible ? Icons.visibility : Icons.visibility_off,
+                        color: visible ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                        size: compact ? 12 : 14,
+                        box: button,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -459,6 +475,7 @@ class _RoundIcon extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.size,
+    this.box = 28,
   });
 
   final String tooltip;
@@ -467,6 +484,7 @@ class _RoundIcon extends StatelessWidget {
   final IconData icon;
   final Color color;
   final double size;
+  final double box;
 
   @override
   Widget build(BuildContext context) {
@@ -479,8 +497,8 @@ class _RoundIcon extends StatelessWidget {
           customBorder: const CircleBorder(),
           onTap: onTap,
           child: SizedBox(
-            width: 28,
-            height: 28,
+            width: box,
+            height: box,
             child: Icon(icon, size: size, color: color),
           ),
         ),
