@@ -56,6 +56,7 @@ void main() {
     expect(find.text('Please select your transaction'), findsNothing);
     expect(find.text('Northline Mutual'), findsOneWidget);
     expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('Insert card to begin.'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 3));
     expect(find.byKey(const Key('atm-welcome')), findsOneWidget);
