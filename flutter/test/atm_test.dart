@@ -57,7 +57,12 @@ void main() {
     expect(find.text('Northline Mutual'), findsOneWidget);
     expect(find.text('Welcome'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('atm-welcome')));
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.byKey(const Key('atm-welcome')), findsOneWidget);
+    expect(find.byKey(const Key('atm-enter-pin')), findsNothing);
+
+    final screen = tester.getRect(find.byKey(const Key('atm-home')));
+    await tester.tapAt(screen.topLeft + const Offset(6, 6));
     await tester.pump();
     expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
 
@@ -95,6 +100,9 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect(find.byKey(const Key('atm-welcome')), findsOneWidget);
 
+    await tester.tapAt(tester.getCenter(find.byKey(const Key('atm-service'))));
+    await tester.pump();
+    expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
     await tester.tap(find.byKey(const Key('atm-service')));
     await tester.pump();
     expect(find.text('Out of service'), findsOneWidget);

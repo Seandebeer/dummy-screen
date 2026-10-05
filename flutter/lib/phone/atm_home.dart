@@ -13,9 +13,10 @@ import 'atm_chrome.dart';
 
 /// Landscape ATM for an iPad mounted in a machine.
 ///
-/// The screen opens on a welcome page, then a 5-digit PIN. Any five digits
-/// unlock it. A confirmed withdrawal waits, shows the amount, then asks for
-/// the card, the cash, and the receipt before it returns to welcome.
+/// The screen stays on welcome until a tap anywhere on it, then a 5-digit
+/// PIN. Any five digits unlock it. A confirmed withdrawal waits, shows the
+/// amount, then asks for the card, the cash, and the receipt before it
+/// returns to welcome.
 class AtmScreen extends StatefulWidget {
   const AtmScreen({super.key, required this.store, required this.device});
 
@@ -307,6 +308,15 @@ class _AtmScreenState extends State<AtmScreen> {
               );
             },
           ),
+          if (_step == 'welcome')
+            Positioned.fill(
+              child: GestureDetector(
+                key: const Key('atm-welcome'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _go('pin'),
+                child: const SizedBox.expand(),
+              ),
+            ),
         ],
       ),
     );
@@ -315,31 +325,26 @@ class _AtmScreenState extends State<AtmScreen> {
   Widget _body(double scale, DateTime now) {
     switch (_step) {
       case 'welcome':
-        return GestureDetector(
-          key: const Key('atm-welcome'),
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _go('pin'),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _t('welcome'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: skin.title,
-                    fontSize: 48 * scale,
-                    fontWeight: FontWeight.w800,
-                  ),
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _t('welcome'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: skin.title,
+                  fontSize: 48 * scale,
+                  fontWeight: FontWeight.w800,
                 ),
-                SizedBox(height: 12 * scale),
-                Text(
-                  _t('welcomeHint'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: skin.muted, fontSize: 18 * scale),
-                ),
-              ],
-            ),
+              ),
+              SizedBox(height: 12 * scale),
+              Text(
+                _t('welcomeHint'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: skin.muted, fontSize: 18 * scale),
+              ),
+            ],
           ),
         );
       case 'pin':
