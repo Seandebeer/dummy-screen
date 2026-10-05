@@ -1,12 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../app.dart';
 import '../deck/chrome.dart';
+import '../filmstrip.dart';
 import '../store.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../trim_math.dart';
 import '../video_source.dart';
 import '../widgets/three_finger.dart';
 
@@ -250,6 +255,10 @@ class _PlayerState extends State<_Player> {
   String? _error;
   String _aspect = 'fit';
   bool _loop = false;
+  int _trimStart = 0;
+  int _trimEnd = 0;
+  List<String> _thumbs = const [];
+  Timer? _trimSave;
 
   @override
   void initState() {
@@ -267,6 +276,7 @@ class _PlayerState extends State<_Player> {
 
   @override
   void dispose() {
+    _trimSave?.cancel();
     _controller?.dispose();
     super.dispose();
   }
@@ -303,26 +313,70 @@ class _PlayerState extends State<_Player> {
       _controller = next;
       _aspect = clip.aspect;
       _loop = clip.loop;
+      _trimStart = clip.trimStartMs;
+      _trimEnd = clip.trimEndMs > 0 ? clip.trimEndMs : duration;
+      _thumbs = const [];
       _error = null;
     });
     next.addListener(_tick);
+    unawaited(_loadThumbs(clip, duration));
     await next.play();
+  }
+
+  Future<void> _loadThumbs(VideoClip clip, int durationMs) async {
+    final url = clip.url;
+    if (url == null || url.isEmpty) return;
+    final frames = await grabFilmstrip(url, durationMs / 1000);
+    if (!mounted || widget.clips[widget.index].id != clip.id) return;
+    setState(() => _thumbs = frames);
+  }
+
+  void _moveTrim(bool startEdge, int at) {
+    final controller = _controller;
+    final duration = controller?.value.duration.inMilliseconds ?? 0;
+    final next = moveTrim(
+      startEdge: startEdge,
+      at: at,
+      start: _trimStart,
+      end: _trimEnd,
+      duration: duration,
+    );
+    final position = controller?.value.position.inMilliseconds ?? 0;
+    if (position < next.start || position > next.end) {
+      controller?.seekTo(Duration(milliseconds: next.start));
+    }
+    setState(() {
+      _trimStart = next.start;
+      _trimEnd = next.end;
+    });
+    _trimSave?.cancel();
+    final clip = widget.clips[widget.index];
+    _trimSave = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      StoreScope.of(context).updateClip(
+        clip.copyWith(trimStartMs: next.start, trimEndMs: next.end),
+      );
+    });
+  }
+
+  void _seek(int at) {
+    final target = clampSeek(at, _trimStart, _trimEnd);
+    _controller?.seekTo(Duration(milliseconds: target));
   }
 
   void _tick() {
     final controller = _controller;
-    final clip = widget.clips[widget.index];
     if (controller == null || !controller.value.isInitialized) return;
-    final end = clip.playEndMs == 0 ? controller.value.duration.inMilliseconds : clip.playEndMs;
+    final end = _trimEnd == 0 ? controller.value.duration.inMilliseconds : _trimEnd;
     final now = controller.value.position.inMilliseconds;
     if (now >= end - 50) {
       if (_loop) {
-        controller.seekTo(Duration(milliseconds: clip.trimStartMs));
+        controller.seekTo(Duration(milliseconds: _trimStart));
       } else if (widget.index < widget.clips.length - 1) {
         widget.onIndex(widget.index + 1);
       } else {
         controller.pause();
-        controller.seekTo(Duration(milliseconds: clip.trimStartMs));
+        controller.seekTo(Duration(milliseconds: _trimStart));
       }
     }
     if (mounted) setState(() {});
@@ -379,7 +433,7 @@ class _PlayerState extends State<_Player> {
                             children: [
                               Text(clip.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12)),
                               Text(
-                                '${widget.index + 1} of ${widget.clips.length}',
+                                '${widget.index + 1} of ${widget.clips.length} · ${_stamp((_trimEnd - _trimStart).clamp(0, 1 << 30))} section',
                                 style: const TextStyle(color: Colors.white54, fontSize: 9),
                               ),
                             ],
@@ -411,7 +465,15 @@ class _PlayerState extends State<_Player> {
                     child: Column(
                       children: [
                         if (controller != null && controller.value.isInitialized)
-                          _Timeline(controller: controller, clip: clip),
+                          _Timeline(
+                            durationMs: controller.value.duration.inMilliseconds,
+                            positionMs: controller.value.position.inMilliseconds,
+                            trimStartMs: _trimStart,
+                            trimEndMs: _trimEnd,
+                            thumbs: _thumbs,
+                            onTrim: _moveTrim,
+                            onSeek: _seek,
+                          ),
                         const SizedBox(height: 8),
                         Wrap(
                           alignment: WrapAlignment.center,
@@ -516,48 +578,245 @@ class _PlayerState extends State<_Player> {
   }
 }
 
-class _Timeline extends StatelessWidget {
-  const _Timeline({required this.controller, required this.clip});
+String _stamp(int ms) {
+  final seconds = (ms / 1000).floor();
+  final minutes = seconds ~/ 60;
+  final remain = seconds % 60;
+  return '$minutes:${remain.toString().padLeft(2, '0')}';
+}
 
-  final VideoPlayerController controller;
-  final VideoClip clip;
+enum _Drag { play, start, end }
+
+/// Filmstrip with in and out handles, matching `Timeline.jsx`.
+class _Timeline extends StatefulWidget {
+  const _Timeline({
+    required this.durationMs,
+    required this.positionMs,
+    required this.trimStartMs,
+    required this.trimEndMs,
+    required this.thumbs,
+    required this.onTrim,
+    required this.onSeek,
+  });
+
+  final int durationMs;
+  final int positionMs;
+  final int trimStartMs;
+  final int trimEndMs;
+  final List<String> thumbs;
+  final void Function(bool startEdge, int at) onTrim;
+  final ValueChanged<int> onSeek;
+
+  @override
+  State<_Timeline> createState() => _TimelineState();
+}
+
+class _TimelineState extends State<_Timeline> {
+  _Drag? _drag;
+
+  double _pct(int ms, double width) {
+    if (widget.durationMs <= 0) return 0;
+    return (ms / widget.durationMs).clamp(0, 1) * width;
+  }
+
+  int _timeAt(double dx, double width) {
+    if (width <= 0 || widget.durationMs <= 0) return 0;
+    return ((dx / width) * widget.durationMs).round().clamp(0, widget.durationMs);
+  }
+
+  void _apply(double dx, double width) {
+    final at = _timeAt(dx, width);
+    switch (_drag) {
+      case _Drag.start:
+        widget.onTrim(true, at);
+      case _Drag.end:
+        widget.onTrim(false, at);
+      case _Drag.play:
+      case null:
+        widget.onSeek(at);
+    }
+  }
+
+  _Drag _hit(double dx, double width) {
+    final start = _pct(widget.trimStartMs, width);
+    final end = _pct(widget.trimEndMs, width);
+    if ((dx - (start + 6)).abs() <= 14) return _Drag.start;
+    if ((dx - (end - 6)).abs() <= 14) return _Drag.end;
+    return _Drag.play;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final duration = controller.value.duration.inMilliseconds;
-    final position = controller.value.position.inMilliseconds;
-    String stamp(int ms) {
-      final seconds = (ms / 1000).floor();
-      final m = seconds ~/ 60;
-      final s = seconds % 60;
-      return '$m:${s.toString().padLeft(2, '0')}';
-    }
-
+    final end = widget.trimEndMs <= 0 ? widget.durationMs : widget.trimEndMs;
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(stamp(clip.trimStartMs), style: const TextStyle(color: Colors.white54, fontSize: 9)),
-            Text(stamp(position), style: const TextStyle(color: Colors.white, fontSize: 9)),
-            Text(stamp(duration), style: const TextStyle(color: Colors.white54, fontSize: 9)),
+            Text(_stamp(widget.trimStartMs), style: const TextStyle(color: Colors.white54, fontSize: 9, fontFamily: 'monospace')),
+            Text(_stamp(widget.positionMs), style: const TextStyle(color: Colors.white, fontSize: 9, fontFamily: 'monospace')),
+            Text(_stamp(end), style: const TextStyle(color: Colors.white54, fontSize: 9, fontFamily: 'monospace')),
           ],
         ),
-        Slider(
-          value: duration == 0 ? 0 : (position / duration).clamp(0, 1).toDouble(),
-          onChanged: (value) {
-            controller.seekTo(Duration(milliseconds: (value * duration).round()));
-          },
+        const SizedBox(height: 4),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: SizedBox(
+              height: 48,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final startX = _pct(widget.trimStartMs, width);
+                  final endX = _pct(end, width);
+                  return Listener(
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: (event) {
+                      _drag = _hit(event.localPosition.dx, width);
+                      _apply(event.localPosition.dx, width);
+                    },
+                    onPointerMove: (event) {
+                      if (_drag == null) return;
+                      _apply(event.localPosition.dx, width);
+                    },
+                    onPointerUp: (_) => _drag = null,
+                    onPointerCancel: (_) => _drag = null,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: widget.thumbs.isEmpty
+                              ? const ColoredBox(color: Colors.black)
+                              : Row(
+                                  children: [
+                                    for (final thumb in widget.thumbs)
+                                      Expanded(child: _Thumb(thumb)),
+                                  ],
+                                ),
+                        ),
+                        if (startX > 0)
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: startX,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.75),
+                                border: Border(
+                                  right: BorderSide(color: kAccent.withValues(alpha: 0.7)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (endX < width)
+                          Positioned(
+                            left: endX,
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.75),
+                                border: Border(
+                                  left: BorderSide(color: kAccent.withValues(alpha: 0.7)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          left: _pct(widget.positionMs, width).clamp(0, width - 2),
+                          top: 0,
+                          bottom: 0,
+                          width: 2,
+                          child: const ColoredBox(color: Colors.white),
+                        ),
+                        Positioned(
+                          left: startX.clamp(0, width - 12),
+                          top: 0,
+                          bottom: 0,
+                          width: 12,
+                          child: const _Handle(left: true),
+                        ),
+                        Positioned(
+                          left: (endX - 12).clamp(0, width - 12),
+                          top: 0,
+                          bottom: 0,
+                          width: 12,
+                          child: const _Handle(left: false),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         ),
+        const SizedBox(height: 4),
         const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('TRIM IN', style: TextStyle(color: Colors.white30, fontSize: 8, letterSpacing: 0.6)),
-            Text('Drag edges · drag strip to scrub', style: TextStyle(color: Colors.white30, fontSize: 8)),
+            Text('Drag edges · drag strip to scrub', style: TextStyle(color: Colors.white30, fontSize: 8, letterSpacing: 0.4)),
             Text('TRIM OUT', style: TextStyle(color: Colors.white30, fontSize: 8, letterSpacing: 0.6)),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _Thumb extends StatelessWidget {
+  const _Thumb(this.dataUrl);
+
+  final String dataUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final comma = dataUrl.indexOf(',');
+    if (comma < 0) return const ColoredBox(color: Colors.black);
+    try {
+      final bytes = base64Decode(dataUrl.substring(comma + 1));
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        height: 48,
+        gaplessPlayback: true,
+        opacity: const AlwaysStoppedAnimation(0.6),
+      );
+    } catch (_) {
+      return const ColoredBox(color: Colors.black);
+    }
+  }
+}
+
+class _Handle extends StatelessWidget {
+  const _Handle({required this.left});
+
+  final bool left;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.horizontal(
+          left: left ? const Radius.circular(2) : Radius.zero,
+          right: left ? Radius.zero : const Radius.circular(2),
+        ),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 2,
+          height: 16,
+          child: ColoredBox(color: Color(0xB3000000)),
+        ),
+      ),
     );
   }
 }
