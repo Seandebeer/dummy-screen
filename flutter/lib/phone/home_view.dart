@@ -55,6 +55,7 @@ class PhoneHome extends StatelessWidget {
           for (final id in layout)
             if (_resolve(id) case final app?)
               _Tile(
+                key: Key('home-${app.id}'),
                 app: app,
                 ink: ink,
                 branded: os.branded,
@@ -295,6 +296,7 @@ class _IconApp extends StatelessWidget {
 
 class _Tile extends StatelessWidget {
   const _Tile({
+    super.key,
     required this.app,
     required this.onTap,
     required this.ink,

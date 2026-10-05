@@ -91,6 +91,9 @@ void main() {
     await tester.pump();
     expect(store.deviceById('d-hero')!.skin, 'android');
     expect(store.deviceById('d-hero')!.os.backgroundPreset, 'droid');
+    expect(find.text('Current OS'), findsOneWidget);
+    expect(find.text('Current Android'), findsOneWidget);
+    expect(find.text('LEGACY'), findsOneWidget);
 
     for (
       var i = 0;

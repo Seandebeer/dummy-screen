@@ -307,6 +307,7 @@ class _OsPageState extends State<OsPage> {
           store: store,
           deviceId: device.id,
           initialThread: _thread,
+          chrome: chromeFor(device.skin),
           onClose: () => setState(() {
             _app = null;
             _thread = null;
@@ -330,6 +331,7 @@ class _OsPageState extends State<OsPage> {
             deviceId: device.id,
             contacts: contactsFor(device.os),
             language: device.os.language,
+            chrome: chromeFor(device.skin),
           ),
         );
       case 'contacts':
@@ -357,7 +359,7 @@ class _OsPageState extends State<OsPage> {
       case 'notes':
         return NotesApp(store: store, device: device);
       case 'calculator':
-        return const CalculatorApp();
+        return CalculatorApp(chrome: chromeFor(device.skin));
       case 'camera':
         return CameraApp(
           photos: store.photos[device.id] ?? const [],
@@ -376,7 +378,7 @@ class _OsPageState extends State<OsPage> {
         return PhotosApp(photos: store.photos[device.id] ?? const []);
       case 'email':
       case 'mail':
-        return InboxApp(extra: _mail(store, device.id));
+        return InboxApp(extra: _mail(store, device.id), chrome: chromeFor(device.skin));
       case 'calendar':
         return CalendarApp(offsetMinutes: device.clockOffsetMinutes);
       case 'maps':
@@ -384,7 +386,7 @@ class _OsPageState extends State<OsPage> {
       case 'music':
         return const PropMusic();
       case 'browser':
-        return const PropBrowser();
+        return PropBrowser(chrome: chromeFor(device.skin));
       case 'facepage':
         return const GrapevineApp();
       case 'photogram':

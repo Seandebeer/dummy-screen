@@ -7,6 +7,7 @@ import '../format.dart';
 import '../image_file.dart';
 import '../media/live_lens.dart';
 import '../models.dart';
+import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
 import 'ios_keyboard.dart';
@@ -154,7 +155,9 @@ class _NotesAppState extends State<NotesApp> {
 }
 
 class CalculatorApp extends StatefulWidget {
-  const CalculatorApp({super.key});
+  const CalculatorApp({super.key, this.chrome = SkinChrome.modern});
+
+  final SkinChrome chrome;
 
   @override
   State<CalculatorApp> createState() => _CalculatorAppState();
@@ -306,23 +309,29 @@ class _CalculatorAppState extends State<CalculatorApp> {
     final operator = '÷×−+='.contains(label);
     final active = operator && label != '=' && _op == label && _fresh;
     final function = clear || label == '±' || label == '%';
+    final accent = switch (widget.chrome) {
+      SkinChrome.android => const Color(0xFF8AB4F8),
+      SkinChrome.tiles => const Color(0xFF1BA1E2),
+      _ => const Color(0xFFFF9F0A),
+    };
+    final radius = widget.chrome == SkinChrome.tiles ? 4.0 : height / 2;
     final color = active
         ? Colors.white
         : operator
-            ? const Color(0xFFFF9F0A)
+            ? accent
             : function
                 ? const Color(0xFFA5A5A5)
                 : const Color(0xFF333333);
     final ink = active
-        ? const Color(0xFFFF9F0A)
+        ? accent
         : function
             ? Colors.black
             : Colors.white;
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(height / 2),
+      borderRadius: BorderRadius.circular(radius),
       child: InkWell(
-        borderRadius: BorderRadius.circular(height / 2),
+        borderRadius: BorderRadius.circular(radius),
         onTap: () {
           if (clear) {
             if (_fresh) {

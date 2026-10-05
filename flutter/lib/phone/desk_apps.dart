@@ -9,6 +9,7 @@ import '../app.dart';
 import '../image_file.dart';
 import '../media/live_lens.dart';
 import '../models.dart';
+import '../os_catalog.dart';
 import '../video_source.dart';
 import 'ios_keyboard.dart';
 import 'browser_frame.dart';
@@ -543,9 +544,10 @@ class _RealtyAppState extends State<RealtyApp> {
 }
 
 class InboxApp extends StatefulWidget {
-  const InboxApp({super.key, this.extra = const []});
+  const InboxApp({super.key, this.extra = const [], this.chrome = SkinChrome.modern});
 
   final List<Map<String, dynamic>> extra;
+  final SkinChrome chrome;
 
   @override
   State<InboxApp> createState() => _InboxAppState();
@@ -631,6 +633,20 @@ class _InboxAppState extends State<InboxApp> {
       color: const Color(0xFFF2F2F7),
       child: Column(
         children: [
+          if (widget.chrome == SkinChrome.android)
+            Container(
+              width: double.infinity,
+              color: const Color(0xFF1A73E8),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: const Text('Inbox', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
+            ),
+          if (widget.chrome == SkinChrome.tiles)
+            Container(
+              width: double.infinity,
+              color: Colors.black,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: const Text('inbox', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w300)),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
@@ -774,7 +790,9 @@ class _InboxAppState extends State<InboxApp> {
 }
 
 class PropBrowser extends StatefulWidget {
-  const PropBrowser({super.key});
+  const PropBrowser({super.key, this.chrome = SkinChrome.modern});
+
+  final SkinChrome chrome;
 
   @override
   State<PropBrowser> createState() => _PropBrowserState();
@@ -847,17 +865,23 @@ class _PropBrowserState extends State<PropBrowser> {
 
   @override
   Widget build(BuildContext context) {
+    final topBar = widget.chrome != SkinChrome.modern;
+    final chromeBar = widget.chrome != SkinChrome.android;
     return Material(
-      color: const Color(0xFFF2F2F7),
+      color: widget.chrome == SkinChrome.tiles ? Colors.black : const Color(0xFFF2F2F7),
       child: Column(
         children: [
+          if (topBar) _addressBar(),
           if (_loading) const LinearProgressIndicator(minHeight: 2, color: Color(0xFF0A84FF)),
           Expanded(
             child: _current == null
                 ? ListView(
                     padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
                     children: [
-                      const Text('Favourites', style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(
+                        widget.chrome == SkinChrome.android ? 'Shortcuts' : 'Favourites',
+                        style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 96,
@@ -881,7 +905,10 @@ class _PropBrowserState extends State<PropBrowser> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 11, color: Colors.black87),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: widget.chrome == SkinChrome.tiles ? Colors.white70 : Colors.black87,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -894,54 +921,73 @@ class _PropBrowserState extends State<PropBrowser> {
                   )
                 : ColoredBox(color: Colors.white, child: BrowserFrame(url: _current!)),
           ),
-          DecoratedBox(
-            decoration: const BoxDecoration(
-              color: Color(0xF2F8F8F8),
-              border: Border(top: BorderSide(color: Color(0x1A000000))),
-            ),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                    child: Material(
-                      color: const Color(0xFFE4E4E8),
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        onTap: _editAddress,
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          height: 36,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (_current != null) const Icon(Icons.lock, size: 12, color: Colors.black54),
-                              if (_current != null) const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  _current == null ? 'Search or enter website' : _host,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 15, color: Colors.black),
-                                ),
-                              ),
-                              if (_current != null) ...[
-                                const SizedBox(width: 8),
-                                InkWell(
-                                  onTap: () => _go(_current!),
-                                  child: const Icon(Icons.refresh, size: 16, color: Colors.black54),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
+          if (!topBar) _addressBar(),
+          if (chromeBar) _toolRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _addressBar() {
+    final android = widget.chrome == SkinChrome.android;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: android ? Colors.white : const Color(0xF2F8F8F8),
+        border: Border(
+          top: BorderSide(color: widget.chrome == SkinChrome.modern ? const Color(0x1A000000) : Colors.transparent),
+          bottom: BorderSide(color: widget.chrome == SkinChrome.modern ? Colors.transparent : const Color(0x1A000000)),
+        ),
+      ),
+      child: SafeArea(
+        top: widget.chrome != SkinChrome.modern,
+        bottom: widget.chrome == SkinChrome.modern,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Material(
+            color: android ? const Color(0xFFF1F3F4) : const Color(0xFFE4E4E8),
+            borderRadius: BorderRadius.circular(android ? 24 : 12),
+            child: InkWell(
+              onTap: _editAddress,
+              borderRadius: BorderRadius.circular(android ? 24 : 12),
+              child: SizedBox(
+                height: 36,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_current != null) const Icon(Icons.lock, size: 12, color: Colors.black54),
+                    if (_current != null) const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        _current == null
+                            ? (android ? 'Search or type URL' : 'Search or enter website')
+                            : _host,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 15, color: Colors.black),
                       ),
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
+                    if (_current != null) ...[
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () => _go(_current!),
+                        child: const Icon(Icons.refresh, size: 16, color: Colors.black54),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _toolRow() {
+    return ColoredBox(
+      color: const Color(0xF2F8F8F8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
                       IconButton(
                         color: Colors.black87,
                         onPressed: _index <= 0 ? null : () => _jump(_index - 1),
@@ -979,12 +1025,6 @@ class _PropBrowserState extends State<PropBrowser> {
                           child: const Icon(Icons.tab, size: 22),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

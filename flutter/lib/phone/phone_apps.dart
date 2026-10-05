@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../format.dart';
 import '../models.dart';
+import '../os_catalog.dart';
 import '../store.dart';
 import 'catalog.dart';
 import 'ios_keyboard.dart';
@@ -17,12 +18,14 @@ class PhoneDialer extends StatefulWidget {
     required this.deviceId,
     this.contacts = kContacts,
     this.language = 'en',
+    this.chrome = SkinChrome.modern,
   });
 
   final StageStore store;
   final String deviceId;
   final List<ContactCard> contacts;
   final String language;
+  final SkinChrome chrome;
 
   @override
   State<PhoneDialer> createState() => _PhoneDialerState();
@@ -54,37 +57,71 @@ class _PhoneDialerState extends State<PhoneDialer> {
   @override
   Widget build(BuildContext context) {
     final copy = phoneCopy(widget.language);
+    final tab = switch (widget.chrome) {
+      SkinChrome.android || SkinChrome.tiles
+          when _tab == 'favorites' || _tab == 'voicemail' =>
+        'keypad',
+      _ => _tab,
+    };
+    final body = switch (tab) {
+      'favorites' => _favorites(),
+      'recents' => _recentFilter == 'log' ? _history(copy) : _recents(copy),
+      'contacts' => _people(),
+      'voicemail' => _voicemail(),
+      _ => _keypad(),
+    };
+    final tiles = widget.chrome == SkinChrome.tiles;
     return Material(
       color: Colors.black,
       child: Column(
         children: [
-          Expanded(
-            child: switch (_tab) {
-              'favorites' => _favorites(),
-              'recents' => _recentFilter == 'log' ? _history(copy) : _recents(copy),
-              'contacts' => _people(),
-              'voicemail' => _voicemail(),
-              _ => _keypad(),
-            },
-          ),
-          _phoneTabs(),
+          if (tiles) _phoneTabs(),
+          Expanded(child: body),
+          if (!tiles) _phoneTabs(),
         ],
       ),
     );
   }
 
   Widget _phoneTabs() {
-    const items = [
-      ('favorites', Icons.star, 'Favourites'),
-      ('recents', Icons.access_time, 'Recents'),
-      ('contacts', Icons.person_outline, 'Contacts'),
-      ('keypad', Icons.dialpad, 'Keypad'),
-      ('voicemail', Icons.voicemail, 'Voicemail'),
-    ];
+    final items = switch (widget.chrome) {
+      SkinChrome.android => [
+          ('keypad', Icons.dialpad, 'Keypad'),
+          ('recents', Icons.history, 'Recents'),
+          ('contacts', Icons.person_outline, 'Contacts'),
+        ],
+      SkinChrome.tiles => [
+          ('keypad', Icons.dialpad, 'keypad'),
+          ('recents', Icons.access_time, 'history'),
+          ('contacts', Icons.person_outline, 'people'),
+        ],
+      SkinChrome.classic => [
+          ('favorites', Icons.star, 'Favorites'),
+          ('recents', Icons.access_time, 'Recents'),
+          ('contacts', Icons.person_outline, 'Contacts'),
+          ('keypad', Icons.dialpad, 'Keypad'),
+          ('voicemail', Icons.voicemail, 'Voicemail'),
+        ],
+      SkinChrome.modern => [
+          ('favorites', Icons.star, 'Favourites'),
+          ('recents', Icons.access_time, 'Recents'),
+          ('contacts', Icons.person_outline, 'Contacts'),
+          ('keypad', Icons.dialpad, 'Keypad'),
+          ('voicemail', Icons.voicemail, 'Voicemail'),
+        ],
+    };
+    final selected = switch (widget.chrome) {
+      SkinChrome.android => _phoneGreen,
+      SkinChrome.tiles => const Color(0xFF1BA1E2),
+      _ => const Color(0xFF0A84FF),
+    };
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: Color(0xF01C1C1E),
-        border: Border(top: BorderSide(color: Color(0x33FFFFFF))),
+      decoration: BoxDecoration(
+        color: widget.chrome == SkinChrome.tiles ? Colors.black : const Color(0xF01C1C1E),
+        border: Border(
+          top: BorderSide(color: widget.chrome == SkinChrome.tiles ? Colors.transparent : const Color(0x33FFFFFF)),
+          bottom: BorderSide(color: widget.chrome == SkinChrome.tiles ? const Color(0x33FFFFFF) : Colors.transparent),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -102,14 +139,14 @@ class _PhoneDialerState extends State<PhoneDialer> {
                         Icon(
                           item.$2,
                           size: 22,
-                          color: _tab == item.$1 ? const Color(0xFF0A84FF) : const Color(0xFF8E8E93),
+                          color: _tab == item.$1 ? selected : const Color(0xFF8E8E93),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item.$3,
                           style: TextStyle(
-                            fontSize: 10,
-                            color: _tab == item.$1 ? const Color(0xFF0A84FF) : const Color(0xFF8E8E93),
+                            fontSize: widget.chrome == SkinChrome.tiles ? 16 : 10,
+                            color: _tab == item.$1 ? selected : const Color(0xFF8E8E93),
                           ),
                         ),
                       ],
@@ -458,11 +495,20 @@ class _PhoneDialerState extends State<PhoneDialer> {
       '0': '+',
     };
     final sub = letters[label];
+    final tiles = widget.chrome == SkinChrome.tiles;
+    final classic = widget.chrome == SkinChrome.classic;
+    final shape = tiles
+        ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(2))
+        : const CircleBorder();
     return Material(
-      color: const Color(0xFF333333),
-      shape: const CircleBorder(),
+      color: tiles
+          ? const Color(0xFF1A1A1A)
+          : classic
+              ? const Color(0xFF5A5A5E)
+              : const Color(0xFF333333),
+      shape: shape,
       child: InkWell(
-        customBorder: const CircleBorder(),
+        customBorder: shape,
         onTap: () => setState(() => _digits += label),
         onLongPress: label == '0' ? () => setState(() => _digits += '+') : null,
         child: SizedBox(
@@ -527,12 +573,14 @@ class MessagesApp extends StatefulWidget {
     required this.deviceId,
     required this.onClose,
     this.initialThread,
+    this.chrome = SkinChrome.modern,
   });
 
   final StageStore store;
   final String deviceId;
   final VoidCallback onClose;
   final String? initialThread;
+  final SkinChrome chrome;
 
   @override
   State<MessagesApp> createState() => _MessagesAppState();
@@ -571,6 +619,26 @@ class _MessagesAppState extends State<MessagesApp> {
     return grouped;
   }
 
+  Color get _page => widget.chrome == SkinChrome.tiles ? Colors.black : Colors.white;
+
+  Color get _ink => widget.chrome == SkinChrome.tiles ? Colors.white : Colors.black;
+
+  Color get _sent => switch (widget.chrome) {
+        SkinChrome.android => const Color(0xFF0B57D0),
+        SkinChrome.classic => _phoneGreen,
+        SkinChrome.tiles => const Color(0xFF1BA1E2),
+        SkinChrome.modern => const Color(0xFF0A84FF),
+      };
+
+  String get _composerHint => switch (widget.chrome) {
+        SkinChrome.android => 'Text message',
+        SkinChrome.classic => 'Text Message',
+        SkinChrome.tiles => 'message',
+        SkinChrome.modern => 'iMessage',
+      };
+
+  String get _listTitle => widget.chrome == SkinChrome.tiles ? 'messages' : 'Messages';
+
   void _send() {
     final thread = _thread;
     if (thread == null) return;
@@ -595,7 +663,7 @@ class _MessagesAppState extends State<MessagesApp> {
         if (!names.contains(message.thread)) names.add(message.thread);
       }
       return Material(
-        color: Colors.white,
+        color: _page,
         child: Column(
           children: [
             Padding(
@@ -604,9 +672,9 @@ class _MessagesAppState extends State<MessagesApp> {
                 children: [
                   IconButton(
                     onPressed: widget.onClose,
-                    icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28),
+                    icon: Icon(Icons.chevron_left, color: _sent, size: 28),
                   ),
-                  const Text('Messages', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.w700)),
+                  Text(_listTitle, style: TextStyle(color: _ink, fontSize: 32, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -629,7 +697,7 @@ class _MessagesAppState extends State<MessagesApp> {
                                 style: const TextStyle(color: Colors.white),
                               ),
                             ),
-                            title: Text(name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                            title: Text(name, style: TextStyle(color: _ink, fontWeight: FontWeight.w600)),
                             subtitle: Text(
                               grouped[name]!.last.text,
                               maxLines: 2,
@@ -651,7 +719,7 @@ class _MessagesAppState extends State<MessagesApp> {
     }
     final items = grouped[thread] ?? const <StageMessage>[];
     return Material(
-      color: Colors.white,
+      color: _page,
       child: Column(
         children: [
           SizedBox(
@@ -660,7 +728,7 @@ class _MessagesAppState extends State<MessagesApp> {
               children: [
                 IconButton(
                   onPressed: () => setState(() => _thread = null),
-                  icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28),
+                  icon: Icon(Icons.chevron_left, color: _sent, size: 28),
                 ),
                 CircleAvatar(
                   radius: 14,
@@ -669,7 +737,7 @@ class _MessagesAppState extends State<MessagesApp> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(thread, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                  child: Text(thread, style: TextStyle(color: _ink, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -686,13 +754,13 @@ class _MessagesAppState extends State<MessagesApp> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.72),
                       decoration: BoxDecoration(
-                        color: message.sender == 'phone' ? const Color(0xFF0A84FF) : const Color(0xFFE9E9EB),
+                        color: message.sender == 'phone' ? _sent : (widget.chrome == SkinChrome.tiles ? const Color(0xFF2C2C2E) : const Color(0xFFE9E9EB)),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
                         message.text,
                         style: TextStyle(
-                          color: message.sender == 'phone' ? Colors.white : Colors.black,
+                          color: message.sender == 'phone' || widget.chrome == SkinChrome.tiles ? Colors.white : Colors.black,
                           fontSize: 16,
                         ),
                       ),
@@ -712,10 +780,10 @@ class _MessagesAppState extends State<MessagesApp> {
                     controller: _reply,
                     readOnly: true,
                     showCursor: true,
-                    style: const TextStyle(color: Colors.black),
+                    style: TextStyle(color: _ink),
                     onTap: () => openIosKeyboard(context, _reply, onDone: _send),
                     decoration: InputDecoration(
-                      hintText: 'iMessage',
+                      hintText: _composerHint,
                       hintStyle: const TextStyle(color: Color(0xFF8E8E93)),
                       filled: true,
                       fillColor: const Color(0xFFEFEFF4),
@@ -731,7 +799,7 @@ class _MessagesAppState extends State<MessagesApp> {
                 IconButton(
                   onPressed: _send,
                   icon: const Icon(Icons.arrow_upward, color: Colors.white),
-                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF0A84FF)),
+                  style: IconButton.styleFrom(backgroundColor: _sent),
                 ),
               ],
             ),

@@ -409,6 +409,7 @@ class _HomeControl extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             IconButton(
+              key: const Key('os-home'),
               onPressed: onHome,
               icon: const Icon(Icons.arrow_back, size: 18),
             ),
@@ -429,6 +430,7 @@ class _HomeControl extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 10),
         child: Center(
           child: InkWell(
+            key: const Key('os-home'),
             onTap: onHome,
             customBorder: const CircleBorder(),
             child: Container(
@@ -462,6 +464,7 @@ class _HomeControl extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 12, top: 4),
         child: Center(
           child: InkWell(
+            key: const Key('os-home'),
             onTap: onHome,
             customBorder: const CircleBorder(),
             child: Container(
@@ -480,6 +483,7 @@ class _HomeControl extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8, top: 4),
       child: Center(
         child: GestureDetector(
+          key: const Key('os-home'),
           onTap: onHome,
           child: Container(
             width: 128,

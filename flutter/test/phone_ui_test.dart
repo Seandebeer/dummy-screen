@@ -1,3 +1,4 @@
+import 'package:dummy_phone/os_catalog.dart';
 import 'package:dummy_phone/phone/desk_apps.dart';
 import 'package:dummy_phone/phone/phone_apps.dart';
 import 'package:dummy_phone/phone/utility_apps.dart';
@@ -29,6 +30,36 @@ void main() {
     await tester.pump();
     expect(store.callFor('d-hero')?.contactNumber, '2');
     store.dispose();
+  });
+
+  testWidgets('android and windows phone keep their own apps and the same os settings', (tester) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: PhoneDialer(store: store, deviceId: 'd-hero', chrome: SkinChrome.android),
+        ),
+      ),
+    );
+    expect(find.text('Keypad'), findsOneWidget);
+    expect(find.text('Favourites'), findsNothing);
+    expect(find.text('Voicemail'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: PhoneDialer(store: store, deviceId: 'd-hero', chrome: SkinChrome.tiles),
+        ),
+      ),
+    );
+    expect(find.text('keypad'), findsOneWidget);
+    expect(find.text('people'), findsOneWidget);
+    expect(find.text('Favourites'), findsNothing);
   });
 
   testWidgets('a new contact opens the iPhone contact sheet', (tester) async {
