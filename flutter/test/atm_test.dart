@@ -125,4 +125,81 @@ void main() {
     expect(find.text('That amount is not available.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('atm settings changes skin, currency, language, and layout', (
+    tester,
+  ) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+    final device = PropDevice(
+      id: 'atm-1',
+      name: 'Lobby atm',
+      projectId: 'sandbox',
+      kind: 'atm',
+      os: const OsSettings(
+        backgroundType: 'image',
+        backgroundUrl:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      ),
+    );
+    store.upsertDevice(device);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: AtmScreen(store: store, device: device),
+      ),
+    );
+    expect(find.byKey(const Key('atm-custom-background')), findsOneWidget);
+    await _digits(tester, '11111');
+    expect(find.text('PIN Change'), findsNothing);
+    expect(find.text('Settings'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('atm-settings')));
+    await tester.pump();
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Currency'), findsOneWidget);
+    expect(find.text('Language'), findsOneWidget);
+    expect(find.byKey(const Key('atm-upload-background')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('atm-skin-gold')));
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.shell, 'gold');
+
+    await tester.tap(find.byKey(const Key('atm-currency-EUR')));
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.bankCurrency, 'EUR');
+
+    await tester.tap(find.byKey(const Key('atm-language-es')));
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.language, 'es');
+
+    await tester.tap(find.byKey(const Key('atm-remove-background')));
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.backgroundType, 'preset');
+    expect(find.byKey(const Key('atm-custom-background')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('atm-edit-layout')));
+    await tester.pump();
+    expect(find.text('Toque dos paneles para intercambiarlos.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('atm-withdraw')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-balance')));
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.homeOrder.first, 'balance');
+    await tester.tap(find.byKey(const Key('atm-layout-done')));
+    await tester.pump();
+    await tester.tap(find.text('Listo'));
+    await tester.pump();
+    expect(find.text('Seleccione su transacción'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('atm-slot-0')),
+        matching: find.text('Consulta de saldo'),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }

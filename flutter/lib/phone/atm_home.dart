@@ -1,10 +1,14 @@
 import 'dart:math' as math;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../format.dart';
+import '../image_file.dart';
 import '../models.dart';
+import '../os_catalog.dart';
 import '../store.dart';
+import 'atm_chrome.dart';
 
 /// Landscape ATM for an iPad mounted in a machine.
 ///
@@ -24,24 +28,48 @@ class AtmScreen extends StatefulWidget {
 class _AtmScreenState extends State<AtmScreen> {
   String _step = 'pin';
   String _pin = '';
-  String _draft = '';
   String _message = '';
   String _errorBack = 'menu';
-  String _account = 'Checking';
+  String _account = 'checking';
   String _action = '';
   int _amount = 0;
+  String? _layoutPick;
 
   OsSettings get os {
     final live = widget.store.deviceById(widget.device.id);
     return live?.os ?? widget.device.os;
   }
 
+  AtmSkin get skin => atmSkinFor(os.shell);
+
+  String get _language => os.language;
+
+  String _t(String key) => atmLine(_language, key);
+
+  String _f(String key, Map<String, String> values) =>
+      atmFill(_language, key, values);
+
+  String _accountLabel(String id) =>
+      _t(id == 'savings' ? 'savings' : 'checking');
+
+  String _actionLabel(String id) => switch (id) {
+    'deposit' => _t('actDeposit'),
+    'balance' => _t('actBalance'),
+    'transfer' => _t('actTransfer'),
+    'bill' => _t('actBill'),
+    _ => _t('actWithdraw'),
+  };
+
+  void _save(OsSettings Function(OsSettings current) change) {
+    widget.store.updateOs(widget.device.id, change);
+    setState(() {});
+  }
+
   void _go(String step) => setState(() {
     _step = step;
     _message = '';
-    if (step == 'pin' || step == 'pinchange' || step == 'pinagain') {
-      _pin = '';
-    }
+    if (step == 'pin') _pin = '';
+    if (step != 'layout') _layoutPick = null;
   });
 
   void _digit(String value) {
@@ -49,24 +77,8 @@ class _AtmScreenState extends State<AtmScreen> {
     setState(() {
       _pin += value;
       if (_pin.length < 5) return;
-      if (_step == 'pin') {
-        _pin = '';
-        _step = 'menu';
-      } else if (_step == 'pinchange') {
-        _draft = _pin;
-        _pin = '';
-        _step = 'pinagain';
-      } else if (_step == 'pinagain') {
-        final matched = _pin == _draft;
-        _pin = '';
-        if (matched) {
-          _step = 'pinchanged';
-        } else {
-          _message = 'Those PINs do not match.';
-          _errorBack = 'pinchange';
-          _step = 'error';
-        }
-      }
+      _pin = '';
+      _step = 'menu';
     });
   }
 
@@ -78,7 +90,7 @@ class _AtmScreenState extends State<AtmScreen> {
   void _chooseAmount(int amount) {
     if (amount > os.bankBalance) {
       setState(() {
-        _message = 'That amount is not available.';
+        _message = _t('unavailable');
         _errorBack = 'amount';
         _step = 'error';
       });
@@ -96,7 +108,7 @@ class _AtmScreenState extends State<AtmScreen> {
       (current) => current.copyWith(bankBalance: current.bankBalance - _amount),
     );
     setState(() {
-      _action = 'Withdrawal';
+      _action = 'withdraw';
       _step = 'cash';
     });
   }
@@ -108,7 +120,7 @@ class _AtmScreenState extends State<AtmScreen> {
     );
     setState(() {
       _amount = amount;
-      _action = 'Deposit';
+      _action = 'deposit';
       _step = 'accepted';
     });
   }
@@ -117,7 +129,7 @@ class _AtmScreenState extends State<AtmScreen> {
     const amount = 40;
     if (amount > os.bankBalance) {
       setState(() {
-        _message = 'That amount is not available.';
+        _message = _t('unavailable');
         _errorBack = 'bills';
         _step = 'error';
       });
@@ -129,7 +141,7 @@ class _AtmScreenState extends State<AtmScreen> {
     );
     setState(() {
       _amount = amount;
-      _action = 'Bill payment';
+      _action = 'bill';
       _step = 'accepted';
     });
   }
@@ -137,91 +149,118 @@ class _AtmScreenState extends State<AtmScreen> {
   @override
   Widget build(BuildContext context) {
     final now = propNow(widget.device.clockOffsetMinutes);
-    return Stack(
-      key: const Key('atm-home'),
-      fit: StackFit.expand,
-      children: [
-        const Positioned.fill(child: CustomPaint(painter: _AtmBackdrop())),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final scale = math
-                .min(constraints.maxWidth / 1000, constraints.maxHeight / 720)
-                .clamp(0.56, 1.15);
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                22 * scale,
-                16 * scale,
-                22 * scale,
-                12 * scale,
+    final image = os.backgroundType == 'image'
+        ? imageProviderForPath(os.backgroundUrl)
+        : null;
+    return Directionality(
+      textDirection: languageByCode(_language).rtl
+          ? TextDirection.rtl
+          : TextDirection.ltr,
+      child: Stack(
+        key: const Key('atm-home'),
+        fit: StackFit.expand,
+        children: [
+          if (image != null)
+            Positioned.fill(
+              key: const Key('atm-custom-background'),
+              child: Image(
+                image: image,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
-              child: Column(
-                children: [
-                  _Header(name: os.bankName, now: now, scale: scale),
-                  SizedBox(height: 12 * scale),
-                  Expanded(child: _body(scale, now)),
-                  SizedBox(height: 8 * scale),
-                  _Footer(scale: scale, onService: () => _go('down')),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
+            ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _AtmBackdrop(skin: skin, veil: image != null),
+            ),
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = math
+                  .min(constraints.maxWidth / 1000, constraints.maxHeight / 720)
+                  .clamp(0.56, 1.15);
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  22 * scale,
+                  16 * scale,
+                  22 * scale,
+                  12 * scale,
+                ),
+                child: Column(
+                  children: [
+                    _Header(
+                      name: os.bankName,
+                      now: now,
+                      scale: scale,
+                      skin: skin,
+                    ),
+                    SizedBox(height: 12 * scale),
+                    Expanded(child: _body(scale, now)),
+                    SizedBox(height: 8 * scale),
+                    _Footer(
+                      scale: scale,
+                      skin: skin,
+                      service: _t('service'),
+                      onService: () => _go('down'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _body(double scale, DateTime now) {
     switch (_step) {
       case 'pin':
-        return _pinStage(
-          scale,
-          'Enter PIN',
-          'Any 5 digits unlock this machine.',
-        );
-      case 'pinchange':
-        return _pinStage(scale, 'Choose a new PIN', 'Enter 5 digits.');
-      case 'pinagain':
-        return _pinStage(scale, 'Enter it again', 'Repeat the new PIN.');
+        return _pinStage(scale, _t('enterPin'), _t('pinHint'), entry: true);
       case 'menu':
         return _Menu(
           scale: scale,
-          holder: os.bankHolder,
-          now: now,
-          onWithdraw: () => _go('withdraw'),
-          onDeposit: () => _go('deposit'),
-          onBalance: () => _go('balance'),
-          onBills: () => _go('bills'),
-          onStatement: () => _go('statement'),
-          onTransfer: () => _go('transfer'),
-          onPin: () => _go('pinchange'),
-          onTake: () => _go('card'),
+          skin: skin,
+          greeting: atmGreeting(_language, now.hour, os.bankHolder),
+          select: _t('select'),
+          panels: atmPanels(os),
+          labelFor: _t,
+          onOpen: _openPanel,
         );
+      case 'settings':
+        return _settings(scale);
+      case 'layout':
+        return _layout(scale, now);
       case 'withdraw':
-        return _prompt(scale, 'Withdrawal', 'Which account?', [
+        return _prompt(scale, _t('actWithdraw'), _t('whichAccount'), [
           _choice(
-            'Checking',
+            _t('checking'),
             () => setState(() {
-              _account = 'Checking';
+              _account = 'checking';
               _step = 'amount';
             }),
             key: const Key('atm-account-checking'),
             primary: true,
           ),
           _choice(
-            'Savings',
+            _t('savings'),
             () => setState(() {
-              _account = 'Savings';
+              _account = 'savings';
               _step = 'amount';
             }),
             key: const Key('atm-account-savings'),
           ),
-          _choice('Cancel', () => _go('menu')),
+          _choice(_t('cancel'), () => _go('menu')),
         ]);
       case 'amount':
         return _prompt(
           scale,
-          'Choose an amount',
-          '$_account · ${os.bankCurrency} ${os.bankBalance} available',
+          _t('chooseAmount'),
+          _f('available', {
+            'account': _accountLabel(_account),
+            'currency': os.bankCurrency,
+            'balance': '${os.bankBalance}',
+          }),
           [
             for (final amount in [20, 40, 60, 100])
               _choice(
@@ -230,14 +269,18 @@ class _AtmScreenState extends State<AtmScreen> {
                 key: Key('atm-amount-$amount'),
                 primary: amount == 20,
               ),
-            _choice('Back', () => _go('withdraw')),
+            _choice(_t('back'), () => _go('withdraw')),
           ],
         );
       case 'review':
         return _prompt(
           scale,
-          'Confirm withdrawal',
-          '${os.bankCurrency} $_amount from $_account',
+          _t('confirmWithdrawal'),
+          _f('fromAccount', {
+            'currency': os.bankCurrency,
+            'amount': '$_amount',
+            'account': _accountLabel(_account),
+          }),
           [
             _choice(
               'Confirm',
@@ -245,28 +288,23 @@ class _AtmScreenState extends State<AtmScreen> {
               key: const Key('atm-confirm'),
               primary: true,
             ),
-            _choice('Cancel', () => _go('menu')),
+            _choice(_t('cancel'), () => _go('menu')),
           ],
         );
       case 'cash':
-        return _prompt(
-          scale,
-          'Please take your cash',
-          '${os.bankCurrency} $_amount',
-          [
-            _choice(
-              'Cash taken',
-              () => _go('receiptAsk'),
-              key: const Key('atm-cash-taken'),
-              primary: true,
-            ),
-          ],
-        );
-      case 'receiptAsk':
-        return _prompt(scale, 'Would you like a receipt?', '', [
-          _choice('Print receipt', () => _go('receipt'), primary: true),
+        return _prompt(scale, _t('takeCash'), '${os.bankCurrency} $_amount', [
           _choice(
-            'No receipt',
+            _t('cashTaken'),
+            () => _go('receiptAsk'),
+            key: const Key('atm-cash-taken'),
+            primary: true,
+          ),
+        ]);
+      case 'receiptAsk':
+        return _prompt(scale, _t('receiptAsk'), '', [
+          _choice(_t('printReceipt'), () => _go('receipt'), primary: true),
+          _choice(
+            _t('noReceipt'),
             () => _go('another'),
             key: const Key('atm-no-receipt'),
           ),
@@ -274,31 +312,30 @@ class _AtmScreenState extends State<AtmScreen> {
       case 'receipt':
         return _prompt(
           scale,
-          'Receipt',
-          '${os.bankName}\n${os.bankHolder}\n$_action\n${os.bankCurrency} $_amount\nBalance ${os.bankCurrency} ${os.bankBalance}',
-          [_choice('Finish', () => _go('another'), primary: true)],
+          _t('receipt'),
+          '${os.bankName}\n${os.bankHolder}\n${_actionLabel(_action)}\n${os.bankCurrency} $_amount\n${os.bankCurrency} ${os.bankBalance}',
+          [_choice(_t('finish'), () => _go('another'), primary: true)],
         );
       case 'another':
-        return _prompt(scale, 'Another transaction?', '', [
-          _choice('Yes', () => _go('menu'), primary: true),
-          _choice('No', () => _go('card'), key: const Key('atm-no-another')),
+        return _prompt(scale, _t('another'), '', [
+          _choice(_t('yes'), () => _go('menu'), primary: true),
+          _choice(
+            _t('no'),
+            () => _go('card'),
+            key: const Key('atm-no-another'),
+          ),
         ]);
       case 'card':
-        return _prompt(
-          scale,
-          'Please take your card',
-          'This session is finished.',
-          [
-            _choice(
-              'Done',
-              () => _go('pin'),
-              key: const Key('atm-card-done'),
-              primary: true,
-            ),
-          ],
-        );
+        return _prompt(scale, _t('takeCard'), _t('sessionDone'), [
+          _choice(
+            _t('done'),
+            () => _go('pin'),
+            key: const Key('atm-card-done'),
+            primary: true,
+          ),
+        ]);
       case 'deposit':
-        return _prompt(scale, 'Deposit', 'Choose an amount to add.', [
+        return _prompt(scale, _t('depositTitle'), _t('depositHint'), [
           for (final amount in [20, 50, 100])
             _choice(
               '${os.bankCurrency} $amount',
@@ -308,109 +345,375 @@ class _AtmScreenState extends State<AtmScreen> {
               }),
               primary: amount == 20,
             ),
-          _choice('Cancel', () => _go('menu')),
+          _choice(_t('cancel'), () => _go('menu')),
         ]);
       case 'depositReview':
         return _prompt(
           scale,
-          'Confirm deposit',
-          '${os.bankCurrency} $_amount into Checking',
+          _t('confirmDeposit'),
+          _f('intoChecking', {
+            'currency': os.bankCurrency,
+            'amount': '$_amount',
+          }),
           [
-            _choice('Confirm', () => _commitDeposit(_amount), primary: true),
-            _choice('Cancel', () => _go('menu')),
+            _choice(_t('yes'), () => _commitDeposit(_amount), primary: true),
+            _choice(_t('cancel'), () => _go('menu')),
           ],
         );
       case 'accepted':
         return _prompt(
           scale,
-          '$_action accepted',
-          '${os.bankCurrency} $_amount\nBalance ${os.bankCurrency} ${os.bankBalance}',
+          _f('accepted', {'action': _actionLabel(_action)}),
+          '${os.bankCurrency} $_amount\n${os.bankCurrency} ${os.bankBalance}',
           [
-            _choice('Receipt', () => _go('receipt'), primary: true),
-            _choice('Done', () => _go('another')),
+            _choice(_t('receipt'), () => _go('receipt'), primary: true),
+            _choice(_t('done'), () => _go('another')),
           ],
         );
       case 'balance':
         return _prompt(
           scale,
-          'Balance Inquiry',
+          _t('balanceTitle'),
           '${os.bankHolder}\n${os.bankCurrency} ${os.bankBalance}',
           [
-            _choice('Receipt', () {
+            _choice(_t('receipt'), () {
               setState(() {
-                _action = 'Balance';
+                _action = 'balance';
                 _amount = os.bankBalance;
               });
               _go('receipt');
             }, primary: true),
-            _choice('Another transaction', () => _go('menu')),
+            _choice(_t('anotherTx'), () => _go('menu')),
           ],
         );
       case 'transfer':
         return _prompt(
           scale,
-          'Internal transfer',
-          'Move ${os.bankCurrency} 50 from Checking to Savings.',
+          _t('transferTitle'),
+          _f('transferBody', {'currency': os.bankCurrency}),
           [
-            _choice('Confirm transfer', () {
+            _choice(_t('confirmTransfer'), () {
               setState(() {
-                _action = 'Transfer';
+                _action = 'transfer';
                 _amount = 50;
                 _step = 'accepted';
                 _message = '';
               });
             }, primary: true),
-            _choice('Cancel', () => _go('menu')),
+            _choice(_t('cancel'), () => _go('menu')),
           ],
         );
       case 'bills':
-        return _prompt(scale, 'Bill payment', 'Power · ${os.bankCurrency} 40', [
-          _choice('Pay', _payBill, primary: true),
-          _choice('Cancel', () => _go('menu')),
-        ]);
+        return _prompt(
+          scale,
+          _t('billTitle'),
+          _f('billBody', {'currency': os.bankCurrency}),
+          [
+            _choice(_t('pay'), _payBill, primary: true),
+            _choice(_t('cancel'), () => _go('menu')),
+          ],
+        );
       case 'statement':
         return _prompt(
           scale,
-          'Mini statement',
-          'Market · ${os.bankCurrency} 18\nTransit · ${os.bankCurrency} 12\nPower · ${os.bankCurrency} 40',
-          [_choice('Done', () => _go('menu'), primary: true)],
+          _t('statementTitle'),
+          _f('statementBody', {'currency': os.bankCurrency}),
+          [_choice(_t('done'), () => _go('menu'), primary: true)],
         );
-      case 'pinchanged':
-        return _prompt(scale, 'PIN updated', 'The next customer can use it.', [
-          _choice('Done', () => _go('menu'), primary: true),
-        ]);
       case 'error':
         return _prompt(
           scale,
-          'Unable to continue',
-          _message.isEmpty ? 'Try again.' : _message,
-          [_choice('Back', () => _go(_errorBack), primary: true)],
+          _t('unable'),
+          _message.isEmpty ? _t('back') : _message,
+          [_choice(_t('back'), () => _go(_errorBack), primary: true)],
         );
       case 'down':
-        return _prompt(scale, 'Out of service', 'This machine is closed.', [
+        return _prompt(scale, _t('out'), _t('closed'), [
           _choice(
-            'Restore',
+            _t('restore'),
             () => _go('pin'),
             key: const Key('atm-restore'),
             primary: true,
           ),
         ]);
       default:
-        return _prompt(scale, 'Enter PIN', '', [
-          _choice('Continue', () => _go('pin'), primary: true),
-        ]);
+        return _pinStage(scale, _t('enterPin'), _t('pinHint'), entry: true);
     }
   }
 
-  Widget _pinStage(double scale, String title, String subtitle) {
+  void _openPanel(String id) {
+    switch (id) {
+      case 'withdraw':
+        _go('withdraw');
+      case 'deposit':
+        _go('deposit');
+      case 'balance':
+        _go('balance');
+      case 'bills':
+        _go('bills');
+      case 'statement':
+        _go('statement');
+      case 'transfer':
+        _go('transfer');
+      case 'settings':
+        _go('settings');
+      case 'take':
+        _go('card');
+    }
+  }
+
+  void _swapPanel(String id) {
+    if (_layoutPick == null || _layoutPick == id) {
+      setState(() => _layoutPick = _layoutPick == id ? null : id);
+      return;
+    }
+    final order = List<String>.from(atmPanels(os));
+    final first = order.indexOf(_layoutPick!);
+    final second = order.indexOf(id);
+    if (first < 0 || second < 0) return;
+    final held = order[first];
+    order[first] = order[second];
+    order[second] = held;
+    _layoutPick = null;
+    _save((current) => current.copyWith(homeOrder: order));
+  }
+
+  Future<void> _uploadBackground() async {
+    final file = await FilePicker.pickFile(type: FileType.image);
+    if (file == null || !mounted) return;
+    final path = await persistPickedImage(file);
+    if (path == null || !mounted) return;
+    _save(
+      (current) =>
+          current.copyWith(backgroundType: 'image', backgroundUrl: path),
+    );
+  }
+
+  Widget _settings(double scale) {
+    final hasImage =
+        os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty;
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Text(
+              _t('settingsTitle'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: skin.title,
+                fontSize: 28 * scale,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            SizedBox(height: 14 * scale),
+            _section(_t('theme'), scale),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in kAtmSkins)
+                  _chip(
+                    item.name,
+                    skin.id == item.id,
+                    () => _save((current) => current.copyWith(shell: item.id)),
+                    key: Key('atm-skin-${item.id}'),
+                    swatch: item.major,
+                  ),
+              ],
+            ),
+            SizedBox(height: 14 * scale),
+            _section(_t('currency'), scale),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final code in kAtmCurrencies)
+                  _chip(
+                    code,
+                    os.bankCurrency == code,
+                    () => _save(
+                      (current) => current.copyWith(bankCurrency: code),
+                    ),
+                    key: Key('atm-currency-$code'),
+                  ),
+              ],
+            ),
+            SizedBox(height: 14 * scale),
+            _section(_t('language'), scale),
+            SizedBox(
+              height: 46,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  for (final language in osLanguages)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _chip(
+                        language.native,
+                        os.language == language.code,
+                        () => _save(
+                          (current) =>
+                              current.copyWith(language: language.code),
+                        ),
+                        key: Key('atm-language-${language.code}'),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: 14 * scale),
+            _section(_t('background'), scale),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _chip(
+                  _t('upload'),
+                  false,
+                  _uploadBackground,
+                  key: const Key('atm-upload-background'),
+                ),
+                if (hasImage)
+                  _chip(
+                    _t('removeBg'),
+                    false,
+                    () => _save(
+                      (current) => current.copyWith(
+                        backgroundType: 'preset',
+                        backgroundUrl: '',
+                      ),
+                    ),
+                    key: const Key('atm-remove-background'),
+                  ),
+              ],
+            ),
+            SizedBox(height: 14 * scale),
+            _section(_t('panels'), scale),
+            _choice(
+              _t('editLayout'),
+              () => _go('layout'),
+              key: const Key('atm-edit-layout'),
+              primary: true,
+            ),
+            SizedBox(height: 12 * scale),
+            _choice(_t('done'), () => _go('menu')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _layout(double scale, DateTime now) {
+    return Column(
+      children: [
+        Text(
+          _t('layoutHint'),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: skin.muted, fontSize: 14 * scale),
+        ),
+        SizedBox(height: 8 * scale),
+        Expanded(
+          child: _Menu(
+            scale: scale,
+            skin: skin,
+            greeting: atmGreeting(_language, now.hour, os.bankHolder),
+            select: _t('select'),
+            panels: atmPanels(os),
+            labelFor: _t,
+            selected: _layoutPick,
+            onOpen: _swapPanel,
+          ),
+        ),
+        _choice(
+          _t('done'),
+          () => _go('settings'),
+          key: const Key('atm-layout-done'),
+          primary: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _section(String label, double scale) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8 * scale),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: skin.muted,
+          fontSize: 13 * scale,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(
+    String label,
+    bool selected,
+    VoidCallback onTap, {
+    Key? key,
+    Color? swatch,
+  }) {
+    return GestureDetector(
+      key: key,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? skin.primary : skin.keyFill,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? skin.primaryInk : skin.rule,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (swatch != null) ...[
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: swatch,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: skin.title, width: 1),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? skin.primaryInk : skin.keyInk,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pinStage(
+    double scale,
+    String title,
+    String subtitle, {
+    bool entry = false,
+  }) {
     return Column(
       children: [
         Text(
           title,
-          key: title == 'Enter PIN' ? const Key('atm-enter-pin') : null,
+          key: entry ? const Key('atm-enter-pin') : null,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.white,
+            color: skin.title,
             fontSize: 28 * scale,
             fontWeight: FontWeight.w800,
           ),
@@ -419,10 +722,7 @@ class _AtmScreenState extends State<AtmScreen> {
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: const Color(0xFFB7B3C7),
-            fontSize: 14 * scale,
-          ),
+          style: TextStyle(color: skin.muted, fontSize: 14 * scale),
         ),
         SizedBox(height: 14 * scale),
         _dots(scale),
@@ -446,8 +746,8 @@ class _AtmScreenState extends State<AtmScreen> {
             margin: EdgeInsets.symmetric(horizontal: 6 * scale),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: i < _pin.length ? Colors.white : Colors.transparent,
-              border: Border.all(color: Colors.white, width: 1.6),
+              color: i < _pin.length ? skin.title : Colors.transparent,
+              border: Border.all(color: skin.title, width: 1.6),
             ),
           ),
       ],
@@ -465,13 +765,13 @@ class _AtmScreenState extends State<AtmScreen> {
           height: 58 * scale,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFF2A2638),
+            color: skin.keyFill,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: Colors.white,
+              color: skin.keyInk,
               fontSize: 22 * scale,
               fontWeight: FontWeight.w700,
             ),
@@ -533,7 +833,7 @@ class _AtmScreenState extends State<AtmScreen> {
               title,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
+                color: skin.title,
                 fontSize: 28 * scale,
                 fontWeight: FontWeight.w800,
               ),
@@ -544,7 +844,7 @@ class _AtmScreenState extends State<AtmScreen> {
                 body,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: const Color(0xFFB7B3C7),
+                  color: skin.muted,
                   fontSize: 16 * scale,
                   height: 1.35,
                 ),
@@ -577,14 +877,14 @@ class _AtmScreenState extends State<AtmScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: primary ? const Color(0xFFF4F1EA) : const Color(0xFF2A2638),
+          color: primary ? skin.primary : skin.keyFill,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: primary ? const Color(0xFF16141C) : Colors.white,
+            color: primary ? skin.primaryInk : skin.keyInk,
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
@@ -597,58 +897,46 @@ class _AtmScreenState extends State<AtmScreen> {
 class _Menu extends StatelessWidget {
   const _Menu({
     required this.scale,
-    required this.holder,
-    required this.now,
-    required this.onWithdraw,
-    required this.onDeposit,
-    required this.onBalance,
-    required this.onBills,
-    required this.onStatement,
-    required this.onTransfer,
-    required this.onPin,
-    required this.onTake,
+    required this.skin,
+    required this.greeting,
+    required this.select,
+    required this.panels,
+    required this.labelFor,
+    required this.onOpen,
+    this.selected,
   });
 
   final double scale;
-  final String holder;
-  final DateTime now;
-  final VoidCallback onWithdraw;
-  final VoidCallback onDeposit;
-  final VoidCallback onBalance;
-  final VoidCallback onBills;
-  final VoidCallback onStatement;
-  final VoidCallback onTransfer;
-  final VoidCallback onPin;
-  final VoidCallback onTake;
+  final AtmSkin skin;
+  final String greeting;
+  final String select;
+  final List<String> panels;
+  final String Function(String key) labelFor;
+  final ValueChanged<String> onOpen;
+  final String? selected;
 
   @override
   Widget build(BuildContext context) {
-    final part = now.hour < 12
-        ? 'Morning'
-        : now.hour < 17
-        ? 'Afternoon'
-        : 'Evening';
+    final majors = panels.take(2).toList();
+    final minors = panels.skip(2).toList();
     return Column(
       children: [
         Text(
-          'Good $part, $holder',
+          greeting,
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Colors.white,
+            color: skin.title,
             fontSize: 26 * scale,
             fontWeight: FontWeight.w700,
           ),
         ),
         SizedBox(height: 4 * scale),
         Text(
-          'Please select your transaction',
+          select,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: const Color(0xFFB7B3C7),
-            fontSize: 14 * scale,
-          ),
+          style: TextStyle(color: skin.muted, fontSize: 14 * scale),
         ),
         SizedBox(height: 14 * scale),
         Expanded(
@@ -661,93 +949,45 @@ class _Menu extends StatelessWidget {
                   flex: 4,
                   child: Column(
                     children: [
-                      Expanded(
-                        child: _Major(
-                          icon: Icons.arrow_downward,
-                          label: 'Money\nWithdrawal',
-                          onTap: onWithdraw,
-                          tileKey: const Key('atm-withdraw'),
-                        ),
-                      ),
-                      const Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Color(0x14000000),
-                      ),
-                      Expanded(
-                        child: _Major(
-                          icon: Icons.arrow_upward,
-                          label: 'Money\nDeposit',
-                          onTap: onDeposit,
-                          tileKey: const Key('atm-deposit'),
-                        ),
-                      ),
+                      for (var i = 0; i < majors.length; i++) ...[
+                        if (i > 0)
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: skin.majorInk.withValues(alpha: 0.12),
+                          ),
+                        Expanded(child: _slot(majors[i], i, major: true)),
+                      ],
                     ],
                   ),
                 ),
                 Expanded(
                   flex: 7,
                   child: ColoredBox(
-                    color: const Color(0xFF221F2C),
+                    color: skin.minor,
                     child: Column(
                       children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              _minor(
-                                Icons.attach_money,
-                                'Balance Inquiry',
-                                onBalance,
-                                const Key('atm-balance'),
-                              ),
-                              _rule(),
-                              _minor(
-                                Icons.description_outlined,
-                                'Bill Payment',
-                                onBills,
-                                const Key('atm-bills'),
-                              ),
-                              _rule(),
-                              _minor(
-                                Icons.receipt_long,
-                                'Mini Statement',
-                                onStatement,
-                                const Key('atm-statement'),
-                              ),
-                            ],
+                        for (var row = 0; row < 2; row++) ...[
+                          if (row > 0)
+                            Divider(height: 1, thickness: 1, color: skin.rule),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                for (var col = 0; col < 3; col++) ...[
+                                  if (col > 0)
+                                    Container(width: 1, color: skin.rule),
+                                  Expanded(
+                                    child: _slot(
+                                      minors[row * 3 + col],
+                                      2 + row * 3 + col,
+                                      major: false,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
-                        ),
-                        const Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: Color(0x22FFFFFF),
-                        ),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              _minor(
-                                Icons.public,
-                                'Internal Transfer',
-                                onTransfer,
-                                const Key('atm-transfer'),
-                              ),
-                              _rule(),
-                              _minor(
-                                Icons.dialpad,
-                                'PIN Change',
-                                onPin,
-                                const Key('atm-pin'),
-                              ),
-                              _rule(),
-                              _minor(
-                                Icons.credit_card,
-                                'Take card',
-                                onTake,
-                                const Key('atm-take'),
-                              ),
-                            ],
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -760,35 +1000,68 @@ class _Menu extends StatelessWidget {
     );
   }
 
-  Widget _minor(IconData icon, String label, VoidCallback onTap, Key key) {
-    return Expanded(
-      child: _Minor(icon: icon, label: label, onTap: onTap, tileKey: key),
-    );
+  Widget _slot(String id, int index, {required bool major}) {
+    final tile = major
+        ? _Major(
+            icon: _icon(id),
+            label: labelFor(id),
+            skin: skin,
+            selected: selected == id,
+            onTap: () => onOpen(id),
+            tileKey: Key('atm-$id'),
+          )
+        : _Minor(
+            icon: _icon(id),
+            label: labelFor(id),
+            skin: skin,
+            selected: selected == id,
+            onTap: () => onOpen(id),
+            tileKey: Key('atm-$id'),
+          );
+    return KeyedSubtree(key: Key('atm-slot-$index'), child: tile);
   }
 
-  Widget _rule() => Container(width: 1, color: const Color(0x22FFFFFF));
+  IconData _icon(String id) {
+    return switch (id) {
+      'deposit' => Icons.arrow_upward,
+      'balance' => Icons.attach_money,
+      'bills' => Icons.description_outlined,
+      'statement' => Icons.receipt_long,
+      'transfer' => Icons.public,
+      'settings' => Icons.settings,
+      'take' => Icons.credit_card,
+      _ => Icons.arrow_downward,
+    };
+  }
 }
 
 class _Major extends StatelessWidget {
   const _Major({
     required this.icon,
     required this.label,
+    required this.skin,
     required this.onTap,
     required this.tileKey,
+    this.selected = false,
   });
 
   final IconData icon;
   final String label;
+  final AtmSkin skin;
   final VoidCallback onTap;
   final Key tileKey;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       key: tileKey,
       onTap: onTap,
-      child: ColoredBox(
-        color: const Color(0xFFF4F1EA),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: skin.major,
+          border: selected ? Border.all(color: skin.primary, width: 3) : null,
+        ),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -798,9 +1071,9 @@ class _Major extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF16141C), width: 2),
+                  border: Border.all(color: skin.majorInk, width: 2),
                 ),
-                child: Icon(icon, color: const Color(0xFF16141C), size: 22),
+                child: Icon(icon, color: skin.majorInk, size: 22),
               ),
               const SizedBox(height: 10),
               Text(
@@ -808,8 +1081,8 @@ class _Major extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF16141C),
+                style: TextStyle(
+                  color: skin.majorInk,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   height: 1.15,
@@ -827,47 +1100,56 @@ class _Minor extends StatelessWidget {
   const _Minor({
     required this.icon,
     required this.label,
+    required this.skin,
     required this.onTap,
     required this.tileKey,
+    this.selected = false,
   });
 
   final IconData icon;
   final String label;
+  final AtmSkin skin;
   final VoidCallback onTap;
   final Key tileKey;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       key: tileKey,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: selected ? Border.all(color: skin.primary, width: 3) : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: skin.minorInk, width: 1.4),
+                ),
+                child: Icon(icon, color: skin.minorInk, size: 18),
               ),
-              child: Icon(icon, color: Colors.white, size: 18),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: skin.minorInk,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -875,11 +1157,17 @@ class _Minor extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.name, required this.now, required this.scale});
+  const _Header({
+    required this.name,
+    required this.now,
+    required this.scale,
+    required this.skin,
+  });
 
   final String name;
   final DateTime now;
   final double scale;
+  final AtmSkin skin;
 
   @override
   Widget build(BuildContext context) {
@@ -900,7 +1188,7 @@ class _Header extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: skin.title,
                   fontSize: 22 * scale,
                   fontWeight: FontWeight.w800,
                 ),
@@ -914,22 +1202,19 @@ class _Header extends StatelessWidget {
           children: [
             Text(
               '$month ${now.day}, $clock',
-              style: TextStyle(
-                color: const Color(0xFFB7B3C7),
-                fontSize: 12 * scale,
-              ),
+              style: TextStyle(color: skin.muted, fontSize: 12 * scale),
             ),
             SizedBox(width: 10 * scale),
             Text(
               '18°C',
               style: TextStyle(
-                color: Colors.white,
+                color: skin.title,
                 fontSize: 14 * scale,
                 fontWeight: FontWeight.w700,
               ),
             ),
             SizedBox(width: 6 * scale),
-            Icon(Icons.cloud, color: Colors.white, size: 16 * scale),
+            Icon(Icons.cloud, color: skin.title, size: 16 * scale),
           ],
         ),
       ],
@@ -970,21 +1255,25 @@ class _Mark extends StatelessWidget {
 }
 
 class _Footer extends StatelessWidget {
-  const _Footer({required this.scale, required this.onService});
+  const _Footer({
+    required this.scale,
+    required this.skin,
+    required this.service,
+    required this.onService,
+  });
 
   final double scale;
+  final AtmSkin skin;
+  final String service;
   final VoidCallback onService;
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(
-      color: const Color(0xFFB7B3C7),
-      fontSize: 12 * scale,
-    );
+    final style = TextStyle(color: skin.muted, fontSize: 12 * scale);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.phone, color: const Color(0xFFB7B3C7), size: 14 * scale),
+        Icon(Icons.phone, color: skin.muted, size: 14 * scale),
         const SizedBox(width: 6),
         Flexible(
           child: Text(
@@ -999,7 +1288,7 @@ class _Footer extends StatelessWidget {
         GestureDetector(
           key: const Key('atm-service'),
           onTap: onService,
-          child: Text('Service', style: style),
+          child: Text(service, style: style),
         ),
       ],
     );
@@ -1034,21 +1323,32 @@ class _PeakPainter extends CustomPainter {
 }
 
 class _AtmBackdrop extends CustomPainter {
-  const _AtmBackdrop();
+  const _AtmBackdrop({required this.skin, required this.veil});
+
+  final AtmSkin skin;
+  final bool veil;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
+    if (veil) {
+      canvas.drawRect(
+        rect,
+        Paint()..color = skin.washB.withValues(alpha: 0.78),
+      );
+      return;
+    }
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF221C38), Color(0xFF14121C), Color(0xFF10141E)],
+          colors: [skin.washA, skin.washB, skin.washC],
         ).createShader(rect),
     );
-    final dot = Paint()..color = const Color(0x12FFFFFF);
+    final dot = Paint()
+      ..color = skin.light ? const Color(0x18000000) : const Color(0x12FFFFFF);
     const gap = 22.0;
     for (var y = 0.0; y < size.height; y += gap) {
       for (
@@ -1062,5 +1362,6 @@ class _AtmBackdrop extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _AtmBackdrop oldDelegate) =>
+      oldDelegate.skin.id != skin.id || oldDelegate.veil != veil;
 }
