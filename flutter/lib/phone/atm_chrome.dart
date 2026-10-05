@@ -339,6 +339,45 @@ AtmSkin atmSkinFor(String id) {
   return kAtmSkins.first;
 }
 
+const kAtmDefaultNotes = [20, 50, 100];
+
+/// Note sizes saved on the machine, or the standard 20, 50, and 100.
+List<int> atmNotes(OsSettings os) {
+  final notes = os.bankNotes.where((note) => note > 0).toSet().toList()..sort();
+  if (notes.isEmpty) return kAtmDefaultNotes;
+  return notes;
+}
+
+/// Comma, space, or other separators. Duplicates are dropped and the rest sorted.
+List<int> parseAtmNotes(String raw) {
+  final notes = <int>{};
+  for (final part in raw.split(RegExp(r'[^0-9]+'))) {
+    if (part.isEmpty) continue;
+    final value = int.tryParse(part);
+    if (value == null || value < 1 || value > 10000) continue;
+    notes.add(value);
+    if (notes.length == 8) break;
+  }
+  return notes.toList()..sort();
+}
+
+/// Whether [amount] can be paid using unlimited copies of [notes].
+bool atmCanDispense(int amount, List<int> notes) {
+  if (amount <= 0) return false;
+  final denom = notes.where((note) => note > 0).toSet().toList();
+  if (denom.isEmpty || amount > 200000) return false;
+  final reach = List<bool>.filled(amount + 1, false);
+  reach[0] = true;
+  for (var total = 0; total <= amount; total++) {
+    if (!reach[total]) continue;
+    for (final note in denom) {
+      final next = total + note;
+      if (next <= amount) reach[next] = true;
+    }
+  }
+  return reach[amount];
+}
+
 List<String> atmPanels(OsSettings os) {
   final saved = [
     for (final id in os.homeOrder)
@@ -439,6 +478,10 @@ const _en = <String, String>{
   'userName': 'User name',
   'time': 'Time',
   'temperature': 'Temperature',
+  'notes': 'Note sizes',
+  'customAmount': 'Custom amount',
+  'customUse': 'Withdraw amount',
+  'notNotes': 'That amount cannot be made from these notes.',
   'language': 'Language',
   'background': 'Background',
   'upload': 'Upload background',
@@ -518,6 +561,10 @@ const _packs = <String, Map<String, String>>{
     'userName': 'Nombre de usuario',
     'time': 'Hora',
     'temperature': 'Temperatura',
+    'notes': 'Billetes',
+    'customAmount': 'Importe personalizado',
+    'customUse': 'Retirar importe',
+    'notNotes': 'Ese importe no se puede formar con estos billetes.',
     'language': 'Idioma',
     'background': 'Fondo',
     'upload': 'Subir fondo',
@@ -553,6 +600,10 @@ const _packs = <String, Map<String, String>>{
     'userName': 'Nom d’utilisateur',
     'time': 'Heure',
     'temperature': 'Température',
+    'notes': 'Billets',
+    'customAmount': 'Montant libre',
+    'customUse': 'Retirer ce montant',
+    'notNotes': 'Ce montant ne peut pas être composé avec ces billets.',
     'language': 'Langue',
     'background': 'Fond',
     'upload': 'Importer un fond',
@@ -594,6 +645,10 @@ const _packs = <String, Map<String, String>>{
     'userName': 'Benutzername',
     'time': 'Uhrzeit',
     'temperature': 'Temperatur',
+    'notes': 'Scheine',
+    'customAmount': 'Eigener Betrag',
+    'customUse': 'Betrag abheben',
+    'notNotes': 'Dieser Betrag lässt sich nicht aus diesen Scheinen bilden.',
     'language': 'Sprache',
     'background': 'Hintergrund',
     'upload': 'Hintergrund hochladen',
@@ -634,6 +689,10 @@ const _packs = <String, Map<String, String>>{
     'userName': '利用者名',
     'time': '時刻',
     'temperature': '気温',
+    'notes': '紙幣',
+    'customAmount': '金額を入力',
+    'customUse': 'この金額を出金',
+    'notNotes': 'この紙幣ではその金額を出せません。',
     'language': '言語',
     'background': '背景',
     'upload': '背景をアップロード',
@@ -674,6 +733,10 @@ const _packs = <String, Map<String, String>>{
     'userName': '用户名',
     'time': '时间',
     'temperature': '温度',
+    'notes': '纸币面额',
+    'customAmount': '自定义金额',
+    'customUse': '取此金额',
+    'notNotes': '这些纸币无法组成该金额。',
     'language': '语言',
     'background': '背景',
     'upload': '上传背景',
@@ -699,6 +762,10 @@ const _packs = <String, Map<String, String>>{
     'userName': 'Nome do utilizador',
     'time': 'Hora',
     'temperature': 'Temperatura',
+    'notes': 'Notas',
+    'customAmount': 'Valor personalizado',
+    'customUse': 'Levantar valor',
+    'notNotes': 'Esse valor não pode ser formado com estas notas.',
     'language': 'Idioma',
     'background': 'Fundo',
     'upload': 'Carregar fundo',
@@ -724,6 +791,10 @@ const _packs = <String, Map<String, String>>{
     'userName': 'Nome utente',
     'time': 'Ora',
     'temperature': 'Temperatura',
+    'notes': 'Banconote',
+    'customAmount': 'Importo personalizzato',
+    'customUse': 'Preleva importo',
+    'notNotes': 'Questo importo non si può comporre con queste banconote.',
     'language': 'Lingua',
     'background': 'Sfondo',
     'upload': 'Carica sfondo',
@@ -742,6 +813,10 @@ const _packs = <String, Map<String, String>>{
     'userName': 'Gebruikersnaam',
     'time': 'Tijd',
     'temperature': 'Temperatuur',
+    'notes': 'Biljetten',
+    'customAmount': 'Eigen bedrag',
+    'customUse': 'Bedrag opnemen',
+    'notNotes': 'Dit bedrag kan niet met deze biljetten worden gemaakt.',
     'language': 'Taal',
     'background': 'Achtergrond',
     'upload': 'Achtergrond uploaden',

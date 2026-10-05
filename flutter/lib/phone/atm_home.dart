@@ -38,6 +38,8 @@ class _AtmScreenState extends State<AtmScreen> {
   late final TextEditingController _userName;
   late final TextEditingController _time;
   late final TextEditingController _temperature;
+  late final TextEditingController _notes;
+  late final TextEditingController _customAmount;
 
   @override
   void initState() {
@@ -49,6 +51,8 @@ class _AtmScreenState extends State<AtmScreen> {
       text: atmClock(propNow(current.clockOffsetMinutes)),
     );
     _temperature = TextEditingController(text: '${current.os.temperature}');
+    _notes = TextEditingController(text: atmNotes(current.os).join(', '));
+    _customAmount = TextEditingController();
   }
 
   @override
@@ -57,6 +61,8 @@ class _AtmScreenState extends State<AtmScreen> {
     _userName.dispose();
     _time.dispose();
     _temperature.dispose();
+    _notes.dispose();
+    _customAmount.dispose();
     super.dispose();
   }
 
@@ -113,9 +119,18 @@ class _AtmScreenState extends State<AtmScreen> {
   }
 
   void _chooseAmount(int amount) {
+    if (amount <= 0) return;
     if (amount > os.bankBalance) {
       setState(() {
         _message = _t('unavailable');
+        _errorBack = 'amount';
+        _step = 'error';
+      });
+      return;
+    }
+    if (!atmCanDispense(amount, atmNotes(os))) {
+      setState(() {
+        _message = _t('notNotes');
         _errorBack = 'amount';
         _step = 'error';
       });
@@ -125,6 +140,29 @@ class _AtmScreenState extends State<AtmScreen> {
       _amount = amount;
       _step = 'review';
     });
+  }
+
+  void _submitCustom() {
+    final amount = int.tryParse(_customAmount.text.trim());
+    if (amount == null) return;
+    _chooseAmount(amount);
+  }
+
+  void _applyNotes(String value) {
+    final notes = parseAtmNotes(value);
+    if (notes.isEmpty) return;
+    final saved = os.bankNotes;
+    if (notes.length == saved.length) {
+      var same = true;
+      for (var i = 0; i < notes.length; i++) {
+        if (notes[i] != saved[i]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+    _save((current) => current.copyWith(bankNotes: notes));
   }
 
   void _commitWithdraw() {
@@ -279,6 +317,7 @@ class _AtmScreenState extends State<AtmScreen> {
           _choice(_t('cancel'), () => _go('menu')),
         ]);
       case 'amount':
+        final notes = atmNotes(os);
         return _prompt(
           scale,
           _t('chooseAmount'),
@@ -288,13 +327,14 @@ class _AtmScreenState extends State<AtmScreen> {
             'balance': '${os.bankBalance}',
           }),
           [
-            for (final amount in [20, 40, 60, 100])
+            for (final amount in notes)
               _choice(
                 '${os.bankCurrency} $amount',
                 () => _chooseAmount(amount),
                 key: Key('atm-amount-$amount'),
-                primary: amount == 20,
+                primary: amount == notes.first,
               ),
+            _customAmountField(scale),
             _choice(_t('back'), () => _go('withdraw')),
           ],
         );
@@ -587,6 +627,14 @@ class _AtmScreenState extends State<AtmScreen> {
             _section(_t('currency'), scale),
             _currencyMenu(scale),
             SizedBox(height: 14 * scale),
+            _nameField(
+              scale,
+              _t('notes'),
+              _notes,
+              _applyNotes,
+              key: const Key('atm-notes'),
+            ),
+            SizedBox(height: 14 * scale),
             _section(_t('language'), scale),
             SizedBox(
               height: 46,
@@ -684,6 +732,53 @@ class _AtmScreenState extends State<AtmScreen> {
           primary: true,
         ),
       ],
+    );
+  }
+
+  Widget _customAmountField(double scale) {
+    return SizedBox(
+      width: 420,
+      child: Column(
+        children: [
+          _section(_t('customAmount'), scale),
+          Material(
+            color: skin.keyFill,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: skin.rule),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: TextField(
+              key: const Key('atm-custom-amount'),
+              controller: _customAmount,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              style: TextStyle(
+                color: skin.keyInk,
+                fontSize: 16 * scale,
+                fontWeight: FontWeight.w700,
+              ),
+              cursorColor: skin.primary,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+              ),
+              onSubmitted: (_) => _submitCustom(),
+            ),
+          ),
+          SizedBox(height: 8 * scale),
+          _choice(
+            _t('customUse'),
+            _submitCustom,
+            key: const Key('atm-custom-use'),
+            primary: true,
+          ),
+        ],
+      ),
     );
   }
 

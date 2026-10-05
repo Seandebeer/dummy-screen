@@ -15,6 +15,14 @@ Future<void> _digits(WidgetTester tester, String pin) async {
 }
 
 void main() {
+  test('standard notes make 40 and 70 but not 30', () {
+    expect(atmCanDispense(40, kAtmDefaultNotes), isTrue);
+    expect(atmCanDispense(70, kAtmDefaultNotes), isTrue);
+    expect(atmCanDispense(20, kAtmDefaultNotes), isTrue);
+    expect(atmCanDispense(30, kAtmDefaultNotes), isFalse);
+    expect(parseAtmNotes('100, 20, 20, 50'), [20, 50, 100]);
+  });
+
   test('an atm uses a landscape ipad frame', () {
     final metrics = metricsFor('atm');
     expect(metrics.aspect, 4 / 3);
@@ -164,6 +172,7 @@ void main() {
     expect(find.text('User name'), findsOneWidget);
     expect(find.text('Time'), findsOneWidget);
     expect(find.text('Temperature'), findsOneWidget);
+    expect(find.text('Note sizes'), findsOneWidget);
     expect(find.text('Currency'), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
 
@@ -213,6 +222,12 @@ void main() {
     expect(store.deviceById('atm-1')!.os.bankCurrency, 'UAH');
     expect(find.textContaining('UAH — Ukrainian hryvnia'), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('atm-notes')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('atm-notes')), '10, 20, 50');
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.bankNotes, [10, 20, 50]);
+
     await tester.ensureVisible(find.byKey(const Key('atm-language-es')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-language-es')));
@@ -257,6 +272,60 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a custom withdrawal must match the note sizes', (tester) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+    final device = PropDevice(
+      id: 'atm-1',
+      name: 'Lobby atm',
+      projectId: 'sandbox',
+      kind: 'atm',
+    );
+    store.upsertDevice(device);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: AtmScreen(store: store, device: device),
+      ),
+    );
+    await _digits(tester, '12345');
+    await tester.tap(find.byKey(const Key('atm-withdraw')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-account-checking')));
+    await tester.pump();
+    expect(find.byKey(const Key('atm-amount-20')), findsOneWidget);
+    expect(find.byKey(const Key('atm-amount-50')), findsOneWidget);
+    expect(find.byKey(const Key('atm-amount-100')), findsOneWidget);
+    expect(find.byKey(const Key('atm-amount-40')), findsNothing);
+
+    await tester.ensureVisible(find.byKey(const Key('atm-custom-amount')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('atm-custom-amount')), '30');
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('atm-custom-use')));
+    await tester.tap(find.byKey(const Key('atm-custom-use')));
+    await tester.pump();
+    expect(
+      find.text('That amount cannot be made from these notes.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Back'));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('atm-custom-amount')), '40');
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('atm-custom-use')));
+    await tester.tap(find.byKey(const Key('atm-custom-use')));
+    await tester.pump();
+    expect(find.text('Confirm withdrawal'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('atm-confirm')));
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.bankBalance, 2440);
     expect(tester.takeException(), isNull);
   });
 }

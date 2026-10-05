@@ -82,6 +82,7 @@ class OsSettings {
     this.bankBalance = 2480,
     this.bankCurrency = 'USD',
     this.temperature = 18,
+    this.bankNotes = const [20, 50, 100],
   });
 
   final String theme;
@@ -134,6 +135,9 @@ class OsSettings {
   /// Prop temperature shown on the ATM header, in Celsius.
   final int temperature;
 
+  /// Note sizes this ATM can dispense, smallest first.
+  final List<int> bankNotes;
+
   bool get isLight => theme == 'light';
 
   int get ringDelaySeconds {
@@ -182,6 +186,7 @@ class OsSettings {
     int? bankBalance,
     String? bankCurrency,
     int? temperature,
+    List<int>? bankNotes,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -222,6 +227,7 @@ class OsSettings {
     bankBalance: bankBalance ?? this.bankBalance,
     bankCurrency: bankCurrency ?? this.bankCurrency,
     temperature: temperature ?? this.temperature,
+    bankNotes: bankNotes ?? this.bankNotes,
   );
 
   Map<String, dynamic> toJson() => {
@@ -264,6 +270,7 @@ class OsSettings {
     'bankBalance': bankBalance,
     'bankCurrency': bankCurrency,
     'temperature': temperature,
+    'bankNotes': bankNotes,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -324,6 +331,7 @@ class OsSettings {
       bankBalance: (json['bankBalance'] as num?)?.toInt() ?? 2480,
       bankCurrency: json['bankCurrency'] as String? ?? 'USD',
       temperature: _atmTemperature(json['temperature']),
+      bankNotes: _atmNotes(json['bankNotes']),
     );
   }
 
@@ -365,6 +373,7 @@ class OsSettings {
         bankBalance == other.bankBalance &&
         bankCurrency == other.bankCurrency &&
         temperature == other.temperature &&
+        _sameInts(bankNotes, other.bankNotes) &&
         _sameCodes(dialCodes, other.dialCodes) &&
         _sameOrder(homeOrder, other.homeOrder) &&
         _samePeople(people, other.people) &&
@@ -403,6 +412,7 @@ class OsSettings {
     Object.hashAll(people.map((person) => person.name)),
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
     temperature,
+    Object.hashAll(bankNotes),
   ]);
 }
 
@@ -482,6 +492,26 @@ bool _sameGlyphs(List<CustomGlyph> a, List<CustomGlyph> b) {
         a[i].image != b[i].image) {
       return false;
     }
+  }
+  return true;
+}
+
+List<int> _atmNotes(Object? raw) {
+  final notes = <int>{};
+  for (final item in jsonList(raw)) {
+    final value = item is num ? item.toInt() : int.tryParse('$item');
+    if (value == null || value < 1 || value > 10000) continue;
+    notes.add(value);
+    if (notes.length == 8) break;
+  }
+  if (notes.isEmpty) return const [20, 50, 100];
+  return notes.toList()..sort();
+}
+
+bool _sameInts(List<int> a, List<int> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
   }
   return true;
 }
