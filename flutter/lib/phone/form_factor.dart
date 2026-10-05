@@ -5,6 +5,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'ps2_home.dart';
 import 'ps5_home.dart';
 import 'xbox_360.dart';
 import 'xbox_series.dart';
@@ -48,11 +49,7 @@ const kSandboxKinds = [
 ];
 
 class DeviceBezel extends StatelessWidget {
-  const DeviceBezel({
-    super.key,
-    required this.frame,
-    required this.child,
-  });
+  const DeviceBezel({super.key, required this.frame, required this.child});
 
   final String frame;
   final Widget child;
@@ -71,7 +68,11 @@ class DeviceBezel extends StatelessWidget {
         color: const Color(0xFF1A1A1E),
         borderRadius: BorderRadius.circular(radius + 8),
         boxShadow: const [
-          BoxShadow(color: Color(0x66000000), blurRadius: 28, offset: Offset(0, 16)),
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 28,
+            offset: Offset(0, 16),
+          ),
         ],
       ),
       child: Padding(
@@ -126,26 +127,26 @@ class _FormOsState extends State<FormOs> {
   Widget build(BuildContext context) {
     return switch (device.kind) {
       'tv' => _TvOs(
-          shell: os.shell.isEmpty ? 'aurora' : os.shell,
-          onShell: _shell,
-          app: _app,
-          onOpen: (id) => setState(() => _app = id),
-        ),
+        shell: os.shell.isEmpty ? 'aurora' : os.shell,
+        onShell: _shell,
+        app: _app,
+        onOpen: (id) => setState(() => _app = id),
+      ),
       'console' => _ConsoleOs(
-          store: widget.store,
-          device: device,
-          app: _app,
-          onOpen: (id) => setState(() => _app = id),
-        ),
+        store: widget.store,
+        device: device,
+        app: _app,
+        onOpen: (id) => setState(() => _app = id),
+      ),
       'atm' => _AtmOs(store: widget.store, device: device),
       'cctv' => const _CctvOs(),
       'smarthome' => _HomeOs(store: widget.store, device: device),
       _ => _ComputerOs(
-          shell: os.shell.isEmpty ? 'macos' : os.shell,
-          onShell: _shell,
-          app: _app,
-          onOpen: (id) => setState(() => _app = id),
-        ),
+        shell: os.shell.isEmpty ? 'macos' : os.shell,
+        onShell: _shell,
+        app: _app,
+        onOpen: (id) => setState(() => _app = id),
+      ),
     };
   }
 }
@@ -222,7 +223,11 @@ class _ComputerOs extends StatelessWidget {
     }
   }
 
-  bool get _classic => shell == 'system7' || shell == 'mac9' || shell == 'win95' || shell == 'win98';
+  bool get _classic =>
+      shell == 'system7' ||
+      shell == 'mac9' ||
+      shell == 'win95' ||
+      shell == 'win98';
 
   @override
   Widget build(BuildContext context) {
@@ -270,14 +275,28 @@ class _ComputerOs extends StatelessWidget {
   }
 
   Widget _menu(Color ink) {
-    final label = _computerShells.firstWhere((item) => item.$1 == shell, orElse: () => _computerShells.first).$2;
+    final label = _computerShells
+        .firstWhere(
+          (item) => item.$1 == shell,
+          orElse: () => _computerShells.first,
+        )
+        .$2;
     return Container(
       height: 28,
-      color: _classic ? const Color(0xFFF4F4F4) : Colors.black.withValues(alpha: 0.35),
+      color: _classic
+          ? const Color(0xFFF4F4F4)
+          : Colors.black.withValues(alpha: 0.35),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         children: [
-          Text(label, style: TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              color: ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const Spacer(),
           PopupMenuButton<String>(
             tooltip: 'System',
@@ -375,16 +394,25 @@ class _Window extends StatelessWidget {
           children: [
             Container(
               height: 32,
-              color: classic ? const Color(0xFF000080) : const Color(0xFF2A2A30),
+              color: classic
+                  ? const Color(0xFF000080)
+                  : const Color(0xFF2A2A30),
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    child: Text(
+                      title,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
                   ),
                   IconButton(
                     onPressed: onClose,
-                    icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ],
               ),
@@ -407,7 +435,9 @@ class _DeskTool extends StatefulWidget {
 }
 
 class _DeskToolState extends State<_DeskTool> {
-  final _doc = TextEditingController(text: 'Scene 47 — the call beats were trimmed.');
+  final _doc = TextEditingController(
+    text: 'Scene 47 — the call beats were trimmed.',
+  );
   String _term = 'prop@stage:~\$ ';
 
   @override
@@ -422,15 +452,27 @@ class _DeskToolState extends State<_DeskTool> {
       case 'call':
         return const _CallMock();
       case 'tracking':
-        return const CustomPaint(painter: _CrossPainter(), child: SizedBox.expand());
+        return const CustomPaint(
+          painter: _CrossPainter(),
+          child: SizedBox.expand(),
+        );
       case 'markers':
-        return const CustomPaint(painter: _MarkerPainter(), child: SizedBox.expand());
+        return const CustomPaint(
+          painter: _MarkerPainter(),
+          child: SizedBox.expand(),
+        );
       case 'video':
-        return const Center(child: Icon(Icons.play_circle_fill, size: 64, color: Colors.white));
+        return const Center(
+          child: Icon(Icons.play_circle_fill, size: 64, color: Colors.white),
+        );
       case 'word':
         return Padding(
           padding: const EdgeInsets.all(12),
-          child: TextField(controller: _doc, maxLines: null, decoration: const InputDecoration(border: InputBorder.none)),
+          child: TextField(
+            controller: _doc,
+            maxLines: null,
+            decoration: const InputDecoration(border: InputBorder.none),
+          ),
         );
       case 'excel':
         return GridView.count(
@@ -439,8 +481,13 @@ class _DeskToolState extends State<_DeskTool> {
             for (var i = 0; i < 24; i++)
               Container(
                 alignment: Alignment.center,
-                decoration: BoxDecoration(border: Border.all(color: Colors.white24)),
-                child: Text(i == 0 ? '' : '$i', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Text(
+                  i == 0 ? '' : '$i',
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                ),
               ),
           ],
         );
@@ -450,9 +497,19 @@ class _DeskToolState extends State<_DeskTool> {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
-              style: const TextStyle(color: Color(0xFF3DDC84), fontFamily: 'monospace', fontSize: 13),
-              decoration: InputDecoration(border: InputBorder.none, hintText: _term, hintStyle: const TextStyle(color: Color(0xFF3DDC84))),
-              onSubmitted: (value) => setState(() => _term = 'prop@stage:~\$ $value\nprop@stage:~\$ '),
+              style: const TextStyle(
+                color: Color(0xFF3DDC84),
+                fontFamily: 'monospace',
+                fontSize: 13,
+              ),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: _term,
+                hintStyle: const TextStyle(color: Color(0xFF3DDC84)),
+              ),
+              onSubmitted: (value) => setState(
+                () => _term = 'prop@stage:~\$ $value\nprop@stage:~\$ ',
+              ),
             ),
           ),
         );
@@ -460,9 +517,18 @@ class _DeskToolState extends State<_DeskTool> {
         return ListView(
           padding: const EdgeInsets.all(12),
           children: const [
-            Text('Studio feed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text(
+              'Studio feed',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             SizedBox(height: 8),
-            Text('Call time moved to 18:00. Marks are approved for the insert.', style: TextStyle(color: Colors.white70)),
+            Text(
+              'Call time moved to 18:00. Marks are approved for the insert.',
+              style: TextStyle(color: Colors.white70),
+            ),
           ],
         );
       case 'photos':
@@ -470,15 +536,33 @@ class _DeskToolState extends State<_DeskTool> {
           padding: const EdgeInsets.all(8),
           crossAxisCount: 4,
           children: [
-            for (final color in [0xFF318DF6, 0xFF30D158, 0xFFFF9F0A, 0xFFFF453A, 0xFF5E5CE6, 0xFF64D2FF, 0xFFFFD60A, 0xFFBF5AF2])
+            for (final color in [
+              0xFF318DF6,
+              0xFF30D158,
+              0xFFFF9F0A,
+              0xFFFF453A,
+              0xFF5E5CE6,
+              0xFF64D2FF,
+              0xFFFFD60A,
+              0xFFBF5AF2,
+            ])
               ColoredBox(color: Color(color)),
           ],
         );
       default:
         return ListView(
           children: const [
-            ListTile(title: Text('Night shoot', style: TextStyle(color: Colors.white)), subtitle: Text('Studio playlist')),
-            ListTile(title: Text('Playback ref', style: TextStyle(color: Colors.white)), subtitle: Text('Insert cues')),
+            ListTile(
+              title: Text('Night shoot', style: TextStyle(color: Colors.white)),
+              subtitle: Text('Studio playlist'),
+            ),
+            ListTile(
+              title: Text(
+                'Playback ref',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: Text('Insert cues'),
+            ),
           ],
         );
     }
@@ -497,9 +581,15 @@ class _CallMock extends StatelessWidget {
         children: const [
           CircleAvatar(radius: 36, child: Icon(Icons.person, size: 36)),
           SizedBox(height: 12),
-          Text('Video call', style: TextStyle(color: Colors.white, fontSize: 18)),
+          Text(
+            'Video call',
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
           SizedBox(height: 4),
-          Text('Waiting for the far end', style: TextStyle(color: Colors.white54)),
+          Text(
+            'Waiting for the far end',
+            style: TextStyle(color: Colors.white54),
+          ),
         ],
       ),
     );
@@ -514,9 +604,21 @@ class _CrossPainter extends CustomPainter {
     final paint = Paint()
       ..color = const Color(0xFF39FF6A)
       ..strokeWidth = 2;
-    canvas.drawLine(Offset(size.width / 2, 0), Offset(size.width / 2, size.height), paint);
-    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), paint);
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 18, paint..style = PaintingStyle.stroke);
+    canvas.drawLine(
+      Offset(size.width / 2, 0),
+      Offset(size.width / 2, size.height),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      18,
+      paint..style = PaintingStyle.stroke,
+    );
   }
 
   @override
@@ -560,7 +662,11 @@ class _TvOs extends StatelessWidget {
   final String? app;
   final ValueChanged<String?> onOpen;
 
-  static const _shells = [('aurora', 'Aurora'), ('slate', 'Slate'), ('neon', 'Neon')];
+  static const _shells = [
+    ('aurora', 'Aurora'),
+    ('slate', 'Slate'),
+    ('neon', 'Neon'),
+  ];
   static const _apps = [
     ('films', 'Films', Icons.movie),
     ('shows', 'Shows', Icons.live_tv),
@@ -597,7 +703,11 @@ class _TvOs extends StatelessWidget {
                     children: [
                       Text(
                         _shells.firstWhere((item) => item.$1 == shell).$2,
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const Spacer(),
                       PopupMenuButton<String>(
@@ -632,7 +742,13 @@ class _TvOs extends StatelessWidget {
                               children: [
                                 Icon(item.$3, color: Colors.white),
                                 const SizedBox(height: 6),
-                                Text(item.$2, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                Text(
+                                  item.$2,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -661,12 +777,24 @@ class _TvApp extends StatelessWidget {
         children: [
           Row(
             children: [
-              IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back, color: Colors.white)),
-              Text(id, style: const TextStyle(color: Colors.white, fontSize: 18)),
+              IconButton(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              Text(
+                id,
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+              ),
             ],
           ),
           const Expanded(
-            child: Center(child: Icon(Icons.play_circle_outline, color: Colors.white54, size: 72)),
+            child: Center(
+              child: Icon(
+                Icons.play_circle_outline,
+                color: Colors.white54,
+                size: 72,
+              ),
+            ),
           ),
         ],
       ),
@@ -699,79 +827,103 @@ class _ConsoleOs extends StatelessWidget {
     final shell = device.os.shell.isEmpty ? 'xbox' : device.os.shell;
     final bg = switch (shell) {
       'ps5' => const Color(0xFF07111F),
-      'ps2' => const Color(0xFF0A0A12),
+      'ps2' => const Color(0xFF8A8C90),
       'x360' => const Color(0xFF6E706F),
       _ => const Color(0xFF061803),
     };
     final cover = imageProviderForPath(device.os.steamCover);
-    void onShell(String id) => store.updateOs(device.id, (os) => os.copyWith(shell: id));
+    void onShell(String id) =>
+        store.updateOs(device.id, (os) => os.copyWith(shell: id));
     final home = switch (shell) {
       'xbox' => XboxSeriesHome(
-          store: store,
-          device: device,
-          onOpen: onOpen,
-          onShell: onShell,
-        ),
+        store: store,
+        device: device,
+        onOpen: onOpen,
+        onShell: onShell,
+      ),
       'x360' => Xbox360Home(
-          store: store,
-          device: device,
-          onOpen: onOpen,
-          onShell: onShell,
-        ),
+        store: store,
+        device: device,
+        onOpen: onOpen,
+        onShell: onShell,
+      ),
       'ps5' => Ps5Home(
-          store: store,
-          device: device,
-          onOpen: onOpen,
-          onShell: onShell,
-        ),
+        store: store,
+        device: device,
+        onOpen: onOpen,
+        onShell: onShell,
+      ),
+      'ps2' => Ps2Home(
+        store: store,
+        device: device,
+        onOpen: onOpen,
+        onShell: onShell,
+      ),
       _ => Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Text(
-                      _shells.firstWhere((item) => item.$1 == shell, orElse: () => _shells.first).$2,
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                    ),
-                    const Spacer(),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.settings, color: Colors.white),
-                      onSelected: (id) => store.updateOs(device.id, (os) => os.copyWith(shell: id)),
-                      itemBuilder: (context) => [
-                        for (final item in _shells)
-                          PopupMenuItem(value: item.$1, child: Text(item.$2)),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _GameTile(
-                        title: device.os.steamTitle.isEmpty ? 'Steam game' : device.os.steamTitle,
-                        image: cover,
-                        onTap: () => onOpen('steam'),
-                      ),
-                      for (final title in ['Night Run', 'Harbor', 'Signal', 'Relay'])
-                        _GameTile(title: title, onTap: () => onOpen(title)),
-                    ],
+                Text(
+                  _shells
+                      .firstWhere(
+                        (item) => item.$1 == shell,
+                        orElse: () => _shells.first,
+                      )
+                      .$2,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                   ),
+                ),
+                const Spacer(),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.settings, color: Colors.white),
+                  onSelected: (id) =>
+                      store.updateOs(device.id, (os) => os.copyWith(shell: id)),
+                  itemBuilder: (context) => [
+                    for (final item in _shells)
+                      PopupMenuItem(value: item.$1, child: Text(item.$2)),
+                  ],
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _GameTile(
+                    title: device.os.steamTitle.isEmpty
+                        ? 'Steam game'
+                        : device.os.steamTitle,
+                    image: cover,
+                    onTap: () => onOpen('steam'),
+                  ),
+                  for (final title in [
+                    'Night Run',
+                    'Harbor',
+                    'Signal',
+                    'Relay',
+                  ])
+                    _GameTile(title: title, onTap: () => onOpen(title)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     };
     return Material(
       color: bg,
       child: app == null
           ? home
           : app == 'steam'
-              ? _SteamPane(store: store, device: device, onBack: () => onOpen(null))
-              : _NowPlaying(title: app!, onBack: () => onOpen(null)),
+          ? _SteamPane(store: store, device: device, onBack: () => onOpen(null))
+          : _NowPlaying(title: app!, onBack: () => onOpen(null)),
     );
   }
 }
@@ -794,11 +946,19 @@ class _GameTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.black26,
             borderRadius: BorderRadius.circular(8),
-            image: image == null ? null : DecorationImage(image: image!, fit: BoxFit.cover),
+            image: image == null
+                ? null
+                : DecorationImage(image: image!, fit: BoxFit.cover),
           ),
           alignment: Alignment.bottomLeft,
           padding: const EdgeInsets.all(8),
-          child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ),
     );
@@ -818,10 +978,20 @@ class _NowPlaying extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back, color: Colors.white)),
+          IconButton(
+            onPressed: onBack,
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
           Expanded(
             child: Center(
-              child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700)),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ],
@@ -831,7 +1001,11 @@ class _NowPlaying extends StatelessWidget {
 }
 
 class _SteamPane extends StatefulWidget {
-  const _SteamPane({required this.store, required this.device, required this.onBack});
+  const _SteamPane({
+    required this.store,
+    required this.device,
+    required this.onBack,
+  });
 
   final StageStore store;
   final PropDevice device;
@@ -842,7 +1016,9 @@ class _SteamPane extends StatefulWidget {
 }
 
 class _SteamPaneState extends State<_SteamPane> {
-  late final TextEditingController _title = TextEditingController(text: widget.device.os.steamTitle);
+  late final TextEditingController _title = TextEditingController(
+    text: widget.device.os.steamTitle,
+  );
 
   @override
   void dispose() {
@@ -861,8 +1037,18 @@ class _SteamPaneState extends State<_SteamPane> {
           children: [
             Row(
               children: [
-                IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back, color: Colors.white)),
-                const Text('Steam', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                IconButton(
+                  onPressed: widget.onBack,
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                ),
+                const Text(
+                  'Steam',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
             const Text(
@@ -873,7 +1059,10 @@ class _SteamPaneState extends State<_SteamPane> {
             TextField(
               controller: _title,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(hintText: 'Game title', hintStyle: TextStyle(color: Colors.white38)),
+              decoration: const InputDecoration(
+                hintText: 'Game title',
+                hintStyle: TextStyle(color: Colors.white38),
+              ),
               onSubmitted: (value) => widget.store.updateOs(
                 widget.device.id,
                 (os) => os.copyWith(steamTitle: value.trim()),
@@ -885,13 +1074,18 @@ class _SteamPaneState extends State<_SteamPane> {
               children: [
                 OutlinedButton(
                   onPressed: () async {
-                    final file = await FilePicker.pickFile(type: FileType.image);
+                    final file = await FilePicker.pickFile(
+                      type: FileType.image,
+                    );
                     if (file == null) return;
                     final path = await persistPickedImage(file);
                     if (path == null) return;
                     widget.store.updateOs(
                       widget.device.id,
-                      (os) => os.copyWith(steamCover: path, steamTitle: _title.text.trim()),
+                      (os) => os.copyWith(
+                        steamCover: path,
+                        steamTitle: _title.text.trim(),
+                      ),
                     );
                   },
                   child: const Text('Upload cover'),
@@ -899,7 +1093,11 @@ class _SteamPaneState extends State<_SteamPane> {
                 FilledButton(
                   onPressed: () => widget.store.updateOs(
                     widget.device.id,
-                    (os) => os.copyWith(steamTitle: _title.text.trim().isEmpty ? 'Steam game' : _title.text.trim()),
+                    (os) => os.copyWith(
+                      steamTitle: _title.text.trim().isEmpty
+                          ? 'Steam game'
+                          : _title.text.trim(),
+                    ),
                   ),
                   child: const Text('Launch'),
                 ),
@@ -944,7 +1142,14 @@ class _AtmOsState extends State<_AtmOs> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(os.bankName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+            Text(
+              os.bankName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             Text(os.bankHolder, style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 16),
             Expanded(child: _body()),
@@ -957,10 +1162,14 @@ class _AtmOsState extends State<_AtmOs> {
   Widget _body() {
     switch (_step) {
       case 'card':
-        return _panel('Insert card', 'The card stays on this screen. Nothing is sent to a bank.', [
-          _btn('Card inserted', () => _go('pin')),
-          _btn('Cancel', () => _go('cancelled')),
-        ]);
+        return _panel(
+          'Insert card',
+          'The card stays on this screen. Nothing is sent to a bank.',
+          [
+            _btn('Card inserted', () => _go('pin')),
+            _btn('Cancel', () => _go('cancelled')),
+          ],
+        );
       case 'pin':
         return _panel('Enter PIN', _pin.padRight(4, '·'), [
           Wrap(
@@ -991,23 +1200,39 @@ class _AtmOsState extends State<_AtmOs> {
           _btn('Another transaction', () => _go('accounts')),
         ]);
       case 'withdraw':
-        return _panel('Withdraw', _amount == 0 ? 'Choose an amount' : '${os.bankCurrency} $_amount', [
-          for (final amount in [20, 40, 60, 100])
-            _btn('$amount', () => setState(() {
-              if (amount > os.bankBalance) {
-                _message = 'That amount is not available.';
-                _step = 'error';
-              } else {
-                _amount = amount;
-                widget.store.updateOs(widget.device.id, (current) => current.copyWith(bankBalance: current.bankBalance - amount));
-                _step = 'confirm';
-              }
-            })),
-        ]);
+        return _panel(
+          'Withdraw',
+          _amount == 0 ? 'Choose an amount' : '${os.bankCurrency} $_amount',
+          [
+            for (final amount in [20, 40, 60, 100])
+              _btn(
+                '$amount',
+                () => setState(() {
+                  if (amount > os.bankBalance) {
+                    _message = 'That amount is not available.';
+                    _step = 'error';
+                  } else {
+                    _amount = amount;
+                    widget.store.updateOs(
+                      widget.device.id,
+                      (current) => current.copyWith(
+                        bankBalance: current.bankBalance - amount,
+                      ),
+                    );
+                    _step = 'confirm';
+                  }
+                }),
+              ),
+          ],
+        );
       case 'deposit':
         return _panel('Deposit', 'Notes accepted on this screen only.', [
           _btn('Deposit 100', () {
-            widget.store.updateOs(widget.device.id, (current) => current.copyWith(bankBalance: current.bankBalance + 100));
+            widget.store.updateOs(
+              widget.device.id,
+              (current) =>
+                  current.copyWith(bankBalance: current.bankBalance + 100),
+            );
             _go('confirm');
           }),
           _btn('Cancel', () => _go('cancelled')),
@@ -1023,13 +1248,17 @@ class _AtmOsState extends State<_AtmOs> {
           _btn('Done', () => _go('welcome')),
         ]);
       case 'receipt':
-        return _panel('Receipt', '${os.bankName}\n${os.bankHolder}\nBalance ${os.bankCurrency} ${os.bankBalance}', [
-          _btn('Finish', () => _go('welcome')),
-        ]);
+        return _panel(
+          'Receipt',
+          '${os.bankName}\n${os.bankHolder}\nBalance ${os.bankCurrency} ${os.bankBalance}',
+          [_btn('Finish', () => _go('welcome'))],
+        );
       case 'error':
-        return _panel('Unable to continue', _message.isEmpty ? 'Try again.' : _message, [
-          _btn('Back', () => _go('accounts')),
-        ]);
+        return _panel(
+          'Unable to continue',
+          _message.isEmpty ? 'Try again.' : _message,
+          [_btn('Back', () => _go('accounts'))],
+        );
       case 'cancelled':
         return _panel('Cancelled', 'No transaction was completed.', [
           _btn('Start over', () => _go('welcome')),
@@ -1049,7 +1278,14 @@ class _AtmOsState extends State<_AtmOs> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w600)),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 26,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 8),
         Text(body, style: const TextStyle(color: Colors.white70, fontSize: 16)),
         const SizedBox(height: 16),
@@ -1109,23 +1345,41 @@ class _CctvOsState extends State<_CctvOs> {
         color: Color(0xFF101820 + index * 0x101008),
         child: Stack(
           children: [
-            Center(child: Icon(Icons.videocam, color: Colors.white24, size: large ? 72 : 36)),
+            Center(
+              child: Icon(
+                Icons.videocam,
+                color: Colors.white24,
+                size: large ? 72 : 36,
+              ),
+            ),
             Positioned(
               left: 8,
               top: 8,
-              child: Text(_names[index], style: const TextStyle(color: Colors.white, fontSize: 12)),
+              child: Text(
+                _names[index],
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
             ),
             if (_rec)
               const Positioned(
                 right: 8,
                 top: 8,
-                child: Text('REC', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
+                child: Text(
+                  'REC',
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             if (index == _alert)
               const Positioned(
                 left: 8,
                 bottom: 8,
-                child: Text('MOTION', style: TextStyle(color: Colors.orangeAccent, fontSize: 11)),
+                child: Text(
+                  'MOTION',
+                  style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
+                ),
               ),
             if (large) ...[
               Positioned(
@@ -1134,14 +1388,23 @@ class _CctvOsState extends State<_CctvOs> {
                 child: Column(
                   children: [
                     IconButton(
-                      onPressed: () => setState(() => _zoom = (_zoom + 0.25).clamp(1, 3)),
+                      onPressed: () =>
+                          setState(() => _zoom = (_zoom + 0.25).clamp(1, 3)),
                       icon: const Icon(Icons.zoom_in, color: Colors.white),
                     ),
-                    Text('${_zoom.toStringAsFixed(1)}×', style: const TextStyle(color: Colors.white)),
+                    Text(
+                      '${_zoom.toStringAsFixed(1)}×',
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ],
                 ),
               ),
-              Positioned(left: 8, right: 8, bottom: 8, child: _bar(TimeOfDay.now().format(context))),
+              Positioned(
+                left: 8,
+                right: 8,
+                bottom: 8,
+                child: _bar(TimeOfDay.now().format(context)),
+              ),
             ],
           ],
         ),
@@ -1161,7 +1424,11 @@ class _CctvOsState extends State<_CctvOs> {
         ),
         IconButton(
           onPressed: () => setState(() => _rec = !_rec),
-          icon: Icon(_rec ? Icons.fiber_manual_record : Icons.stop, color: Colors.redAccent, size: 16),
+          icon: Icon(
+            _rec ? Icons.fiber_manual_record : Icons.stop,
+            color: Colors.redAccent,
+            size: 16,
+          ),
         ),
       ],
     );
@@ -1195,31 +1462,88 @@ class _HomeOsState extends State<_HomeOs> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Home', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600)),
+          const Text(
+            'Home',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 12),
-          _tile('Lights', _lights ? 'ON' : 'OFF', Icons.lightbulb, _lights, (value) => setState(() => _lights = value)),
+          _tile(
+            'Lights',
+            _lights ? 'ON' : 'OFF',
+            Icons.lightbulb,
+            _lights,
+            (value) => setState(() => _lights = value),
+          ),
           ListTile(
             leading: const Icon(Icons.thermostat, color: Colors.white),
-            title: const Text('Thermostat', style: TextStyle(color: Colors.white)),
-            subtitle: Text('${_temp.toStringAsFixed(0)}°', style: const TextStyle(color: Colors.white70)),
+            title: const Text(
+              'Thermostat',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: Text(
+              '${_temp.toStringAsFixed(0)}°',
+              style: const TextStyle(color: Colors.white70),
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(onPressed: () => setState(() => _temp -= 1), icon: const Icon(Icons.remove, color: Colors.white)),
-                IconButton(onPressed: () => setState(() => _temp += 1), icon: const Icon(Icons.add, color: Colors.white)),
+                IconButton(
+                  onPressed: () => setState(() => _temp -= 1),
+                  icon: const Icon(Icons.remove, color: Colors.white),
+                ),
+                IconButton(
+                  onPressed: () => setState(() => _temp += 1),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                ),
               ],
             ),
           ),
-          _tile('Front door', _locked ? 'LOCKED' : 'UNLOCKED', Icons.lock, _locked, (value) => setState(() => _locked = value)),
-          _tile('Garage', _garage ? 'OPEN' : 'CLOSED', Icons.garage, _garage, (value) => setState(() => _garage = value)),
-          _tile('Music', _music ? 'PLAYING' : 'OFF', Icons.music_note, _music, (value) => setState(() => _music = value)),
+          _tile(
+            'Front door',
+            _locked ? 'LOCKED' : 'UNLOCKED',
+            Icons.lock,
+            _locked,
+            (value) => setState(() => _locked = value),
+          ),
+          _tile(
+            'Garage',
+            _garage ? 'OPEN' : 'CLOSED',
+            Icons.garage,
+            _garage,
+            (value) => setState(() => _garage = value),
+          ),
+          _tile(
+            'Music',
+            _music ? 'PLAYING' : 'OFF',
+            Icons.music_note,
+            _music,
+            (value) => setState(() => _music = value),
+          ),
           ListTile(
             leading: const Icon(Icons.blinds, color: Colors.white),
-            title: Text('Blinds ${(100 * _blinds).round()}%', style: const TextStyle(color: Colors.white)),
-            subtitle: Slider(value: _blinds, onChanged: (value) => setState(() => _blinds = value)),
+            title: Text(
+              'Blinds ${(100 * _blinds).round()}%',
+              style: const TextStyle(color: Colors.white),
+            ),
+            subtitle: Slider(
+              value: _blinds,
+              onChanged: (value) => setState(() => _blinds = value),
+            ),
           ),
-          _tile('Oven', _oven ? 'ON' : 'OFF', Icons.kitchen, _oven, (value) => setState(() => _oven = value)),
-          _tile('Alarm', _alarm ? 'ARMED' : 'DISARMED', Icons.shield, _alarm, (value) {
+          _tile(
+            'Oven',
+            _oven ? 'ON' : 'OFF',
+            Icons.kitchen,
+            _oven,
+            (value) => setState(() => _oven = value),
+          ),
+          _tile('Alarm', _alarm ? 'ARMED' : 'DISARMED', Icons.shield, _alarm, (
+            value,
+          ) {
             setState(() => _alarm = value);
             widget.store.setAlarm(widget.device.id, value);
           }),
@@ -1233,11 +1557,20 @@ class _HomeOsState extends State<_HomeOs> {
     );
   }
 
-  Widget _tile(String name, String status, IconData icon, bool value, ValueChanged<bool> onChanged) {
+  Widget _tile(
+    String name,
+    String status,
+    IconData icon,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return SwitchListTile(
       secondary: Icon(icon, color: Colors.white),
       title: Text(name, style: const TextStyle(color: Colors.white)),
-      subtitle: Text(status, style: const TextStyle(color: kSignal, fontSize: 12)),
+      subtitle: Text(
+        status,
+        style: const TextStyle(color: kSignal, fontSize: 12),
+      ),
       value: value,
       onChanged: onChanged,
     );
