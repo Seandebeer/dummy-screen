@@ -398,7 +398,8 @@ void main() {
     expect(find.byKey(const Key('atm-digit-1')), findsNothing);
     expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
     expect(find.text('Use the keypad beside the screen.'), findsOneWidget);
-    expect(find.byKey(const Key('atm-external-pad')), findsOneWidget);
+    expect(find.byKey(const Key('atm-external-pad')), findsNothing);
+    expect(find.text('⌫'), findsNothing);
 
     for (var step = 0; step < 5; step++) {
       await tester.pump(const Duration(milliseconds: 700));
@@ -406,7 +407,7 @@ void main() {
     }
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('Please select your transaction'), findsOneWidget);
-    expect(find.byKey(const Key('atm-external-pad')), findsNothing);
+    expect(find.text('⌫'), findsNothing);
 
     await tester.tap(find.byKey(const Key('atm-settings')));
     await tester.pump();
