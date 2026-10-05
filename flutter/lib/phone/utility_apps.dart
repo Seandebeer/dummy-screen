@@ -20,30 +20,33 @@ class ClockApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = propNow(device.clockOffsetMinutes);
-    return Column(
-      children: [
-        const Spacer(),
-        Text(
-          formatClock(now),
-          style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w200),
-        ),
-        Text(formatDay(now), style: const TextStyle(color: kMuted)),
-        const SizedBox(height: 20),
-        Wrap(
-          spacing: 8,
-          children: [
-            _shift(context, '-1h', -60),
-            _shift(context, '-1m', -1),
-            _shift(context, '+1m', 1),
-            _shift(context, '+1h', 60),
-          ],
-        ),
-        TextButton(
-          onPressed: () => store.setClockOffset(device.id, 0),
-          child: const Text('Use the real time'),
-        ),
-        const Spacer(),
-      ],
+    return ColoredBox(
+      color: Colors.black,
+      child: Column(
+        children: [
+          const Spacer(),
+          Text(
+            formatClock(now),
+            style: const TextStyle(color: Colors.white, fontSize: 72, fontWeight: FontWeight.w200, letterSpacing: -1),
+          ),
+          Text(formatDay(now), style: const TextStyle(color: kMuted, fontSize: 16)),
+          const SizedBox(height: 28),
+          Wrap(
+            spacing: 8,
+            children: [
+              _shift(context, '-1h', -60),
+              _shift(context, '-1m', -1),
+              _shift(context, '+1m', 1),
+              _shift(context, '+1h', 60),
+            ],
+          ),
+          TextButton(
+            onPressed: () => store.setClockOffset(device.id, 0),
+            child: const Text('Use the real time'),
+          ),
+          const Spacer(),
+        ],
+      ),
     );
   }
 
@@ -95,36 +98,56 @@ class _NotesAppState extends State<NotesApp> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _controller,
-        focusNode: _focus,
-        readOnly: true,
-        showCursor: true,
-        onTap: () => openIosKeyboard(
-          context,
-          _controller,
-          onChanged: (value) {
-            _debounce?.cancel();
-            _debounce = Timer(const Duration(milliseconds: 350), () {
-              widget.store.setNotes(widget.device.id, value);
-            });
-          },
-        ),
-        maxLines: null,
-        expands: true,
-        decoration: const InputDecoration(
-          hintText: 'Notes for this prop…',
-          border: InputBorder.none,
-          filled: false,
-        ),
-        onChanged: (value) {
-          _debounce?.cancel();
-          _debounce = Timer(const Duration(milliseconds: 350), () {
-            widget.store.setNotes(widget.device.id, value);
-          });
-        },
+    return Material(
+      color: const Color(0xFFFFFBE6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 18, 16, 0),
+            child: Text(
+              'Notes',
+              style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: TextField(
+                controller: _controller,
+                focusNode: _focus,
+                readOnly: true,
+                showCursor: true,
+                style: const TextStyle(color: Colors.black, fontSize: 17, height: 1.4),
+                cursorColor: const Color(0xFFFFC800),
+                onTap: () => openIosKeyboard(
+                  context,
+                  _controller,
+                  onChanged: (value) {
+                    _debounce?.cancel();
+                    _debounce = Timer(const Duration(milliseconds: 350), () {
+                      widget.store.setNotes(widget.device.id, value);
+                    });
+                  },
+                ),
+                maxLines: null,
+                expands: true,
+                decoration: const InputDecoration(
+                  hintText: 'Start writing',
+                  hintStyle: TextStyle(color: Color(0xFF8E8E93)),
+                  border: InputBorder.none,
+                  filled: false,
+                ),
+                onChanged: (value) {
+                  _debounce?.cancel();
+                  _debounce = Timer(const Duration(milliseconds: 350), () {
+                    widget.store.setNotes(widget.device.id, value);
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -203,95 +226,143 @@ class _CalculatorAppState extends State<CalculatorApp> {
     return text;
   }
 
+  void _sign() {
+    setState(() {
+      if (_display == 'Error' || _display == '0') return;
+      _display = _display.startsWith('-') ? _display.substring(1) : '-$_display';
+    });
+  }
+
+  void _percent() {
+    setState(() {
+      final current = _value;
+      final result = _acc == null ? current / 100 : _acc! * current / 100;
+      _display = _trim(result);
+      _fresh = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     const rows = [
-      ['C', '÷', '×', '⌫'],
-      ['7', '8', '9', '−'],
-      ['4', '5', '6', '+'],
-      ['1', '2', '3', '='],
+      ['fn', '±', '%', '÷'],
+      ['7', '8', '9', '×'],
+      ['4', '5', '6', '−'],
+      ['1', '2', '3', '+'],
       ['0', '.', '='],
     ];
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              _display,
-              style: const TextStyle(fontSize: 42),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Column(
+    return ColoredBox(
+      color: Colors.black,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 12.0;
+          final key = ((constraints.maxWidth - 24 - gap * 3) / 4).clamp(44.0, 84.0);
+          return Column(
             children: [
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      _display,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 72,
+                        fontWeight: FontWeight.w300,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               for (final row in rows)
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: gap),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      for (final label in row)
-                        Expanded(
-                          flex: label == '0' ? 2 : 1,
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: '÷×−+=⌫'.contains(label)
-                                    ? kAccent
-                                    : kLine,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () {
-                                if (label == 'C') {
-                                  setState(() {
-                                    _display = '0';
-                                    _acc = null;
-                                    _op = null;
-                                    _fresh = true;
-                                  });
-                                } else if (label == '⌫') {
-                                  setState(() {
-                                    _display = _display.length <= 1
-                                        ? '0'
-                                        : _display.substring(
-                                            0,
-                                            _display.length - 1,
-                                          );
-                                    _fresh = false;
-                                  });
-                                } else if (label == '=') {
-                                  setState(() {
-                                    _reduce();
-                                    _fresh = true;
-                                  });
-                                } else if ('÷×−+'.contains(label)) {
-                                  _operate(label);
-                                } else {
-                                  _digit(label);
-                                }
-                              },
-                              child: FittedBox(
-                                child: Text(
-                                  label,
-                                  style: const TextStyle(fontSize: 20),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      for (var i = 0; i < row.length; i++) ...[
+                        if (i > 0) const SizedBox(width: gap),
+                        _calcKey(row[i], row[i] == '0' ? key * 2 + gap : key, key),
+                      ],
                     ],
                   ),
                 ),
+              const SizedBox(height: 8),
             ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _calcKey(String label, double width, double height) {
+    final clear = label == 'fn';
+    final shown = clear ? (_fresh ? 'AC' : 'C') : label;
+    final operator = '÷×−+='.contains(label);
+    final active = operator && label != '=' && _op == label && _fresh;
+    final function = clear || label == '±' || label == '%';
+    final color = active
+        ? Colors.white
+        : operator
+            ? const Color(0xFFFF9F0A)
+            : function
+                ? const Color(0xFFA5A5A5)
+                : const Color(0xFF333333);
+    final ink = active
+        ? const Color(0xFFFF9F0A)
+        : function
+            ? Colors.black
+            : Colors.white;
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(height / 2),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(height / 2),
+        onTap: () {
+          if (clear) {
+            if (_fresh) {
+              setState(() {
+                _display = '0';
+                _acc = null;
+                _op = null;
+              });
+            } else {
+              setState(() {
+                _display = '0';
+                _fresh = true;
+              });
+            }
+          } else if (label == '±') {
+            _sign();
+          } else if (label == '%') {
+            _percent();
+          } else if (label == '=') {
+            setState(() {
+              _reduce();
+              _fresh = true;
+            });
+          } else if (operator) {
+            _operate(label);
+          } else {
+            _digit(label);
+          }
+        },
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Center(
+            child: Text(
+              shown,
+              style: TextStyle(color: ink, fontSize: shown == 'AC' ? 24 : 32, fontWeight: FontWeight.w400),
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

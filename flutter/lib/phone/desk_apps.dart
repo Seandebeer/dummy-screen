@@ -627,23 +627,32 @@ class _InboxAppState extends State<InboxApp> {
       return '${email['from']}'.toLowerCase().contains(q) || '${email['subject']}'.toLowerCase().contains(q);
     }).toList();
     final unread = _emails.where((email) => email['unread'] == true).length;
-    return ColoredBox(
-      color: Colors.black,
+    return Material(
+      color: const Color(0xFFF2F2F7),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
               children: [
-                const Text('Inbox', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700)),
-                const SizedBox(width: 8),
+                const Text('Mailboxes', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
+                const Spacer(),
+                Text('Inbox', style: TextStyle(color: Colors.black.withValues(alpha: 0.9), fontSize: 17, fontWeight: FontWeight.w600)),
+                const Spacer(),
                 if (unread > 0)
-                  Text('$unread', style: const TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.w700)),
+                  Text('$unread', style: const TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.w600)),
               ],
             ),
           ),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text('Inbox', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: Colors.black)),
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               controller: _query,
               readOnly: true,
@@ -653,27 +662,57 @@ class _InboxAppState extends State<InboxApp> {
                 _query,
                 onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search, color: Colors.white38),
+              style: const TextStyle(color: Colors.black),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF8E8E93)),
                 hintText: 'Search',
-                hintStyle: TextStyle(color: Colors.white38),
+                hintStyle: const TextStyle(color: Color(0xFF8E8E93)),
+                filled: true,
+                fillColor: const Color(0xFFE3E3E8),
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               ),
             ),
           ),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView(
               children: [
                 for (final email in visible)
-                  ListTile(
-                    onTap: () => setState(() {
-                      email['unread'] = false;
-                      _openId = email['id'] as int;
-                    }),
-                    title: Text('${email['from']}', style: TextStyle(color: Colors.white, fontWeight: email['unread'] == true ? FontWeight.w700 : FontWeight.w500)),
-                    subtitle: Text('${email['subject']}\n${(email['thread'] as List).first['body']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54)),
-                    trailing: Text('${email['time']}', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                  Material(
+                    color: Colors.white,
+                    child: ListTile(
+                      onTap: () => setState(() {
+                        email['unread'] = false;
+                        _openId = email['id'] as int;
+                      }),
+                      leading: email['unread'] == true
+                          ? const Padding(
+                              padding: EdgeInsets.only(top: 6),
+                              child: CircleAvatar(radius: 5, backgroundColor: Color(0xFF0A84FF)),
+                            )
+                          : const SizedBox(width: 10),
+                      title: Text(
+                        '${email['from']}',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: email['unread'] == true ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${email['subject']}\n${(email['thread'] as List).first['body']}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Color(0xFF8E8E93)),
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('${email['time']}', style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12)),
+                          const Icon(Icons.chevron_right, color: Color(0xFFC7C7CC), size: 18),
+                        ],
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -685,30 +724,46 @@ class _InboxAppState extends State<InboxApp> {
 
   Widget _thread(Map<String, dynamic> email) {
     final thread = email['thread'] as List;
-    return ColoredBox(
-      color: Colors.black,
+    return Material(
+      color: Colors.white,
       child: Column(
         children: [
           Row(
             children: [
-              IconButton(onPressed: () => setState(() => _openId = null), icon: const Icon(Icons.arrow_back, color: Colors.white)),
-              Expanded(child: Text('${email['subject']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+              IconButton(onPressed: () => setState(() => _openId = null), icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28)),
+              const Text('Inbox', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
             ],
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
               children: [
-                for (final message in thread)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: message['who'] == 'me' ? const Color(0xFF0A84FF) : const Color(0xFF1C1C1E),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text('${message['body']}', style: const TextStyle(color: Colors.white, height: 1.35)),
+                Text('${email['subject']}', style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                for (final message in thread) ...[
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: const Color(0xFF8E8E93),
+                        child: Text('${message['who'] == 'me' ? 'Me' : email['from']}'.characters.first, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${message['who'] == 'me' ? 'Me' : email['from']}', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
+                            Text('${message['time'] ?? email['time']}', style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 10),
+                  Text('${message['body']}', style: const TextStyle(color: Colors.black, height: 1.35, fontSize: 16)),
+                  const Divider(height: 28),
+                ],
               ],
             ),
           ),
@@ -780,93 +835,155 @@ class _PropBrowserState extends State<PropBrowser> {
     });
   }
 
+  String get _host {
+    final current = _current;
+    if (current == null) return '';
+    return Uri.tryParse(current)?.host ?? current;
+  }
+
+  void _editAddress() {
+    openIosKeyboard(context, _url, onDone: () => _go(_url.text));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Colors.white,
+    return Material(
+      color: const Color(0xFFF2F2F7),
       child: Column(
         children: [
-          Container(
-            color: const Color(0xFFF2F2F7),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Row(
-              children: [
-                IconButton(tooltip: 'Start page', onPressed: () => setState(() { _current = null; _url.clear(); _loading = false; }), icon: const Icon(Icons.home, size: 18, color: Colors.black87)),
-                IconButton(tooltip: 'Back', onPressed: _index <= 0 ? null : () => _jump(_index - 1), icon: const Icon(Icons.arrow_back, size: 18)),
-                IconButton(tooltip: 'Forward', onPressed: _index >= _history.length - 1 ? null : () => _jump(_index + 1), icon: const Icon(Icons.arrow_forward, size: 18)),
-                IconButton(tooltip: 'Reload', onPressed: _current == null ? null : () => _go(_current!), icon: const Icon(Icons.refresh, size: 18)),
-                Expanded(
-                  child: TextField(
-                    controller: _url,
-                    readOnly: true,
-                    showCursor: true,
-                    onTap: () => openIosKeyboard(
-                      context,
-                      _url,
-                      onChanged: (value) {
-                        if (value.endsWith(' ')) _go(value.trim());
-                      },
-                    ),
-                    onSubmitted: _go,
-                    style: const TextStyle(fontSize: 12, color: Colors.black),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: Colors.white,
-                      hintText: 'Search or enter address',
-                      prefixIcon: const Icon(Icons.language, size: 14),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Color(0x1A000000))),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           if (_loading) const LinearProgressIndicator(minHeight: 2, color: Color(0xFF0A84FF)),
           Expanded(
             child: _current == null
                 ? ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
                     children: [
-                      const Center(child: CircleAvatar(radius: 28, backgroundColor: Color(0xFF0A84FF), child: Icon(Icons.language, color: Colors.white, size: 26))),
-                      const SizedBox(height: 10),
-                      const Center(child: Text('Browser', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111111)))),
-                      const Center(child: Text('Live web, right on the mock phone', style: TextStyle(fontSize: 11, color: Colors.black45))),
-                      const SizedBox(height: 18),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 2.4,
-                        children: [
-                          for (final site in _quick)
-                            InkWell(
-                              onTap: () => _go(site.$2),
-                              child: Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(12)),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(radius: 14, backgroundColor: site.$3, child: Text(site.$1[0], style: const TextStyle(color: Colors.white, fontSize: 12))),
-                                    const SizedBox(width: 8),
-                                    Expanded(child: Text(site.$1, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                                  ],
+                      const Text('Favourites', style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 96,
+                        child: Row(
+                          children: [
+                            for (final site in _quick)
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => _go(site.$2),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 26,
+                                        backgroundColor: site.$3,
+                                        child: Text(site.$1[0], style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        site.$1,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 11, color: Colors.black87),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Type an address or a search. Some sites refuse to load inside other apps and will stay blank.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 10, color: Colors.black38),
+                          ],
+                        ),
                       ),
                     ],
                   )
-                : BrowserFrame(url: _current!),
+                : ColoredBox(color: Colors.white, child: BrowserFrame(url: _current!)),
+          ),
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              color: Color(0xF2F8F8F8),
+              border: Border(top: BorderSide(color: Color(0x1A000000))),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                    child: Material(
+                      color: const Color(0xFFE4E4E8),
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: _editAddress,
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          height: 36,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_current != null) const Icon(Icons.lock, size: 12, color: Colors.black54),
+                              if (_current != null) const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  _current == null ? 'Search or enter website' : _host,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 15, color: Colors.black),
+                                ),
+                              ),
+                              if (_current != null) ...[
+                                const SizedBox(width: 8),
+                                InkWell(
+                                  onTap: () => _go(_current!),
+                                  child: const Icon(Icons.refresh, size: 16, color: Colors.black54),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        color: Colors.black87,
+                        onPressed: _index <= 0 ? null : () => _jump(_index - 1),
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                      ),
+                      IconButton(
+                        color: Colors.black87,
+                        onPressed: _index >= _history.length - 1 ? null : () => _jump(_index + 1),
+                        icon: const Icon(Icons.arrow_forward_ios, size: 18),
+                      ),
+                      IconButton(
+                        color: Colors.black87,
+                        onPressed: _current == null
+                            ? null
+                            : () => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                                SnackBar(content: Text(_current!)),
+                              ),
+                        icon: const Icon(Icons.ios_share, size: 20),
+                      ),
+                      IconButton(
+                        color: Colors.black87,
+                        onPressed: () => setState(() {
+                          _current = null;
+                          _url.clear();
+                          _loading = false;
+                        }),
+                        icon: const Icon(Icons.book_outlined, size: 22),
+                      ),
+                      IconButton(
+                        color: Colors.black87,
+                        onPressed: _history.isEmpty ? null : () => _jump(_history.length - 1),
+                        icon: Badge(
+                          isLabelVisible: _history.isNotEmpty,
+                          label: Text('${_history.length}'),
+                          child: const Icon(Icons.tab, size: 22),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

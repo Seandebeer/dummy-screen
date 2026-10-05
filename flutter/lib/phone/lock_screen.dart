@@ -37,6 +37,7 @@ class _LockViewState extends State<LockView> {
   Timer? _faceTimer;
   bool _scanning = false;
   bool _reveal = false;
+  bool _torch = false;
 
   String get _method =>
       resolvedLockMethod(widget.device.skin, widget.device.os.lockType);
@@ -227,7 +228,9 @@ class _LockViewState extends State<LockView> {
         ),
       );
     }
-    return Column(
+    return Stack(
+      children: [
+        Column(
       children: [
         SizedBox(height: compact ? 12 : 28),
         Text(
@@ -266,8 +269,32 @@ class _LockViewState extends State<LockView> {
             ),
           ),
         const Spacer(),
+        if (_method == 'slide' || _method == 'swipe')
+          Padding(
+            padding: const EdgeInsets.fromLTRB(36, 0, 36, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _LockOrb(
+                  icon: Icons.flashlight_on,
+                  on: _torch,
+                  onTap: () => setState(() => _torch = !_torch),
+                ),
+                _LockOrb(icon: Icons.photo_camera, on: false, onTap: () {}),
+              ],
+            ),
+          ),
         _methodBody(),
         const SizedBox(height: 16),
+      ],
+        ),
+        if (_torch)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => setState(() => _torch = false),
+              child: const ColoredBox(color: Colors.white),
+            ),
+          ),
       ],
     );
   }
@@ -292,6 +319,31 @@ class _LockViewState extends State<LockView> {
       default:
         return _SwipeUnlock(ink: _ink, onUnlock: widget.onUnlock);
     }
+  }
+}
+
+class _LockOrb extends StatelessWidget {
+  const _LockOrb({required this.icon, required this.on, required this.onTap});
+
+  final IconData icon;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: on ? Colors.white : Colors.black.withValues(alpha: 0.35),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(icon, color: on ? Colors.black : Colors.white, size: 22),
+        ),
+      ),
+    );
   }
 }
 

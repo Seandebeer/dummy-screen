@@ -45,47 +45,51 @@ class CalendarApp extends StatelessWidget {
     final now = propNow(offsetMinutes);
     final first = DateTime(now.year, now.month, 1);
     final days = DateTime(now.year, now.month + 1, 0).day;
-    final pad = first.weekday - 1;
-    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        Text(
-          formatDay(now),
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            for (final label in labels)
-              Expanded(
-                child: Center(
-                  child: Text(label, style: const TextStyle(color: kMuted)),
-                ),
-              ),
-          ],
-        ),
-        Expanded(
-          child: GridView.count(
-            crossAxisCount: 7,
+    final pad = first.weekday % 7;
+    const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    return ColoredBox(
+      color: Colors.black,
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Text(
+            formatDay(now),
+            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+          Row(
             children: [
-              for (var i = 0; i < pad; i++) const SizedBox.shrink(),
-              for (var day = 1; day <= days; day++)
-                Center(
-                  child: CircleAvatar(
-                    backgroundColor: day == now.day
-                        ? kAccent
-                        : Colors.transparent,
+              for (final label in labels)
+                Expanded(
+                  child: Center(
                     child: Text(
-                      '$day',
-                      style: const TextStyle(color: Colors.white),
+                      label,
+                      style: TextStyle(color: label == 'S' ? kAlert : kMuted, fontSize: 12),
                     ),
                   ),
                 ),
             ],
           ),
-        ),
-      ],
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 7,
+              children: [
+                for (var i = 0; i < pad; i++) const SizedBox.shrink(),
+                for (var day = 1; day <= days; day++)
+                  Center(
+                    child: CircleAvatar(
+                      backgroundColor: day == now.day ? kAlert : Colors.transparent,
+                      child: Text(
+                        '$day',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

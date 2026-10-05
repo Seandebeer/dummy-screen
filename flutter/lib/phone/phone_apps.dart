@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../format.dart';
 import '../models.dart';
 import '../store.dart';
-import '../theme.dart';
 import 'catalog.dart';
 import 'ios_keyboard.dart';
 import 'phone_copy.dart';
@@ -32,6 +31,7 @@ class PhoneDialer extends StatefulWidget {
 class _PhoneDialerState extends State<PhoneDialer> {
   String _digits = '';
   String _tab = 'keypad';
+  String _recentFilter = 'all';
   bool _refreshing = false;
 
   void _call({String? name, String? number}) {
@@ -54,58 +54,128 @@ class _PhoneDialerState extends State<PhoneDialer> {
   @override
   Widget build(BuildContext context) {
     final copy = phoneCopy(widget.language);
-    return ColoredBox(
+    return Material(
       color: Colors.black,
       child: Column(
         children: [
-          DecoratedBox(
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0x1AFFFFFF))),
-            ),
-            child: Row(
-              children: [
-                _tabButton('recents', copy.recents),
-                _tabButton('history', 'History'),
-                _tabButton('keypad', copy.keypad),
-              ],
-            ),
-          ),
           Expanded(
             child: switch (_tab) {
-              'recents' => _recents(copy),
-              'history' => _history(copy),
+              'favorites' => _favorites(),
+              'recents' => _recentFilter == 'log' ? _history(copy) : _recents(copy),
+              'contacts' => _people(),
+              'voicemail' => _voicemail(),
               _ => _keypad(),
             },
           ),
+          _phoneTabs(),
         ],
       ),
     );
   }
 
-  Widget _tabButton(String id, String label) {
-    final selected = _tab == id;
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _tab = id),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: selected ? _phoneGreen : Colors.transparent,
-                width: 2,
+  Widget _phoneTabs() {
+    const items = [
+      ('favorites', Icons.star, 'Favourites'),
+      ('recents', Icons.access_time, 'Recents'),
+      ('contacts', Icons.person_outline, 'Contacts'),
+      ('keypad', Icons.dialpad, 'Keypad'),
+      ('voicemail', Icons.voicemail, 'Voicemail'),
+    ];
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0xF01C1C1E),
+        border: Border(top: BorderSide(color: Color(0x33FFFFFF))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            for (final item in items)
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _tab = item.$1),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          item.$2,
+                          size: 22,
+                          color: _tab == item.$1 ? const Color(0xFF0A84FF) : const Color(0xFF8E8E93),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          item.$3,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _tab == item.$1 ? const Color(0xFF0A84FF) : const Color(0xFF8E8E93),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: selected ? _phoneGreen : Colors.white38,
-            ),
-          ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _favorites() {
+    return ListView(
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 18, 16, 8),
+          child: Text('Favourites', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
+        ),
+        for (final contact in widget.contacts)
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: colorForName(contact.name),
+              child: Text(contact.name.characters.first),
+            ),
+            title: Text(contact.name),
+            subtitle: const Text('mobile', style: TextStyle(color: Color(0xFF8E8E93))),
+            trailing: IconButton(
+              onPressed: () => _call(name: contact.name, number: contact.number),
+              icon: const Icon(Icons.phone, color: _phoneGreen),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _people() {
+    final sorted = [...widget.contacts]..sort((a, b) => a.name.compareTo(b.name));
+    return ListView(
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 18, 16, 8),
+          child: Text('Contacts', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
+        ),
+        for (final contact in sorted)
+          ListTile(
+            onTap: () => _call(name: contact.name, number: contact.number),
+            title: Text(contact.name),
+            subtitle: Text(contact.number, style: const TextStyle(color: Color(0xFF8E8E93))),
+          ),
+      ],
+    );
+  }
+
+  Widget _voicemail() {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.voicemail, color: Color(0xFF8E8E93), size: 42),
+          SizedBox(height: 8),
+          Text('No Voicemail', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          SizedBox(height: 4),
+          Text('Visual voicemail is empty.', style: TextStyle(color: Color(0xFF8E8E93))),
+        ],
       ),
     );
   }
@@ -115,21 +185,45 @@ class _PhoneDialerState extends State<PhoneDialer> {
         .where((record) => record.deviceId == widget.deviceId)
         .take(100)
         .toList();
-    if (rows.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            copy.noCalls,
-            style: const TextStyle(color: Colors.white30, fontSize: 14),
+    final visible = _recentFilter == 'missed'
+        ? rows.where((record) => record.type == 'missed').toList()
+        : rows;
+    return Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Recents', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
           ),
         ),
-      );
-    }
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        for (final record in rows) _callRow(copy, record, showNumber: true),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'all', label: Text('All')),
+              ButtonSegment(value: 'missed', label: Text('Missed')),
+              ButtonSegment(value: 'log', label: Text('Log')),
+            ],
+            selected: {_recentFilter},
+            onSelectionChanged: (value) => setState(() => _recentFilter = value.first),
+          ),
+        ),
+        Expanded(
+          child: visible.isEmpty
+              ? Center(
+                  child: Text(
+                    copy.noCalls,
+                    style: const TextStyle(color: Colors.white30, fontSize: 14),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    for (final record in visible) _callRow(copy, record, showNumber: true),
+                  ],
+                ),
+        ),
       ],
     );
   }
@@ -279,13 +373,16 @@ class _PhoneDialerState extends State<PhoneDialer> {
           padding: const EdgeInsets.fromLTRB(12, 24, 12, 28),
           child: Column(
             children: [
-              Text(
-                _digits.isEmpty ? 'Enter number' : _digits,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: 1,
-                  color: _digits.isEmpty ? Colors.white24 : Colors.white,
+              SizedBox(
+                height: 44,
+                child: Text(
+                  _digits,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: 1,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -316,7 +413,7 @@ class _PhoneDialerState extends State<PhoneDialer> {
                       child: const SizedBox(
                         width: 72,
                         height: 72,
-                        child: Icon(Icons.phone, color: Colors.black, size: 30),
+                        child: Icon(Icons.phone, color: Colors.white, size: 30),
                       ),
                     ),
                   ),
@@ -331,6 +428,7 @@ class _PhoneDialerState extends State<PhoneDialer> {
                                 _digits.length - 1,
                               ),
                             ),
+                      onLongPress: _digits.isEmpty ? null : () => setState(() => _digits = ''),
                       icon: const Icon(
                         Icons.backspace_outlined,
                         color: Colors.white60,
@@ -348,20 +446,41 @@ class _PhoneDialerState extends State<PhoneDialer> {
   }
 
   Widget _key(String label, double size) {
+    const letters = {
+      '2': 'ABC',
+      '3': 'DEF',
+      '4': 'GHI',
+      '5': 'JKL',
+      '6': 'MNO',
+      '7': 'PQRS',
+      '8': 'TUV',
+      '9': 'WXYZ',
+      '0': '+',
+    };
+    final sub = letters[label];
     return Material(
-      color: Colors.white10,
+      color: const Color(0xFF333333),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: () => setState(() => _digits += label),
+        onLongPress: label == '0' ? () => setState(() => _digits += '+') : null,
         child: SizedBox(
           width: size,
           height: size,
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w300),
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w300, height: 1),
+              ),
+              if (sub != null)
+                Text(
+                  sub,
+                  style: const TextStyle(fontSize: 9, letterSpacing: 1.2, color: Colors.white70),
+                ),
+            ],
           ),
         ),
       ),
@@ -475,128 +594,150 @@ class _MessagesAppState extends State<MessagesApp> {
       for (final message in messages) {
         if (!names.contains(message.thread)) names.add(message.thread);
       }
-      if (names.isEmpty) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-              'Messages from the control deck show up here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: kMuted),
+      return Material(
+        color: Colors.white,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 16, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28),
+                  ),
+                  const Text('Messages', style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.w700)),
+                ],
+              ),
             ),
-          ),
-        );
-      }
-      return Column(
+            Expanded(
+              child: names.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No Messages',
+                        style: TextStyle(color: Color(0xFF8E8E93), fontSize: 17),
+                      ),
+                    )
+                  : ListView(
+                      children: [
+                        for (final name in names)
+                          ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: colorForName(name),
+                              child: Text(
+                                name.characters.first.toUpperCase(),
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                            title: Text(name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                            subtitle: Text(
+                              grouped[name]!.last.text,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Color(0xFF8E8E93)),
+                            ),
+                            trailing: Text(
+                              formatStamp(grouped[name]!.last.sentAt),
+                              style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+                            ),
+                            onTap: () => setState(() => _thread = name),
+                          ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      );
+    }
+    final items = grouped[thread] ?? const <StageMessage>[];
+    return Material(
+      color: Colors.white,
+      child: Column(
         children: [
           SizedBox(
-            height: 44,
-            child: NavigationToolbar(
-              leading: IconButton(
-                onPressed: widget.onClose,
-                icon: const Icon(Icons.arrow_back),
-              ),
-              middle: const Text(
-                'Messages',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+            height: 48,
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => setState(() => _thread = null),
+                  icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28),
+                ),
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: colorForName(thread),
+                  child: Text(thread.characters.first.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(thread, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                ),
+              ],
             ),
           ),
           Expanded(
             child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               children: [
-                for (final name in names)
-                  ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: colorForName(name),
-                      child: Text(name.characters.first.toUpperCase()),
+                for (final message in items)
+                  Align(
+                    alignment: message.sender == 'phone' ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.72),
+                      decoration: BoxDecoration(
+                        color: message.sender == 'phone' ? const Color(0xFF0A84FF) : const Color(0xFFE9E9EB),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        message.text,
+                        style: TextStyle(
+                          color: message.sender == 'phone' ? Colors.white : Colors.black,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                    title: Text(name),
-                    subtitle: Text(
-                      grouped[name]!.last.text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () => setState(() => _thread = name),
                   ),
               ],
             ),
           ),
-        ],
-      );
-    }
-    final items = grouped[thread] ?? const <StageMessage>[];
-    return Column(
-      children: [
-        ListTile(
-          leading: IconButton(
-            onPressed: () => setState(() => _thread = null),
-            icon: const Icon(Icons.arrow_back),
-          ),
-          title: Text(thread),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: [
-              for (final message in items)
-                Align(
-                  alignment: message.sender == 'phone'
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.sizeOf(context).width * 0.7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: message.sender == 'phone' ? kAccent : kLine,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(message.text),
-                        Text(
-                          formatStamp(message.sentAt),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.add_circle, color: Color(0xFF8E8E93)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _reply,
+                    readOnly: true,
+                    showCursor: true,
+                    style: const TextStyle(color: Colors.black),
+                    onTap: () => openIosKeyboard(context, _reply, onDone: _send),
+                    decoration: InputDecoration(
+                      hintText: 'iMessage',
+                      hintStyle: const TextStyle(color: Color(0xFF8E8E93)),
+                      filled: true,
+                      fillColor: const Color(0xFFEFEFF4),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _reply,
-                  readOnly: true,
-                  showCursor: true,
-                  onTap: () => openIosKeyboard(context, _reply),
-                  decoration: const InputDecoration(hintText: 'Reply'),
-                  onSubmitted: (_) => _send(),
+                const SizedBox(width: 6),
+                IconButton(
+                  onPressed: _send,
+                  icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF0A84FF)),
                 ),
-              ),
-              IconButton(
-                onPressed: _send,
-                icon: const Icon(Icons.send, color: kAccent),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -617,98 +758,177 @@ class ContactsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text('Contacts', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-              ),
-              TextButton(onPressed: onAdd == null ? null : () => _add(context), child: const Text('Add')),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView(
-      children: [
-        for (final contact in contacts)
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: colorForName(contact.name),
-              child: Text(contact.name.characters.first),
-            ),
-            title: Text(contact.name),
-            subtitle: Text(contact.number),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+    final sorted = [...contacts]..sort((a, b) => a.name.compareTo(b.name));
+    return Material(
+      color: Colors.black,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+            child: Row(
               children: [
-                IconButton(
-                  onPressed: () => onCall(contact),
-                  icon: const Icon(Icons.call, color: kSignal),
+                const Expanded(
+                  child: Text('Contacts', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
                 ),
-                IconButton(
-                  onPressed: () => onMessage(contact),
-                  icon: const Icon(Icons.message, color: kAccent),
+                TextButton(
+                  onPressed: onAdd == null ? null : () => _add(context),
+                  child: const Text('Add', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
                 ),
               ],
             ),
           ),
-      ],
+          Expanded(
+            child: ListView(
+              children: [
+                for (final contact in sorted)
+                  ListTile(
+                    title: Text(contact.name),
+                    subtitle: Text(contact.number, style: const TextStyle(color: Color(0xFF8E8E93))),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => onCall(contact),
+                          icon: const Icon(Icons.phone, color: Color(0xFF34C759)),
+                        ),
+                        IconButton(
+                          onPressed: () => onMessage(contact),
+                          icon: const Icon(Icons.message, color: Color(0xFF0A84FF)),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Future<void> _add(BuildContext context) async {
-    final first = TextEditingController();
-    final last = TextEditingController();
-    final company = TextEditingController();
-    final phone = TextEditingController();
-    final email = TextEditingController();
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+    final person = await Navigator.of(context).push<PropPerson>(
+      MaterialPageRoute(builder: (context) => const _NewContactPage()),
+    );
+    if (person != null) onAdd?.call(person);
+  }
+}
+
+class _NewContactPage extends StatefulWidget {
+  const _NewContactPage();
+
+  @override
+  State<_NewContactPage> createState() => _NewContactPageState();
+}
+
+class _NewContactPageState extends State<_NewContactPage> {
+  final _first = TextEditingController();
+  final _last = TextEditingController();
+  final _company = TextEditingController();
+  final _phone = TextEditingController();
+  final _email = TextEditingController();
+
+  @override
+  void dispose() {
+    _first.dispose();
+    _last.dispose();
+    _company.dispose();
+    _phone.dispose();
+    _email.dispose();
+    super.dispose();
+  }
+
+  Widget _field(TextEditingController controller, String hint, {bool numeric = false}) {
+    return TextField(
+      controller: controller,
+      readOnly: true,
+      showCursor: true,
+      style: const TextStyle(color: Colors.white, fontSize: 17),
+      onTap: () => openIosKeyboard(context, controller, numeric: numeric),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFF8E8E93)),
+        border: InputBorder.none,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
         backgroundColor: const Color(0xFF1C1C1E),
-        title: const Text('New Contact'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: first, decoration: const InputDecoration(hintText: 'First name')),
-              TextField(controller: last, decoration: const InputDecoration(hintText: 'Last name')),
-              TextField(controller: company, decoration: const InputDecoration(hintText: 'Company')),
-              TextField(controller: phone, decoration: const InputDecoration(hintText: 'Phone')),
-              TextField(controller: email, decoration: const InputDecoration(hintText: 'Email')),
-            ],
-          ),
+        foregroundColor: const Color(0xFF0A84FF),
+        leading: TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel', style: TextStyle(color: Color(0xFF0A84FF))),
         ),
+        leadingWidth: 88,
+        title: const Text('New Contact', style: TextStyle(color: Colors.white, fontSize: 17)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Done')),
+          TextButton(
+            onPressed: () {
+              final name = '${_first.text.trim()} ${_last.text.trim()}'.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(
+                context,
+                PropPerson(
+                  name: name,
+                  number: _phone.text.trim(),
+                  email: _email.text.trim(),
+                  company: _company.text.trim(),
+                ),
+              );
+            },
+            child: const Text('Done', style: TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+      body: ListView(
+        children: [
+          const SizedBox(height: 18),
+          const CircleAvatar(
+            radius: 48,
+            backgroundColor: Color(0xFF2C2C2E),
+            child: Icon(Icons.person, size: 56, color: Color(0xFF8E8E93)),
+          ),
+          const SizedBox(height: 8),
+          const Center(child: Text('Add Photo', style: TextStyle(color: Color(0xFF0A84FF)))),
+          const SizedBox(height: 16),
+          _group([
+            _field(_first, 'First name'),
+            _field(_last, 'Last name'),
+            _field(_company, 'Company'),
+          ]),
+          const SizedBox(height: 18),
+          _group([
+            _field(_phone, 'add phone', numeric: true),
+            _field(_email, 'add email'),
+          ]),
         ],
       ),
     );
-    if (saved == true && onAdd != null) {
-      final name = '${first.text.trim()} ${last.text.trim()}'.trim();
-      if (name.isNotEmpty) {
-        onAdd!(
-          PropPerson(
-            name: name,
-            number: phone.text.trim(),
-            email: email.text.trim(),
-            company: company.text.trim(),
-          ),
-        );
-      }
-    }
-    first.dispose();
-    last.dispose();
-    company.dispose();
-    phone.dispose();
-    email.dispose();
+  }
+
+  Widget _group(List<Widget> children) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const Divider(height: 1, indent: 16, color: Color(0x33FFFFFF)),
+            children[i],
+          ],
+        ],
+      ),
+    );
   }
 }
 

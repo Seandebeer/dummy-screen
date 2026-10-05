@@ -122,7 +122,12 @@ class PhoneShell extends StatelessWidget {
                 ),
               if (!device.locked && call == null)
                 Positioned.fill(
-                  child: _ControlShade(ink: ink),
+                  child: _ControlShade(
+                    ink: ink,
+                    cellular: device.os.signal > 0,
+                    wifi: device.os.wifi,
+                    bluetooth: device.os.bluetooth,
+                  ),
                 ),
               if (alarm)
                 Positioned.fill(
@@ -221,9 +226,17 @@ class _StatusBar extends StatelessWidget {
 }
 
 class _ControlShade extends StatefulWidget {
-  const _ControlShade({required this.ink});
+  const _ControlShade({
+    required this.ink,
+    required this.cellular,
+    required this.wifi,
+    required this.bluetooth,
+  });
 
   final Color ink;
+  final bool cellular;
+  final bool wifi;
+  final bool bluetooth;
 
   @override
   State<_ControlShade> createState() => _ControlShadeState();
@@ -250,42 +263,54 @@ class _ControlShadeState extends State<_ControlShade> {
           ),
         ),
         if (_torch)
-          const ColoredBox(color: Colors.white, child: SizedBox.expand()),
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => setState(() => _torch = false),
+              child: const ColoredBox(color: Colors.white),
+            ),
+          ),
         if (_open)
           Positioned.fill(
             child: GestureDetector(
               onTap: () => setState(() => _open = false),
-              child: ColoredBox(
-                color: const Color(0xCC1C1C1E),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xF01C1C1E), Color(0xCC000000)],
+                  ),
+                ),
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          _shadeButton(
-                            icon: Icons.flashlight_on,
-                            label: _torch ? 'Torch on' : 'Torch',
-                            on: _torch,
-                            onTap: () => setState(() => _torch = !_torch),
-                          ),
-                          _shadeButton(
-                            icon: Icons.wifi,
-                            label: 'Wi-Fi',
-                            on: true,
-                            onTap: () {},
-                          ),
-                          _shadeButton(
-                            icon: Icons.bluetooth,
-                            label: 'Bluetooth',
-                            on: false,
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
+                    padding: const EdgeInsets.fromLTRB(16, 28, 16, 16),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _connectivity(),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: _mediaCard()),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 14,
+                          runSpacing: 14,
+                          children: [
+                            _round(
+                              icon: Icons.flashlight_on,
+                              on: _torch,
+                              onTap: () => setState(() => _torch = !_torch),
+                            ),
+                            _round(icon: Icons.timer_outlined, on: false, onTap: () {}),
+                            _round(icon: Icons.calculate_outlined, on: false, onTap: () {}),
+                            _round(icon: Icons.photo_camera_outlined, on: false, onTap: () {}),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -296,27 +321,68 @@ class _ControlShadeState extends State<_ControlShade> {
     );
   }
 
-  Widget _shadeButton({
-    required IconData icon,
-    required String label,
-    required bool on,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          color: on ? Colors.white : Colors.white24,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: on ? Colors.black : Colors.white),
-            Text(label, style: TextStyle(color: on ? Colors.black : Colors.white, fontSize: 10)),
-          ],
+  Widget _connectivity() {
+    Widget cell(IconData icon, bool on) {
+      return Icon(icon, color: on ? const Color(0xFF0A84FF) : Colors.white, size: 22);
+    }
+
+    return Container(
+      height: 140,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [cell(Icons.airplanemode_inactive, false), cell(Icons.signal_cellular_alt, widget.cellular)],
+            ),
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [cell(Icons.wifi, widget.wifi), cell(Icons.bluetooth, widget.bluetooth)],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _mediaCard() {
+    return Container(
+      height: 140,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.music_note, color: Colors.white),
+          Spacer(),
+          Text('Not Playing', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          Text('Music', style: TextStyle(color: Colors.white70, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _round({required IconData icon, required bool on, required VoidCallback onTap}) {
+    return Material(
+      color: on ? Colors.white : Colors.white.withValues(alpha: 0.18),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 52,
+          height: 52,
+          child: Icon(icon, color: on ? Colors.black : Colors.white),
         ),
       ),
     );
@@ -541,11 +607,13 @@ class _CallOverlay extends StatelessWidget {
               call.contactName,
               style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 6),
-            Text(
-              call.contactNumber,
-              style: const TextStyle(color: kMuted, fontSize: 16),
-            ),
+            if (call.contactNumber.isNotEmpty && call.contactNumber != call.contactName) ...[
+              const SizedBox(height: 6),
+              Text(
+                call.contactNumber,
+                style: const TextStyle(color: kMuted, fontSize: 16),
+              ),
+            ],
             const Spacer(),
             if (ringing && incoming && answerMode == 'swipe')
               _SlideToAnswer(onAccept: onAccept, onDecline: onEnd)
