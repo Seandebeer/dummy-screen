@@ -104,7 +104,7 @@ class _Header extends StatelessWidget {
         child: Row(
           children: [
             const Expanded(child: SizedBox.shrink()),
-            const _Brand(),
+            _Brand(ink: palette.ink),
             Expanded(
               child: Align(
                 alignment: Alignment.center,
@@ -133,27 +133,44 @@ class _Header extends StatelessWidget {
 }
 
 class _Brand extends StatelessWidget {
-  const _Brand();
+  const _Brand({required this.ink});
+
+  final Color ink;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Dummy Phone',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.6,
-            height: 1,
+        Semantics(
+          label: 'Dummy Screen',
+          image: true,
+          child: ColorFiltered(
+            colorFilter: ColorFilter.mode(ink, BlendMode.srcIn),
+            child: ColorFiltered(
+              colorFilter: const ColorFilter.matrix(<double>[
+                0, 0, 0, 0, 255,
+                0, 0, 0, 0, 255,
+                0, 0, 0, 0, 255,
+                0.2126, 0.7152, 0.0722, 0, 0,
+              ]),
+              child: Image.asset(
+                'assets/brand/dummy_screen_logo.jpg',
+                key: const Key('app-logo'),
+                height: 52,
+                excludeFromSemantics: true,
+                filterQuality: FilterQuality.high,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
         ),
         Padding(
-          padding: EdgeInsets.only(left: 32, top: 2),
+          padding: const EdgeInsets.only(left: 36, top: 2),
           child: Text(
             'PROPS MASTERTOOL',
             style: TextStyle(
+              color: ink,
               fontSize: 8,
               letterSpacing: 2.4,
               fontWeight: FontWeight.w500,
@@ -1297,12 +1314,12 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Share App'),
-            subtitle: const Text('Send PropSync to the rest of the crew'),
+            subtitle: const Text('Send Dummy Screen to the rest of the crew'),
             trailing: OutlinedButton(
               onPressed: () async {
                 await Clipboard.setData(
                   const ClipboardData(
-                    text: 'PropSync - coming soon to the App Store and Google Play',
+                    text: 'Dummy Screen - coming soon to the App Store and Google Play',
                   ),
                 );
                 if (context.mounted) {
@@ -1339,7 +1356,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('A guided walkthrough of PropSync - follow these steps in order'),
+                const Text('A guided walkthrough of Dummy Screen - follow these steps in order'),
                 const SizedBox(height: 12),
                 const Text('Video walkthrough coming soon'),
                 const SizedBox(height: 12),
@@ -1443,7 +1460,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
     if (sent == true) {
       await Clipboard.setData(
         ClipboardData(
-          text: 'PropSync bug report\n\nWhat happened:\n$body',
+          text: 'Dummy Screen bug report\n\nWhat happened:\n$body',
         ),
       );
       if (context.mounted) {

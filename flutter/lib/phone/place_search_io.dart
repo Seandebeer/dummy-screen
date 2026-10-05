@@ -12,7 +12,7 @@ Future<String> fetchPlaceJson(String query) async {
     final request = await client.getUrl(uri);
     request.headers.set(
       HttpHeaders.userAgentHeader,
-      'DummyPhone/1.0 (prop maps)',
+      'DummyScreen/1.0 (prop maps)',
     );
     final response = await request.close();
     final body = await response.transform(utf8.decoder).join();

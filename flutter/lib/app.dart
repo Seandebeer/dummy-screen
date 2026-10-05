@@ -29,7 +29,7 @@ class DummyPhoneApp extends StatelessWidget {
       child: CallMediaScope(
         media: media,
         child: MaterialApp(
-          title: 'Dummy Phone',
+          title: 'Dummy Screen',
           debugShowCheckedModeBanner: false,
           theme: buildTheme(),
           home: const Shell(),

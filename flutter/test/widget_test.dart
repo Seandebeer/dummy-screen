@@ -16,10 +16,13 @@ void main() {
     await tester.pumpWidget(DummyPhoneApp(store: store));
     await tester.pump();
 
-    expect(find.text('Dummy Phone'), findsOneWidget);
+    expect(find.byKey(const Key('app-logo')), findsOneWidget);
+    expect(find.text('Dummy Phone'), findsNothing);
+    expect(find.text('PropSync'), findsNothing);
 
     await tester.tap(find.byKey(const Key('nav-control')));
     await tester.pump();
+    expect(find.byKey(const Key('app-logo')), findsNothing);
     await tester.tap(find.text('Message'));
     await tester.pump();
     await tester.enterText(
@@ -104,7 +107,7 @@ void main() {
       await tester.dragFrom(origin + const Offset(30, 120), const Offset(0, -450));
       await tester.pump();
     }
-    expect(find.text('TAKEOVER OS · PROP BUILD 1.0'), findsOneWidget);
+    expect(find.text('DUMMY SCREEN · PROP BUILD 1.0'), findsOneWidget);
     expect(find.text('Factory Reset'), findsOneWidget);
   });
 }

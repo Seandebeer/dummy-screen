@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dummy Phone</string>
+	<string>Dummy Screen</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Dummy Phone</string>
+	<string>Dummy Screen</string>
 	<key>NSCameraUsageDescription</key>
 	<string>The prop camera uses the camera so the phone looks live on camera.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -23,7 +23,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Playback can import video clips from your photo library.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Dummy Phone links the prop phone and the control deck on the same Wi-Fi.</string>
+	<string>Dummy Screen links the prop phone and the control deck on the same Wi-Fi.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_dummyphone._tcp</string>

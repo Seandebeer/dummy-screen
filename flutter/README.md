@@ -1,4 +1,4 @@
-# Dummy Phone
+# Dummy Screen
 
 Prop phone and control deck for iOS, Android, Windows, and macOS. One Flutter project; each platform builds from this folder.
 

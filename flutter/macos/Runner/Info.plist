@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Dummy Phone</string>
+	<string>Dummy Screen</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -29,12 +29,12 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dummy Phone</string>
+	<string>Dummy Screen</string>
 	<key>NSCameraUsageDescription</key>
 	<string>The prop camera uses the camera so the phone looks live on camera.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Live calls between the control deck and the prop phone use the microphone.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Dummy Phone links the prop phone and the control deck on the same network.</string>
+	<string>Dummy Screen links the prop phone and the control deck on the same network.</string>
 </dict>
 </plist>

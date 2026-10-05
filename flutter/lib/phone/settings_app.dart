@@ -745,7 +745,7 @@ class _SettingsAppState extends State<SettingsApp> {
                   const Padding(
                     padding: EdgeInsets.only(top: 22),
                     child: Text(
-                      'TAKEOVER OS · PROP BUILD 1.0',
+                      'DUMMY SCREEN · PROP BUILD 1.0',
                       key: Key('os-build-footer'),
                       textAlign: TextAlign.center,
                       style: TextStyle(

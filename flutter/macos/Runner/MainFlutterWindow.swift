@@ -7,7 +7,7 @@ class MainFlutterWindow: NSWindow {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
-    self.title = "Dummy Phone"
+    self.title = "Dummy Screen"
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

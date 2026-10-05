@@ -1,11 +1,11 @@
 {
-    "name": "dummy_phone",
-    "short_name": "dummy_phone",
+    "name": "Dummy Screen",
+    "short_name": "Dummy Screen",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Dummy Phone prop tool",
+    "description": "Dummy Screen prop tool",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
