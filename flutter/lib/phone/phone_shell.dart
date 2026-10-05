@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../format.dart';
 import '../image_file.dart';
+import '../media/call_media.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
@@ -46,6 +48,9 @@ class PhoneShell extends StatelessWidget {
     final image = paper.imagePath.isEmpty
         ? null
         : imageProviderForPath(paper.imagePath);
+    final feed = call?.kind == 'video'
+        ? CallMediaScope.maybeOf(context)?.remoteRenderer
+        : null;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(framed ? 40 : 0),
@@ -109,6 +114,7 @@ class PhoneShell extends StatelessWidget {
                     answerMode: device.os.callAnswer,
                     onAccept: onAccept,
                     onEnd: onEnd,
+                    feed: feed,
                   ),
                 ),
               if (alarm)
@@ -337,12 +343,14 @@ class _CallOverlay extends StatelessWidget {
     required this.answerMode,
     this.onAccept,
     this.onEnd,
+    this.feed,
   });
 
   final LiveCall call;
   final String answerMode;
   final VoidCallback? onAccept;
   final VoidCallback? onEnd;
+  final RTCVideoRenderer? feed;
 
   @override
   Widget build(BuildContext context) {
@@ -351,23 +359,37 @@ class _CallOverlay extends StatelessWidget {
     final initial = call.contactName.isEmpty
         ? '?'
         : call.contactName.characters.first.toUpperCase();
+    final showing = feed?.srcObject != null;
     return ColoredBox(
       color: const Color(0xFF101014),
-      child: SafeArea(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (showing)
+            RTCVideoView(
+              feed!,
+              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+            ),
+          SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 36),
             Text(
-              ringing ? (incoming ? 'Incoming call' : 'Calling') : 'Connected',
+              ringing
+                  ? (incoming
+                      ? (call.kind == 'video' ? 'Incoming video call' : 'Incoming call')
+                      : 'Calling')
+                  : 'Connected',
               style: const TextStyle(color: kMuted, letterSpacing: 0.4),
             ),
             const SizedBox(height: 22),
-            CircleAvatar(
-              radius: 48,
-              backgroundColor: kAccent,
-              child: Text(initial, style: const TextStyle(fontSize: 36)),
-            ),
-            const SizedBox(height: 16),
+            if (!showing)
+              CircleAvatar(
+                radius: 48,
+                backgroundColor: kAccent,
+                child: Text(initial, style: const TextStyle(fontSize: 36)),
+              ),
+            if (!showing) const SizedBox(height: 16),
             Text(
               call.contactName,
               style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w500),
@@ -404,6 +426,8 @@ class _CallOverlay extends StatelessWidget {
             const SizedBox(height: 36),
           ],
         ),
+          ),
+        ],
       ),
     );
   }

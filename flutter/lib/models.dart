@@ -419,6 +419,7 @@ class LiveCall {
     required this.contactNumber,
     required this.direction,
     required this.status,
+    this.kind = 'voice',
   });
 
   final String id;
@@ -428,6 +429,9 @@ class LiveCall {
   final String direction;
   final String status;
 
+  /// `voice` or `video`. Older snapshots omit it and stay voice calls.
+  final String kind;
+
   LiveCall copyWith({String? status}) => LiveCall(
     id: id,
     deviceId: deviceId,
@@ -435,6 +439,7 @@ class LiveCall {
     contactNumber: contactNumber,
     direction: direction,
     status: status ?? this.status,
+    kind: kind,
   );
 
   Map<String, dynamic> toJson() => {
@@ -444,6 +449,7 @@ class LiveCall {
     'contactNumber': contactNumber,
     'direction': direction,
     'status': status,
+    'kind': kind,
   };
 
   factory LiveCall.fromJson(Map<String, dynamic> json) => LiveCall(
@@ -453,6 +459,7 @@ class LiveCall {
     contactNumber: json['contactNumber'] as String? ?? '',
     direction: json['direction'] as String? ?? 'incoming',
     status: json['status'] as String? ?? 'ringing',
+    kind: json['kind'] as String? ?? 'voice',
   );
 }
 
@@ -691,22 +698,28 @@ class PropPhoto {
     required this.id,
     required this.color,
     required this.createdAt,
+    this.image = '',
   });
 
   final String id;
   final int color;
   final int createdAt;
 
+  /// File path or data URL of the captured frame. Empty keeps the colour tile.
+  final String image;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'color': color,
     'createdAt': createdAt,
+    'image': image,
   };
 
   factory PropPhoto.fromJson(Map<String, dynamic> json) => PropPhoto(
     id: json['id'] as String? ?? '',
     color: (json['color'] as num?)?.toInt() ?? 0xFF318DF6,
     createdAt: (json['createdAt'] as num?)?.toInt() ?? 0,
+    image: json['image'] as String? ?? '',
   );
 }
 

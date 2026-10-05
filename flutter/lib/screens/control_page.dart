@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../deck/chrome.dart';
 import '../image_file.dart';
+import '../media/call_media.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../phone/catalog.dart';
@@ -43,6 +44,9 @@ class _ControlPageState extends State<ControlPage> {
   String _photoMode = 'circle';
   bool _mic = true;
   bool _speaker = false;
+  String _videoMode = 'live';
+  bool _cam = true;
+  bool _videoMic = true;
   String _notifScreen = 'lock';
   String _notifApp = 'messages';
   final List<_Reply> _replies = [];
@@ -102,6 +106,7 @@ class _ControlPageState extends State<ControlPage> {
     final messages = target == null
         ? const <StageMessage>[]
         : store.messagesFor(target.id);
+    final media = CallMediaScope.maybeOf(context);
     return GridFill(
       palette: palette,
       child: ListView(
@@ -165,10 +170,18 @@ class _ControlPageState extends State<ControlPage> {
                       mic: _mic,
                       speaker: _speaker,
                       onPhotoMode: (value) => setState(() => _photoMode = value),
-                      onMic: () => setState(() => _mic = !_mic),
-                      onSpeaker: () => setState(() => _speaker = !_speaker),
+                      voiceStatus: media?.voiceStatus ?? 'off',
+                      onMic: () {
+                        setState(() => _mic = !_mic);
+                        if (call?.kind != 'video') media?.setMic(_mic);
+                      },
+                      onSpeaker: () {
+                        setState(() => _speaker = !_speaker);
+                        media?.setSpeaker(_speaker);
+                      },
                       onCall: () {
                         for (final id in _targets(store)) {
+                          media?.arm(mic: _mic, speaker: _speaker, camera: false);
                           store.startCall(
                             deviceId: id,
                             contactName: _name.text,
@@ -192,13 +205,34 @@ class _ControlPageState extends State<ControlPage> {
                     child: _VideoCallBody(
                       palette: palette,
                       enabled: channel != null && _name.text.trim().isNotEmpty,
+                      mode: _videoMode,
+                      cam: _cam,
+                      mic: _videoMic,
+                      status: media?.videoStatus ?? 'off',
+                      onMode: (value) => setState(() => _videoMode = value),
+                      onCam: () {
+                        setState(() => _cam = !_cam);
+                        media?.setCam(_cam);
+                      },
+                      onMic: () {
+                        setState(() => _videoMic = !_videoMic);
+                        if (call?.kind == 'video') media?.setMic(_videoMic);
+                      },
                       onStart: () {
                         for (final id in _targets(store)) {
+                          if (_videoMode == 'live') {
+                            media?.arm(
+                              mic: _videoMic,
+                              speaker: false,
+                              camera: _cam,
+                            );
+                          }
                           store.startCall(
                             deviceId: id,
                             contactName: _name.text,
                             contactNumber: _number.text,
                             direction: 'incoming',
+                            kind: _videoMode == 'live' ? 'video' : 'voice',
                           );
                         }
                       },
@@ -760,6 +794,7 @@ class _CallBody extends StatelessWidget {
     required this.mic,
     required this.speaker,
     required this.onPhotoMode,
+    required this.voiceStatus,
     required this.onMic,
     required this.onSpeaker,
     required this.onCall,
@@ -772,6 +807,7 @@ class _CallBody extends StatelessWidget {
   final String photoMode;
   final bool mic;
   final bool speaker;
+  final String voiceStatus;
   final ValueChanged<String> onPhotoMode;
   final VoidCallback onMic;
   final VoidCallback onSpeaker;
@@ -843,12 +879,19 @@ class _CallBody extends StatelessWidget {
               label: Text(speaker ? 'Speaker on' : 'Speaker off'),
               onPressed: onSpeaker,
             ),
+            Text(
+              'your voice into the phone · hear the actor',
+              style: TextStyle(color: palette.muted, fontSize: 9),
+            ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          'Live voice stays on the machines that share this deck link. The phone still rings.',
-          style: TextStyle(color: palette.muted, fontSize: 10),
+          voiceStatusLine(voiceStatus),
+          style: TextStyle(
+            color: voiceStatus == 'mic-on' ? kSignal : palette.muted,
+            fontSize: 10,
+          ),
         ),
       ],
     );
@@ -860,6 +903,13 @@ class _VideoCallBody extends StatelessWidget {
     required this.palette,
     required this.enabled,
     required this.live,
+    required this.mode,
+    required this.cam,
+    required this.mic,
+    required this.status,
+    required this.onMode,
+    required this.onCam,
+    required this.onMic,
     required this.onStart,
     required this.onEnd,
   });
@@ -867,6 +917,13 @@ class _VideoCallBody extends StatelessWidget {
   final DeckPalette palette;
   final bool enabled;
   final bool live;
+  final String mode;
+  final bool cam;
+  final bool mic;
+  final String status;
+  final ValueChanged<String> onMode;
+  final VoidCallback onCam;
+  final VoidCallback onMic;
   final VoidCallback onStart;
   final VoidCallback onEnd;
 
@@ -877,18 +934,41 @@ class _VideoCallBody extends StatelessWidget {
       children: [
         Wrap(
           spacing: 8,
-          children: const [
-            Chip(label: Text('Live cam')),
-            Chip(label: Text('VFX')),
-            Chip(label: Text('Video')),
-            Chip(label: Text('Photo')),
+          children: [
+            for (final item in const ['live', 'vfx', 'video', 'photo'])
+              ChoiceChip(
+                label: Text(_videoModeLabel(item)),
+                selected: mode == item,
+                onSelected: (_) => onMode(item),
+              ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          'The phone rings as a video call. A camera feed needs a deck machine with a camera.',
-          style: TextStyle(color: palette.muted, fontSize: 11),
-        ),
+        if (mode == 'live') ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ActionChip(
+                avatar: Icon(cam ? Icons.videocam : Icons.videocam_off, size: 14),
+                label: const Text('Camera'),
+                onPressed: onCam,
+              ),
+              ActionChip(
+                avatar: Icon(mic ? Icons.mic : Icons.mic_off, size: 14),
+                label: const Text('Mic'),
+                onPressed: onMic,
+              ),
+              Text(
+                videoStatusLine(status),
+                style: TextStyle(
+                  color: status == 'cam-on' ? kSignal : palette.muted,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 8),
         Row(
           children: [
@@ -1340,5 +1420,44 @@ class _ActionTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _videoModeLabel(String mode) {
+  switch (mode) {
+    case 'vfx':
+      return 'VFX';
+    case 'video':
+      return 'Video';
+    case 'photo':
+      return 'Photo';
+    default:
+      return 'Live cam';
+  }
+}
+
+String voiceStatusLine(String status) {
+  switch (status) {
+    case 'mic-on':
+      return "Voice live - you're speaking through the target device";
+    case 'mic-denied':
+      return 'Mic blocked - calls run without live voice';
+    case 'error':
+      return 'Voice link failed - calls run without live voice';
+    default:
+      return 'Allow mic access for live voice through the target device';
+  }
+}
+
+String videoStatusLine(String status) {
+  switch (status) {
+    case 'cam-on':
+      return 'Live camera streaming';
+    case 'cam-denied':
+      return 'Camera blocked - pick another mode';
+    case 'error':
+      return 'Live link failed';
+    default:
+      return 'Toggles control your live feed only';
   }
 }

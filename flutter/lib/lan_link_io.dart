@@ -2,17 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'media/signal_hub.dart';
 import 'models.dart';
 import 'store.dart';
 
 /// Local-network link so the control deck and the prop phone can be two
 /// machines. The deck hosts; the phone joins the address shown on screen.
 class LanLink implements StageSync {
-  LanLink(this.store) {
+  LanLink(this.store, [SignalHub? hub]) {
     store.attach(this);
+    _hub = hub;
+    hub?.transport = _sendSignal;
   }
 
   final StageStore store;
+  SignalHub? _hub;
   final List<WebSocket> _clients = [];
   HttpServer? _server;
   WebSocket? _socket;
@@ -121,6 +125,7 @@ class LanLink implements StageSync {
     } catch (_) {}
     _server = null;
     boundPort = null;
+    _hub?.remotePeers = 0;
     role = LinkRole.solo;
     address = null;
     status =
@@ -150,10 +155,17 @@ class LanLink implements StageSync {
 
   void _accept(WebSocket socket) {
     _clients.add(socket);
+    _hub?.remotePeers = _clients.length;
     socket.listen(
       (data) => _onHostData(socket, data),
-      onDone: () => _clients.remove(socket),
-      onError: (Object _) => _clients.remove(socket),
+      onDone: () {
+        _clients.remove(socket);
+        _hub?.remotePeers = _clients.length;
+      },
+      onError: (Object _) {
+        _clients.remove(socket);
+        _hub?.remotePeers = _clients.length;
+      },
     );
   }
 
@@ -167,6 +179,8 @@ class LanLink implements StageSync {
       } catch (_) {}
     } else if (op == 'patch') {
       store.applyPatch(jsonMap(message['patch']));
+    } else if (op == 'signal') {
+      _deliverSignal(message['signal']);
     }
   }
 
@@ -175,6 +189,31 @@ class LanLink implements StageSync {
     if (message == null) return;
     if (message['op'] == 'state') {
       store.importState(jsonMap(message['state']));
+    } else if (message['op'] == 'signal') {
+      _deliverSignal(message['signal']);
+    }
+  }
+
+  void _deliverSignal(Object? signal) {
+    if (signal is! Map) return;
+    _hub?.deliver(Map<String, dynamic>.from(signal));
+  }
+
+  void _sendSignal(Map<String, dynamic> message) {
+    final frame = jsonEncode({'op': 'signal', 'signal': message});
+    if (role == LinkRole.host) {
+      for (final socket in List<WebSocket>.of(_clients)) {
+        try {
+          socket.add(frame);
+        } catch (_) {
+          _clients.remove(socket);
+        }
+      }
+      _hub?.remotePeers = _clients.length;
+    } else if (role == LinkRole.client) {
+      try {
+        _socket?.add(frame);
+      } catch (_) {}
     }
   }
 

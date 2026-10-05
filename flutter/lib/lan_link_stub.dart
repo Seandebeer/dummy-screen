@@ -1,10 +1,13 @@
+import 'media/signal_hub.dart';
 import 'store.dart';
 
 /// Browser builds have no server socket. The installed iOS, Android,
 /// Windows, and Mac apps host and join the deck over the local network.
+/// Offer and answer still meet in [SignalHub] on this one machine.
 class LanLink implements StageSync {
-  LanLink(this.store) {
+  LanLink(this.store, [SignalHub? hub]) {
     store.attach(this);
+    hub?.transport = (_) {};
   }
 
   final StageStore store;

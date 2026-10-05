@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../app.dart';
+import '../image_file.dart';
 import '../store.dart';
 import '../format.dart';
 import '../models.dart';
@@ -306,11 +307,14 @@ class _OsPageState extends State<OsPage> {
       case 'camera':
         return CameraApp(
           photos: store.photos[device.id] ?? const [],
-          onShutter: () {
-            store.addPhoto(
-              device.id,
-              _shutterColors[_shutter % _shutterColors.length],
-            );
+          onShutter: (bytes) async {
+            final color = _shutterColors[_shutter % _shutterColors.length];
+            var image = '';
+            if (bytes != null && bytes.isNotEmpty) {
+              image = await persistImageBytes(bytes) ?? '';
+            }
+            if (!mounted) return;
+            store.addPhoto(device.id, color, image: image);
             setState(() => _shutter += 1);
           },
         );

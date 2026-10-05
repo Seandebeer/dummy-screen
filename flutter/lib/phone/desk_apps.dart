@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../app.dart';
 import '../image_file.dart';
+import '../media/live_lens.dart';
 import '../models.dart';
 import '../video_source.dart';
 import 'browser_frame.dart';
@@ -1172,6 +1173,7 @@ class VidcallApp extends StatefulWidget {
 }
 
 class _VidcallAppState extends State<VidcallApp> {
+  final LiveLens _lens = LiveLens();
   ContactCard? _picked;
   bool _inCall = false;
   bool _muted = false;
@@ -1181,6 +1183,7 @@ class _VidcallAppState extends State<VidcallApp> {
   @override
   void dispose() {
     _timer?.cancel();
+    _lens.close();
     super.dispose();
   }
 
@@ -1194,6 +1197,15 @@ class _VidcallAppState extends State<VidcallApp> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _secs += 1);
     });
+    _lens.open(video: true, audio: false, front: true).then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _hangUp() {
+    _timer?.cancel();
+    _lens.close();
+    setState(() => _inCall = false);
   }
 
   @override
@@ -1204,8 +1216,23 @@ class _VidcallAppState extends State<VidcallApp> {
       return ColoredBox(
         color: const Color(0xFF00B140),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            const Center(child: Icon(Icons.add, size: 42, color: Colors.black87)),
+            if (_lens.ready)
+              LensView(lens: _lens, mirror: true)
+            else if (_lens.denied)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 28),
+                  child: Text(
+                    'Allow camera access to use the lens.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ),
+              )
+            else
+              const Center(child: Icon(Icons.add, size: 42, color: Colors.black87)),
             Positioned(
               top: 28,
               left: 0,
@@ -1214,11 +1241,6 @@ class _VidcallAppState extends State<VidcallApp> {
                 children: [
                   Text(_picked!.name, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
                   Text('$minutes:$seconds', style: const TextStyle(color: Colors.white70)),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Live camera stays on a deck machine with a camera.',
-                    style: TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
                 ],
               ),
             ),
@@ -1230,16 +1252,16 @@ class _VidcallAppState extends State<VidcallApp> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton.filled(
-                    onPressed: () => setState(() => _muted = !_muted),
+                    onPressed: () {
+                      setState(() => _muted = !_muted);
+                      _lens.setMic(!_muted);
+                    },
                     icon: Icon(_muted ? Icons.mic_off : Icons.mic),
                   ),
                   const SizedBox(width: 18),
                   IconButton.filled(
                     style: IconButton.styleFrom(backgroundColor: const Color(0xFFFF453A)),
-                    onPressed: () {
-                      _timer?.cancel();
-                      setState(() => _inCall = false);
-                    },
+                    onPressed: _hangUp,
                     icon: const Icon(Icons.call_end),
                   ),
                 ],

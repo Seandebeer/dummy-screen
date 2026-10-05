@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../format.dart';
+import '../image_file.dart';
+import '../media/live_lens.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -284,24 +287,53 @@ class CameraApp extends StatefulWidget {
   const CameraApp({super.key, required this.photos, required this.onShutter});
 
   final List<PropPhoto> photos;
-  final VoidCallback onShutter;
+  final void Function(Uint8List? bytes) onShutter;
 
   @override
   State<CameraApp> createState() => _CameraAppState();
 }
 
 class _CameraAppState extends State<CameraApp> {
+  final LiveLens _lensDevice = LiveLens();
   String _mode = 'camera';
   String _lens = 'photo';
   bool _flash = false;
   bool _front = false;
 
-  void _capture() {
-    widget.onShutter();
+  @override
+  void initState() {
+    super.initState();
+    _openLens();
+  }
+
+  @override
+  void dispose() {
+    _lensDevice.close();
+    super.dispose();
+  }
+
+  Future<void> _openLens() async {
+    await _lensDevice.open(video: true, audio: false, front: _front);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _capture() async {
+    final bytes = await _lensDevice.capture();
+    if (!mounted) return;
+    widget.onShutter(bytes);
     setState(() => _flash = true);
     Future<void>.delayed(const Duration(milliseconds: 160), () {
       if (mounted) setState(() => _flash = false);
     });
+  }
+
+  void _show(String mode) {
+    setState(() => _mode = mode);
+    if (mode == 'camera') {
+      _openLens();
+    } else {
+      _lensDevice.close();
+    }
   }
 
   @override
@@ -309,38 +341,40 @@ class _CameraAppState extends State<CameraApp> {
     if (_mode == 'roll') {
       return PhotosApp(
         photos: widget.photos,
-        onBack: () => setState(() => _mode = 'camera'),
+        onBack: () => _show('camera'),
       );
     }
     if (_mode == 'clips') {
-      return _ClipsGallery(onBack: () => setState(() => _mode = 'camera'));
+      return _ClipsGallery(onBack: () => _show('camera'));
     }
     return Stack(
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Colors.black),
-        const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.camera, size: 28, color: Colors.white30),
-                SizedBox(height: 8),
-                Text(
-                  'Camera unavailable',
-                  style: TextStyle(fontSize: 14, color: Colors.white70),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'The shutter saves a prop still until a live lens is available.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Colors.white38),
-                ),
-              ],
+        LensView(lens: _lensDevice, mirror: _front),
+        if (_lensDevice.denied)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.camera, size: 28, color: Colors.white30),
+                  SizedBox(height: 8),
+                  Text(
+                    'Camera unavailable',
+                    style: TextStyle(fontSize: 14, color: Colors.white70),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Allow camera access in the browser to use the lens',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: Colors.white38),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         if (_flash)
           const ColoredBox(color: Color(0xCCFFFFFF)),
         Positioned(
@@ -355,14 +389,14 @@ class _CameraAppState extends State<CameraApp> {
                 badge: widget.photos.length,
                 badgeColor: kAccent,
                 badgeInk: Colors.black,
-                onTap: () => setState(() => _mode = 'roll'),
+                onTap: () => _show('roll'),
               ),
               _CamButton(
                 icon: Icons.movie_outlined,
                 badge: 0,
                 badgeColor: kAlert,
                 badgeInk: Colors.white,
-                onTap: () => setState(() => _mode = 'clips'),
+                onTap: () => _show('clips'),
               ),
               _CamButton(
                 icon: Icons.flip_camera_ios_outlined,
@@ -370,7 +404,10 @@ class _CameraAppState extends State<CameraApp> {
                 badgeColor: kAccent,
                 badgeInk: Colors.black,
                 iconColor: _front ? kAccent : Colors.white,
-                onTap: () => setState(() => _front = !_front),
+                onTap: () {
+                  setState(() => _front = !_front);
+                  _openLens();
+                },
               ),
             ],
           ),
@@ -597,20 +634,7 @@ class PhotosApp extends StatelessWidget {
             mainAxisSpacing: 4,
             crossAxisSpacing: 4,
             children: [
-              for (final photo in photos.reversed)
-                ColoredBox(
-                  color: Color(photo.color),
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Text(
-                        formatStamp(photo.createdAt),
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    ),
-                  ),
-                ),
+              for (final photo in photos.reversed) _PhotoTile(photo: photo),
             ],
           );
     if (onBack == null) return grid;
@@ -626,6 +650,35 @@ class PhotosApp extends StatelessWidget {
         ),
         Expanded(child: grid),
       ],
+    );
+  }
+}
+
+class _PhotoTile extends StatelessWidget {
+  const _PhotoTile({required this.photo});
+
+  final PropPhoto photo;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = imageProviderForPath(photo.image);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color(photo.color),
+        image: provider == null
+            ? null
+            : DecorationImage(image: provider, fit: BoxFit.cover),
+      ),
+      child: Align(
+        alignment: Alignment.bottomLeft,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Text(
+            formatStamp(photo.createdAt),
+            style: const TextStyle(fontSize: 10, color: Colors.white),
+          ),
+        ),
+      ),
     );
   }
 }

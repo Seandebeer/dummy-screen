@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/painting.dart';
@@ -8,9 +10,34 @@ ImageProvider? imageProviderForPath(String path) {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return NetworkImage(path);
   }
+  if (path.startsWith('data:image')) {
+    final comma = path.indexOf(',');
+    if (comma < 0) return null;
+    try {
+      return MemoryImage(base64Decode(path.substring(comma + 1)));
+    } catch (_) {
+      return null;
+    }
+  }
   final file = File(path);
   if (!file.existsSync()) return null;
   return FileImage(file);
+}
+
+Future<String?> persistImageBytes(Uint8List bytes) async {
+  if (bytes.isEmpty) return null;
+  try {
+    final root = await getApplicationDocumentsDirectory();
+    final folder = Directory('${root.path}/photos');
+    await folder.create(recursive: true);
+    final dest = File(
+      '${folder.path}/${DateTime.now().microsecondsSinceEpoch}.png',
+    );
+    await dest.writeAsBytes(bytes, flush: true);
+    return dest.path;
+  } catch (_) {
+    return null;
+  }
 }
 
 Future<String?> persistPickedImage(PlatformFile file) async {

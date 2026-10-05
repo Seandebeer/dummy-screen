@@ -454,6 +454,7 @@ class StageStore extends ChangeNotifier {
     required String contactName,
     required String contactNumber,
     required String direction,
+    String kind = 'voice',
   }) {
     if (deviceId.isEmpty) return;
     final call = LiveCall(
@@ -463,6 +464,7 @@ class StageStore extends ChangeNotifier {
       contactNumber: contactNumber.trim(),
       direction: direction,
       status: 'ringing',
+      kind: kind == 'video' ? 'video' : 'voice',
     );
     if (call.id.isEmpty || calls.any((item) => item.id == call.id)) return;
     calls = [call, ...calls.where((item) => item.deviceId != deviceId)];
@@ -780,11 +782,12 @@ class StageStore extends ChangeNotifier {
     _touch(null, sync: false);
   }
 
-  void addPhoto(String deviceId, int color) {
+  void addPhoto(String deviceId, int color, {String image = ''}) {
     final photo = PropPhoto(
       id: _nid('ph'),
       color: color,
       createdAt: DateTime.now().millisecondsSinceEpoch,
+      image: image,
     );
     photos = {
       ...photos,
