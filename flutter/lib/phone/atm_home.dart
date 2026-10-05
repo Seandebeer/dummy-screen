@@ -13,9 +13,9 @@ import 'atm_chrome.dart';
 
 /// Landscape ATM for an iPad mounted in a machine.
 ///
-/// The screen opens on a 5-digit PIN. Any five digits unlock it. Every
-/// later screen stays centered, and withdrawal runs from account through
-/// cash, receipt, and card.
+/// The screen opens on a welcome page, then a 5-digit PIN. Any five digits
+/// unlock it. A confirmed withdrawal waits, shows the amount, then asks for
+/// the card, the cash, and the receipt before it returns to welcome.
 class AtmScreen extends StatefulWidget {
   const AtmScreen({super.key, required this.store, required this.device});
 
@@ -27,7 +27,7 @@ class AtmScreen extends StatefulWidget {
 }
 
 class _AtmScreenState extends State<AtmScreen> {
-  String _step = 'pin';
+  String _step = 'welcome';
   String _pin = '';
   String _message = '';
   String _errorBack = 'menu';
@@ -179,14 +179,35 @@ class _AtmScreenState extends State<AtmScreen> {
     _save((current) => current.copyWith(bankNotes: notes));
   }
 
+  static const _withdrawBeats = [
+    'dispense',
+    'shown',
+    'removeCard',
+    'removeCash',
+    'takeReceipt',
+    'closing',
+  ];
+
   void _commitWithdraw() {
     widget.store.updateOs(
       widget.device.id,
       (current) => current.copyWith(bankBalance: current.bankBalance - _amount),
     );
-    setState(() {
-      _action = 'withdraw';
-      _step = 'cash';
+    setState(() => _action = 'withdraw');
+    _playWithdraw(0);
+  }
+
+  void _playWithdraw(int index) {
+    if (!mounted) return;
+    if (index >= _withdrawBeats.length) {
+      _go('welcome');
+      return;
+    }
+    final step = _withdrawBeats[index];
+    _go(step);
+    _fundsTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted || _step != step) return;
+      _playWithdraw(index + 1);
     });
   }
 
@@ -293,6 +314,34 @@ class _AtmScreenState extends State<AtmScreen> {
 
   Widget _body(double scale, DateTime now) {
     switch (_step) {
+      case 'welcome':
+        return GestureDetector(
+          key: const Key('atm-welcome'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _go('pin'),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _t('welcome'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: skin.title,
+                    fontSize: 48 * scale,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 12 * scale),
+                Text(
+                  _t('welcomeHint'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: skin.muted, fontSize: 18 * scale),
+                ),
+              ],
+            ),
+          ),
+        );
       case 'pin':
         return _pinStage(scale, _t('enterPin'), _t('pinHint'), entry: true);
       case 'menu':
@@ -394,6 +443,33 @@ class _AtmScreenState extends State<AtmScreen> {
             _choice(_t('cancel'), () => _go('menu')),
           ],
         );
+      case 'dispense':
+        return _prompt(scale, _t('pleaseWait'), '', const []);
+      case 'shown':
+        return _prompt(
+          scale,
+          _t('actWithdraw'),
+          _f('fromAccount', {
+            'currency': os.bankCurrency,
+            'amount': '$_amount',
+            'account': _accountLabel(_account),
+          }),
+          const [],
+          figure: '${os.bankCurrency} $_amount',
+        );
+      case 'removeCard':
+        return _prompt(scale, _t('removeCard'), '', const []);
+      case 'removeCash':
+        return _prompt(
+          scale,
+          _t('removeCash'),
+          '${os.bankCurrency} $_amount',
+          const [],
+        );
+      case 'takeReceipt':
+        return _prompt(scale, _t('takeReceipt'), '', const []);
+      case 'closing':
+        return _prompt(scale, _t('sessionClosed'), _t('sessionDone'), const []);
       case 'cash':
         return _prompt(scale, _t('takeCash'), '${os.bankCurrency} $_amount', [
           _choice(
@@ -432,7 +508,7 @@ class _AtmScreenState extends State<AtmScreen> {
         return _prompt(scale, _t('takeCard'), _t('sessionDone'), [
           _choice(
             _t('done'),
-            () => _go('pin'),
+            () => _go('welcome'),
             key: const Key('atm-card-done'),
             primary: true,
           ),
@@ -531,7 +607,7 @@ class _AtmScreenState extends State<AtmScreen> {
         return _prompt(scale, _t('out'), _t('closed'), [
           _choice(
             _t('restore'),
-            () => _go('pin'),
+            () => _go('welcome'),
             key: const Key('atm-restore'),
             primary: true,
           ),

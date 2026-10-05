@@ -8,6 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _digits(WidgetTester tester, String pin) async {
+  if (find.byKey(const Key('atm-welcome')).evaluate().isNotEmpty) {
+    await tester.tap(find.byKey(const Key('atm-welcome')));
+    await tester.pump();
+  }
   for (final digit in pin.split('')) {
     await tester.tap(find.byKey(Key('atm-digit-$digit')));
     await tester.pump();
@@ -47,9 +51,15 @@ void main() {
         home: AtmScreen(store: store, device: device),
       ),
     );
-    expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
+    expect(find.byKey(const Key('atm-welcome')), findsOneWidget);
+    expect(find.byKey(const Key('atm-enter-pin')), findsNothing);
     expect(find.text('Please select your transaction'), findsNothing);
     expect(find.text('Northline Mutual'), findsOneWidget);
+    expect(find.text('Welcome'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('atm-welcome')));
+    await tester.pump();
+    expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
 
     await _digits(tester, '9999');
     expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
@@ -69,28 +79,28 @@ void main() {
     expect(find.text('Confirm withdrawal'), findsOneWidget);
     await tester.tap(find.byKey(const Key('atm-confirm')));
     await tester.pump();
-    expect(find.text('Please take your cash'), findsOneWidget);
+    expect(find.text('Please wait'), findsOneWidget);
     expect(store.deviceById('atm-1')!.os.bankBalance, 2460);
 
-    await tester.tap(find.byKey(const Key('atm-cash-taken')));
-    await tester.pump();
-    expect(find.text('Would you like a receipt?'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('atm-no-receipt')));
-    await tester.pump();
-    expect(find.text('Another transaction?'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('atm-no-another')));
-    await tester.pump();
-    expect(find.text('Please take your card'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('atm-card-done')));
-    await tester.pump();
-    expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('USD 20'), findsWidgets);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Please remove your card'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Please remove your cash'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Please take your receipt'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Thank you'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byKey(const Key('atm-welcome')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('atm-service')));
     await tester.pump();
     expect(find.text('Out of service'), findsOneWidget);
     await tester.tap(find.byKey(const Key('atm-restore')));
     await tester.pump();
-    expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
+    expect(find.byKey(const Key('atm-welcome')), findsOneWidget);
   });
 
   testWidgets('a short landscape frame still takes a withdrawal pin', (
