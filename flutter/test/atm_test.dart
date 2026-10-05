@@ -66,6 +66,9 @@ void main() {
     await tester.tapAt(screen.topLeft + const Offset(6, 6));
     await tester.pump();
     expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
+    final digit = tester.getSize(find.byKey(const Key('atm-digit-1')));
+    expect(digit.width, greaterThan(140));
+    expect(digit.height, greaterThan(100));
 
     await _digits(tester, '9999');
     expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
@@ -88,17 +91,17 @@ void main() {
     expect(find.text('Please wait'), findsOneWidget);
     expect(store.deviceById('atm-1')!.os.bankBalance, 2460);
 
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
     expect(find.text('USD 20'), findsWidgets);
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
     expect(find.text('Please remove your card'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
     expect(find.text('Please remove your cash'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
     expect(find.text('Please take your receipt'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
     expect(find.text('Thank you'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 4));
     expect(find.byKey(const Key('atm-welcome')), findsOneWidget);
 
     await tester.tapAt(tester.getCenter(find.byKey(const Key('atm-service'))));
@@ -358,6 +361,72 @@ void main() {
     await tester.tap(find.byKey(const Key('atm-confirm')));
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.bankBalance, 2440);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('the keypad setting stays on screen unless it is external', () {
+    const settings = OsSettings();
+    expect(settings.bankKeypad, 'screen');
+    final external = settings.copyWith(bankKeypad: 'external');
+    expect(OsSettings.fromJson(external.toJson()).bankKeypad, 'external');
+    expect(OsSettings.fromJson(<String, dynamic>{}).bankKeypad, 'screen');
+  });
+
+  testWidgets('an external keypad animates the pin from off screen', (
+    tester,
+  ) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+    final device = PropDevice(
+      id: 'atm-ext',
+      name: 'Lobby atm',
+      projectId: 'sandbox',
+      kind: 'atm',
+      os: const OsSettings(bankKeypad: 'external'),
+    );
+    store.upsertDevice(device);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: AtmScreen(store: store, device: device),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('atm-welcome')));
+    await tester.pump();
+    expect(find.byKey(const Key('atm-digit-1')), findsNothing);
+    expect(find.byKey(const Key('atm-enter-pin')), findsOneWidget);
+    expect(find.text('Use the keypad beside the screen.'), findsOneWidget);
+    expect(find.byKey(const Key('atm-external-pad')), findsOneWidget);
+
+    for (var step = 0; step < 5; step++) {
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(find.text('Please select your transaction'), findsNothing);
+    }
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('Please select your transaction'), findsOneWidget);
+    expect(find.byKey(const Key('atm-external-pad')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('atm-settings')));
+    await tester.pump();
+    expect(find.text('Number pad'), findsOneWidget);
+    expect(find.text('External keypad'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('atm-keypad-screen')));
+    await tester.pump();
+    expect(store.deviceById('atm-ext')!.os.bankKeypad, 'screen');
+
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-done')));
+    await tester.tap(find.byKey(const Key('atm-settings-done')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-service')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-restore')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-welcome')));
+    await tester.pump();
+    expect(find.byKey(const Key('atm-digit-1')), findsOneWidget);
+    expect(find.byKey(const Key('atm-external-pad')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

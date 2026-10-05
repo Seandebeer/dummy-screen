@@ -83,6 +83,7 @@ class OsSettings {
     this.bankCurrency = 'USD',
     this.temperature = 18,
     this.bankNotes = const [20, 50, 100],
+    this.bankKeypad = 'screen',
     this.panelNames = const {},
   });
 
@@ -139,6 +140,9 @@ class OsSettings {
   /// Note sizes this ATM can dispense, smallest first.
   final List<int> bankNotes;
 
+  /// `screen` draws the PIN pad. `external` plays an off-screen keypad.
+  final String bankKeypad;
+
   /// Custom labels for smart-home panels, keyed by panel id.
   final Map<String, String> panelNames;
 
@@ -191,6 +195,7 @@ class OsSettings {
     String? bankCurrency,
     int? temperature,
     List<int>? bankNotes,
+    String? bankKeypad,
     Map<String, String>? panelNames,
   }) => OsSettings(
     theme: theme ?? this.theme,
@@ -233,6 +238,7 @@ class OsSettings {
     bankCurrency: bankCurrency ?? this.bankCurrency,
     temperature: temperature ?? this.temperature,
     bankNotes: bankNotes ?? this.bankNotes,
+    bankKeypad: bankKeypad ?? this.bankKeypad,
     panelNames: panelNames ?? this.panelNames,
   );
 
@@ -277,6 +283,7 @@ class OsSettings {
     'bankCurrency': bankCurrency,
     'temperature': temperature,
     'bankNotes': bankNotes,
+    'bankKeypad': bankKeypad,
     'panelNames': panelNames,
   };
 
@@ -339,6 +346,7 @@ class OsSettings {
       bankCurrency: json['bankCurrency'] as String? ?? 'USD',
       temperature: _atmTemperature(json['temperature']),
       bankNotes: _atmNotes(json['bankNotes']),
+      bankKeypad: json['bankKeypad'] == 'external' ? 'external' : 'screen',
       panelNames: _panelNames(json['panelNames']),
     );
   }
@@ -381,6 +389,7 @@ class OsSettings {
         bankBalance == other.bankBalance &&
         bankCurrency == other.bankCurrency &&
         temperature == other.temperature &&
+        bankKeypad == other.bankKeypad &&
         _sameInts(bankNotes, other.bankNotes) &&
         _sameNames(panelNames, other.panelNames) &&
         _sameCodes(dialCodes, other.dialCodes) &&
@@ -421,6 +430,7 @@ class OsSettings {
     Object.hashAll(people.map((person) => person.name)),
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
     temperature,
+    bankKeypad,
     Object.hashAll(bankNotes),
     Object.hashAll([
       for (final key in (panelNames.keys.toList()..sort()))

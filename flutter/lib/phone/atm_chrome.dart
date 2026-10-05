@@ -415,6 +415,10 @@ String atmGreeting(String language, int hour, String name) {
 const _en = <String, String>{
   'enterPin': 'Enter PIN',
   'pinHint': 'Any 5 digits unlock this machine.',
+  'externalPin': 'Use the keypad beside the screen.',
+  'keypad': 'Number pad',
+  'keypadScreen': 'On screen',
+  'keypadExternal': 'External keypad',
   'morning': 'Good Morning, {name}',
   'afternoon': 'Good Afternoon, {name}',
   'evening': 'Good Evening, {name}',

@@ -14,9 +14,10 @@ import 'atm_chrome.dart';
 /// Landscape ATM for an iPad mounted in a machine.
 ///
 /// The screen stays on welcome until a tap anywhere on it, then a 5-digit
-/// PIN. Any five digits unlock it. A confirmed withdrawal waits, shows the
-/// amount, then asks for the card, the cash, and the receipt before it
-/// returns to welcome.
+/// PIN. Any five digits unlock it. A confirmed withdrawal waits on each
+/// instruction, shows the amount, then asks for the card, the cash, and the
+/// receipt before it returns to welcome. Settings can keep the pad on screen
+/// or play PIN entry as an off-screen keypad.
 class AtmScreen extends StatefulWidget {
   const AtmScreen({super.key, required this.store, required this.device});
 
@@ -44,6 +45,7 @@ class _AtmScreenState extends State<AtmScreen> {
   late final TextEditingController _notes;
   late final TextEditingController _customAmount;
   Timer? _fundsTimer;
+  Timer? _pinTimer;
 
   @override
   void initState() {
@@ -63,6 +65,7 @@ class _AtmScreenState extends State<AtmScreen> {
   @override
   void dispose() {
     _fundsTimer?.cancel();
+    _pinTimer?.cancel();
     _bankName.dispose();
     _userName.dispose();
     _time.dispose();
@@ -105,12 +108,27 @@ class _AtmScreenState extends State<AtmScreen> {
 
   void _go(String step) {
     _fundsTimer?.cancel();
+    _pinTimer?.cancel();
     setState(() {
       _step = step;
       _message = '';
       if (step == 'pin') _pin = '';
       if (step == 'settings') _balance.text = '${os.bankBalance}';
       if (step != 'layout') _layoutPick = null;
+    });
+    if (step == 'pin' && os.bankKeypad == 'external') _playExternalPin(0);
+  }
+
+  /// Dots fill as if someone is using a keypad that sits off the screen.
+  void _playExternalPin(int count) {
+    _pinTimer = Timer(const Duration(milliseconds: 700), () {
+      if (!mounted || _step != 'pin' || os.bankKeypad != 'external') return;
+      if (count >= 5) {
+        _go('menu');
+        return;
+      }
+      setState(() => _pin = '•' * (count + 1));
+      _playExternalPin(count + 1);
     });
   }
 
@@ -206,7 +224,7 @@ class _AtmScreenState extends State<AtmScreen> {
     }
     final step = _withdrawBeats[index];
     _go(step);
-    _fundsTimer = Timer(const Duration(seconds: 2), () {
+    _fundsTimer = Timer(const Duration(seconds: 4), () {
       if (!mounted || _step != step) return;
       _playWithdraw(index + 1);
     });
@@ -687,6 +705,31 @@ class _AtmScreenState extends State<AtmScreen> {
               ),
             ),
             SizedBox(height: 14 * scale),
+            _section(_t('keypad'), scale),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _chip(
+                  _t('keypadScreen'),
+                  os.bankKeypad != 'external',
+                  () => _save(
+                    (current) => current.copyWith(bankKeypad: 'screen'),
+                  ),
+                  key: const Key('atm-keypad-screen'),
+                ),
+                _chip(
+                  _t('keypadExternal'),
+                  os.bankKeypad == 'external',
+                  () => _save(
+                    (current) => current.copyWith(bankKeypad: 'external'),
+                  ),
+                  key: const Key('atm-keypad-external'),
+                ),
+              ],
+            ),
+            SizedBox(height: 14 * scale),
             _nameField(
               scale,
               _t('bankName'),
@@ -1112,6 +1155,7 @@ class _AtmScreenState extends State<AtmScreen> {
     String subtitle, {
     bool entry = false,
   }) {
+    final external = os.bankKeypad == 'external';
     return Column(
       children: [
         Text(
@@ -1126,101 +1170,172 @@ class _AtmScreenState extends State<AtmScreen> {
         ),
         SizedBox(height: 6 * scale),
         Text(
-          subtitle,
+          external ? _t('externalPin') : subtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(color: skin.muted, fontSize: 14 * scale),
+          style: TextStyle(color: skin.muted, fontSize: 16 * scale),
         ),
-        SizedBox(height: 14 * scale),
+        SizedBox(height: 12 * scale),
         _dots(scale),
-        SizedBox(height: 16 * scale),
-        Expanded(
-          child: FittedBox(fit: BoxFit.scaleDown, child: _pad(scale)),
-        ),
+        SizedBox(height: 12 * scale),
+        Expanded(child: external ? _externalCue(scale) : _pad()),
       ],
     );
   }
 
   Widget _dots(double scale) {
+    final dot = 22.0 * scale;
     return Row(
       key: const Key('atm-pin-dots'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (var i = 0; i < 5; i++)
-          Container(
-            width: 16 * scale,
-            height: 16 * scale,
-            margin: EdgeInsets.symmetric(horizontal: 6 * scale),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: dot,
+            height: dot,
+            margin: EdgeInsets.symmetric(horizontal: 8 * scale),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: i < _pin.length ? skin.title : Colors.transparent,
-              border: Border.all(color: skin.title, width: 1.6),
+              border: Border.all(color: skin.title, width: 2),
             ),
           ),
       ],
     );
   }
 
-  Widget _pad(double scale) {
-    final gap = 10 * scale;
-    Widget key(String label, VoidCallback onTap, {Key? widgetKey}) {
-      return GestureDetector(
-        key: widgetKey,
-        onTap: onTap,
-        child: Container(
-          width: 74 * scale,
-          height: 58 * scale,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: skin.keyFill,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: skin.keyInk,
-              fontSize: 22 * scale,
-              fontWeight: FontWeight.w700,
+  Widget _pad() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const cols = 3;
+        const rows = 4;
+        final gap = constraints.maxHeight < 320 ? 8.0 : 16.0;
+        final keyH = math.max(
+          36.0,
+          (constraints.maxHeight - gap * (rows - 1)) / rows,
+        );
+        var keyW = (constraints.maxWidth - gap * (cols - 1)) / cols;
+        if (keyW > keyH * 1.55) keyW = keyH * 1.55;
+        Widget key(String label, VoidCallback onTap, {Key? widgetKey}) {
+          return GestureDetector(
+            key: widgetKey,
+            onTap: onTap,
+            child: Container(
+              width: keyW,
+              height: keyH,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: skin.keyFill,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: skin.keyInk,
+                  fontSize: keyH * 0.42,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-          ),
-        ),
-      );
-    }
+          );
+        }
 
-    final rows = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-    ];
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final row in rows) ...[
-          Row(
+        final rowsOf = [
+          ['1', '2', '3'],
+          ['4', '5', '6'],
+          ['7', '8', '9'],
+        ];
+        return Center(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final n in row) ...[
-                key(n, () => _digit(n), widgetKey: Key('atm-digit-$n')),
-                if (n != row.last) SizedBox(width: gap),
+              for (final row in rowsOf) ...[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final n in row) ...[
+                      key(n, () => _digit(n), widgetKey: Key('atm-digit-$n')),
+                      if (n != row.last) SizedBox(width: gap),
+                    ],
+                  ],
+                ),
+                SizedBox(height: gap),
               ],
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  key(
+                    'C',
+                    () => setState(() => _pin = ''),
+                    widgetKey: const Key('atm-pin-clear'),
+                  ),
+                  SizedBox(width: gap),
+                  key(
+                    '0',
+                    () => _digit('0'),
+                    widgetKey: const Key('atm-digit-0'),
+                  ),
+                  SizedBox(width: gap),
+                  key('⌫', _backspace, widgetKey: const Key('atm-pin-delete')),
+                ],
+              ),
             ],
           ),
-          SizedBox(height: gap),
-        ],
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            key(
-              'C',
-              () => setState(() => _pin = ''),
-              widgetKey: const Key('atm-pin-clear'),
+        );
+      },
+    );
+  }
+
+  /// A physical pad shifted so only its right column stays in frame.
+  Widget _externalCue(double scale) {
+    const labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
+    final lit = _pin.isEmpty ? -1 : ((_pin.length - 1) * 3 + 2) % labels.length;
+    final width = 320.0 * scale;
+    final peek = width * 0.34;
+    return ClipRect(
+      key: const Key('atm-external-pad'),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Transform.translate(
+          offset: Offset(width - peek, 0),
+          child: SizedBox(
+            width: width,
+            child: GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10 * scale,
+              crossAxisSpacing: 10 * scale,
+              childAspectRatio: 1.15,
+              children: [
+                for (var i = 0; i < labels.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOut,
+                    decoration: BoxDecoration(
+                      color: i == lit ? skin.primary : skin.keyFill,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: i == lit ? skin.primaryInk : skin.rule,
+                        width: i == lit ? 3 : 1,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        labels[i],
+                        style: TextStyle(
+                          color: i == lit ? skin.primaryInk : skin.keyInk,
+                          fontSize: 28 * scale,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            SizedBox(width: gap),
-            key('0', () => _digit('0'), widgetKey: const Key('atm-digit-0')),
-            SizedBox(width: gap),
-            key('⌫', _backspace, widgetKey: const Key('atm-pin-delete')),
-          ],
+          ),
         ),
-      ],
+      ),
     );
   }
 
