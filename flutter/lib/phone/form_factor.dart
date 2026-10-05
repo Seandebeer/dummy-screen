@@ -5,6 +5,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'atm_home.dart';
 import 'ps2_home.dart';
 import 'ps5_home.dart';
 import 'xbox_360.dart';
@@ -29,7 +30,7 @@ DeviceMetrics metricsFor(String kind, {bool landscape = false}) {
     case 'cctv':
       return const DeviceMetrics(16 / 9, 'tv');
     case 'atm':
-      return const DeviceMetrics(3 / 4, 'kiosk');
+      return const DeviceMetrics(4 / 3, 'kiosk');
     case 'smarthome':
       return const DeviceMetrics(4 / 3, 'panel');
     default:
@@ -138,7 +139,7 @@ class _FormOsState extends State<FormOs> {
         app: _app,
         onOpen: (id) => setState(() => _app = id),
       ),
-      'atm' => _AtmOs(store: widget.store, device: device),
+      'atm' => AtmScreen(store: widget.store, device: device),
       'cctv' => const _CctvOs(),
       'smarthome' => _HomeOs(store: widget.store, device: device),
       _ => _ComputerOs(
@@ -1107,195 +1108,6 @@ class _SteamPaneState extends State<_SteamPane> {
         ),
       ),
     );
-  }
-}
-
-class _AtmOs extends StatefulWidget {
-  const _AtmOs({required this.store, required this.device});
-
-  final StageStore store;
-  final PropDevice device;
-
-  @override
-  State<_AtmOs> createState() => _AtmOsState();
-}
-
-class _AtmOsState extends State<_AtmOs> {
-  String _step = 'welcome';
-  String _pin = '';
-  String _message = '';
-  int _amount = 0;
-
-  OsSettings get os => widget.device.os;
-
-  void _go(String step) => setState(() {
-    _step = step;
-    _message = '';
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFF0E2A24),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              os.bankName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            Text(os.bankHolder, style: const TextStyle(color: Colors.white70)),
-            const SizedBox(height: 16),
-            Expanded(child: _body()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _body() {
-    switch (_step) {
-      case 'card':
-        return _panel(
-          'Insert card',
-          'The card stays on this screen. Nothing is sent to a bank.',
-          [
-            _btn('Card inserted', () => _go('pin')),
-            _btn('Cancel', () => _go('cancelled')),
-          ],
-        );
-      case 'pin':
-        return _panel('Enter PIN', _pin.padRight(4, '·'), [
-          Wrap(
-            spacing: 8,
-            children: [
-              for (var n = 0; n <= 9; n++)
-                OutlinedButton(
-                  onPressed: () => setState(() {
-                    if (_pin.length < 4) _pin += '$n';
-                    if (_pin.length == 4) _step = 'accounts';
-                  }),
-                  child: Text('$n'),
-                ),
-            ],
-          ),
-        ]);
-      case 'accounts':
-        return _panel('Choose an account', 'Chequing · ${os.bankCurrency}', [
-          _btn('Balance', () => _go('balance')),
-          _btn('Withdraw', () => _go('withdraw')),
-          _btn('Deposit', () => _go('deposit')),
-          _btn('Transfer', () => _go('transfer')),
-          _btn('Out of service', () => _go('down')),
-        ]);
-      case 'balance':
-        return _panel('Balance', '${os.bankCurrency} ${os.bankBalance}', [
-          _btn('Receipt', () => _go('receipt')),
-          _btn('Another transaction', () => _go('accounts')),
-        ]);
-      case 'withdraw':
-        return _panel(
-          'Withdraw',
-          _amount == 0 ? 'Choose an amount' : '${os.bankCurrency} $_amount',
-          [
-            for (final amount in [20, 40, 60, 100])
-              _btn(
-                '$amount',
-                () => setState(() {
-                  if (amount > os.bankBalance) {
-                    _message = 'That amount is not available.';
-                    _step = 'error';
-                  } else {
-                    _amount = amount;
-                    widget.store.updateOs(
-                      widget.device.id,
-                      (current) => current.copyWith(
-                        bankBalance: current.bankBalance - amount,
-                      ),
-                    );
-                    _step = 'confirm';
-                  }
-                }),
-              ),
-          ],
-        );
-      case 'deposit':
-        return _panel('Deposit', 'Notes accepted on this screen only.', [
-          _btn('Deposit 100', () {
-            widget.store.updateOs(
-              widget.device.id,
-              (current) =>
-                  current.copyWith(bankBalance: current.bankBalance + 100),
-            );
-            _go('confirm');
-          }),
-          _btn('Cancel', () => _go('cancelled')),
-        ]);
-      case 'transfer':
-        return _panel('Transfer', 'Move 50 to savings.', [
-          _btn('Confirm transfer', () => _go('confirm')),
-          _btn('Cancel', () => _go('cancelled')),
-        ]);
-      case 'confirm':
-        return _panel('Confirmed', 'The transaction is complete.', [
-          _btn('Receipt', () => _go('receipt')),
-          _btn('Done', () => _go('welcome')),
-        ]);
-      case 'receipt':
-        return _panel(
-          'Receipt',
-          '${os.bankName}\n${os.bankHolder}\nBalance ${os.bankCurrency} ${os.bankBalance}',
-          [_btn('Finish', () => _go('welcome'))],
-        );
-      case 'error':
-        return _panel(
-          'Unable to continue',
-          _message.isEmpty ? 'Try again.' : _message,
-          [_btn('Back', () => _go('accounts'))],
-        );
-      case 'cancelled':
-        return _panel('Cancelled', 'No transaction was completed.', [
-          _btn('Start over', () => _go('welcome')),
-        ]);
-      case 'down':
-        return _panel('Out of service', 'This kiosk is closed.', [
-          _btn('Restore', () => _go('welcome')),
-        ]);
-      default:
-        return _panel('Welcome', 'A fictional kiosk for camera use.', [
-          _btn('Begin', () => _go('card')),
-        ]);
-    }
-  }
-
-  Widget _panel(String title, String body, List<Widget> actions) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 26,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(body, style: const TextStyle(color: Colors.white70, fontSize: 16)),
-        const SizedBox(height: 16),
-        Wrap(spacing: 8, runSpacing: 8, children: actions),
-      ],
-    );
-  }
-
-  Widget _btn(String label, VoidCallback onTap) {
-    return FilledButton(onPressed: onTap, child: Text(label));
   }
 }
 
