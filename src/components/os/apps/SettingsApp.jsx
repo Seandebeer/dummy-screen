@@ -321,7 +321,7 @@ export default function SettingsApp({ config, update, onLock, reset }) {
         </div>
       )}
 
-      <p className="text-center text-[10px] text-white/25 font-body uppercase tracking-widest pt-6 pb-8">Takeover OS · prop build 1.0</p>
+      <p className="text-center text-[10px] text-white/25 font-body uppercase tracking-widest pt-6 pb-8">Dummy Screen · prop build 1.0</p>
     </div>
   );
 }

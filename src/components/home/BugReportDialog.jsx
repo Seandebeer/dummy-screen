@@ -9,7 +9,7 @@ export default function BugReportDialog({ open, onOpenChange }) {
 
   const submit = async () => {
     const report =
-      `PropSync bug report - ${new Date().toLocaleString()}\n` +
+      `Dummy Screen bug report - ${new Date().toLocaleString()}\n` +
       `Device: ${navigator.userAgent}\n\n` +
       `What happened:\n${text.trim()}`;
     try { await navigator.clipboard.writeText(report); } catch {}

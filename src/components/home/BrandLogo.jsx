@@ -1,18 +1,17 @@
 import React from "react";
 import { Image } from "@/components/ui/image";
 
-// the app's "Dummy Phone" brush-stroke wordmark (uploaded artwork on black,
-// which blends straight into the app's black background)
-const LOGO_URL = "https://media.base44.com/images/public/6aadcd9ec1ee05040e66de73/83204be93_CFCBE4D7-CBA2-40A7-B425-6A8BE5C8A2D7.jpeg";
+// Dummy Screen wordmark. White artwork on black, blended into the home header.
+const LOGO_URL = "/brand/dummy-screen-logo.jpg";
 
 export default function BrandLogo() {
   return (
     <div>
       <Image
         src={LOGO_URL}
-        alt="Dummy Phone"
+        alt="Dummy Screen"
         fittingType="fit"
-        className="brand-logo-art h-14 w-[201px]"
+        className="brand-logo-art h-14 w-auto max-w-[320px]"
       />
       <div className="brand-logo-tagline text-[7.5px] font-body uppercase tracking-[0.25em] text-foreground -mt-2 ml-8">
         props mastertool
