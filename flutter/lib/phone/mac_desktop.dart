@@ -1764,10 +1764,13 @@ class _MacWindow extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 children: [
-                  GestureDetector(
-                    key: const Key('mac-window-close'),
-                    onTap: onClose,
-                    child: const _Light(Color(0xFFFF5F57)),
+                  Tooltip(
+                    message: 'Close',
+                    child: GestureDetector(
+                      key: const Key('mac-window-close'),
+                      onTap: onClose,
+                      child: const _Light(Color(0xFFFF5F57)),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   const _Light(Color(0xFFFEBC2E)),

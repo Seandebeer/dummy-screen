@@ -79,6 +79,12 @@ MacGlyph macGlyph(String id, OsSettings os) {
   if (id.startsWith('file:')) {
     return MacGlyph(id.substring(5), Icons.folder_outlined, Colors.white);
   }
+  if (id == 'appstore') {
+    return const MacGlyph('App Store', Icons.shopping_bag, Color(0xFF0A84FF));
+  }
+  if (id == 'settings') {
+    return const MacGlyph('Settings', Icons.settings, Color(0xFF636366));
+  }
   for (final glyph in os.glyphs) {
     if (glyph.id == id) {
       return MacGlyph(
@@ -421,9 +427,13 @@ class MacSettings extends StatelessWidget {
         TextFormField(
           key: const Key('mac-status-network'),
           initialValue: os.networkName,
+          style: const TextStyle(color: Color(0xFF1D1D1F)),
           decoration: const InputDecoration(
             labelText: 'Network name',
+            labelStyle: TextStyle(color: Color(0xFF6E6E73)),
             isDense: true,
+            filled: true,
+            fillColor: Colors.white,
           ),
           onFieldSubmitted: (value) => _rename(value),
           onChanged: _rename,
