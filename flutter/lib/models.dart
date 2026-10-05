@@ -83,6 +83,7 @@ class OsSettings {
     this.bankCurrency = 'USD',
     this.temperature = 18,
     this.bankNotes = const [20, 50, 100],
+    this.panelNames = const {},
   });
 
   final String theme;
@@ -138,6 +139,9 @@ class OsSettings {
   /// Note sizes this ATM can dispense, smallest first.
   final List<int> bankNotes;
 
+  /// Custom labels for smart-home panels, keyed by panel id.
+  final Map<String, String> panelNames;
+
   bool get isLight => theme == 'light';
 
   int get ringDelaySeconds {
@@ -187,6 +191,7 @@ class OsSettings {
     String? bankCurrency,
     int? temperature,
     List<int>? bankNotes,
+    Map<String, String>? panelNames,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -228,6 +233,7 @@ class OsSettings {
     bankCurrency: bankCurrency ?? this.bankCurrency,
     temperature: temperature ?? this.temperature,
     bankNotes: bankNotes ?? this.bankNotes,
+    panelNames: panelNames ?? this.panelNames,
   );
 
   Map<String, dynamic> toJson() => {
@@ -271,6 +277,7 @@ class OsSettings {
     'bankCurrency': bankCurrency,
     'temperature': temperature,
     'bankNotes': bankNotes,
+    'panelNames': panelNames,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -332,6 +339,7 @@ class OsSettings {
       bankCurrency: json['bankCurrency'] as String? ?? 'USD',
       temperature: _atmTemperature(json['temperature']),
       bankNotes: _atmNotes(json['bankNotes']),
+      panelNames: _panelNames(json['panelNames']),
     );
   }
 
@@ -374,6 +382,7 @@ class OsSettings {
         bankCurrency == other.bankCurrency &&
         temperature == other.temperature &&
         _sameInts(bankNotes, other.bankNotes) &&
+        _sameNames(panelNames, other.panelNames) &&
         _sameCodes(dialCodes, other.dialCodes) &&
         _sameOrder(homeOrder, other.homeOrder) &&
         _samePeople(people, other.people) &&
@@ -413,6 +422,10 @@ class OsSettings {
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
     temperature,
     Object.hashAll(bankNotes),
+    Object.hashAll([
+      for (final key in (panelNames.keys.toList()..sort()))
+        '$key=${panelNames[key]}',
+    ]),
   ]);
 }
 
@@ -506,6 +519,26 @@ List<int> _atmNotes(Object? raw) {
   }
   if (notes.isEmpty) return const [20, 50, 100];
   return notes.toList()..sort();
+}
+
+Map<String, String> _panelNames(Object? raw) {
+  if (raw is! Map) return const {};
+  final names = <String, String>{};
+  for (final entry in raw.entries) {
+    final name = entry.value.toString().trim();
+    final id = entry.key.toString().trim();
+    if (id.isEmpty || name.isEmpty) continue;
+    names[id] = name;
+  }
+  return names;
+}
+
+bool _sameNames(Map<String, String> a, Map<String, String> b) {
+  if (a.length != b.length) return false;
+  for (final entry in a.entries) {
+    if (b[entry.key] != entry.value) return false;
+  }
+  return true;
 }
 
 bool _sameInts(List<int> a, List<int> b) {

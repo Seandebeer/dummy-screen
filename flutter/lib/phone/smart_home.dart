@@ -1,9 +1,64 @@
 import 'dart:ui';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+
+const kHomePanelOrder = [
+  'lights',
+  'lock',
+  'garage',
+  'music',
+  'blinds',
+  'oven',
+  'camera',
+  'settings',
+];
+
+const kHomePanelDefaults = {
+  'lights': 'Lights',
+  'lock': 'Front door',
+  'garage': 'Garage',
+  'music': 'Music',
+  'blinds': 'Blinds',
+  'oven': 'Oven',
+  'camera': 'Door camera',
+  'settings': 'Settings',
+  'climate': 'Climate',
+  'home': 'Home',
+  'away': 'Away',
+  'sleep': 'Sleep',
+  'movie': 'Movie',
+};
+
+const _kHomeNameIds = [
+  ...kHomePanelOrder,
+  'climate',
+  'home',
+  'away',
+  'sleep',
+  'movie',
+];
+
+List<String> homePanelOrder(OsSettings os) {
+  final saved = <String>[];
+  for (final id in os.homeOrder) {
+    if (kHomePanelOrder.contains(id) && !saved.contains(id)) saved.add(id);
+  }
+  for (final id in kHomePanelOrder) {
+    if (!saved.contains(id)) saved.add(id);
+  }
+  return saved;
+}
+
+String homePanelName(OsSettings os, String id) {
+  final custom = os.panelNames[id]?.trim() ?? '';
+  if (custom.isEmpty) return kHomePanelDefaults[id] ?? id;
+  return custom;
+}
 
 /// Smart home control panel.
 ///
@@ -36,6 +91,88 @@ class _HomePanelState extends State<HomePanel> {
   bool _oven = false;
   bool _alarm = false;
   bool _camera = false;
+  String _screen = 'home';
+  String? _swap;
+  late final Map<String, TextEditingController> _names;
+
+  @override
+  void initState() {
+    super.initState();
+    final current = widget.device.os;
+    _names = {
+      for (final id in _kHomeNameIds)
+        id: TextEditingController(text: homePanelName(current, id)),
+    };
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _names.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  PropDevice get _live =>
+      widget.store.deviceById(widget.device.id) ?? widget.device;
+
+  OsSettings get os => _live.os;
+
+  String _label(String id) => homePanelName(os, id);
+
+  void _save(OsSettings Function(OsSettings current) change) {
+    widget.store.updateOs(widget.device.id, change);
+    setState(() {});
+  }
+
+  void _flushNames() {
+    final next = Map<String, String>.from(os.panelNames);
+    for (final id in _kHomeNameIds) {
+      final trimmed = _names[id]!.text.trim();
+      if (trimmed.isEmpty || trimmed == kHomePanelDefaults[id]) {
+        next.remove(id);
+      } else {
+        next[id] = trimmed;
+      }
+    }
+    if (_samePanelNames(next, os.panelNames)) return;
+    _save((current) => current.copyWith(panelNames: next));
+  }
+
+  void _swapPanels(String id) {
+    if (_swap == null || _swap == id) {
+      setState(() => _swap = _swap == id ? null : id);
+      return;
+    }
+    final order = List<String>.from(homePanelOrder(os));
+    final first = order.indexOf(_swap!);
+    final second = order.indexOf(id);
+    if (first < 0 || second < 0) return;
+    final held = order[first];
+    order[first] = order[second];
+    order[second] = held;
+    setState(() => _swap = null);
+    _save((current) => current.copyWith(homeOrder: order));
+  }
+
+  Future<void> _uploadBackground() async {
+    final file = await FilePicker.pickFile(type: FileType.image);
+    if (file == null || !mounted) return;
+    final path = await persistPickedImage(file);
+    if (path == null || !mounted) return;
+    _save(
+      (current) =>
+          current.copyWith(backgroundType: 'image', backgroundUrl: path),
+    );
+  }
+
+  void _closeSettings() {
+    _flushNames();
+    setState(() {
+      _screen = 'home';
+      _swap = null;
+    });
+  }
 
   void _apply(String scene) {
     setState(() {
@@ -71,18 +208,32 @@ class _HomePanelState extends State<HomePanel> {
 
   @override
   Widget build(BuildContext context) {
+    final image = os.backgroundType == 'image'
+        ? imageProviderForPath(os.backgroundUrl)
+        : null;
     return Stack(
       key: const Key('home-panel'),
       fit: StackFit.expand,
       children: [
-        const CustomPaint(painter: _HarborWash()),
+        if (image != null)
+          Positioned.fill(
+            key: const Key('home-custom-background'),
+            child: Image(
+              image: image,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
+          ),
+        CustomPaint(painter: _HarborWash(veil: image != null)),
         LayoutBuilder(
           builder: (context, constraints) {
             final portrait =
                 widget.portrait || constraints.maxWidth < constraints.maxHeight;
             return Padding(
               padding: EdgeInsets.all(portrait ? 16 : 22),
-              child: portrait ? _phone() : _wall(),
+              child: _screen == 'settings'
+                  ? _settings()
+                  : (portrait ? _phone() : _wall()),
             );
           },
         ),
@@ -185,10 +336,10 @@ class _HomePanelState extends State<HomePanel> {
 
   Widget _scenes() {
     const scenes = [
-      ('home', 'Home', Color(0xFFF6C15B)),
-      ('away', 'Away', Color(0xFF79B4FF)),
-      ('sleep', 'Sleep', Color(0xFFD59BFF)),
-      ('movie', 'Movie', Color(0xFFFF8D72)),
+      ('home', Color(0xFFF6C15B)),
+      ('away', Color(0xFF79B4FF)),
+      ('sleep', Color(0xFFD59BFF)),
+      ('movie', Color(0xFFFF8D72)),
     ];
     return Wrap(
       alignment: WrapAlignment.center,
@@ -201,11 +352,11 @@ class _HomePanelState extends State<HomePanel> {
             onTap: () => _apply(scene.$1),
             child: _Glass(
               radius: 22,
-              tint: scene.$3,
+              tint: scene.$2,
               lit: _scene == scene.$1,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Text(
-                scene.$2,
+                _label(scene.$1),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -247,9 +398,12 @@ class _HomePanelState extends State<HomePanel> {
           ? Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Climate',
-                  style: TextStyle(color: Color(0xFFD7FFF6), fontSize: 13),
+                Text(
+                  _label('climate'),
+                  style: const TextStyle(
+                    color: Color(0xFFD7FFF6),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 figure,
@@ -262,9 +416,12 @@ class _HomePanelState extends State<HomePanel> {
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Climate',
-                  style: TextStyle(color: Color(0xFFD7FFF6), fontSize: 13),
+                Text(
+                  _label('climate'),
+                  style: const TextStyle(
+                    color: Color(0xFFD7FFF6),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 figure,
@@ -316,19 +473,12 @@ class _HomePanelState extends State<HomePanel> {
     );
   }
 
-  List<Widget> _tiles() {
-    return [
-      _Tile(
-        name: 'Lights',
-        status: _lights ? 'On' : 'Off',
-        icon: Icons.lightbulb_outline,
-        on: _lights,
-        tint: const Color(0xFFF6C15B),
-        tileKey: const Key('home-lights'),
-        onTap: () => setState(() => _lights = !_lights),
-      ),
-      _Tile(
-        name: 'Front door',
+  List<Widget> _tiles() => [for (final id in homePanelOrder(os)) _tileFor(id)];
+
+  Widget _tileFor(String id) {
+    return switch (id) {
+      'lock' => _Tile(
+        name: _label(id),
         status: _locked ? 'Locked' : 'Open',
         icon: Icons.lock_outline,
         on: _locked,
@@ -336,8 +486,8 @@ class _HomePanelState extends State<HomePanel> {
         tileKey: const Key('home-lock'),
         onTap: () => setState(() => _locked = !_locked),
       ),
-      _Tile(
-        name: 'Garage',
+      'garage' => _Tile(
+        name: _label(id),
         status: _garage ? 'Open' : 'Closed',
         icon: Icons.garage_outlined,
         on: _garage,
@@ -345,8 +495,8 @@ class _HomePanelState extends State<HomePanel> {
         tileKey: const Key('home-garage'),
         onTap: () => setState(() => _garage = !_garage),
       ),
-      _Tile(
-        name: 'Music',
+      'music' => _Tile(
+        name: _label(id),
         status: _music ? 'Playing' : 'Off',
         icon: Icons.music_note_outlined,
         on: _music,
@@ -354,8 +504,8 @@ class _HomePanelState extends State<HomePanel> {
         tileKey: const Key('home-music'),
         onTap: () => setState(() => _music = !_music),
       ),
-      _Tile(
-        name: 'Blinds',
+      'blinds' => _Tile(
+        name: _label(id),
         status: '${(100 * _blinds).round()}%',
         icon: Icons.blinds,
         on: _blinds > 0.05,
@@ -365,8 +515,8 @@ class _HomePanelState extends State<HomePanel> {
           _blinds = _blinds > 0.9 ? 0 : (_blinds + 0.3).clamp(0, 1);
         }),
       ),
-      _Tile(
-        name: 'Oven',
+      'oven' => _Tile(
+        name: _label(id),
         status: _oven ? 'On' : 'Off',
         icon: Icons.countertops_outlined,
         on: _oven,
@@ -374,20 +524,8 @@ class _HomePanelState extends State<HomePanel> {
         tileKey: const Key('home-oven'),
         onTap: () => setState(() => _oven = !_oven),
       ),
-      _Tile(
-        name: 'Alarm',
-        status: _alarm ? 'Armed' : 'Off',
-        icon: Icons.shield_outlined,
-        on: _alarm,
-        tint: const Color(0xFFFF7D95),
-        tileKey: const Key('home-alarm'),
-        onTap: () {
-          setState(() => _alarm = !_alarm);
-          widget.store.setAlarm(widget.device.id, _alarm);
-        },
-      ),
-      _Tile(
-        name: 'Door camera',
+      'camera' => _Tile(
+        name: _label(id),
         status: _camera ? 'Live' : 'Idle',
         icon: Icons.videocam_outlined,
         on: _camera,
@@ -395,8 +533,167 @@ class _HomePanelState extends State<HomePanel> {
         tileKey: const Key('home-camera'),
         onTap: () => setState(() => _camera = !_camera),
       ),
-    ];
+      'settings' => _Tile(
+        name: _label(id),
+        status: 'Edit',
+        icon: Icons.settings_outlined,
+        on: false,
+        tint: const Color(0xFFB7C9FF),
+        tileKey: const Key('home-settings'),
+        onTap: () => setState(() => _screen = 'settings'),
+      ),
+      _ => _Tile(
+        name: _label('lights'),
+        status: _lights ? 'On' : 'Off',
+        icon: Icons.lightbulb_outline,
+        on: _lights,
+        tint: const Color(0xFFF6C15B),
+        tileKey: const Key('home-lights'),
+        onTap: () => setState(() => _lights = !_lights),
+      ),
+    };
   }
+
+  Widget _settings() {
+    final hasImage =
+        os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty;
+    return Column(
+      children: [
+        const Text(
+          'Settings',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SettingsLabel('Background'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _settingsChip(
+                      'Upload background',
+                      _uploadBackground,
+                      const Key('home-upload-background'),
+                    ),
+                    if (hasImage)
+                      _settingsChip(
+                        'Remove background',
+                        () => _save(
+                          (current) => current.copyWith(
+                            backgroundType: 'preset',
+                            backgroundUrl: '',
+                          ),
+                        ),
+                        const Key('home-remove-background'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const _SettingsLabel('Rearrange'),
+                const Text(
+                  'Tap two panels to swap them.',
+                  style: TextStyle(color: Color(0xFFD5E4DE), fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final id in homePanelOrder(os))
+                      _settingsChip(
+                        _label(id),
+                        () => _swapPanels(id),
+                        Key('home-order-$id'),
+                        lit: _swap == id,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const _SettingsLabel('Panel names'),
+                for (final id in _kHomeNameIds) _nameField(id),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _settingsChip(
+          'Done',
+          _closeSettings,
+          const Key('home-settings-done'),
+          lit: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _nameField(String id) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        child: TextField(
+          key: Key('home-name-$id'),
+          controller: _names[id],
+          style: const TextStyle(color: Colors.white),
+          cursorColor: Colors.white,
+          decoration: InputDecoration(
+            labelText: kHomePanelDefaults[id],
+            labelStyle: const TextStyle(color: Color(0xFFD5E4DE)),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 10,
+            ),
+          ),
+          onSubmitted: (_) => _flushNames(),
+          onEditingComplete: _flushNames,
+        ),
+      ),
+    );
+  }
+
+  Widget _settingsChip(
+    String label,
+    VoidCallback onTap,
+    Key key, {
+    bool lit = false,
+  }) {
+    return GestureDetector(
+      key: key,
+      onTap: onTap,
+      child: _Glass(
+        radius: 18,
+        tint: const Color(0xFFB7C9FF),
+        lit: lit,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+bool _samePanelNames(Map<String, String> a, Map<String, String> b) {
+  if (a.length != b.length) return false;
+  for (final entry in a.entries) {
+    if (b[entry.key] != entry.value) return false;
+  }
+  return true;
 }
 
 class _ColorThread extends StatelessWidget {
@@ -582,8 +879,31 @@ class _Tile extends StatelessWidget {
   }
 }
 
+class _SettingsLabel extends StatelessWidget {
+  const _SettingsLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 class _HarborWash extends CustomPainter {
-  const _HarborWash();
+  const _HarborWash({this.veil = false});
+
+  final bool veil;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -591,12 +911,15 @@ class _HarborWash extends CustomPainter {
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF12343A), Color(0xFF071816), Color(0xFF10182A)],
+          colors: veil
+              ? const [Color(0x66101820), Color(0x99101820)]
+              : const [Color(0xFF12343A), Color(0xFF071816), Color(0xFF10182A)],
         ).createShader(rect),
     );
+    if (veil) return;
     _bloom(
       canvas,
       Offset(size.width * 0.08, size.height * 0.02),
@@ -634,5 +957,6 @@ class _HarborWash extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _HarborWash oldDelegate) =>
+      oldDelegate.veil != veil;
 }
