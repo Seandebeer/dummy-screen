@@ -291,4 +291,121 @@ void main() {
     expect(find.byKey(const Key('xbox-home')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('console settings and the app store match the phone library', (
+    tester,
+  ) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(960, 540));
+    final device = PropDevice(
+      id: 'console-apps',
+      name: 'Stage console',
+      projectId: 'sandbox',
+      kind: 'console',
+    );
+    store.upsertDevice(device);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FormOs(store: store, device: device),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('xbox-settings')));
+    await tester.pump();
+    expect(find.text('Settings'), findsWidgets);
+    expect(find.text('Wallpaper'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('console-theme-midnight')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-back')));
+    await tester.pump();
+    expect(find.byKey(const Key('console-wallpaper')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('xbox-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-settings-status')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-show-battery')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-back')));
+    await tester.pump();
+    expect(find.byKey(const Key('xbox-battery')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('xbox-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-settings-icons')));
+    await tester.pump();
+    expect(find.text('Add to library'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('console-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('xbox-appstore')));
+    await tester.pump();
+    expect(find.text('App Library'), findsWidgets);
+    expect(find.text('App Store'), findsWidgets);
+
+    final notes = find.byKey(const Key('console-store-home-notes'));
+    await tester.dragUntilVisible(
+      notes,
+      find.byKey(const Key('console-store-scroll')),
+      const Offset(0, -200),
+    );
+    await tester.ensureVisible(notes);
+    await tester.pump();
+    await tester.tap(notes);
+    await tester.pump();
+    expect(find.text('Pinned'), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('console-back')));
+    await tester.pump();
+    expect(find.byKey(const Key('console-pin-notes')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('console-pin-notes')));
+    await tester.pump();
+    expect(find.text('Notes'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Customize'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PlayStation 5').last);
+    await tester.pump();
+    expect(find.byKey(const Key('ps5-home')), findsOneWidget);
+    expect(find.byKey(const Key('ps5-settings')), findsOneWidget);
+    expect(find.byKey(const Key('ps5-appstore')), findsOneWidget);
+    expect(find.byKey(const Key('console-pin-notes')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('ps5-settings')));
+    await tester.tap(find.byKey(const Key('ps5-settings')));
+    await tester.pump();
+    expect(find.text('Choose picture'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('console-back')));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Console'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PlayStation 2').last);
+    await tester.pump();
+    expect(find.byKey(const Key('ps2-save-settings')), findsOneWidget);
+    expect(find.byKey(const Key('ps2-save-appstore')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('ps2-save-appstore')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ps2-enter')));
+    await tester.pump();
+    expect(find.text('App Library'), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('console-back')));
+    await tester.pump();
+    await tester.tap(find.text('Options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Xbox 360').last);
+    await tester.pump();
+    expect(find.byKey(const Key('xbox360-home')), findsOneWidget);
+    expect(find.byKey(const Key('xbox360-settings')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('xbox360-appstore')));
+    await tester.pump();
+    expect(find.text('App Library'), findsWidgets);
+    expect(find.byKey(const Key('console-pin-notes')), findsNothing);
+  });
 }

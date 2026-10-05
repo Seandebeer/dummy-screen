@@ -6,6 +6,8 @@ import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+import 'console_apps.dart';
+import 'mac_desk.dart';
 
 /// PlayStation 5 Games home: icon strip, dark cards, and line-art background.
 class Ps5Home extends StatefulWidget {
@@ -47,7 +49,15 @@ class _Ps5HomeState extends State<Ps5Home> {
       key: const Key('ps5-home'),
       fit: StackFit.expand,
       children: [
-        const Positioned.fill(child: CustomPaint(painter: _BackdropPainter())),
+        Positioned.fill(
+          child: ConsoleWallpaper(
+            device: widget.device,
+            fallback: const CustomPaint(
+              painter: _BackdropPainter(),
+              child: SizedBox.expand(),
+            ),
+          ),
+        ),
         LayoutBuilder(
           builder: (context, constraints) {
             final metrics = _Metrics(constraints.biggest);
@@ -77,6 +87,7 @@ class _Ps5HomeState extends State<Ps5Home> {
                       child: _Header(
                         tab: _tab,
                         time: _clock(now),
+                        os: widget.device.os,
                         onTab: (index) => setState(() => _tab = index),
                         onShell: widget.onShell,
                         shells: _shells,
@@ -86,7 +97,11 @@ class _Ps5HomeState extends State<Ps5Home> {
                     if (_tab == 0) ...[
                       SizedBox(
                         height: metrics.strip,
-                        child: _GameStrip(cover: cover, onOpen: widget.onOpen),
+                        child: _GameStrip(
+                          cover: cover,
+                          os: widget.device.os,
+                          onOpen: widget.onOpen,
+                        ),
                       ),
                       const Spacer(),
                       SizedBox(
@@ -163,6 +178,7 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.tab,
     required this.time,
+    required this.os,
     required this.onTab,
     required this.onShell,
     required this.shells,
@@ -170,6 +186,7 @@ class _Header extends StatelessWidget {
 
   final int tab;
   final String time;
+  final OsSettings os;
   final ValueChanged<int> onTab;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
@@ -185,8 +202,10 @@ class _Header extends StatelessWidget {
           SizedBox(width: metrics.gap + 4),
           _TabLabel(label: 'Media', selected: tab == 1, onTap: () => onTab(1)),
           const Spacer(),
-          Icon(Icons.search, color: Colors.white, size: metrics.fs(18)),
-          SizedBox(width: metrics.gap),
+          if (ConsoleLayout.shows(os, 'search')) ...[
+            Icon(Icons.search, color: Colors.white, size: metrics.fs(18)),
+            SizedBox(width: metrics.gap),
+          ],
           PopupMenuButton<String>(
             tooltip: 'Console',
             padding: EdgeInsets.zero,
@@ -204,15 +223,18 @@ class _Header extends StatelessWidget {
           ),
           SizedBox(width: metrics.gap),
           Icon(Icons.crop_square, color: Colors.white, size: metrics.fs(16)),
-          SizedBox(width: metrics.gap),
-          Text(
-            time,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: metrics.fs(14),
-              fontWeight: FontWeight.w500,
+          if (ConsoleLayout.shows(os, 'clock')) ...[
+            SizedBox(width: metrics.gap),
+            Text(
+              time,
+              key: const Key('ps5-clock'),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: metrics.fs(14),
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -248,9 +270,10 @@ class _TabLabel extends StatelessWidget {
 }
 
 class _GameStrip extends StatefulWidget {
-  const _GameStrip({required this.onOpen, this.cover});
+  const _GameStrip({required this.onOpen, required this.os, this.cover});
 
   final ImageProvider? cover;
+  final OsSettings os;
   final ValueChanged<String> onOpen;
 
   @override
@@ -281,7 +304,18 @@ class _GameStripState extends State<_GameStrip> {
           children: [
             _MarkTile(side: box * 0.92),
             SizedBox(width: metrics.gap * 0.6),
-            _IconTile(icon: Icons.shopping_bag_outlined, side: box * 0.92),
+            _IconTile(
+              icon: Icons.shopping_bag_outlined,
+              side: box * 0.92,
+              tileKey: const Key('ps5-appstore'),
+              onTap: () => widget.onOpen('appstore'),
+            ),
+            _IconTile(
+              icon: Icons.settings,
+              side: box * 0.92,
+              tileKey: const Key('ps5-settings'),
+              onTap: () => widget.onOpen('settings'),
+            ),
             SizedBox(width: metrics.gap * 0.6),
             _WelcomeTile(
               side: box,
@@ -313,6 +347,13 @@ class _GameStripState extends State<_GameStrip> {
             ),
             _IconTile(icon: Icons.sports_esports, side: box * 0.92),
             _GridTile(side: box * 0.92),
+            for (final id in widget.os.consolePins)
+              _IconTile(
+                icon: macGlyph(id, widget.os).icon,
+                side: box * 0.92,
+                tileKey: Key('console-pin-$id'),
+                onTap: () => widget.onOpen(id),
+              ),
           ],
         ),
       ),
@@ -406,24 +447,35 @@ class _CoverTile extends StatelessWidget {
 }
 
 class _IconTile extends StatelessWidget {
-  const _IconTile({required this.icon, required this.side});
+  const _IconTile({
+    required this.icon,
+    required this.side,
+    this.onTap,
+    this.tileKey,
+  });
 
   final IconData icon;
   final double side;
+  final VoidCallback? onTap;
+  final Key? tileKey;
 
   @override
   Widget build(BuildContext context) {
     final metrics = _Scope.of(context);
     return Padding(
       padding: EdgeInsets.only(right: metrics.gap * 0.6),
-      child: Container(
-        width: side,
-        height: side,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1C24),
-          borderRadius: BorderRadius.circular(side * 0.16),
+      child: GestureDetector(
+        key: tileKey,
+        onTap: onTap,
+        child: Container(
+          width: side,
+          height: side,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1C24),
+            borderRadius: BorderRadius.circular(side * 0.16),
+          ),
+          child: Icon(icon, color: Colors.white, size: side * 0.42),
         ),
-        child: Icon(icon, color: Colors.white, size: side * 0.42),
       ),
     );
   }

@@ -89,6 +89,8 @@ class OsSettings {
     this.macDesktop = const [],
     this.macPlaces = const {},
     this.macStatus = const [],
+    this.consolePins = const [],
+    this.consoleStatus = const [],
   });
 
   final String theme;
@@ -166,6 +168,13 @@ class OsSettings {
   /// A single `-` means every status item was hidden.
   final List<String> macStatus;
 
+  /// Apps pinned from the console App Store onto the console home.
+  final List<String> consolePins;
+
+  /// Console header tokens. Empty uses the built-in set.
+  /// A single `-` means every status item was hidden.
+  final List<String> consoleStatus;
+
   bool get isLight => theme == 'light';
 
   int get ringDelaySeconds {
@@ -221,6 +230,8 @@ class OsSettings {
     List<String>? macDesktop,
     Map<String, String>? macPlaces,
     List<String>? macStatus,
+    List<String>? consolePins,
+    List<String>? consoleStatus,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -268,6 +279,8 @@ class OsSettings {
     macDesktop: macDesktop ?? this.macDesktop,
     macPlaces: macPlaces ?? this.macPlaces,
     macStatus: macStatus ?? this.macStatus,
+    consolePins: consolePins ?? this.consolePins,
+    consoleStatus: consoleStatus ?? this.consoleStatus,
   );
 
   Map<String, dynamic> toJson() => {
@@ -317,6 +330,8 @@ class OsSettings {
     'macDesktop': macDesktop,
     'macPlaces': macPlaces,
     'macStatus': macStatus,
+    'consolePins': consolePins,
+    'consoleStatus': consoleStatus,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -384,6 +399,8 @@ class OsSettings {
       macDesktop: _idList(json['macDesktop']),
       macPlaces: _panelNames(json['macPlaces']),
       macStatus: _idList(json['macStatus']),
+      consolePins: _idList(json['consolePins']),
+      consoleStatus: _idList(json['consoleStatus']),
     );
   }
 
@@ -433,6 +450,8 @@ class OsSettings {
         _sameOrder(macDock, other.macDock) &&
         _sameOrder(macDesktop, other.macDesktop) &&
         _sameOrder(macStatus, other.macStatus) &&
+        _sameOrder(consolePins, other.consolePins) &&
+        _sameOrder(consoleStatus, other.consoleStatus) &&
         _sameNames(macPlaces, other.macPlaces) &&
         _samePeople(people, other.people) &&
         _sameGlyphs(glyphs, other.glyphs);
@@ -470,6 +489,8 @@ class OsSettings {
     Object.hashAll(macDock),
     Object.hashAll(macDesktop),
     Object.hashAll(macStatus),
+    Object.hashAll(consolePins),
+    Object.hashAll(consoleStatus),
     Object.hashAll([
       for (final key in (macPlaces.keys.toList()..sort()))
         '$key=${macPlaces[key]}',

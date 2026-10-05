@@ -5,6 +5,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import 'atm_home.dart';
+import 'console_apps.dart';
 import 'mac_desktop.dart';
 import 'ps2_home.dart';
 import 'smart_home.dart';
@@ -824,38 +825,48 @@ class _ConsoleOs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shell = device.os.shell.isEmpty ? 'xbox' : device.os.shell;
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final live = store.deviceById(device.id) ?? device;
+        return _scene(live);
+      },
+    );
+  }
+
+  Widget _scene(PropDevice live) {
+    final shell = live.os.shell.isEmpty ? 'xbox' : live.os.shell;
     final bg = switch (shell) {
       'ps5' => const Color(0xFF07111F),
       'ps2' => const Color(0xFF8A8C90),
       'x360' => const Color(0xFF6E706F),
       _ => const Color(0xFF061803),
     };
-    final cover = imageProviderForPath(device.os.steamCover);
+    final cover = imageProviderForPath(live.os.steamCover);
     void onShell(String id) =>
-        store.updateOs(device.id, (os) => os.copyWith(shell: id));
+        store.updateOs(live.id, (os) => os.copyWith(shell: id));
     final home = switch (shell) {
       'xbox' => XboxSeriesHome(
         store: store,
-        device: device,
+        device: live,
         onOpen: onOpen,
         onShell: onShell,
       ),
       'x360' => Xbox360Home(
         store: store,
-        device: device,
+        device: live,
         onOpen: onOpen,
         onShell: onShell,
       ),
       'ps5' => Ps5Home(
         store: store,
-        device: device,
+        device: live,
         onOpen: onOpen,
         onShell: onShell,
       ),
       'ps2' => Ps2Home(
         store: store,
-        device: device,
+        device: live,
         onOpen: onOpen,
         onShell: onShell,
       ),
@@ -883,7 +894,7 @@ class _ConsoleOs extends StatelessWidget {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.settings, color: Colors.white),
                   onSelected: (id) =>
-                      store.updateOs(device.id, (os) => os.copyWith(shell: id)),
+                      store.updateOs(live.id, (os) => os.copyWith(shell: id)),
                   itemBuilder: (context) => [
                     for (final item in _shells)
                       PopupMenuItem(value: item.$1, child: Text(item.$2)),
@@ -897,9 +908,9 @@ class _ConsoleOs extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 children: [
                   _GameTile(
-                    title: device.os.steamTitle.isEmpty
+                    title: live.os.steamTitle.isEmpty
                         ? 'Steam game'
-                        : device.os.steamTitle,
+                        : live.os.steamTitle,
                     image: cover,
                     onTap: () => onOpen('steam'),
                   ),
@@ -919,11 +930,29 @@ class _ConsoleOs extends StatelessWidget {
     };
     return Material(
       color: bg,
-      child: app == null
-          ? home
-          : app == 'steam'
-          ? _SteamPane(store: store, device: device, onBack: () => onOpen(null))
-          : _NowPlaying(title: app!, onBack: () => onOpen(null)),
+      child: switch (app) {
+        null => home,
+        'steam' => _SteamPane(
+          store: store,
+          device: live,
+          onBack: () => onOpen(null),
+        ),
+        'settings' => ConsoleSettings(
+          store: store,
+          device: live,
+          onClose: () => onOpen(null),
+        ),
+        'appstore' => ConsoleAppStore(
+          store: store,
+          device: live,
+          onOpen: (id) => onOpen(id),
+          onClose: () => onOpen(null),
+        ),
+        _ => _NowPlaying(
+          title: consoleAppLabel(app!, live.os),
+          onBack: () => onOpen(null),
+        ),
+      },
     );
   }
 }

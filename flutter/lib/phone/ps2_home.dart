@@ -6,6 +6,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import 'console_apps.dart';
 
 /// PlayStation 2 memory-card browser. The plate follows a saved wallpaper.
 class Ps2Home extends StatefulWidget {
@@ -100,11 +101,16 @@ class _Ps2HomeState extends State<Ps2Home> {
                     child: const CustomPaint(painter: _CursorPainter()),
                   ),
                   SizedBox(height: tight ? 2 : 6),
+                  ConsolePinStrip(os: widget.device.os, onOpen: widget.onOpen),
                   SizedBox(
                     height: prompts,
                     child: _Prompts(
                       onEnter: () => widget.onOpen(
-                        current.id == 'steam' ? 'steam' : current.title,
+                        current.id == 'steam' ||
+                                current.id == 'settings' ||
+                                current.id == 'appstore'
+                            ? current.id
+                            : current.title,
                       ),
                       onShell: widget.onShell,
                       shells: _shells,
@@ -477,7 +483,14 @@ List<_Save?> _slots(String featured) {
     ),
     const _Save('coin', 'Token', 'Spare', _Face.coin, Color(0xFF6A6258)),
     const _Save('scout', 'Scout', 'Cast', _Face.figure, Color(0xFF2C2C30)),
-    null,
+    const _Save(
+      'appstore',
+      'App Store',
+      'Library',
+      _Face.card,
+      Color(0xFF0A84FF),
+      icon: Icons.shopping_bag,
+    ),
     const _Save(
       'still',
       'Still',
@@ -519,7 +532,14 @@ List<_Save?> _slots(String featured) {
       Color(0xFF3A3A55),
       icon: Icons.vpn_key,
     ),
-    const _Save('block', 'Block', 'Archive', _Face.cube, Color(0xFFE25A2A)),
+    const _Save(
+      'settings',
+      'Settings',
+      'System',
+      _Face.badge,
+      Color(0xFF636366),
+      icon: Icons.settings,
+    ),
   ];
 }
 

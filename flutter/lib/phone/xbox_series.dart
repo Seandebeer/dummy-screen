@@ -4,6 +4,7 @@ import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+import 'console_apps.dart';
 
 /// Xbox Series dashboard: green ribbon, a featured tile, and the home rows.
 class XboxSeriesHome extends StatelessWidget {
@@ -33,11 +34,18 @@ class XboxSeriesHome extends StatelessWidget {
     final featured = device.os.steamTitle.trim().isEmpty ? 'Night Run' : device.os.steamTitle.trim();
     final cover = imageProviderForPath(device.os.steamCover);
     final tag = store.operatorName.trim().isEmpty ? 'Player' : store.operatorName.trim();
+    final shown = device.os;
     return Stack(
       key: const Key('xbox-home'),
       fit: StackFit.expand,
       children: [
-        const CustomPaint(painter: _WavePainter(), child: SizedBox.expand()),
+        ConsoleWallpaper(
+          device: device,
+          fallback: const CustomPaint(
+            painter: _WavePainter(),
+            child: SizedBox.expand(),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
           child: LayoutBuilder(
@@ -46,7 +54,7 @@ class XboxSeriesHome extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Header(tag: tag, time: _clock(now)),
+                  _Header(tag: tag, time: _clock(now), os: shown),
                   SizedBox(height: box.gap),
                   SizedBox(
                     height: box.featured,
@@ -88,7 +96,12 @@ class XboxSeriesHome extends StatelessWidget {
                           gap: box.tileGap,
                           onTap: () => onOpen('Drift'),
                         ),
-                        _StoreTile(side: box.small, gap: box.tileGap, onTap: () => onOpen('Store')),
+                        _StoreTile(
+                          side: box.small,
+                          gap: box.tileGap,
+                          tileKey: const Key('xbox-appstore'),
+                          onTap: () => onOpen('appstore'),
+                        ),
                       ],
                     ),
                   ),
@@ -190,10 +203,25 @@ class XboxSeriesHome extends StatelessWidget {
           ),
         ),
         Positioned(
+          left: 18,
+          right: 220,
+          bottom: 58,
+          child: ConsolePinStrip(os: device.os, onOpen: onOpen),
+        ),
+        Positioned(
           right: 16,
           bottom: 18,
-          child: Row(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
             children: [
+              GestureDetector(
+                key: const Key('xbox-settings'),
+                onTap: () => onOpen('settings'),
+                child: const _Pill(mark: _PillMark.guide, label: 'Settings'),
+              ),
+              const SizedBox(width: 8),
               PopupMenuButton<String>(
                 tooltip: 'Customize',
                 onSelected: onShell,
@@ -207,6 +235,7 @@ class XboxSeriesHome extends StatelessWidget {
               const SizedBox(width: 8),
               const _Pill(mark: _PillMark.y, label: 'Search'),
             ],
+            ),
           ),
         ),
       ],
@@ -264,31 +293,48 @@ _Box _fit(double width, double height) {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.tag, required this.time});
+  const _Header({required this.tag, required this.time, required this.os});
 
   final String tag;
   final String time;
+  final OsSettings os;
 
   @override
   Widget build(BuildContext context) {
     final initial = tag.isEmpty ? 'P' : tag.characters.first.toUpperCase();
+    final level = os.battery.clamp(0, 100);
+    final battery = level >= 90
+        ? Icons.battery_full
+        : level >= 60
+        ? Icons.battery_5_bar
+        : level >= 30
+        ? Icons.battery_3_bar
+        : Icons.battery_1_bar;
     return SizedBox(
       height: 32,
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 13,
-            backgroundColor: const Color(0xFFD05A28),
-            child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-          ),
-          const SizedBox(width: 8),
-          Text(tag, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+          if (ConsoleLayout.shows(os, 'tag')) ...[
+            CircleAvatar(
+              radius: 13,
+              backgroundColor: const Color(0xFFD05A28),
+              child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 8),
+            Text(tag, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+          ],
           const Spacer(),
           const Icon(Icons.notifications_off_outlined, color: Colors.white, size: 16),
-          const SizedBox(width: 12),
-          const Icon(Icons.battery_full, color: Colors.white, size: 18),
-          const SizedBox(width: 8),
-          Text(time, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+          if (ConsoleLayout.shows(os, 'battery')) ...[
+            const SizedBox(width: 12),
+            Icon(battery, color: Colors.white, size: 18, key: const Key('xbox-battery')),
+            const SizedBox(width: 4),
+            Text('$level%', style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ],
+          if (ConsoleLayout.shows(os, 'clock')) ...[
+            const SizedBox(width: 8),
+            Text(time, key: const Key('xbox-clock'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+          ],
         ],
       ),
     );
@@ -451,11 +497,17 @@ class _PassTile extends StatelessWidget {
 }
 
 class _StoreTile extends StatelessWidget {
-  const _StoreTile({required this.side, required this.onTap, this.gap = 0});
+  const _StoreTile({
+    required this.side,
+    required this.onTap,
+    this.gap = 0,
+    this.tileKey,
+  });
 
   final double side;
   final VoidCallback onTap;
   final double gap;
+  final Key? tileKey;
 
   @override
   Widget build(BuildContext context) {
@@ -464,14 +516,22 @@ class _StoreTile extends StatelessWidget {
       child: SizedBox(
         width: side,
         height: side,
-        child: GestureDetector(
-          onTap: onTap,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+        child: Tooltip(
+          message: 'App Store',
+          child: GestureDetector(
+            key: tileKey,
+            onTap: onTap,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
               child: ColoredBox(
-              color: const Color(0xFFF4F6F1),
-              child: Center(
-                child: Icon(Icons.shopping_bag_outlined, color: const Color(0xFF1A1A1A), size: side * 0.42),
+                color: const Color(0xFFF4F6F1),
+                child: Center(
+                  child: Icon(
+                    Icons.shopping_bag_outlined,
+                    color: const Color(0xFF1A1A1A),
+                    size: side * 0.42,
+                  ),
+                ),
               ),
             ),
           ),

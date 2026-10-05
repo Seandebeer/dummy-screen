@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import 'console_apps.dart';
 
 /// Xbox 360 dashboard: gray field, green tiles, and the home tabs.
 class Xbox360Home extends StatefulWidget {
@@ -39,17 +40,25 @@ class _Xbox360HomeState extends State<Xbox360Home> {
   Widget build(BuildContext context) {
     final tag = widget.store.operatorName.trim().isEmpty ? 'Player' : widget.store.operatorName.trim();
     final featured = widget.device.os.steamTitle.trim().isEmpty ? 'Night Run' : widget.device.os.steamTitle.trim();
-    return DecoratedBox(
+    return Stack(
       key: const Key('xbox360-home'),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF3C3E3D), Color(0xFF6E706F), Color(0xFFB7B9B8)],
-          stops: [0, 0.42, 1],
+      fit: StackFit.expand,
+      children: [
+        ConsoleWallpaper(
+          device: widget.device,
+          fallback: const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF3C3E3D), Color(0xFF6E706F), Color(0xFFB7B9B8)],
+                stops: [0, 0.42, 1],
+              ),
+            ),
+            child: SizedBox.expand(),
+          ),
         ),
-      ),
-      child: Padding(
+        Padding(
         padding: const EdgeInsets.fromLTRB(18, 10, 0, 8),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -57,7 +66,13 @@ class _Xbox360HomeState extends State<Xbox360Home> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Status(tag: tag, onShell: widget.onShell, shells: _shells),
+                _Status(
+                  tag: tag,
+                  os: widget.device.os,
+                  onOpen: widget.onOpen,
+                  onShell: widget.onShell,
+                  shells: _shells,
+                ),
                 const SizedBox(height: 8),
                 _Tabs(index: _tab, onSelect: (index) => setState(() => _tab = index)),
                 const SizedBox(height: 10),
@@ -82,12 +97,22 @@ class _Xbox360HomeState extends State<Xbox360Home> {
                   _MenuList(
                     width: box.row,
                     items: const [
+                      ('App Store', 'Phone app library'),
+                      ('Settings', 'Wallpaper, theme, and icons'),
                       ('Xbox Series', 'Open the Series shell'),
                       ('PlayStation 5', 'Switch shell'),
                       ('PlayStation 2', 'Switch shell'),
                       ('Xbox 360', 'This dashboard'),
                     ],
                     onOpen: (label) {
+                      if (label == 'App Store') {
+                        widget.onOpen('appstore');
+                        return;
+                      }
+                      if (label == 'Settings') {
+                        widget.onOpen('settings');
+                        return;
+                      }
                       const shells = {
                         'Xbox Series': 'xbox',
                         'PlayStation 5': 'ps5',
@@ -104,7 +129,14 @@ class _Xbox360HomeState extends State<Xbox360Home> {
             );
           },
         ),
-      ),
+        ),
+        Positioned(
+          left: 18,
+          right: 28,
+          bottom: 28,
+          child: ConsolePinStrip(os: widget.device.os, onOpen: widget.onOpen),
+        ),
+      ],
     );
   }
 }
@@ -148,9 +180,17 @@ _Box _fit(double width, double height) {
 }
 
 class _Status extends StatelessWidget {
-  const _Status({required this.tag, required this.onShell, required this.shells});
+  const _Status({
+    required this.tag,
+    required this.os,
+    required this.onOpen,
+    required this.onShell,
+    required this.shells,
+  });
 
   final String tag;
+  final OsSettings os;
+  final ValueChanged<String> onOpen;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
 
@@ -161,22 +201,47 @@ class _Status extends StatelessWidget {
       height: 36,
       child: Row(
         children: [
-          const Spacer(),
-          const Icon(Icons.emoji_events_outlined, color: Colors.white, size: 15),
-          const SizedBox(width: 4),
-          const Text('3', style: TextStyle(color: Colors.white, fontSize: 13)),
-          const SizedBox(width: 14),
-          const Icon(Icons.mail_outline, color: Colors.white, size: 15),
-          const SizedBox(width: 4),
-          const Text('0', style: TextStyle(color: Colors.white, fontSize: 13)),
-          const SizedBox(width: 14),
-          const Text('18,420', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
-          const SizedBox(width: 10),
-          CircleAvatar(
-            radius: 11,
-            backgroundColor: const Color(0xFF2A6A9A),
-            child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          IconButton(
+            key: const Key('xbox360-appstore'),
+            tooltip: 'App Store',
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            onPressed: () => onOpen('appstore'),
+            icon: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 18),
           ),
+          IconButton(
+            key: const Key('xbox360-settings'),
+            tooltip: 'Settings',
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            onPressed: () => onOpen('settings'),
+            icon: const Icon(Icons.tune, color: Colors.white, size: 18),
+          ),
+          const Spacer(),
+          if (ConsoleLayout.shows(os, 'trophies')) ...[
+            const Icon(Icons.emoji_events_outlined, color: Colors.white, size: 15),
+            const SizedBox(width: 4),
+            const Text('3', style: TextStyle(color: Colors.white, fontSize: 13)),
+            const SizedBox(width: 14),
+          ],
+          if (ConsoleLayout.shows(os, 'mail')) ...[
+            const Icon(Icons.mail_outline, color: Colors.white, size: 15),
+            const SizedBox(width: 4),
+            const Text('0', style: TextStyle(color: Colors.white, fontSize: 13)),
+            const SizedBox(width: 14),
+          ],
+          if (ConsoleLayout.shows(os, 'score')) ...[
+            const Text('18,420', key: Key('xbox360-score'), style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+            const SizedBox(width: 10),
+          ],
+          if (ConsoleLayout.shows(os, 'tag'))
+            CircleAvatar(
+              radius: 11,
+              backgroundColor: const Color(0xFF2A6A9A),
+              child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+            ),
           const SizedBox(width: 4),
           PopupMenuButton<String>(
             tooltip: 'Console',
