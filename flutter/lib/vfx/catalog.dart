@@ -166,6 +166,44 @@ double snapX(double value) {
   return (50 - value).abs() < (grid - value).abs() ? 50 : grid;
 }
 
+/// Button-gap lines for the 5×8 marker grid, matching `snapLines` in UIMarkersApp.
+/// [width] and [height] are the full stage, including the 4px page padding.
+({List<double> xs, List<double> ys}) markerSnapLines(double width, double height) {
+  const pad = 4.0;
+  const gap = 4.0;
+  const cols = 6;
+  const rows = 9;
+  final tileW = (width - 2 * pad - (cols - 1) * gap) / cols;
+  final tileH = (height - 2 * pad - (rows - 1) * gap) / rows;
+  return (
+    xs: [
+      for (var i = 0; i < cols - 1; i++) pad + i * (tileW + gap) + tileW + gap / 2,
+      width / 2,
+    ],
+    ys: [
+      for (var i = 0; i < rows - 1; i++) pad + i * (tileH + gap) + tileH + gap / 2,
+    ],
+  );
+}
+
+double nearestLine(double value, List<double> lines) {
+  var best = lines.first;
+  for (final line in lines) {
+    if ((line - value).abs() < (best - value).abs()) best = line;
+  }
+  return best;
+}
+
+/// Snap a stage coordinate onto the nearest gap line, as a 2–98 percent.
+double snapMarkerPercent(double local, double extent, List<double> lines) {
+  if (extent <= 0 || lines.isEmpty) return 50;
+  final snapped = nearestLine(local, lines);
+  final percent = snapped / extent * 100;
+  if (percent < 2) return 2;
+  if (percent > 98) return 98;
+  return percent;
+}
+
 bool lightHex(Color color) {
   final luma = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
   return luma > 150 / 255;

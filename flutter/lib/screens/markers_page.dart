@@ -39,6 +39,13 @@ class _MarkersPageState extends State<MarkersPage> {
   bool _hint = false;
   Timer? _hintTimer;
   bool _loaded = false;
+  final Map<String, List<StageMark>> _markLayouts = {};
+  String? _dragId;
+  String? _pending;
+  Timer? _hold;
+  String? _lastTap;
+  int _lastTapAt = 0;
+  String? _snapping;
 
   @override
   void didChangeDependencies() {
@@ -62,6 +69,16 @@ class _MarkersPageState extends State<MarkersPage> {
     if (assigned is Map) {
       assigned.forEach((key, value) {
         _assignments[key.toString()] = _ints(value);
+      });
+    }
+    final layouts = raw['markLayouts'];
+    if (layouts is Map) {
+      layouts.forEach((key, value) {
+        if (value is! List) return;
+        _markLayouts[key.toString()] = [
+          for (final item in value)
+            if (item is Map) StageMark.fromJson(Map<String, dynamic>.from(item)),
+        ];
       });
     }
   }
@@ -88,7 +105,85 @@ class _MarkersPageState extends State<MarkersPage> {
       'markSize': _markSize,
       'markThick': _markThick,
       'glow': _glow,
+      'markLayouts': {
+        for (final entry in _markLayouts.entries)
+          entry.key: [for (final mark in entry.value) mark.toJson()],
+      },
     });
+  }
+
+  List<StageMark> _layoutFor(String style) =>
+      _markLayouts[style] ?? defaultLayoutFor(style);
+
+  void _setLayout(List<StageMark> next) {
+    setState(() => _markLayouts[_markStyle] = next);
+    _persist();
+  }
+
+  void _snapStyle(String style, Size size) {
+    if (!mounted || _locked || style != _markStyle) return;
+    if (_markLayouts.containsKey(style) || !isPointStyle(style)) return;
+    if (size.width <= 0 || size.height <= 0) return;
+    final lines = markerSnapLines(size.width, size.height);
+    setState(() {
+      _markLayouts[style] = [
+        for (final mark in defaultLayoutFor(style))
+          mark.copyWith(
+            x: snapMarkerPercent(mark.x / 100 * size.width, size.width, lines.xs),
+            y: snapMarkerPercent(mark.y / 100 * size.height, size.height, lines.ys),
+          ),
+      ];
+    });
+    _persist();
+  }
+
+  void _beginMark(String id) {
+    _pending = id;
+    _hold?.cancel();
+    _hold = Timer(const Duration(milliseconds: 250), () {
+      _pending = null;
+      if (mounted) setState(() => _dragId = id);
+    });
+  }
+
+  void _moveMark(String id, Offset local, Size size) {
+    final lines = markerSnapLines(size.width, size.height);
+    _setLayout([
+      for (final mark in _layoutFor(_markStyle))
+        if (mark.id == id)
+          mark.copyWith(
+            x: snapMarkerPercent(local.dx, size.width, lines.xs),
+            y: snapMarkerPercent(local.dy, size.height, lines.ys),
+          )
+        else
+          mark,
+    ]);
+  }
+
+  void _releaseMark() {
+    _hold?.cancel();
+    if (_dragId != null) {
+      setState(() => _dragId = null);
+      return;
+    }
+    final tapped = _pending;
+    _pending = null;
+    if (tapped == null) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (_lastTap == tapped && now - _lastTapAt < 350) {
+      _lastTap = null;
+      _setLayout([
+        for (final mark in _layoutFor(_markStyle))
+          if (mark.id != tapped) mark,
+      ]);
+    } else {
+      _lastTap = tapped;
+      _lastTapAt = now;
+      _setLayout([
+        for (final mark in _layoutFor(_markStyle))
+          if (mark.id == tapped) mark.copyWith(rot: (mark.rot + 45) % 360) else mark,
+      ]);
+    }
   }
 
   int _next() {
@@ -169,6 +264,7 @@ class _MarkersPageState extends State<MarkersPage> {
   @override
   void dispose() {
     _hintTimer?.cancel();
+    _hold?.cancel();
     super.dispose();
   }
 
@@ -258,29 +354,74 @@ class _MarkersPageState extends State<MarkersPage> {
                     ),
                   ),
                 ),
-                if (_markStyle != 'none')
+                if (_markStyle != 'none' && isPointStyle(_markStyle))
+                  Positioned.fill(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final size = Size(constraints.maxWidth, constraints.maxHeight);
+                        if (!_markLayouts.containsKey(_markStyle) && _snapping != _markStyle) {
+                          _snapping = _markStyle;
+                          final style = _markStyle;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _snapping = null;
+                            _snapStyle(style, size);
+                          });
+                        }
+                        final layout = _layoutFor(_markStyle);
+                        final inkMark = _markColor == null
+                            ? (light ? Colors.black : Colors.white)
+                            : parseHex(_markColor, Colors.white);
+                        return Listener(
+                          onPointerMove: (event) {
+                            final id = _dragId;
+                            if (id == null) return;
+                            final box = context.findRenderObject() as RenderBox?;
+                            if (box == null || !box.hasSize) return;
+                            _moveMark(id, box.globalToLocal(event.position), size);
+                          },
+                          onPointerUp: (_) => _releaseMark(),
+                          onPointerCancel: (_) => _releaseMark(),
+                          child: Stack(
+                            children: [
+                              for (final mark in layout)
+                                Positioned(
+                                  left: mark.x / 100 * size.width - 22,
+                                  top: mark.y / 100 * size.height - 22,
+                                  child: Listener(
+                                    behavior: HitTestBehavior.opaque,
+                                    onPointerDown: _locked ? null : (_) => _beginMark(mark.id),
+                                    child: SizedBox(
+                                      width: 44,
+                                      height: 44,
+                                      child: Center(
+                                        child: MarkGlyph(
+                                          kind: mark.kind,
+                                          color: inkMark,
+                                          scale: _markSize,
+                                          thickness: _markThick,
+                                          rotation: mark.rot,
+                                          x: mark.x,
+                                          y: mark.y,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                if (_dragId != null)
                   Positioned.fill(
                     child: IgnorePointer(
-                      child: Stack(
-                        children: [
-                          for (final mark in defaultLayoutFor(_markStyle))
-                            Align(
-                              alignment: Alignment(
-                                (mark.x / 50) - 1,
-                                (mark.y / 50) - 1,
-                              ),
-                              child: MarkGlyph(
-                                kind: mark.kind,
-                                color: _markColor == null
-                                    ? (light ? Colors.black : Colors.white)
-                                    : parseHex(_markColor, Colors.white),
-                                scale: _markSize,
-                                thickness: _markThick,
-                                x: mark.x,
-                                y: mark.y,
-                              ),
-                            ),
-                        ],
+                      child: CustomPaint(
+                        painter: _MarkerSnapPainter(
+                          color: _markColor == null
+                              ? (light ? Colors.black : Colors.white)
+                              : parseHex(_markColor, Colors.white),
+                        ),
                       ),
                     ),
                   ),
@@ -465,11 +606,56 @@ class _MarkersPageState extends State<MarkersPage> {
           'bgColor': _bgColor,
           'markStyle': _markStyle,
           'markColor': _markColor,
+          'markSize': _markSize,
+          'markThick': _markThick,
           'glow': _glow,
+          'markLayouts': {
+            for (final entry in _markLayouts.entries)
+              entry.key: [for (final mark in entry.value) mark.toJson()],
+          },
         },
       ),
     );
   }
+}
+
+class _MarkerSnapPainter extends CustomPainter {
+  const _MarkerSnapPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final lines = markerSnapLines(size.width, size.height);
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.45)
+      ..strokeWidth = 1;
+    for (final x in lines.xs) {
+      _dashed(canvas, Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (final y in lines.ys) {
+      _dashed(canvas, Offset(0, y), Offset(size.width, y), paint);
+    }
+    canvas.drawCircle(size.center(Offset.zero), 3, Paint()..color = color.withValues(alpha: 0.9));
+  }
+
+  void _dashed(Canvas canvas, Offset a, Offset b, Paint paint) {
+    const dash = 4.0;
+    final delta = b - a;
+    final length = delta.distance;
+    if (length == 0) return;
+    final step = delta / length;
+    var drawn = 0.0;
+    while (drawn < length) {
+      final start = a + step * drawn;
+      final end = a + step * (drawn + dash).clamp(0, length);
+      canvas.drawLine(start, end, paint);
+      drawn += dash * 2;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MarkerSnapPainter oldDelegate) => oldDelegate.color != color;
 }
 
 class _Grid extends StatelessWidget {
