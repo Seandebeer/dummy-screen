@@ -121,7 +121,9 @@ void main() {
     await tester.tap(find.byKey(const Key('atm-balance')));
     await tester.pump();
     expect(find.text('Balance Inquiry'), findsOneWidget);
-    expect(find.textContaining('10'), findsWidgets);
+    expect(find.text('USD 10'), findsOneWidget);
+    final balance = tester.widget<Text>(find.text('USD 10'));
+    expect(balance.style!.fontSize, greaterThan(40));
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Another transaction'));
@@ -309,9 +311,11 @@ void main() {
     expect(find.byKey(const Key('atm-amount-50')), findsOneWidget);
     expect(find.byKey(const Key('atm-amount-100')), findsOneWidget);
     expect(find.byKey(const Key('atm-amount-40')), findsNothing);
+    expect(find.byKey(const Key('atm-custom-amount')), findsNothing);
 
-    await tester.ensureVisible(find.byKey(const Key('atm-custom-amount')));
+    await tester.tap(find.byKey(const Key('atm-custom-open')));
     await tester.pump();
+    expect(find.text('Custom amount'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('atm-custom-amount')), '30');
     await tester.pump();
     await tester.ensureVisible(find.byKey(const Key('atm-custom-use')));

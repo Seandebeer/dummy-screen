@@ -122,12 +122,12 @@ class _AtmScreenState extends State<AtmScreen> {
     setState(() => _pin = _pin.substring(0, _pin.length - 1));
   }
 
-  void _chooseAmount(int amount) {
+  void _chooseAmount(int amount, {String errorBack = 'amount'}) {
     if (amount <= 0) return;
     if (amount > os.bankBalance) {
       setState(() {
         _message = _t('unavailable');
-        _errorBack = 'amount';
+        _errorBack = errorBack;
         _step = 'error';
       });
       return;
@@ -135,7 +135,7 @@ class _AtmScreenState extends State<AtmScreen> {
     if (!atmCanDispense(amount, atmNotes(os))) {
       setState(() {
         _message = _t('notNotes');
-        _errorBack = 'amount';
+        _errorBack = errorBack;
         _step = 'error';
       });
       return;
@@ -149,7 +149,7 @@ class _AtmScreenState extends State<AtmScreen> {
   void _submitCustom() {
     final amount = int.tryParse(_customAmount.text.trim());
     if (amount == null) return;
-    _chooseAmount(amount);
+    _chooseAmount(amount, errorBack: 'custom');
   }
 
   void _applyNotes(String value) {
@@ -338,9 +338,32 @@ class _AtmScreenState extends State<AtmScreen> {
                 key: Key('atm-amount-$amount'),
                 primary: amount == notes.first,
               ),
-            _customAmountField(scale),
+            _choice(_t('customAmount'), () {
+              _customAmount.clear();
+              _go('custom');
+            }, key: const Key('atm-custom-open')),
             _choice(_t('back'), () => _go('withdraw')),
           ],
+        );
+      case 'custom':
+        return _prompt(
+          scale,
+          _t('customAmount'),
+          _f('available', {
+            'account': _accountLabel(_account),
+            'currency': os.bankCurrency,
+            'balance': '${os.bankBalance}',
+          }),
+          [
+            _choice(
+              _t('customUse'),
+              _submitCustom,
+              key: const Key('atm-custom-use'),
+              primary: true,
+            ),
+            _choice(_t('back'), () => _go('amount')),
+          ],
+          field: _customAmountInput(scale),
         );
       case 'review':
         return _prompt(
@@ -441,21 +464,16 @@ class _AtmScreenState extends State<AtmScreen> {
           ],
         );
       case 'balance':
-        return _prompt(
-          scale,
-          _t('balanceTitle'),
-          '${os.bankHolder}\n${os.bankCurrency} ${os.bankBalance}',
-          [
-            _choice(_t('receipt'), () {
-              setState(() {
-                _action = 'balance';
-                _amount = os.bankBalance;
-              });
-              _go('receipt');
-            }, primary: true),
-            _choice(_t('anotherTx'), () => _go('menu')),
-          ],
-        );
+        return _prompt(scale, _t('balanceTitle'), os.bankHolder, [
+          _choice(_t('receipt'), () {
+            setState(() {
+              _action = 'balance';
+              _amount = os.bankBalance;
+            });
+            _go('receipt');
+          }, primary: true),
+          _choice(_t('anotherTx'), () => _go('menu')),
+        ], figure: '${os.bankCurrency} ${os.bankBalance}');
       case 'transfer':
         return _prompt(
           scale,
@@ -749,49 +767,39 @@ class _AtmScreenState extends State<AtmScreen> {
     );
   }
 
-  Widget _customAmountField(double scale) {
-    return SizedBox(
-      width: 420,
-      child: Column(
-        children: [
-          _section(_t('customAmount'), scale),
-          Material(
-            color: skin.keyFill,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(color: skin.rule),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: TextField(
-              key: const Key('atm-custom-amount'),
-              controller: _customAmount,
-              textAlign: TextAlign.center,
-              keyboardType: TextInputType.number,
-              style: TextStyle(
-                color: skin.keyInk,
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w700,
-              ),
-              cursorColor: skin.primary,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-              ),
-              onSubmitted: (_) => _submitCustom(),
-            ),
+  Widget _customAmountInput(double scale) {
+    return Center(
+      child: SizedBox(
+        width: 280,
+        child: Material(
+          color: skin.keyFill,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: skin.rule),
           ),
-          SizedBox(height: 8 * scale),
-          _choice(
-            _t('customUse'),
-            _submitCustom,
-            key: const Key('atm-custom-use'),
-            primary: true,
+          clipBehavior: Clip.antiAlias,
+          child: TextField(
+            key: const Key('atm-custom-amount'),
+            controller: _customAmount,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            style: TextStyle(
+              color: skin.keyInk,
+              fontSize: 32 * scale,
+              fontWeight: FontWeight.w800,
+            ),
+            cursorColor: skin.primary,
+            decoration: const InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 16,
+              ),
+            ),
+            onSubmitted: (_) => _submitCustom(),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1127,8 +1135,10 @@ class _AtmScreenState extends State<AtmScreen> {
     double scale,
     String title,
     String body,
-    List<Widget> actions,
-  ) {
+    List<Widget> actions, {
+    String figure = '',
+    Widget? field,
+  }) {
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -1155,6 +1165,26 @@ class _AtmScreenState extends State<AtmScreen> {
                 ),
               ),
             ],
+            if (figure.isNotEmpty) ...[
+              SizedBox(height: 18 * scale),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    figure,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: skin.title,
+                      fontSize: 72 * scale,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            if (field != null) ...[SizedBox(height: 18 * scale), field],
             SizedBox(height: 18 * scale),
             Wrap(
               alignment: WrapAlignment.center,
@@ -1177,21 +1207,23 @@ class _AtmScreenState extends State<AtmScreen> {
     return GestureDetector(
       key: key,
       onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 148, minHeight: 52),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: primary ? skin.primary : skin.keyFill,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: primary ? skin.primaryInk : skin.keyInk,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
+      child: UnconstrainedBox(
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 200, minHeight: 52),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: primary ? skin.primary : skin.keyFill,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: primary ? skin.primaryInk : skin.keyInk,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
