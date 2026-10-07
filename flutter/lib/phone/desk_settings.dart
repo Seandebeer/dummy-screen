@@ -14,7 +14,7 @@ import 'settings_kit.dart';
 const kComputerShells = <(String, String)>[
   ('macos', 'Mac'),
   ('windows', 'Windows'),
-  ('linux', 'Linux'),
+  ('linux', 'Ubuntu'),
 ];
 
 const _shellLook = <String, (String, List<Color>)>{
@@ -27,8 +27,8 @@ const _shellLook = <String, (String, List<Color>)>{
     [Color(0xFFBCD8F2), Color(0xFF6F9FD4)],
   ),
   'linux': (
-    'Slate desktop with a top bar and a bottom dock.',
-    [Color(0xFF2F4152), Color(0xFF151D26)],
+    'Ubuntu top bar, left dock, and a teal activities view.',
+    [Color(0xFF1B3A32), Color(0xFF0E2420)],
   ),
 };
 

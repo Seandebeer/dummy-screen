@@ -14,6 +14,22 @@ import '../widgets/three_finger.dart';
 
 const _cols = 5;
 const _rows = 8;
+const _phoneCell = 62.0;
+
+/// Phone-sized squares. Wider stages add squares instead of stretching them.
+(int, int, double) markerExtent(double width, double height) {
+  const gap = 4.0;
+  var cols = ((width + gap) / (_phoneCell + gap)).floor() - 1;
+  var rows = ((height + gap) / (_phoneCell + gap)).floor() - 1;
+  if (cols < _cols) cols = _cols;
+  if (rows < _rows) rows = _rows;
+  final fitW = (width - gap * cols) / (cols + 1);
+  final fitH = (height - gap * rows) / (rows + 1);
+  final cell = fitW < _phoneCell || fitH < _phoneCell
+      ? (fitW < fitH ? fitW : fitH)
+      : _phoneCell;
+  return (cols, rows, cell);
+}
 
 class MarkersPage extends StatefulWidget {
   const MarkersPage({super.key, this.onExit});
@@ -244,6 +260,25 @@ class _MarkersPageState extends State<MarkersPage> {
     _persist();
   }
 
+  void _swapCells(String from, String to) {
+    if (from == to) return;
+    setState(() {
+      final a = _assignments[from];
+      final b = _assignments[to];
+      if (b == null) {
+        _assignments.remove(from);
+      } else {
+        _assignments[from] = List<int>.of(b);
+      }
+      if (a == null) {
+        _assignments.remove(to);
+      } else {
+        _assignments[to] = List<int>.of(a);
+      }
+    });
+    _persist();
+  }
+
   void _lock() {
     setState(() {
       _locked = true;
@@ -297,9 +332,16 @@ class _MarkersPageState extends State<MarkersPage> {
                     padding: const EdgeInsets.all(4),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
+                        final grid = markerExtent(
+                          constraints.maxWidth,
+                          constraints.maxHeight,
+                        );
                         return _Grid(
                           width: constraints.maxWidth,
                           height: constraints.maxHeight,
+                          cols: grid.$1,
+                          rows: grid.$2,
+                          cell: grid.$3,
                           barRow: _barRow,
                           barCol: _barCol,
                           vStart: _vStart,
@@ -336,18 +378,20 @@ class _MarkersPageState extends State<MarkersPage> {
                                   });
                                   _persist();
                                 },
+                          onCellSwap: _locked ? null : _swapCells,
                           onBarMove: _locked
                               ? null
                               : (which, dx, dy, size) {
                                   setState(() {
+                                    final extent = markerExtent(size.width, size.height);
                                     if (which == 'h') {
-                                      final band = size.height / (_rows + 1);
-                                      _barRow = (dy / band).floor().clamp(0, _rows);
+                                      final band = size.height / (extent.$2 + 1);
+                                      _barRow = (dy / band).floor().clamp(0, extent.$2);
                                     } else {
-                                      final band = size.width / (_cols + 1);
-                                      _barCol = (dx / band).floor().clamp(1, _cols);
-                                      final track = (dy / size.height) * (_rows + 1);
-                                      _vStart = (track - 2.5).round().clamp(1, _rows - 4);
+                                      final band = size.width / (extent.$1 + 1);
+                                      _barCol = (dx / band).floor().clamp(1, extent.$1);
+                                      final track = (dy / size.height) * (extent.$2 + 1);
+                                      _vStart = (track - 2.5).round().clamp(1, extent.$2 - 4);
                                     }
                                   });
                                   _persist();
@@ -521,12 +565,14 @@ class _MarkersPageState extends State<MarkersPage> {
   }
 
   Widget _tool(IconData icon, VoidCallback onTap, {bool on = false}) {
+    final wide = MediaQuery.sizeOf(context).width >= 768;
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon, size: 16, color: on ? kAccent : Colors.white70),
+      icon: Icon(icon, size: wide ? 28 : 16, color: on ? kAccent : Colors.white70),
       style: IconButton.styleFrom(
-        backgroundColor: const Color(0x801C1C1E),
-        minimumSize: const Size(36, 32),
+        backgroundColor: const Color(0xCC1C1C1E),
+        fixedSize: Size(wide ? 76 : 40, wide ? 64 : 36),
+        iconSize: wide ? 32 : 18,
       ),
     );
   }
@@ -672,6 +718,9 @@ class _Grid extends StatelessWidget {
   const _Grid({
     required this.width,
     required this.height,
+    required this.cols,
+    required this.rows,
+    required this.cell,
     required this.barRow,
     required this.barCol,
     required this.vStart,
@@ -686,10 +735,14 @@ class _Grid extends StatelessWidget {
     required this.onBarTap,
     required this.onBarHold,
     required this.onBarMove,
+    required this.onCellSwap,
   });
 
   final double width;
   final double height;
+  final int cols;
+  final int rows;
+  final double cell;
   final int barRow;
   final int barCol;
   final int vStart;
@@ -704,21 +757,20 @@ class _Grid extends StatelessWidget {
   final void Function(String which)? onBarTap;
   final void Function(String which)? onBarHold;
   final void Function(String which, double dx, double dy, Size size)? onBarMove;
+  final void Function(String from, String to)? onCellSwap;
 
   @override
   Widget build(BuildContext context) {
     const gap = 4.0;
-    final colCount = _cols + 1;
-    final rowCount = _rows + 1;
-    final cellW = (width - gap * (colCount - 1)) / colCount;
-    final cellH = (height - gap * (rowCount - 1)) / rowCount;
+    final cellW = cell;
+    final cellH = cell;
     final children = <Widget>[];
 
-    for (var r = 0; r < _rows; r++) {
-      for (var c = 0; c < _cols; c++) {
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
         final col = c + (c >= barCol ? 1 : 0);
         final row = r + (r >= barRow ? 1 : 0);
-        final key = '${r * _cols + c}';
+        final key = '${r * cols + c}';
         children.add(
           _cell(
             left: col * (cellW + gap),
@@ -728,11 +780,14 @@ class _Grid extends StatelessWidget {
             label: (numbers[key] ?? const []).join(' '),
             onTap: () => onTap?.call(key),
             onHold: () => onHold?.call(key),
+            onRearrange: onCellSwap == null
+                ? null
+                : (delta) => _dropCell(key, left: col * (cellW + gap), top: row * (cellH + gap), delta: delta),
           ),
         );
       }
     }
-    for (var t = 1; t <= _rows + 1; t++) {
+    for (var t = 1; t <= rows + 1; t++) {
       if (t >= vStart && t <= vStart + 5) continue;
       if (t == barRow + 1) continue;
       final key = 'vc-$t';
@@ -745,6 +800,14 @@ class _Grid extends StatelessWidget {
           label: (numbers[key] ?? const []).join(' '),
           onTap: () => onTap?.call(key),
           onHold: () => onHold?.call(key),
+          onRearrange: onCellSwap == null
+              ? null
+              : (delta) => _dropCell(
+                  key,
+                  left: barCol * (cellW + gap),
+                  top: (t - 1) * (cellH + gap),
+                  delta: delta,
+                ),
         ),
       );
     }
@@ -771,6 +834,43 @@ class _Grid extends StatelessWidget {
     return Stack(children: children);
   }
 
+  void _dropCell(
+    String from, {
+    required double left,
+    required double top,
+    required Offset delta,
+  }) {
+    final target = _keyAt(left + cell / 2 + delta.dx, top + cell / 2 + delta.dy);
+    if (target == null || target == from) return;
+    onCellSwap?.call(from, target);
+  }
+
+  String? _keyAt(double x, double y) {
+    const gap = 4.0;
+    final pitch = cell + gap;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        final col = c + (c >= barCol ? 1 : 0);
+        final row = r + (r >= barRow ? 1 : 0);
+        final left = col * pitch;
+        final top = row * pitch;
+        if (x >= left && x < left + cell && y >= top && y < top + cell) {
+          return '${r * cols + c}';
+        }
+      }
+    }
+    for (var t = 1; t <= rows + 1; t++) {
+      if (t >= vStart && t <= vStart + 5) continue;
+      if (t == barRow + 1) continue;
+      final left = barCol * pitch;
+      final top = (t - 1) * pitch;
+      if (x >= left && x < left + cell && y >= top && y < top + cell) {
+        return 'vc-$t';
+      }
+    }
+    return null;
+  }
+
   Widget _cell({
     required double left,
     required double top,
@@ -779,6 +879,7 @@ class _Grid extends StatelessWidget {
     required String label,
     required VoidCallback onTap,
     required VoidCallback onHold,
+    required void Function(Offset delta)? onRearrange,
   }) {
     final empty = label.isEmpty;
     return Positioned(
@@ -786,24 +887,15 @@ class _Grid extends StatelessWidget {
       top: top,
       width: w,
       height: h,
-      child: GestureDetector(
-        onTap: locked ? null : onTap,
-        onLongPress: locked ? null : onHold,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: locked && empty ? Colors.transparent : line,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: ink, fontSize: label.contains(' ') ? 11 : 16),
-            ),
-          ),
-        ),
+      child: _MarkerButton(
+        locked: locked,
+        empty: empty,
+        line: line,
+        ink: ink,
+        label: label,
+        onTap: onTap,
+        onHold: onHold,
+        onRearrange: onRearrange,
       ),
     );
   }
@@ -821,28 +913,225 @@ class _Grid extends StatelessWidget {
       top: top,
       width: w,
       height: h,
-      child: GestureDetector(
-        onTap: locked ? null : () => onBarTap?.call(which),
-        onLongPress: locked ? null : () => onBarHold?.call(which),
-        onPanUpdate: locked
+      child: _SwipeButton(
+        which: which,
+        locked: locked,
+        line: line,
+        ink: ink,
+        label: label,
+        horizontal: which == 'h',
+        onTap: () => onBarTap?.call(which),
+        onHold: () => onBarHold?.call(which),
+        onMove: locked
             ? null
-            : (details) => onBarMove?.call(
+            : (dx, dy) => onBarMove?.call(
                 which,
-                details.localPosition.dx + left,
-                details.localPosition.dy + top,
+                dx + left,
+                dy + top,
                 Size(width, height),
               ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: label.isEmpty && locked ? Colors.transparent : line),
+      ),
+    );
+  }
+}
+
+class _MarkerButton extends StatefulWidget {
+  const _MarkerButton({
+    required this.locked,
+    required this.empty,
+    required this.line,
+    required this.ink,
+    required this.label,
+    required this.onTap,
+    required this.onHold,
+    required this.onRearrange,
+  });
+
+  final bool locked;
+  final bool empty;
+  final Color line;
+  final Color ink;
+  final String label;
+  final VoidCallback onTap;
+  final VoidCallback onHold;
+  final void Function(Offset delta)? onRearrange;
+
+  @override
+  State<_MarkerButton> createState() => _MarkerButtonState();
+}
+
+class _MarkerButtonState extends State<_MarkerButton> {
+  bool _glow = false;
+  Offset _pan = Offset.zero;
+  bool _moved = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final box = DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: widget.locked && widget.empty ? Colors.transparent : widget.line,
+        ),
+        boxShadow: _glow
+            ? const [
+                BoxShadow(color: Color(0x99FFFFFF), blurRadius: 16, spreadRadius: 1),
+              ]
+            : null,
+      ),
+      child: Center(
+        child: Text(
+          widget.label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: widget.ink,
+            fontSize: widget.label.contains(' ') ? 16 : 22,
           ),
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: ink, fontSize: 16),
-            ),
+        ),
+      ),
+    );
+    if (widget.locked) {
+      return GestureDetector(
+        onTapDown: (_) => setState(() => _glow = true),
+        onTapUp: (_) => setState(() => _glow = false),
+        onTapCancel: () => setState(() => _glow = false),
+        child: box,
+      );
+    }
+    return GestureDetector(
+      onTap: () {
+        if (_moved) {
+          _moved = false;
+          return;
+        }
+        widget.onTap();
+      },
+      onLongPress: widget.onHold,
+      onPanStart: widget.onRearrange == null
+          ? null
+          : (_) {
+              setState(() {
+                _pan = Offset.zero;
+                _moved = false;
+              });
+            },
+      onPanUpdate: widget.onRearrange == null
+          ? null
+          : (details) {
+              setState(() {
+                _pan += details.delta;
+                if (_pan.distance > 10) _moved = true;
+              });
+            },
+      onPanEnd: widget.onRearrange == null
+          ? null
+          : (_) {
+              if (_moved) widget.onRearrange!(_pan);
+              setState(() {
+                _pan = Offset.zero;
+                _moved = false;
+              });
+            },
+      child: Transform.translate(offset: _moved ? _pan : Offset.zero, child: box),
+    );
+  }
+}
+
+class _SwipeButton extends StatefulWidget {
+  const _SwipeButton({
+    required this.which,
+    required this.locked,
+    required this.line,
+    required this.ink,
+    required this.label,
+    required this.horizontal,
+    required this.onTap,
+    required this.onHold,
+    required this.onMove,
+  });
+
+  final String which;
+  final bool locked;
+  final Color line;
+  final Color ink;
+  final String label;
+  final bool horizontal;
+  final VoidCallback onTap;
+  final VoidCallback onHold;
+  final void Function(double dx, double dy)? onMove;
+
+  @override
+  State<_SwipeButton> createState() => _SwipeButtonState();
+}
+
+class _SwipeButtonState extends State<_SwipeButton> {
+  double? _along;
+  bool _fromStart = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final along = _along;
+    return GestureDetector(
+      onTap: widget.locked ? null : widget.onTap,
+      onLongPress: widget.locked ? null : widget.onHold,
+      onPanStart: widget.locked
+          ? (details) {
+              final box = context.size ?? Size.zero;
+              final local = details.localPosition;
+              final fromStart = widget.horizontal
+                  ? local.dx < box.width / 2
+                  : local.dy < box.height / 2;
+              setState(() {
+                _fromStart = fromStart;
+                _along = fromStart ? 0 : 1;
+              });
+            }
+          : null,
+      onPanUpdate: (details) {
+        if (widget.locked) {
+          final box = context.size ?? const Size(1, 1);
+          final local = details.localPosition;
+          final span = widget.horizontal ? box.width : box.height;
+          final raw = widget.horizontal ? local.dx : local.dy;
+          setState(() => _along = (raw / (span == 0 ? 1 : span)).clamp(0.0, 1.0));
+          return;
+        }
+        widget.onMove?.call(details.localPosition.dx, details.localPosition.dy);
+      },
+      onPanEnd: widget.locked ? (_) => setState(() => _along = null) : null,
+      onPanCancel: widget.locked ? () => setState(() => _along = null) : null,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.label.isEmpty && widget.locked ? Colors.transparent : widget.line,
+          ),
+          gradient: along == null
+              ? null
+              : LinearGradient(
+                  begin: widget.horizontal
+                      ? (_fromStart ? Alignment.centerLeft : Alignment.centerRight)
+                      : (_fromStart ? Alignment.topCenter : Alignment.bottomCenter),
+                  end: widget.horizontal
+                      ? (_fromStart ? Alignment.centerRight : Alignment.centerLeft)
+                      : (_fromStart ? Alignment.bottomCenter : Alignment.topCenter),
+                  colors: const [
+                    Color(0xAAFFFFFF),
+                    Color(0x22FFFFFF),
+                    Color(0x00FFFFFF),
+                  ],
+                  stops: [
+                    0,
+                    along,
+                    (along + 0.12).clamp(0.0, 1.0),
+                  ],
+                ),
+        ),
+        child: Center(
+          child: Text(
+            widget.label,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: widget.ink, fontSize: 22),
           ),
         ),
       ),

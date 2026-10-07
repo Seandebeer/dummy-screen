@@ -11,11 +11,14 @@ Future<String?> promptText(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        decoration: const InputDecoration(hintText: 'Name'),
-        onSubmitted: (value) => Navigator.pop(context, value.trim()),
+      content: SizedBox(
+        width: 480,
+        child: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Name'),
+          onSubmitted: (value) => Navigator.pop(context, value.trim()),
+        ),
       ),
       actions: [
         TextButton(

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app.dart';
+import '../deck/chrome.dart';
 import '../theme.dart';
 import 'control_page.dart';
 import 'home_page.dart';
@@ -129,12 +131,18 @@ class _ShellState extends State<Shell> {
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 768;
           final nav = _NavRail(vertical: wide);
+          final scaled = MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(wide ? 1.12 : 1),
+            ),
+            child: page,
+          );
           final body = SafeArea(
             child: wide
                 ? Row(
                     children: [
                       nav,
-                      Expanded(child: page),
+                      Expanded(child: scaled),
                     ],
                   )
                 : Column(
@@ -144,7 +152,18 @@ class _ShellState extends State<Shell> {
                     ],
                   ),
           );
-          return body;
+          if (!wide) return body;
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: GridFill(
+                  palette: paletteFor(store.appTheme),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              body,
+            ],
+          );
         },
       ),
     );
@@ -167,52 +186,36 @@ class _NavRail extends StatelessWidget {
           icon: item.icon,
           selected: store.lastTab == item.index,
           compact: vertical,
+          glassy: vertical,
           onTap: () => store.openTab(item.index),
         ),
     ];
     if (vertical) {
-      return Material(
-        color: kSurface,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(right: BorderSide(color: kLine)),
-          ),
-          child: SizedBox(
-            width: 64,
-            child: Column(
-              children: [
-                const SizedBox(height: 24),
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [kAccent, Color(0x99318DF6)],
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x40318DF6),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Text(
-                    'T',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
+      return ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: kSurface.withValues(alpha: 0.28),
+              border: Border(
+                right: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
+              ),
+            ),
+            child: SizedBox(
+              width: 96,
+              child: Column(
+                children: [
+                  const SizedBox(height: 28),
+                  const _RailMark(),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: buttons,
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                ...buttons,
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -230,6 +233,42 @@ class _NavRail extends StatelessWidget {
   }
 }
 
+class _RailMark extends StatelessWidget {
+  const _RailMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [kAccent, Color(0x99318DF6)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x40318DF6),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: const Text(
+        'T',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: Colors.black,
+        ),
+      ),
+    );
+  }
+}
+
 class _NavButton extends StatelessWidget {
   const _NavButton({
     super.key,
@@ -238,6 +277,7 @@ class _NavButton extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.compact = false,
+    this.glassy = false,
   });
 
   final String label;
@@ -245,6 +285,7 @@ class _NavButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final bool compact;
+  final bool glassy;
 
   @override
   Widget build(BuildContext context) {
@@ -259,14 +300,28 @@ class _NavButton extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 44,
-              height: 44,
+              child: Container(
+              width: glassy ? 72 : 44,
+              height: glassy ? 64 : 44,
               decoration: BoxDecoration(
-                color: selected ? kAccent.withValues(alpha: 0.15) : null,
-                borderRadius: BorderRadius.circular(12),
+                color: selected ? kAccent.withValues(alpha: 0.18) : null,
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: color, size: glassy ? 28 : 20),
+                  if (glassy) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),

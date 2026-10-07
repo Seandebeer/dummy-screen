@@ -68,7 +68,11 @@ MacGlyph macGlyph(String id, OsSettings os) {
 
 MacGlyph _macGlyph(String id, OsSettings os) {
   if (id.startsWith('file:') || id.startsWith('folder:')) {
-    final fallback = id.startsWith('file:') ? id.substring(5) : 'New Folder';
+    final raw = id.substring(id.indexOf(':') + 1);
+    final stamped = RegExp(r'^\d+$').hasMatch(raw);
+    final fallback = stamped
+        ? (id.startsWith('file:') ? raw : 'New Folder')
+        : raw;
     return MacGlyph(fallback, Icons.folder_outlined, Colors.white);
   }
   if (id == 'appstore') {
@@ -127,13 +131,15 @@ class MacLayout {
 
   static bool deskCustom(OsSettings os) => os.macPlaces.containsKey('_');
 
-  /// The desktop starts with page one of the home screen on the left and the
-  /// file column on the right.
-  static List<String> defaultDesktop() => [
-    for (final id in homePageOne())
-      if (!kMacDockIds.contains(id)) id,
-    for (final name in kMacFileNames) 'file:$name',
-  ];
+  /// A new computer desktop is one empty folder. Apps stay in the dock.
+  static List<String> defaultDesktop() => const ['folder:Untitled Folder'];
+
+  /// Folders drawn on Windows and Ubuntu. A fresh machine shows one folder.
+  static List<String> deskFolders(OsSettings os) {
+    if (os.deskFolders.isNotEmpty) return os.deskFolders;
+    if (deskCustom(os)) return os.deskFolders;
+    return const ['folder:Untitled Folder'];
+  }
 
   static List<String> desktop(OsSettings os) {
     if (!deskCustom(os)) return defaultDesktop();
@@ -147,46 +153,8 @@ class MacLayout {
 
   static Map<String, Offset> defaultSpots(Size area) {
     const itemWidth = 108.0;
-    const itemHeight = 64.0;
-    final spots = <String, Offset>{};
-    final apps = [
-      for (final id in homePageOne())
-        if (!kMacDockIds.contains(id)) id,
-    ];
-    const appWidth = 84.0;
-    const appHeight = 72.0;
-    final rows = ((area.height - 16) / appHeight).floor().clamp(1, 12);
-    for (var i = 0; i < apps.length; i++) {
-      spots[apps[i]] = Offset(
-        10 + (i ~/ rows) * appWidth,
-        10 + (i % rows) * appHeight,
-      );
-    }
-    spots.addAll(_fileSpots(area, itemWidth, itemHeight));
-    return spots;
-  }
-
-  static Map<String, Offset> _fileSpots(
-    Size area,
-    double itemWidth,
-    double itemHeight,
-  ) {
-    final count = kMacFileNames.length;
-    final gaps = count - 1;
-    final free = area.height - 12 - itemHeight * count;
-    final gap = gaps == 0 ? 0.0 : (free / gaps).clamp(4.0, 30.0);
-    final left = (area.width - 18 - itemWidth).clamp(0.0, area.width);
-    final spots = {
-      for (var i = 0; i < count; i++)
-        'file:${kMacFileNames[i]}': Offset(left, 8 + i * (itemHeight + gap)),
-    };
-    final bottom = spots.values.last.dy + itemHeight;
-    if (bottom <= area.height || bottom <= 0) return spots;
-    final scale = (area.height - 4) / bottom;
-    return {
-      for (final entry in spots.entries)
-        entry.key: Offset(entry.value.dx, entry.value.dy * scale),
-    };
+    final left = (area.width - 24 - itemWidth).clamp(0.0, area.width);
+    return {'folder:Untitled Folder': Offset(left, 12)};
   }
 
   static Map<String, Offset> spots(OsSettings os, Size area) {

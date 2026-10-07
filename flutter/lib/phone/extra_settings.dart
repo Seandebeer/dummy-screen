@@ -59,9 +59,37 @@ class ExtraSettings extends StatelessWidget {
                 value: os.wifi,
                 onChanged: (value) => _update((current) => current.copyWith(wifi: value)),
               ),
-              _slider('Signal', os.signal.toDouble(), 4, (value) {
+              _slider('Signal strength', os.signal.toDouble(), 4, (value) {
                 _update((current) => current.copyWith(signal: value.round()));
               }),
+              const SizedBox(height: 8),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Mobile network', style: TextStyle(color: Colors.white70)),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final radio in kCellularRadios)
+                    ChoiceChip(
+                      key: Key('cellular-$radio'),
+                      label: Text(radio),
+                      selected: os.cellular == radio,
+                      onSelected: (_) =>
+                          _update((current) => current.copyWith(cellular: radio)),
+                    ),
+                ],
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Tracking marks'),
+                subtitle: const Text('Toolbar sits beside the device in OS edit'),
+                value: os.showTracking,
+                onChanged: (value) =>
+                    _update((current) => current.copyWith(showTracking: value)),
+              ),
               _slider('Battery', os.battery.toDouble(), 100, (value) {
                 _update((current) => current.copyWith(battery: value.round()));
               }),

@@ -82,8 +82,8 @@ class GridFill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final line = palette.light
-        ? const Color(0x07000000)
-        : const Color(0x07FFFFFF);
+        ? const Color(0x28000000)
+        : const Color(0x28FFFFFF);
     return ColoredBox(
       color: palette.background,
       child: CustomPaint(

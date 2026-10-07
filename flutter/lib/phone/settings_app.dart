@@ -29,6 +29,7 @@ class _SettingsAppState extends State<SettingsApp> {
   String _draft = '';
   final _codeController = TextEditingController();
   bool _langOpen = false;
+  bool _legacy = false;
   bool _uploading = false;
   bool _lockUploading = false;
   bool _uploadError = false;
@@ -143,22 +144,27 @@ class _SettingsAppState extends State<SettingsApp> {
               _skinButton(skinById('modern')!),
               const SizedBox(height: 8),
               _skinButton(skinById('android')!),
-              const Padding(
-                padding: EdgeInsets.only(top: 12, bottom: 8),
-                child: Text(
-                  'LEGACY',
-                  style: TextStyle(
-                    color: Color(0x59FFFFFF),
-                    fontSize: 10,
-                    letterSpacing: 1.1,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  key: const Key('legacy-skins'),
+                  onPressed: () => setState(() => _legacy = !_legacy),
+                  child: const Text(
+                    'LEGACY',
+                    style: TextStyle(
+                      color: Color(0x59FFFFFF),
+                      fontSize: 10,
+                      letterSpacing: 1.1,
+                    ),
                   ),
                 ),
               ),
-              for (final skin in osSkins)
-                if (skin.era != 'modern' && skin.id != 'blackberry') ...[
-                  _skinButton(skin),
-                  const SizedBox(height: 8),
-                ],
+              if (_legacy)
+                for (final skin in osSkins)
+                  if (skin.era != 'modern' && skin.id != 'blackberry') ...[
+                    _skinButton(skin),
+                    const SizedBox(height: 8),
+                  ],
               const SettingsHint(
                 'Restyles the status bar, dock, icons and home button of this device.',
               ),

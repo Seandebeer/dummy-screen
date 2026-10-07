@@ -84,27 +84,10 @@ class _VideosPageState extends State<VideosPage> {
               ],
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: clips.length >= 5 ? null : _import,
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add video from this device'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: clips.length >= 5
-                  ? null
-                  : () {
-                      store.addClip(
-                        VideoClip(
-                          id: 'sample-${DateTime.now().microsecondsSinceEpoch}',
-                          name: 'Sample clip',
-                          url: kSampleClipUrl,
-                          order: clips.length,
-                        ),
-                      );
-                    },
-              icon: const Icon(Icons.movie_outlined, size: 16),
-              label: const Text('Load sample'),
+            _UploadPanel(
+              wide: MediaQuery.sizeOf(context).width >= 768,
+              enabled: clips.length < 5,
+              onPressed: _import,
             ),
             if (clips.isEmpty)
               const Padding(
@@ -815,6 +798,52 @@ class _Handle extends StatelessWidget {
           width: 2,
           height: 16,
           child: ColoredBox(color: Color(0xB3000000)),
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadPanel extends StatelessWidget {
+  const _UploadPanel({
+    required this.wide,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final bool wide;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!wide) {
+      return OutlinedButton.icon(
+        onPressed: enabled ? onPressed : null,
+        icon: const Icon(Icons.add, size: 16),
+        label: const Text('Add video from this device'),
+      );
+    }
+    return SizedBox(
+      height: 160,
+      child: Material(
+        color: const Color(0xFF16161C),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          key: const Key('playback-upload'),
+          borderRadius: BorderRadius.circular(18),
+          onTap: enabled ? onPressed : null,
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.upload_file, color: Colors.white70, size: 36),
+              SizedBox(height: 10),
+              Text(
+                'Add video from this device',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
         ),
       ),
     );

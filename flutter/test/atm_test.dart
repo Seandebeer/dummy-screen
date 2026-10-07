@@ -30,7 +30,7 @@ void main() {
   test('an atm uses a landscape ipad frame', () {
     final metrics = metricsFor('atm');
     expect(metrics.aspect, 4 / 3);
-    expect(metrics.frame, 'kiosk');
+    expect(metrics.frame, 'tablet');
   });
 
   testWidgets('the atm opens on a 5 digit pin', (tester) async {

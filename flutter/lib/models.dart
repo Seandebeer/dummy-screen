@@ -41,6 +41,17 @@ class Project {
 /// On-device OS settings. Field names follow the Base44 `takeover-os-config`
 /// object: theme, wallpaper, lock screen, dial codes, language, answer mode,
 /// ring duration, and auto-rotate.
+/// Phone status radios, in the order a tap cycles through them.
+const kCellularRadios = [
+  '5G',
+  'LTE',
+  '4G',
+  '3G',
+  'H',
+  'EDGE',
+  'NO SERVICE',
+];
+
 class OsSettings {
   const OsSettings({
     this.theme = 'dark',
@@ -62,6 +73,8 @@ class OsSettings {
     this.networkName = '',
     this.wifi = true,
     this.signal = 4,
+    this.cellular = '5G',
+    this.showTracking = false,
     this.battery = 80,
     this.bluetooth = false,
     this.showAlarm = false,
@@ -119,6 +132,12 @@ class OsSettings {
   final String networkName;
   final bool wifi;
   final int signal;
+
+  /// Radio label drawn with the signal bars.
+  final String cellular;
+
+  /// Tracking marks on the device screen, with the toolbar in OS edit.
+  final bool showTracking;
   final int battery;
   final bool bluetooth;
   final bool showAlarm;
@@ -217,6 +236,8 @@ class OsSettings {
     String? networkName,
     bool? wifi,
     int? signal,
+    String? cellular,
+    bool? showTracking,
     int? battery,
     bool? bluetooth,
     bool? showAlarm,
@@ -269,6 +290,8 @@ class OsSettings {
     networkName: networkName ?? this.networkName,
     wifi: wifi ?? this.wifi,
     signal: signal ?? this.signal,
+    cellular: cellular ?? this.cellular,
+    showTracking: showTracking ?? this.showTracking,
     battery: battery ?? this.battery,
     bluetooth: bluetooth ?? this.bluetooth,
     showAlarm: showAlarm ?? this.showAlarm,
@@ -323,6 +346,8 @@ class OsSettings {
     'networkName': networkName,
     'wifi': wifi,
     'signal': signal,
+    'cellular': cellular,
+    'showTracking': showTracking,
     'battery': battery,
     'bluetooth': bluetooth,
     'showAlarm': showAlarm,
@@ -389,6 +414,10 @@ class OsSettings {
       networkName: json['networkName'] as String? ?? '',
       wifi: json['wifi'] as bool? ?? true,
       signal: ((json['signal'] as num?)?.toInt() ?? 4).clamp(0, 4),
+      cellular: kCellularRadios.contains(json['cellular'])
+          ? json['cellular'] as String
+          : '5G',
+      showTracking: json['showTracking'] as bool? ?? false,
       battery: ((json['battery'] as num?)?.toInt() ?? 80).clamp(0, 100),
       bluetooth: json['bluetooth'] as bool? ?? false,
       showAlarm: json['showAlarm'] as bool? ?? false,
@@ -450,6 +479,8 @@ class OsSettings {
         networkName == other.networkName &&
         wifi == other.wifi &&
         signal == other.signal &&
+        cellular == other.cellular &&
+        showTracking == other.showTracking &&
         battery == other.battery &&
         bluetooth == other.bluetooth &&
         showAlarm == other.showAlarm &&
@@ -505,6 +536,8 @@ class OsSettings {
     networkName,
     wifi,
     signal,
+    cellular,
+    showTracking,
     battery,
     bluetooth,
     showAlarm,

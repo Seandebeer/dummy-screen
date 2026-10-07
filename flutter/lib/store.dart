@@ -208,6 +208,14 @@ class StageStore extends ChangeNotifier {
     _touch(null, sync: false);
   }
 
+  /// Home opens with the Projects strip expanded.
+  bool revealProjects = false;
+
+  void openHomeProjects() {
+    revealProjects = true;
+    openTab(0);
+  }
+
   void bindDevice(String id) {
     boundDeviceId = id;
     _touch(null, sync: false);

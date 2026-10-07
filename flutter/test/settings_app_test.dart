@@ -128,9 +128,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('desk-dock-right-word')));
     await tester.tap(find.byKey(const Key('desk-dock-desk-music')));
-    await tester.tap(find.byKey(const Key('desk-nudge-left-file:Documents')));
+    await tester.tap(find.byKey(const Key('desk-nudge-left-folder:Untitled Folder')));
     await tester.pump();
-    expect(moved, ['word:1', 'desktop:music', 'nudge:file:Documents']);
+    expect(moved, ['word:1', 'desktop:music', 'nudge:folder:Untitled Folder']);
 
     await tester.tap(find.byKey(const Key('desk-status-wifi')));
     await tester.pump();

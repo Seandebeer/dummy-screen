@@ -24,6 +24,7 @@ class PhoneShell extends StatelessWidget {
     this.banners = const [],
     this.onDismissBanner,
     this.framed = true,
+    this.onStatusTap,
   });
 
   final PropDevice device;
@@ -38,6 +39,9 @@ class PhoneShell extends StatelessWidget {
   final List<BannerNote> banners;
   final void Function(String id)? onDismissBanner;
   final bool framed;
+
+  /// OS edit only. Cycles the cellular radio shown in the status bar.
+  final VoidCallback? onStatusTap;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +89,7 @@ class PhoneShell extends StatelessWidget {
                     framed: framed,
                     ink: ink,
                     os: device.os,
+                    onTap: onStatusTap,
                   ),
                   Expanded(child: body),
                   if (!device.locked)
@@ -148,18 +153,25 @@ class _StatusBar extends StatelessWidget {
     required this.framed,
     required this.ink,
     required this.os,
+    this.onTap,
   });
 
   final String timeLabel;
   final bool framed;
   final Color ink;
   final OsSettings os;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final top = framed ? 10.0 : MediaQuery.paddingOf(context).top;
-    final bars = os.signal.clamp(0, 4);
-    return Padding(
+    final bars = os.cellular == 'NO SERVICE' ? 0 : os.signal.clamp(0, 4);
+    final radio = os.cellular == 'NO SERVICE' ? '' : os.cellular;
+    return GestureDetector(
+      key: const Key('phone-status'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
       padding: EdgeInsets.fromLTRB(22, top + 8, 18, 6),
       child: Row(
         children: [
@@ -188,16 +200,32 @@ class _StatusBar extends StatelessWidget {
             const SizedBox(width: 4),
           ],
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               for (var i = 0; i < 4; i++)
                 Container(
                   width: 3,
-                  height: 6 + i * 2.0,
-                  margin: const EdgeInsets.only(right: 1),
-                  color: i < bars ? ink : ink.withValues(alpha: 0.25),
+                  height: 4 + i * 2.5,
+                  margin: const EdgeInsets.only(right: 1.5),
+                  decoration: BoxDecoration(
+                    color: i < bars ? ink : ink.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(0.5),
+                  ),
                 ),
             ],
           ),
+          if (radio.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            Text(
+              radio,
+              style: TextStyle(
+                color: ink,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
           if (os.wifi) ...[
             const SizedBox(width: 4),
             Icon(Icons.wifi, size: 16, color: ink),
@@ -220,6 +248,7 @@ class _StatusBar extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
