@@ -41,6 +41,14 @@ void main() {
     expect(find.text('Show Control Center'), findsNothing);
     expect(find.text('DESKTOP'), findsNothing);
     expect(find.byKey(const Key('desk-shell-macos')), findsNothing);
+    expect(find.text('LEGACY'), findsOneWidget);
+    expect(find.text('BlackBerry'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('legacy-skins')));
+    await tester.pump();
+    expect(find.text('BlackBerry'), findsOneWidget);
+    expect(find.text('OS 5'), findsOneWidget);
+    expect(find.text('LEGACY'), findsOneWidget);
   });
 
   testWidgets('a computer keeps the computer settings', (tester) async {

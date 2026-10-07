@@ -1028,18 +1028,21 @@ class BannerNote {
     required this.deviceId,
     required this.appLabel,
     required this.text,
+    this.appId = '',
   });
 
   final String id;
   final String deviceId;
   final String appLabel;
   final String text;
+  final String appId;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'deviceId': deviceId,
     'appLabel': appLabel,
     'text': text,
+    'appId': appId,
   };
 
   factory BannerNote.fromJson(Map<String, dynamic> json) => BannerNote(
@@ -1047,6 +1050,7 @@ class BannerNote {
     deviceId: json['deviceId'] as String? ?? '',
     appLabel: json['appLabel'] as String? ?? 'Messages',
     text: json['text'] as String? ?? '',
+    appId: json['appId'] as String? ?? '',
   );
 }
 

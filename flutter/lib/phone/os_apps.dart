@@ -5,6 +5,8 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../vfx/catalog.dart';
+import '../vfx/mark_glyph.dart';
 import 'app_catalog.dart';
 import 'catalog.dart';
 import 'desk_apps.dart';
@@ -177,5 +179,69 @@ class _OsAppViewState extends State<OsAppView> {
           child: Text('Prop screen', style: TextStyle(color: kMuted)),
         );
     }
+  }
+}
+
+const _workingApps = {
+  'messages',
+  'phone',
+  'contacts',
+  'settings',
+  'clock',
+  'notes',
+  'calculator',
+  'camera',
+  'photos',
+  'email',
+  'mail',
+  'calendar',
+  'maps',
+  'music',
+  'browser',
+  'facepage',
+  'photogram',
+  'vidtube',
+  'quicktok',
+  'news',
+  'fitness',
+  'property',
+  'webdeck',
+  'appstore',
+  'videocall',
+};
+
+/// Apps with a real prop screen. Catalog stand-ins and custom icons are not.
+bool osAppWorks(String id) => _workingApps.contains(id) || kFeeds.containsKey(id);
+
+/// Grey tracking plate for an app that has no working screen. Marks are fixed.
+class GreyTrackPage extends StatelessWidget {
+  const GreyTrackPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final marks = defaultLayoutFor('cross');
+    return ColoredBox(
+      color: const Color(0xFF8A8A90),
+      child: IgnorePointer(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            for (final item in marks)
+              Align(
+                alignment: Alignment(item.x / 50 - 1, item.y / 50 - 1),
+                child: MarkGlyph(
+                  kind: item.kind,
+                  color: Colors.white,
+                  scale: 1.15,
+                  thickness: 0.55,
+                  rotation: item.rot,
+                  x: item.x,
+                  y: item.y,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

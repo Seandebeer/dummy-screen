@@ -641,15 +641,37 @@ class _MessagesAppState extends State<MessagesApp> {
 
   void _send() {
     final thread = _thread;
-    if (thread == null) return;
+    final text = _reply.text.trim();
+    if (thread == null || text.isEmpty) return;
     widget.store.sendMessage(
       deviceId: widget.deviceId,
       sender: 'phone',
-      text: _reply.text,
+      text: text,
       senderName: thread,
       thread: thread,
     );
     _reply.clear();
+    hideIosKeyboard(context);
+  }
+
+  Future<void> _confirmDelete(StageMessage message) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this message?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) widget.store.deleteMessage(message.id);
   }
 
   @override
@@ -671,7 +693,10 @@ class _MessagesAppState extends State<MessagesApp> {
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: widget.onClose,
+                    onPressed: () {
+                      hideIosKeyboard(context);
+                      widget.onClose();
+                    },
                     icon: Icon(Icons.chevron_left, color: _sent, size: 28),
                   ),
                   Text(_listTitle, style: TextStyle(color: _ink, fontSize: 32, fontWeight: FontWeight.w700)),
@@ -727,7 +752,10 @@ class _MessagesAppState extends State<MessagesApp> {
             child: Row(
               children: [
                 IconButton(
-                  onPressed: () => setState(() => _thread = null),
+                  onPressed: () {
+                    hideIosKeyboard(context);
+                    setState(() => _thread = null);
+                  },
                   icon: Icon(Icons.chevron_left, color: _sent, size: 28),
                 ),
                 CircleAvatar(
@@ -747,7 +775,9 @@ class _MessagesAppState extends State<MessagesApp> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               children: [
                 for (final message in items)
-                  Align(
+                  GestureDetector(
+                    onLongPress: () => _confirmDelete(message),
+                    child: Align(
                     alignment: message.sender == 'phone' ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 6),
@@ -765,6 +795,7 @@ class _MessagesAppState extends State<MessagesApp> {
                         ),
                       ),
                     ),
+                  ),
                   ),
               ],
             ),

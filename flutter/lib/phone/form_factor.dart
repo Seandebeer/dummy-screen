@@ -18,6 +18,7 @@ import 'ios_keyboard.dart';
 import 'mac_desk.dart';
 import 'mac_desktop.dart';
 import 'os_apps.dart';
+import 'phone_shell.dart';
 import 'win_desktop.dart';
 import 'ps2_home.dart';
 import 'smart_home.dart';
@@ -160,10 +161,22 @@ class DeviceBezel extends StatelessWidget {
 
 /// Computer, TV, console, ATM, CCTV, and smart-home screens.
 class FormOs extends StatefulWidget {
-  const FormOs({super.key, required this.store, required this.device});
+  const FormOs({
+    super.key,
+    required this.store,
+    required this.device,
+    this.onOpenBanner,
+    this.launchApp,
+    this.launchTick = 0,
+    this.closeTick = 0,
+  });
 
   final StageStore store;
   final PropDevice device;
+  final void Function(BannerNote banner)? onOpenBanner;
+  final String? launchApp;
+  final int launchTick;
+  final int closeTick;
 
   @override
   State<FormOs> createState() => _FormOsState();
@@ -189,8 +202,21 @@ class _FormOsState extends State<FormOs> {
   }
 
   @override
+  void didUpdateWidget(FormOs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.closeTick != oldWidget.closeTick) {
+      _app = null;
+    } else if (widget.launchTick != oldWidget.launchTick &&
+        widget.launchApp != null) {
+      _app = widget.launchApp;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return switch (device.kind) {
+    final stage = _app == 'grey-track'
+        ? const GreyTrackPage()
+        : switch (device.kind) {
       'tv' => _TvOs(
         shell: os.shell.isEmpty ? 'aurora' : os.shell,
         onShell: _shell,
@@ -220,6 +246,30 @@ class _FormOsState extends State<FormOs> {
         onOpen: _open,
       ),
     };
+    final banners = widget.store.bannersFor(device.id);
+    if (banners.isEmpty) return stage;
+    return Stack(
+      children: [
+        stage,
+        Positioned(
+          top: 8,
+          left: 10,
+          right: 10,
+          child: Column(
+            children: [
+              for (final banner in banners.take(3))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: OsBanner(
+                    banner: banner,
+                    onTap: () => widget.onOpenBanner?.call(banner),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

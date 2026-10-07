@@ -34,6 +34,10 @@ class _OsPageState extends State<OsPage> {
   StreamSubscription<AccelerometerEvent>? _tilt;
   String? _app;
   String? _thread;
+  bool _grey = false;
+  String? _launchApp;
+  int _launchTick = 0;
+  int _closeTick = 0;
   bool _openingPending = false;
   int _side = 0;
   StageStore? _store;
@@ -105,7 +109,48 @@ class _OsPageState extends State<OsPage> {
     setState(() {
       _app = null;
       _thread = null;
+      _grey = false;
+      _launchApp = null;
+      _closeTick++;
     });
+  }
+
+  void _openBanner(BannerNote banner) {
+    final store = StoreScope.of(context);
+    store.dismissBanner(banner.id);
+    final device = store.deviceById(store.boundDeviceId);
+    if (device == null) return;
+    if (device.locked) store.setLocked(device.id, false);
+    final id = banner.appId.isNotEmpty ? banner.appId : _idForLabel(banner.appLabel);
+    final works = osAppWorks(id);
+    final phone = device.kind == 'phone' || device.kind == 'tablet';
+    if (phone) {
+      if (!works) {
+        setState(() {
+          _grey = true;
+          _app = null;
+          _thread = null;
+        });
+        return;
+      }
+      setState(() => _grey = false);
+      _open(id);
+      return;
+    }
+    setState(() {
+      _grey = false;
+      _launchTick++;
+      _launchApp = works ? id : 'grey-track';
+    });
+  }
+
+  String _idForLabel(String label) {
+    for (final app in kPropApps) {
+      if (app.label == label) return app.id;
+    }
+    if (label == 'Mail') return 'email';
+    if (label == 'Messages') return 'messages';
+    return '';
   }
 
   void _open(String id, {String? thread}) {
@@ -161,10 +206,12 @@ class _OsPageState extends State<OsPage> {
                       final now = propNow(device.clockOffsetMinutes);
                       final phone = device.kind == 'phone' || device.kind == 'tablet';
                       final driven = store.remoteDriving(device.id);
+                      final shown = driven ? (store.drivenApp ?? '') : (_app ?? '');
                       final stage = phone
                           ? PhoneShell(
                           framed: false,
                           timeLabel: formatClock(now),
+                          keyboardRoute: _grey ? 'grey' : '$shown:${_thread ?? ''}',
                           onHome: () => _home(device),
                           onStatusTap: editing && device.kind == 'phone'
                               ? () => _cycleRadio(store, device)
@@ -178,10 +225,18 @@ class _OsPageState extends State<OsPage> {
                               store.setAlarm(device.id, false),
                           banners: store.bannersFor(device.id),
                           onDismissBanner: store.dismissBanner,
+                          onOpenBanner: _openBanner,
                           body: _body(store, device, now),
                           device: device,
                         )
-                          : FormOs(store: store, device: device);
+                          : FormOs(
+                              store: store,
+                              device: device,
+                              onOpenBanner: _openBanner,
+                              launchApp: _launchApp,
+                              launchTick: _launchTick,
+                              closeTick: _closeTick,
+                            );
                       final marked = _withMarks(stage, device, store);
                       final screen = Center(
                         child: SizedBox(
@@ -242,11 +297,16 @@ class _OsPageState extends State<OsPage> {
         key: const Key('os-workspace-back'),
         tooltip: 'Back on this device',
         onPressed: () {
-          if (_app == null && _thread == null) return;
+          if (_app == null && _thread == null && !_grey && _launchApp == null) {
+            return;
+          }
           StoreScope.of(context).driveOs(device.id, '');
           setState(() {
             _thread = null;
             _app = null;
+            _grey = false;
+            _launchApp = null;
+            _closeTick++;
           });
         },
         icon: const Icon(Icons.arrow_back, size: 18),
@@ -531,6 +591,7 @@ class _OsPageState extends State<OsPage> {
         ),
       );
     }
+    if (_grey) return const GreyTrackPage();
     final app = store.remoteDriving(device.id) ? store.drivenApp : _app;
     if (app == null) {
         return PhoneHome(
@@ -550,6 +611,7 @@ class _OsPageState extends State<OsPage> {
       onClose: () => setState(() {
         _app = null;
         _thread = null;
+        _grey = false;
       }),
     );
   }

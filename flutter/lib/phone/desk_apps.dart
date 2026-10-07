@@ -658,20 +658,90 @@ class InboxApp extends StatefulWidget {
 
 class _InboxAppState extends State<InboxApp> {
   final _query = TextEditingController();
+  final _to = TextEditingController();
+  final _subject = TextEditingController();
+  final _body = TextEditingController();
   int? _openId;
+  bool _composing = false;
+  Map<String, dynamic>? _replyTo;
   late final List<Map<String, dynamic>> _emails = [
     ...widget.extra,
     ...inboxSeed(),
   ];
 
   @override
+  void didUpdateWidget(InboxApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previous = {for (final email in oldWidget.extra) email['id']};
+    final incoming = {for (final email in widget.extra) email['id']: email};
+    _emails.removeWhere(
+      (email) => previous.contains(email['id']) && !incoming.containsKey(email['id']),
+    );
+    for (final email in widget.extra) {
+      if (!_emails.any((item) => item['id'] == email['id'])) {
+        _emails.insert(0, email);
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _query.dispose();
+    _to.dispose();
+    _subject.dispose();
+    _body.dispose();
     super.dispose();
+  }
+
+  void _openCompose({Map<String, dynamic>? email, String prefix = ''}) {
+    _replyTo = email;
+    _to.text = email == null ? '' : '${email['from']}';
+    final subject = email == null ? '' : '${email['subject']}';
+    _subject.text = prefix.isEmpty || subject.isEmpty ? subject : '$prefix $subject';
+    _body.clear();
+    setState(() => _composing = true);
+  }
+
+  void _closeCompose() {
+    hideIosKeyboard(context);
+    setState(() {
+      _composing = false;
+      _replyTo = null;
+    });
+  }
+
+  void _sendCompose() {
+    final subject = _subject.text.trim();
+    final body = _body.text.trim();
+    if (subject.isEmpty && body.isEmpty) return;
+    hideIosKeyboard(context);
+    setState(() {
+      final reply = _replyTo;
+      if (reply != null) {
+        final thread = reply['thread'];
+        if (thread is List) {
+          thread.add({'who': 'me', 'body': body, 'time': 'Now'});
+        }
+      } else {
+        _emails.insert(0, {
+          'id': DateTime.now().microsecondsSinceEpoch,
+          'from': _to.text.trim().isEmpty ? 'Me' : _to.text.trim(),
+          'subject': subject.isEmpty ? '(no subject)' : subject,
+          'time': 'Now',
+          'unread': false,
+          'thread': [
+            {'who': 'me', 'body': body, 'time': 'Now'},
+          ],
+        });
+      }
+      _composing = false;
+      _replyTo = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_composing) return _compose();
     Map<String, dynamic>? open;
     for (final email in _emails) {
       if (email['id'] == _openId) open = email;
@@ -708,6 +778,10 @@ class _InboxAppState extends State<InboxApp> {
                 const Spacer(),
                 Text('Inbox', style: TextStyle(color: Colors.black.withValues(alpha: 0.9), fontSize: 17, fontWeight: FontWeight.w600)),
                 const Spacer(),
+                TextButton(
+                  onPressed: () => _openCompose(),
+                  child: const Text('Compose', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
+                ),
                 if (unread > 0)
                   Text('$unread', style: const TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.w600)),
               ],
@@ -751,10 +825,13 @@ class _InboxAppState extends State<InboxApp> {
                   Material(
                     color: Colors.white,
                     child: ListTile(
-                      onTap: () => setState(() {
-                        email['unread'] = false;
-                        _openId = email['id'] as int;
-                      }),
+                      onTap: () {
+                        hideIosKeyboard(context);
+                        setState(() {
+                          email['unread'] = false;
+                          _openId = email['id'] as int;
+                        });
+                      },
                       leading: email['unread'] == true
                           ? const Padding(
                               padding: EdgeInsets.only(top: 6),
@@ -799,7 +876,13 @@ class _InboxAppState extends State<InboxApp> {
         children: [
           Row(
             children: [
-              IconButton(onPressed: () => setState(() => _openId = null), icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28)),
+              IconButton(
+                onPressed: () {
+                  hideIosKeyboard(context);
+                  setState(() => _openId = null);
+                },
+                icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28),
+              ),
               const Text('Inbox', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
             ],
           ),
@@ -834,6 +917,105 @@ class _InboxAppState extends State<InboxApp> {
                   const Divider(height: 28),
                 ],
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openCompose(email: email, prefix: 'Re:'),
+                    icon: const Icon(Icons.reply, size: 16),
+                    label: const Text('Reply'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openCompose(email: email, prefix: 'Fwd:'),
+                    icon: const Icon(Icons.forward, size: 16),
+                    label: const Text('Forward'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _compose() {
+    return Material(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: _closeCompose,
+                icon: const Icon(Icons.close, color: Color(0xFF0A84FF)),
+              ),
+              const Expanded(
+                child: Text(
+                  'New Message',
+                  style: TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton(
+                onPressed: _sendCompose,
+                child: const Text('Send', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          _composeField('To', _to),
+          _composeField('Subject', _subject),
+          Expanded(
+            child: TextField(
+              controller: _body,
+              readOnly: true,
+              showCursor: true,
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              onTap: () => openIosKeyboard(context, _body),
+              style: const TextStyle(color: Colors.black, fontSize: 16),
+              decoration: const InputDecoration(
+                hintText: 'Message',
+                hintStyle: TextStyle(color: Color(0xFF8E8E93)),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.fromLTRB(16, 12, 16, 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _composeField(String label, TextEditingController controller) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E5EA))),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: Text(label, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16)),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              readOnly: true,
+              showCursor: true,
+              onTap: () => openIosKeyboard(context, controller),
+              style: const TextStyle(color: Colors.black, fontSize: 16),
+              decoration: const InputDecoration(border: InputBorder.none, isDense: true),
             ),
           ),
         ],

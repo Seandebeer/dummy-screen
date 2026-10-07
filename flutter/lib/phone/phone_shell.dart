@@ -24,8 +24,10 @@ class PhoneShell extends StatelessWidget {
     this.onDismissAlarm,
     this.banners = const [],
     this.onDismissBanner,
+    this.onOpenBanner,
     this.framed = true,
     this.onStatusTap,
+    this.keyboardRoute = '',
   });
 
   final PropDevice device;
@@ -39,10 +41,14 @@ class PhoneShell extends StatelessWidget {
   final VoidCallback? onDismissAlarm;
   final List<BannerNote> banners;
   final void Function(String id)? onDismissBanner;
+  final void Function(BannerNote banner)? onOpenBanner;
   final bool framed;
 
   /// OS edit only. Cycles the cellular radio shown in the status bar.
   final VoidCallback? onStatusTap;
+
+  /// Open app on this device. The keypad closes when it changes.
+  final String keyboardRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +100,7 @@ class PhoneShell extends StatelessWidget {
                   ),
                   Expanded(
                     child: DeviceKeyboard(
+                      route: keyboardRoute,
                       footer: device.locked
                           ? null
                           : _HomeControl(chrome: chrome, onHome: onHome, ink: ink),
@@ -112,9 +119,15 @@ class PhoneShell extends StatelessWidget {
                       for (final banner in banners.take(3))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: _Banner(
+                          child: OsBanner(
                             banner: banner,
-                            onDismiss: () => onDismissBanner?.call(banner.id),
+                            onTap: () {
+                              if (onOpenBanner != null) {
+                                onOpenBanner!(banner);
+                              } else {
+                                onDismissBanner?.call(banner.id);
+                              }
+                            },
                           ),
                         ),
                     ],
@@ -547,11 +560,11 @@ class _HomeControl extends StatelessWidget {
   }
 }
 
-class _Banner extends StatelessWidget {
-  const _Banner({required this.banner, required this.onDismiss});
+class OsBanner extends StatelessWidget {
+  const OsBanner({super.key, required this.banner, required this.onTap});
 
   final BannerNote banner;
-  final VoidCallback onDismiss;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -559,7 +572,7 @@ class _Banner extends StatelessWidget {
       color: const Color(0xF22C2C2E),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: onDismiss,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

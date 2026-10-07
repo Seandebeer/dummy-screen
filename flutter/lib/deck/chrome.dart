@@ -85,8 +85,8 @@ class GridFill extends StatelessWidget {
         ? const Color(0x1A000000)
         : const Color(0x1AFFFFFF);
     final vignette = palette.light
-        ? const Color(0x22000000)
-        : const Color(0x66000000);
+        ? const Color(0x12000000)
+        : const Color(0x24000000);
     return ColoredBox(
       color: palette.background,
       child: CustomPaint(
@@ -115,12 +115,22 @@ class _GridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
     if (size.width <= 0 || size.height <= 0) return;
-    final shade = Paint()
-      ..shader = RadialGradient(
-        colors: [const Color(0x00000000), vignette],
-        stops: const [0.58, 1],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, shade);
+    final reach = (size.shortestSide * 0.34).clamp(72.0, 220.0);
+    final soft = vignette.withValues(alpha: vignette.a * 0.28);
+    for (final corner in [
+      Offset.zero,
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      Offset(size.width, size.height),
+    ]) {
+      final rect = Rect.fromCircle(center: corner, radius: reach);
+      final shade = Paint()
+        ..shader = RadialGradient(
+          colors: [vignette, soft, const Color(0x00000000)],
+          stops: const [0.0, 0.38, 1],
+        ).createShader(rect);
+      canvas.drawCircle(corner, reach, shade);
+    }
   }
 
   @override

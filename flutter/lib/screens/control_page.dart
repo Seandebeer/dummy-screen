@@ -7,6 +7,7 @@ import '../image_file.dart';
 import '../media/call_media.dart';
 import '../models.dart';
 import '../os_catalog.dart';
+import '../phone/app_catalog.dart';
 import '../phone/catalog.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -90,6 +91,11 @@ class _ControlPageState extends State<ControlPage> {
     _banner.dispose();
     _join.dispose();
     super.dispose();
+  }
+
+  String _bannerLabel(String id) {
+    if (id.startsWith('custom:')) return id.substring('custom:'.length);
+    return propAppById(id)?.label ?? catalogAppById(id)?.label ?? id;
   }
 
   List<String> _targets(StageStore store) {
@@ -448,11 +454,11 @@ class _ControlPageState extends State<ControlPage> {
                       onPush: () {
                         if (_notes.isEmpty) return;
                         final next = _notes.first;
-                        final label = propAppById(next.app)?.label ?? next.app;
                         for (final id in _targets(store)) {
                           store.pushBanner(
                             deviceId: id,
-                            appLabel: label,
+                            appLabel: _bannerLabel(next.app),
+                            appId: next.app,
                             text: next.text,
                           );
                         }
@@ -522,6 +528,11 @@ class _ControlPageState extends State<ControlPage> {
                             subject: subject,
                             body: body,
                           );
+                        }
+                      },
+                      onClear: () {
+                        for (final id in _targets(store)) {
+                          store.clearMail(id);
                         }
                       },
                     ),
@@ -910,16 +921,26 @@ class _ContactCard extends StatelessWidget {
   }
 }
 
+class _QueuedMail {
+  _QueuedMail(this.from, this.subject, this.body);
+
+  final String from;
+  final String subject;
+  final String body;
+}
+
 class _EmailBody extends StatefulWidget {
   const _EmailBody({
     required this.palette,
     required this.enabled,
     required this.onSend,
+    required this.onClear,
   });
 
   final DeckPalette palette;
   final bool enabled;
   final void Function(String from, String subject, String body) onSend;
+  final VoidCallback onClear;
 
   @override
   State<_EmailBody> createState() => _EmailBodyState();
@@ -929,6 +950,8 @@ class _EmailBodyState extends State<_EmailBody> {
   final _from = TextEditingController(text: 'Production Desk');
   final _subject = TextEditingController();
   final _body = TextEditingController();
+  final List<_QueuedMail> _queue = [];
+  final List<_QueuedMail> _sent = [];
 
   @override
   void dispose() {
@@ -936,6 +959,70 @@ class _EmailBodyState extends State<_EmailBody> {
     _subject.dispose();
     _body.dispose();
     super.dispose();
+  }
+
+  _QueuedMail? _draft() {
+    final subject = _subject.text.trim();
+    final body = _body.text.trim();
+    if (subject.isEmpty && body.isEmpty) return null;
+    return _QueuedMail(
+      _from.text.trim().isEmpty ? 'Production Desk' : _from.text.trim(),
+      subject.isEmpty ? '(no subject)' : subject,
+      body,
+    );
+  }
+
+  void _sendDraft() {
+    final mail = _draft();
+    if (mail == null || !widget.enabled) return;
+    widget.onSend(mail.from, mail.subject, mail.body);
+    setState(() {
+      _sent.add(mail);
+      _subject.clear();
+      _body.clear();
+    });
+  }
+
+  void _add() {
+    final mail = _draft();
+    if (mail == null || _queue.length >= 20) return;
+    setState(() {
+      _queue.add(mail);
+      _subject.clear();
+      _body.clear();
+    });
+  }
+
+  void _sendNext() {
+    if (_queue.isEmpty || !widget.enabled) return;
+    final mail = _queue.removeAt(0);
+    widget.onSend(mail.from, mail.subject, mail.body);
+    setState(() => _sent.add(mail));
+  }
+
+  Future<void> _reset() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear mail on this channel?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    widget.onClear();
+    setState(() {
+      _queue.insertAll(0, _sent);
+      _sent.clear();
+    });
   }
 
   @override
@@ -951,20 +1038,69 @@ class _EmailBodyState extends State<_EmailBody> {
           decoration: deckField(palette, 'Subject'),
         ),
         const SizedBox(height: 8),
-        TextField(controller: _body, minLines: 2, maxLines: 4, decoration: deckField(palette, 'Message')),
+        TextField(
+          controller: _body,
+          minLines: 2,
+          maxLines: 4,
+          onChanged: (_) => setState(() {}),
+          decoration: deckField(palette, 'Message'),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _draft() == null || _queue.length >= 20 ? null : _add,
+              icon: const Icon(Icons.add, size: 14),
+              label: const Text('Add'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: !widget.enabled || _draft() == null ? null : _sendDraft,
+              child: const Text('Send'),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton(
-            onPressed: !widget.enabled || _subject.text.trim().isEmpty
-                ? null
-                : () {
-                    widget.onSend(_from.text.trim(), _subject.text.trim(), _body.text.trim());
-                    _subject.clear();
-                    _body.clear();
-                  },
-            child: const Text('Send'),
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Queue · ${_queue.length}/20',
+            style: TextStyle(color: palette.muted, fontSize: 10),
           ),
+        ),
+        for (var i = 0; i < _queue.length; i++)
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Text('${i + 1}'),
+            title: Text(_queue[i].subject),
+            subtitle: Text(_queue[i].body, maxLines: 1, overflow: TextOverflow.ellipsis),
+            trailing: IconButton(
+              onPressed: () => setState(() => _queue.removeAt(i)),
+              icon: const Icon(Icons.delete_outline, size: 16),
+            ),
+          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            OutlinedButton.icon(
+              key: const Key('deck-email-reset'),
+              onPressed: _reset,
+              icon: const Icon(Icons.recycling, size: 14),
+              label: const Text('Reset'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: kSignal,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: !widget.enabled || _queue.isEmpty ? null : _sendNext,
+              icon: const Icon(Icons.send, size: 14),
+              label: const Text('Send'),
+            ),
+          ],
         ),
       ],
     );
@@ -1377,6 +1513,7 @@ class _MessageBody extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             OutlinedButton.icon(
+              key: const Key('deck-message-reset'),
               onPressed: onReset,
               icon: const Icon(Icons.recycling, size: 14),
               label: const Text('Reset'),
@@ -1438,13 +1575,6 @@ class _NotifBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const socials = ['facepage', 'photogram', 'vidtube', 'quicktok'];
-    final apps = [
-      for (final id in socials)
-        if (propAppById(id) != null) propAppById(id)!,
-      for (final item in kPropApps)
-        if (!socials.contains(item.id)) item,
-    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1466,40 +1596,9 @@ class _NotifBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Text('App icon', style: TextStyle(color: palette.muted, fontSize: 10)),
+        Text('App Library', style: TextStyle(color: palette.muted, fontSize: 10)),
         const SizedBox(height: 6),
-        SizedBox(
-          height: 40,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              for (final item in apps.take(12))
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: InkWell(
-                    onTap: () => onApp(item.id),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: item.color,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: app == item.id ? kSignal : palette.line,
-                          width: app == item.id ? 2 : 1,
-                        ),
-                      ),
-                      child: Icon(item.icon, color: Colors.white, size: 16),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        Text(
-          propAppById(app)?.label ?? app,
-          style: TextStyle(color: palette.muted, fontSize: 10),
-        ),
+        _LibraryPicker(palette: palette, selected: app, onSelect: onApp),
         const SizedBox(height: 8),
         TextField(
           controller: text,
@@ -1556,6 +1655,155 @@ class _NotifBody extends StatelessWidget {
         Text(
           'Banners stack below each other on the phone until Reset clears them',
           style: TextStyle(color: palette.muted, fontSize: 10),
+        ),
+      ],
+    );
+  }
+}
+
+class _LibraryPicker extends StatefulWidget {
+  const _LibraryPicker({
+    required this.palette,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final DeckPalette palette;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  State<_LibraryPicker> createState() => _LibraryPickerState();
+}
+
+class _LibraryPickerState extends State<_LibraryPicker> {
+  final _query = TextEditingController();
+  final _name = TextEditingController();
+  final List<({String id, String label, Color color, IconData icon})> _custom = [];
+
+  @override
+  void dispose() {
+    _query.dispose();
+    _name.dispose();
+    super.dispose();
+  }
+
+  List<({String id, String label, Color color, IconData icon})> get _apps {
+    final seen = <String>{};
+    final apps = <({String id, String label, Color color, IconData icon})>[];
+    void add(String id, String label, Color color, IconData icon) {
+      if (!seen.add(id)) return;
+      apps.add((id: id, label: label, color: color, icon: icon));
+    }
+
+    for (final item in _custom) {
+      add(item.id, item.label, item.color, item.icon);
+    }
+    for (final item in kPropApps) {
+      add(item.id, item.label, item.color, item.icon);
+    }
+    for (final section in mockCatalog) {
+      for (final item in section.apps) {
+        add(item.id, item.label, item.color, item.icon);
+      }
+    }
+    final query = _query.text.trim().toLowerCase();
+    if (query.isEmpty) return apps;
+    return [
+      for (final app in apps)
+        if (app.label.toLowerCase().contains(query)) app,
+    ];
+  }
+
+  String _label(String id) {
+    if (id.startsWith('custom:')) return id.substring('custom:'.length);
+    return propAppById(id)?.label ?? catalogAppById(id)?.label ?? id;
+  }
+
+  void _create() {
+    final name = _name.text.trim();
+    if (name.isEmpty) return;
+    final id = 'custom:$name';
+    setState(() {
+      _custom.add((
+        id: id,
+        label: name,
+        color: const Color(0xFF3A3A3C),
+        icon: Icons.apps,
+      ));
+      _name.clear();
+    });
+    widget.onSelect(id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = widget.palette;
+    final apps = _apps;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _label(widget.selected),
+          style: TextStyle(color: palette.ink, fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _query,
+          onChanged: (_) => setState(() {}),
+          decoration: deckField(palette, 'Search the library'),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                key: const Key('notif-custom-app'),
+                controller: _name,
+                onChanged: (_) => setState(() {}),
+                decoration: deckField(palette, 'Create your own'),
+                onSubmitted: (_) => _create(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              key: const Key('notif-create-app'),
+              onPressed: _name.text.trim().isEmpty ? null : _create,
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 220,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: palette.line),
+            ),
+            child: ListView(
+              key: const Key('notif-app-library'),
+              children: [
+                for (final item in apps)
+                  ListTile(
+                    key: Key('notif-app-${item.id}'),
+                    dense: true,
+                    selected: item.id == widget.selected,
+                    leading: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: item.color,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Icon(item.icon, color: Colors.white, size: 15),
+                    ),
+                    title: Text(item.label, style: TextStyle(color: palette.ink, fontSize: 13)),
+                    onTap: () => widget.onSelect(item.id),
+                  ),
+              ],
+            ),
+          ),
         ),
       ],
     );

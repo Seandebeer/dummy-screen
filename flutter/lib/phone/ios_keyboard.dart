@@ -38,13 +38,25 @@ Future<void> openIosKeyboard(
   );
 }
 
+/// Drops the keypad. Safe while a field is closing; it does not subscribe.
+void hideIosKeyboard(BuildContext context) {
+  context.getInheritedWidgetOfExactType<DeviceKeyboardScope>()?.hide();
+}
+
 /// Keeps the keypad inside the mock device, under the app, instead of a
-/// sheet that spills over the device edge.
+/// sheet that spills over the device edge. [route] is the open app. When it
+/// changes, the keypad closes with that app.
 class DeviceKeyboard extends StatefulWidget {
-  const DeviceKeyboard({super.key, required this.child, this.footer});
+  const DeviceKeyboard({
+    super.key,
+    required this.child,
+    this.footer,
+    this.route = '',
+  });
 
   final Widget child;
   final Widget? footer;
+  final String route;
 
   @override
   State<DeviceKeyboard> createState() => _DeviceKeyboardState();
@@ -54,6 +66,7 @@ class DeviceKeyboardScope extends InheritedWidget {
   const DeviceKeyboardScope({
     super.key,
     required this.show,
+    required this.hide,
     required super.child,
   });
 
@@ -63,6 +76,7 @@ class DeviceKeyboardScope extends InheritedWidget {
     ValueChanged<String>? onChanged,
     VoidCallback? onDone,
   }) show;
+  final VoidCallback hide;
 
   static DeviceKeyboardScope? maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<DeviceKeyboardScope>();
@@ -93,7 +107,7 @@ class _DeviceKeyboardState extends State<DeviceKeyboard> {
   }
 
   void _hide() {
-    if (_controller == null) return;
+    if (!mounted || _controller == null) return;
     setState(() {
       _controller = null;
       _onChanged = null;
@@ -102,10 +116,21 @@ class _DeviceKeyboardState extends State<DeviceKeyboard> {
   }
 
   @override
+  void didUpdateWidget(DeviceKeyboard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.route != oldWidget.route) {
+      _controller = null;
+      _onChanged = null;
+      _onDone = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final controller = _controller;
     return DeviceKeyboardScope(
       show: _show,
+      hide: _hide,
       child: Column(
         children: [
           Expanded(child: widget.child),
