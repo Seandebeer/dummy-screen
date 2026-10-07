@@ -72,6 +72,7 @@ class OsSettings {
     this.homeOrder = const [],
     this.networkName = '',
     this.wifi = true,
+    this.wifiBars = 3,
     this.signal = 4,
     this.cellular = '5G',
     this.showTracking = false,
@@ -131,6 +132,9 @@ class OsSettings {
   /// Carrier label drawn beside the clock. Empty keeps the clock alone.
   final String networkName;
   final bool wifi;
+
+  /// Wi-Fi arcs, 0 through 3, drawn when Wi-Fi is on.
+  final int wifiBars;
   final int signal;
 
   /// Radio label drawn with the signal bars.
@@ -235,6 +239,7 @@ class OsSettings {
     List<String>? homeOrder,
     String? networkName,
     bool? wifi,
+    int? wifiBars,
     int? signal,
     String? cellular,
     bool? showTracking,
@@ -289,6 +294,7 @@ class OsSettings {
     homeOrder: homeOrder ?? this.homeOrder,
     networkName: networkName ?? this.networkName,
     wifi: wifi ?? this.wifi,
+    wifiBars: wifiBars ?? this.wifiBars,
     signal: signal ?? this.signal,
     cellular: cellular ?? this.cellular,
     showTracking: showTracking ?? this.showTracking,
@@ -345,6 +351,7 @@ class OsSettings {
     'homeOrder': homeOrder,
     'networkName': networkName,
     'wifi': wifi,
+    'wifiBars': wifiBars,
     'signal': signal,
     'cellular': cellular,
     'showTracking': showTracking,
@@ -413,6 +420,7 @@ class OsSettings {
       ].where((id) => id.isNotEmpty).toList(),
       networkName: json['networkName'] as String? ?? '',
       wifi: json['wifi'] as bool? ?? true,
+      wifiBars: ((json['wifiBars'] as num?)?.toInt() ?? 3).clamp(0, 3),
       signal: ((json['signal'] as num?)?.toInt() ?? 4).clamp(0, 4),
       cellular: kCellularRadios.contains(json['cellular'])
           ? json['cellular'] as String
@@ -478,6 +486,7 @@ class OsSettings {
         autoRotate == other.autoRotate &&
         networkName == other.networkName &&
         wifi == other.wifi &&
+        wifiBars == other.wifiBars &&
         signal == other.signal &&
         cellular == other.cellular &&
         showTracking == other.showTracking &&
@@ -535,6 +544,7 @@ class OsSettings {
     autoRotate,
     networkName,
     wifi,
+    wifiBars,
     signal,
     cellular,
     showTracking,

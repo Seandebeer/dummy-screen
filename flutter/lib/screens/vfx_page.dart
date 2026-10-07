@@ -456,7 +456,7 @@ class _VfxPageState extends State<VfxPage> {
                   if (point) ...[
                     _menu(
                       icon: Icons.my_location,
-                      title: 'Marker type',
+                      title: 'New marker type',
                       onSelected: (index) => setState(() => _addKind = kMarkerKinds[index].id),
                       children: [
                         for (final kind in kMarkerKinds)

@@ -6,6 +6,7 @@ import '../image_file.dart';
 import '../media/call_media.dart';
 import '../models.dart';
 import 'call_stage.dart';
+import 'ios_keyboard.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
 
@@ -91,9 +92,14 @@ class PhoneShell extends StatelessWidget {
                     os: device.os,
                     onTap: onStatusTap,
                   ),
-                  Expanded(child: body),
-                  if (!device.locked)
-                    _HomeControl(chrome: chrome, onHome: onHome, ink: ink),
+                  Expanded(
+                    child: DeviceKeyboard(
+                      footer: device.locked
+                          ? null
+                          : _HomeControl(chrome: chrome, onHome: onHome, ink: ink),
+                      child: body,
+                    ),
+                  ),
                 ],
               ),
               if (banners.isNotEmpty && call == null && !alarm)
@@ -166,7 +172,7 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = framed ? 10.0 : MediaQuery.paddingOf(context).top;
     final bars = os.cellular == 'NO SERVICE' ? 0 : os.signal.clamp(0, 4);
-    final radio = os.cellular == 'NO SERVICE' ? '' : os.cellular;
+    final radio = os.cellular == 'NO SERVICE' ? 'no service' : os.cellular;
     return GestureDetector(
       key: const Key('phone-status'),
       behavior: HitTestBehavior.opaque,
@@ -220,7 +226,7 @@ class _StatusBar extends StatelessWidget {
               radio,
               style: TextStyle(
                 color: ink,
-                fontSize: 12,
+                fontSize: radio == 'no service' ? 10 : 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),
@@ -228,7 +234,7 @@ class _StatusBar extends StatelessWidget {
           ],
           if (os.wifi) ...[
             const SizedBox(width: 4),
-            Icon(Icons.wifi, size: 16, color: ink),
+            Icon(_wifiIcon(os.wifiBars), size: 16, color: ink),
           ],
           const SizedBox(width: 6),
           Container(
@@ -251,6 +257,19 @@ class _StatusBar extends StatelessWidget {
       ),
       ),
     );
+  }
+}
+
+IconData _wifiIcon(int bars) {
+  switch (bars.clamp(0, 3)) {
+    case 0:
+      return Icons.signal_wifi_0_bar;
+    case 1:
+      return Icons.wifi_1_bar;
+    case 2:
+      return Icons.wifi_2_bar;
+    default:
+      return Icons.wifi;
   }
 }
 

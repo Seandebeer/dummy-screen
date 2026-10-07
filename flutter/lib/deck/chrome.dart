@@ -82,12 +82,15 @@ class GridFill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final line = palette.light
-        ? const Color(0x28000000)
-        : const Color(0x28FFFFFF);
+        ? const Color(0x1A000000)
+        : const Color(0x1AFFFFFF);
+    final vignette = palette.light
+        ? const Color(0x22000000)
+        : const Color(0x66000000);
     return ColoredBox(
       color: palette.background,
       child: CustomPaint(
-        painter: _GridPainter(line),
+        painter: _GridPainter(line, vignette),
         child: child,
       ),
     );
@@ -95,9 +98,10 @@ class GridFill extends StatelessWidget {
 }
 
 class _GridPainter extends CustomPainter {
-  const _GridPainter(this.line);
+  const _GridPainter(this.line, this.vignette);
 
   final Color line;
+  final Color vignette;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -110,11 +114,18 @@ class _GridPainter extends CustomPainter {
     for (var y = 0.0; y <= size.height; y += 44) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
+    if (size.width <= 0 || size.height <= 0) return;
+    final shade = Paint()
+      ..shader = RadialGradient(
+        colors: [const Color(0x00000000), vignette],
+        stops: const [0.58, 1],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, shade);
   }
 
   @override
   bool shouldRepaint(covariant _GridPainter oldDelegate) =>
-      oldDelegate.line != line;
+      oldDelegate.line != line || oldDelegate.vignette != vignette;
 }
 
 class DeckCard extends StatelessWidget {

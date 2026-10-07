@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
           _Header(palette: palette, wide: wide),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+              padding: EdgeInsets.fromLTRB(28, wide ? 72 : 20, 28, 28),
               children: [
                 Center(
                   child: ConstrainedBox(
@@ -91,9 +91,9 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(child: projects),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 40),
                               Expanded(child: devices),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 40),
                               Expanded(child: saved),
                             ],
                           )
@@ -127,6 +127,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
+        color: palette.surface.withValues(alpha: 0.92),
         border: Border(bottom: BorderSide(color: palette.line)),
       ),
       child: Padding(
@@ -287,7 +288,7 @@ class _HomeSection extends StatelessWidget {
           ? const BoxConstraints(minHeight: 248)
           : null,
       decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.8),
+        color: palette.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: palette.line.withValues(alpha: 0.7)),
         boxShadow: const [

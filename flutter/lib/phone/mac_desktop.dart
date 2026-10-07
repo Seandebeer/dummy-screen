@@ -768,9 +768,16 @@ class _MacDesktopState extends State<MacDesktop> {
             filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0x66404448),
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x99F2F4F8), Color(0x55303840)],
+                ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0x28FFFFFF)),
+                border: Border.all(color: const Color(0xAAFFFFFF)),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x55FFFFFF), blurRadius: 8, offset: Offset(0, -1)),
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),

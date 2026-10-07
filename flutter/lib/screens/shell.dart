@@ -205,9 +205,7 @@ class _NavRail extends StatelessWidget {
               width: 96,
               child: Column(
                 children: [
-                  const SizedBox(height: 28),
-                  const _RailMark(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
                   Expanded(
                     child: ListView(
                       padding: EdgeInsets.zero,
@@ -227,42 +225,6 @@ class _NavRail extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
           children: [for (final button in buttons) Expanded(child: button)],
-        ),
-      ),
-    );
-  }
-}
-
-class _RailMark extends StatelessWidget {
-  const _RailMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 52,
-      height: 52,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [kAccent, Color(0x99318DF6)],
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x40318DF6),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: const Text(
-        'T',
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: Colors.black,
         ),
       ),
     );

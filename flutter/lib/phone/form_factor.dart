@@ -14,6 +14,7 @@ import 'catalog.dart';
 import 'desk_os_apps.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
+import 'ios_keyboard.dart';
 import 'mac_desk.dart';
 import 'mac_desktop.dart';
 import 'os_apps.dart';
@@ -740,7 +741,7 @@ class _Window extends StatelessWidget {
                 ],
               ),
             ),
-            Expanded(child: child),
+            Expanded(child: DeviceKeyboard(child: child)),
           ],
         ),
       ),

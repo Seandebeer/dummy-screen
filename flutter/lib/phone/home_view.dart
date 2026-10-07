@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../image_file.dart';
@@ -90,14 +92,28 @@ class PhoneHome extends StatelessWidget {
         ),
         Container(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(
-              alpha: chrome == SkinChrome.classic ? 0.16 : 0.08,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withValues(alpha: 0.46),
+                Colors.white.withValues(alpha: 0.16),
+              ],
             ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white24),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.62)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x66FFFFFF), blurRadius: 10, offset: Offset(0, -1)),
+            ],
           ),
+          child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -112,6 +128,10 @@ class PhoneHome extends StatelessWidget {
                   onTap: () => onOpen(app.id),
                 ),
             ],
+          ),
+          ),
+          ),
+          ),
           ),
         ),
       ],

@@ -59,6 +59,9 @@ class ExtraSettings extends StatelessWidget {
                 value: os.wifi,
                 onChanged: (value) => _update((current) => current.copyWith(wifi: value)),
               ),
+              _slider('Wi-Fi signal', os.wifiBars.toDouble(), 3, (value) {
+                _update((current) => current.copyWith(wifiBars: value.round()));
+              }),
               _slider('Signal strength', os.signal.toDouble(), 4, (value) {
                 _update((current) => current.copyWith(signal: value.round()));
               }),
@@ -75,7 +78,7 @@ class ExtraSettings extends StatelessWidget {
                   for (final radio in kCellularRadios)
                     ChoiceChip(
                       key: Key('cellular-$radio'),
-                      label: Text(radio),
+                      label: Text(radio == 'NO SERVICE' ? 'no service' : radio),
                       selected: os.cellular == radio,
                       onSelected: (_) =>
                           _update((current) => current.copyWith(cellular: radio)),
