@@ -1,14 +1,20 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../app.dart';
 import '../image_file.dart';
 import '../models.dart';
+import '../screens/markers_page.dart';
+import '../screens/videos_page.dart';
+import '../screens/vfx_page.dart';
 import '../store.dart';
 import 'atm_home.dart';
 import 'console_apps.dart';
 import 'catalog.dart';
 import 'desk_os_apps.dart';
 import 'desk_settings.dart';
+import 'desk_window.dart';
+import 'mac_desk.dart';
 import 'mac_desktop.dart';
 import 'os_apps.dart';
 import 'win_desktop.dart';
@@ -134,6 +140,15 @@ class _FormOsState extends State<FormOs> {
     widget.store.updateOs(device.id, (current) => current.copyWith(shell: id));
   }
 
+  void _open(String? id) {
+    setState(() {
+      final toggleOff = id != null &&
+          id == _app &&
+          (id == 'tracking' || id == 'markers');
+      _app = toggleOff ? null : id;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return switch (device.kind) {
@@ -141,13 +156,13 @@ class _FormOsState extends State<FormOs> {
         shell: os.shell.isEmpty ? 'aurora' : os.shell,
         onShell: _shell,
         app: _app,
-        onOpen: (id) => setState(() => _app = id),
+        onOpen: _open,
       ),
       'console' => _ConsoleOs(
         store: widget.store,
         device: device,
         app: _app,
-        onOpen: (id) => setState(() => _app = id),
+        onOpen: _open,
       ),
       'atm' => AtmScreen(store: widget.store, device: device),
       'cctv' => const _CctvOs(),
@@ -163,7 +178,7 @@ class _FormOsState extends State<FormOs> {
         shell: computerShell(os.shell),
         onShell: _shell,
         app: _app,
-        onOpen: (id) => setState(() => _app = id),
+        onOpen: _open,
       ),
     };
   }
@@ -201,6 +216,7 @@ String deskTitle(String id, OsSettings os) {
   return osAppTitle(id, os);
 }
 
+/// Computer shell. Tracking and UI markers cover the desktop; Video uses playback.
 class _ComputerOs extends StatelessWidget {
   const _ComputerOs({
     required this.store,
@@ -218,16 +234,22 @@ class _ComputerOs extends StatelessWidget {
   final String? app;
   final ValueChanged<String?> onOpen;
 
-  Color get _desktop {
-    return switch (shell) {
-      'windows' => const Color(0xFF0C3B6E),
-      'linux' => const Color(0xFF1C2833),
-      _ => const Color(0xFF1D3E6E),
+  Widget? _cover() {
+    return switch (app) {
+      'tracking' => StoreScope(
+        store: store,
+        child: VfxPage(onExit: () => onOpen(null)),
+      ),
+      'markers' => StoreScope(
+        store: store,
+        child: MarkersPage(onExit: () => onOpen(null)),
+      ),
+      _ => null,
     };
   }
 
   Widget _window(String id) {
-    if (_toolIcons.containsKey(id)) return _DeskTool(id: id);
+    if (_toolIcons.containsKey(id)) return _DeskTool(id: id, store: store);
     return DeskAppView(
       store: store,
       device: device,
@@ -239,15 +261,21 @@ class _ComputerOs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final apps = deskApps(device.os);
+    final cover = _cover();
+    final windowId = cover == null ? app : null;
+    final folder = windowId != null && windowId.startsWith('folder:');
     if (shell == 'macos') {
       return MacDesktop(
         store: store,
         device: device,
-        appTitle: app == null ? null : deskTitle(app!, device.os),
-        tool: app == null ? null : _window(app!),
+        appTitle: windowId == null || folder
+            ? null
+            : deskTitle(windowId, device.os),
+        tool: windowId == null || folder ? null : _window(windowId),
         onOpen: onOpen,
         onShell: onShell,
         shells: kComputerShells,
+        overlay: cover,
       );
     }
     if (shell == 'windows') {
@@ -256,52 +284,204 @@ class _ComputerOs extends StatelessWidget {
         device: device,
         apps: apps,
         appId: app,
-        appTitle: app == null ? null : deskTitle(app!, device.os),
-        tool: app == null ? null : _window(app!),
+        appTitle: windowId == null || folder
+            ? null
+            : deskTitle(windowId, device.os),
+        tool: windowId == null || folder ? null : _window(windowId),
         onOpen: onOpen,
         onShell: onShell,
         shells: kComputerShells,
+        overlay: cover,
       );
     }
+    return _LinuxDesktop(
+      store: store,
+      device: device,
+      apps: apps,
+      app: app,
+      window: windowId == null || folder ? null : _window(windowId),
+      overlay: cover,
+      onOpen: onOpen,
+      onShell: onShell,
+    );
+  }
+}
+
+class _LinuxDesktop extends StatefulWidget {
+  const _LinuxDesktop({
+    required this.store,
+    required this.device,
+    required this.apps,
+    required this.app,
+    required this.window,
+    required this.overlay,
+    required this.onOpen,
+    required this.onShell,
+  });
+
+  final StageStore store;
+  final PropDevice device;
+  final List<(String, String, IconData)> apps;
+  final String? app;
+  final Widget? window;
+  final Widget? overlay;
+  final ValueChanged<String?> onOpen;
+  final ValueChanged<String> onShell;
+
+  @override
+  State<_LinuxDesktop> createState() => _LinuxDesktopState();
+}
+
+class _LinuxDesktopState extends State<_LinuxDesktop> {
+  final _rename = TextEditingController();
+  String? _renaming;
+
+  @override
+  void dispose() {
+    _rename.dispose();
+    super.dispose();
+  }
+
+  String _named(OsSettings os, String id, String fallback) {
+    final named = os.deskNames[id]?.trim() ?? '';
+    return named.isEmpty ? fallback : named;
+  }
+
+  void _beginRename(String id, String label) {
+    _rename.text = label;
+    _rename.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _rename.text.length,
+    );
+    setState(() => _renaming = id);
+  }
+
+  void _commitRename() {
+    final id = _renaming;
+    if (id == null) return;
+    final name = _rename.text;
+    setState(() => _renaming = null);
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => renameDeskItem(current, id, name),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final live = widget.store.deviceById(widget.device.id) ?? widget.device;
+    final os = live.os;
     const ink = Colors.white;
-    return Material(
-      color: _desktop,
+    final folder = widget.overlay == null &&
+        widget.app != null &&
+        widget.app!.startsWith('folder:');
+    final title = widget.overlay != null
+        ? null
+        : folder
+        ? _named(os, widget.app!, 'New Folder')
+        : widget.app == null
+        ? null
+        : deskTitle(widget.app!, os);
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) {
+        final current =
+            widget.store.deviceById(widget.device.id) ?? widget.device;
+        return Material(
+          color: const Color(0xFF1C2833),
+          child: Column(
+            children: [
+              _menu(ink),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: GestureDetector(
+                        key: const Key('linux-desk-area'),
+                        behavior: HitTestBehavior.opaque,
+                        onSecondaryTap: () => widget.store.updateOs(
+                          widget.device.id,
+                          addDeskFolder,
+                        ),
+                      ),
+                    ),
+                    if (widget.overlay != null)
+                      Positioned.fill(child: widget.overlay!),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final item in widget.apps)
+                              _linuxIcon(
+                                current.os,
+                                item.$1,
+                                item.$2,
+                                Icon(item.$3, color: ink, size: 28),
+                              ),
+                            for (final id in current.os.deskFolders)
+                              _linuxIcon(
+                                current.os,
+                                id,
+                                'New Folder',
+                                const Icon(
+                                  Icons.folder,
+                                  color: Color(0xFFE8B931),
+                                  size: 28,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (title != null)
+                      Center(
+                        child: _Window(
+                          title: title,
+                          onClose: () => widget.onOpen(null),
+                          child: folder
+                              ? const Center(
+                                  child: Text(
+                                    'This folder is empty.',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                )
+                              : widget.window ?? const SizedBox.shrink(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              _dock(ink, current.os),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _linuxIcon(OsSettings os, String id, String fallback, Widget mark) {
+    final label = _named(os, id, fallback);
+    return SizedBox(
+      width: 72,
       child: Column(
         children: [
-          _menu(ink),
-          Expanded(
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final item in apps)
-                          _DeskIcon(
-                            label: item.$2,
-                            icon: item.$3,
-                            ink: ink,
-                            onTap: () => onOpen(item.$1),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (app != null)
-                  Center(
-                    child: _Window(
-                      title: deskTitle(app!, device.os),
-                      onClose: () => onOpen(null),
-                      child: _window(app!),
-                    ),
-                  ),
-              ],
-            ),
+          GestureDetector(
+            key: Key('linux-icon-$id'),
+            onTap: () => widget.onOpen(id),
+            child: mark,
           ),
-          _dock(ink, apps),
+          const SizedBox(height: 4),
+          DeskIconName(
+            label: label,
+            labelKey: Key('linux-label-$id'),
+            editing: _renaming == id,
+            controller: _rename,
+            onStart: () => _beginRename(id, label),
+            onCommit: _commitRename,
+          ),
         ],
       ),
     );
@@ -310,7 +490,7 @@ class _ComputerOs extends StatelessWidget {
   Widget _menu(Color ink) {
     final label = kComputerShells
         .firstWhere(
-          (item) => item.$1 == shell,
+          (item) => item.$1 == 'linux',
           orElse: () => kComputerShells.first,
         )
         .$2;
@@ -332,7 +512,7 @@ class _ComputerOs extends StatelessWidget {
           PopupMenuButton<String>(
             tooltip: 'System',
             icon: Icon(Icons.settings, size: 14, color: ink),
-            onSelected: onShell,
+            onSelected: widget.onShell,
             itemBuilder: (context) => [
               for (final item in kComputerShells)
                 PopupMenuItem(value: item.$1, child: Text(item.$2)),
@@ -343,12 +523,13 @@ class _ComputerOs extends StatelessWidget {
     );
   }
 
-  Widget _dock(Color ink, List<(String, String, IconData)> apps) {
+  Widget _dock(Color ink, OsSettings os) {
     final docked = [
       for (final id in kDockIds)
         if (propAppById(id) case final prop?)
-          (id, appLabel(prop, branded: device.os.branded), prop.icon),
-      ...apps.where((item) => item.$1 == 'appstore' || item.$1 == 'settings'),
+          (id, appLabel(prop, branded: os.branded), prop.icon),
+      for (final item in widget.apps)
+        if (item.$1 == 'appstore' || item.$1 == 'settings') item,
     ];
     return Container(
       height: 54,
@@ -363,45 +544,10 @@ class _ComputerOs extends StatelessWidget {
           for (final item in docked)
             IconButton(
               tooltip: item.$2,
-              onPressed: () => onOpen(item.$1),
+              onPressed: () => widget.onOpen(item.$1),
               icon: Icon(item.$3, color: ink, size: 20),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _DeskIcon extends StatelessWidget {
-  const _DeskIcon({
-    required this.label,
-    required this.icon,
-    required this.ink,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color ink;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          children: [
-            Icon(icon, color: ink, size: 28),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: ink, fontSize: 11),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -420,8 +566,7 @@ class _Window extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 520, maxHeight: 360),
+    return DeskSizer(
       child: Material(
         color: const Color(0xF016161A),
         elevation: 12,
@@ -459,9 +604,10 @@ class _Window extends StatelessWidget {
 }
 
 class _DeskTool extends StatefulWidget {
-  const _DeskTool({required this.id});
+  const _DeskTool({required this.id, required this.store});
 
   final String id;
+  final StageStore store;
 
   @override
   State<_DeskTool> createState() => _DeskToolState();
@@ -495,8 +641,9 @@ class _DeskToolState extends State<_DeskTool> {
           child: SizedBox.expand(),
         );
       case 'video':
-        return const Center(
-          child: Icon(Icons.play_circle_fill, size: 64, color: Colors.white),
+        return StoreScope(
+          store: widget.store,
+          child: const VideosPage(),
         );
       case 'word':
         return Padding(

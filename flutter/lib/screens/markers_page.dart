@@ -16,7 +16,10 @@ const _cols = 5;
 const _rows = 8;
 
 class MarkersPage extends StatefulWidget {
-  const MarkersPage({super.key});
+  const MarkersPage({super.key, this.onExit});
+
+  /// Closes this stage when it is open on top of another screen.
+  final VoidCallback? onExit;
 
   @override
   State<MarkersPage> createState() => _MarkersPageState();
@@ -430,7 +433,14 @@ class _MarkersPageState extends State<MarkersPage> {
                     top: 8,
                     left: 8,
                     child: TextButton.icon(
-                      onPressed: () => StoreScope.of(context).openTab(0),
+                      onPressed: () {
+                        final exit = widget.onExit;
+                        if (exit != null) {
+                          exit();
+                        } else {
+                          StoreScope.of(context).openTab(0);
+                        }
+                      },
                       icon: Icon(Icons.arrow_back, size: 16, color: light ? Colors.black54 : Colors.white54),
                       label: Text(
                         'Back',

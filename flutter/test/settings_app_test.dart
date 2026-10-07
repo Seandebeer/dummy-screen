@@ -68,7 +68,8 @@ void main() {
 
     expect(find.byKey(const Key('os-build-footer')), findsOneWidget);
     expect(find.text('INTERFACE'), findsOneWidget);
-    expect(find.text('STATUS BAR'), findsOneWidget);
+    expect(find.text('TASKBAR'), findsOneWidget);
+    expect(find.text('STATUS BAR'), findsNothing);
     expect(find.text('WALLPAPER'), findsOneWidget);
     expect(find.text('APP BRANDING'), findsOneWidget);
     expect(find.text('CUSTOM ICONS'), findsOneWidget);

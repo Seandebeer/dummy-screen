@@ -304,7 +304,8 @@ class SettingsToggle extends StatelessWidget {
   }
 }
 
-/// A label, a value, and minus and plus buttons.
+/// A value with minus and plus buttons. [name] titles the row so the reading
+/// on the middle says what it belongs to.
 class SettingsStepRow extends StatelessWidget {
   const SettingsStepRow({
     super.key,
@@ -313,9 +314,11 @@ class SettingsStepRow extends StatelessWidget {
     required this.plusKey,
     required this.onMinus,
     required this.onPlus,
+    this.name = '',
   });
 
   final String label;
+  final String name;
   final Key minusKey;
   final Key plusKey;
   final VoidCallback? onMinus;
@@ -323,7 +326,7 @@ class SettingsStepRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final row = Row(
       children: [
         SettingsStepButton(key: minusKey, icon: Icons.remove, onTap: onMinus),
         Expanded(
@@ -335,6 +338,91 @@ class SettingsStepRow extends StatelessWidget {
         ),
         SettingsStepButton(key: plusKey, icon: Icons.add, onTap: onPlus),
       ],
+    );
+    if (name.isEmpty) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(padding: const EdgeInsets.only(bottom: 4), child: Text(name)),
+        row,
+      ],
+    );
+  }
+}
+
+/// A short list of looks for one setting, drawn as pills under it.
+class SettingsOptions extends StatelessWidget {
+  const SettingsOptions({
+    super.key,
+    required this.prefix,
+    required this.options,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  /// Each option is an id and the words shown on its pill.
+  final String prefix;
+  final List<(String, String)> options;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 6),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final option in options)
+            _OptionPill(
+              pillKey: Key('$prefix-${option.$1}'),
+              label: option.$2,
+              active: selected == option.$1,
+              onTap: () => onSelect(option.$1),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OptionPill extends StatelessWidget {
+  const _OptionPill({
+    required this.pillKey,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final Key pillKey;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: active ? kAccent.withValues(alpha: 0.14) : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(99),
+        side: BorderSide(color: active ? kAccent : kSettingsEdge),
+      ),
+      child: InkWell(
+        key: pillKey,
+        borderRadius: BorderRadius.circular(99),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: active ? kAccent : const Color(0x99FFFFFF),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

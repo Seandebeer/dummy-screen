@@ -102,6 +102,23 @@ class _ComputerSettingsState extends State<ComputerSettings> {
     });
   }
 
+  void _style(String token, String value) {
+    _save((current) {
+      final styles = Map<String, String>.from(current.macStatusStyle);
+      styles[token] = value;
+      return current.copyWith(macStatusStyle: styles);
+    });
+  }
+
+  Widget _tune(String token, List<(String, String)> options, String fallback) {
+    return SettingsOptions(
+      prefix: 'desk-style-$token',
+      options: options,
+      selected: os.macStatusStyle[token] ?? fallback,
+      onSelect: (value) => _style(token, value),
+    );
+  }
+
   void _rename(String value) {
     final name = value.trim();
     _save((current) {
@@ -159,13 +176,17 @@ class _ComputerSettingsState extends State<ComputerSettings> {
                 const SizedBox(height: 8),
               ],
               const SettingsHint(
-                'Restyles the desktop, the status bar, and the dock of this machine.',
+                'Restyles the desktop, the bar across the top, and the dock of this machine.',
               ),
             ],
           ),
         ),
         SettingsSection(
-          title: 'Status bar',
+          title: switch (shell) {
+            'windows' => 'Taskbar',
+            'linux' => 'Top bar',
+            _ => 'Menu bar',
+          },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -208,6 +229,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
               ),
               const SizedBox(height: 4),
               SettingsStepRow(
+                name: 'Battery',
                 label: '${os.battery}%',
                 minusKey: const Key('desk-battery-down'),
                 plusKey: const Key('desk-battery-up'),
@@ -243,6 +265,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
               ),
               const SizedBox(height: 10),
               SettingsStepRow(
+                name: 'Clock',
                 label: formatClock(clock),
                 minusKey: const Key('desk-clock-back'),
                 plusKey: const Key('desk-clock-forward'),
@@ -264,7 +287,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
         ),
         if (shell == 'macos')
           SettingsSection(
-            title: 'Menu bar',
+            title: 'Menu bar items',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -274,33 +297,58 @@ class _ComputerSettingsState extends State<ComputerSettings> {
                   value: shown.contains('wifi'),
                   onChanged: (value) => _show('wifi', value),
                 ),
+                _tune('wifi', const [
+                  ('icon', 'Icon'),
+                  ('name', 'Name'),
+                  ('both', 'Icon and name'),
+                ], 'icon'),
                 SettingsToggle(
                   key: const Key('desk-show-battery'),
                   label: 'Show battery',
                   value: shown.contains('battery'),
                   onChanged: (value) => _show('battery', value),
                 ),
+                _tune('battery', const [
+                  ('icon', 'Icon'),
+                  ('percent', 'Percent'),
+                  ('both', 'Icon and percent'),
+                ], 'both'),
                 SettingsToggle(
                   key: const Key('desk-show-clock'),
                   label: 'Show clock',
                   value: shown.contains('clock'),
                   onChanged: (value) => _show('clock', value),
                 ),
+                _tune('clock', const [
+                  ('time', 'Time'),
+                  ('date', 'Date'),
+                  ('both', 'Time and date'),
+                ], 'time'),
                 SettingsToggle(
                   key: const Key('desk-show-search'),
                   label: 'Show search',
                   value: shown.contains('search'),
                   onChanged: (value) => _show('search', value),
                 ),
+                _tune('search', const [
+                  ('icon', 'Icon'),
+                  ('label', 'Label'),
+                  ('both', 'Icon and label'),
+                ], 'icon'),
                 SettingsToggle(
                   key: const Key('desk-show-control'),
                   label: 'Show Control Center',
                   value: shown.contains('control'),
                   onChanged: (value) => _show('control', value),
                 ),
+                _tune('control', const [
+                  ('icon', 'Icon'),
+                  ('label', 'Label'),
+                  ('both', 'Icon and label'),
+                ], 'icon'),
                 const SizedBox(height: 8),
                 const SettingsHint(
-                  'Which details sit on the right of the menu bar.',
+                  'Choose which details sit on the right of the menu bar, and how each one is drawn.',
                 ),
               ],
             ),

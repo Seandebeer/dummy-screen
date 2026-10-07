@@ -8,6 +8,8 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'catalog.dart';
+import 'desk_window.dart';
+import 'mac_desk.dart';
 
 /// Windows desktop: bloom wallpaper, left-hand icons, and a centered taskbar.
 class WinDesktop extends StatefulWidget {
@@ -22,6 +24,7 @@ class WinDesktop extends StatefulWidget {
     required this.onOpen,
     required this.onShell,
     required this.shells,
+    this.overlay,
   });
 
   final StageStore store;
@@ -33,6 +36,7 @@ class WinDesktop extends StatefulWidget {
   final ValueChanged<String?> onOpen;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
+  final Widget? overlay;
 
   @override
   State<WinDesktop> createState() => _WinDesktopState();
@@ -42,6 +46,43 @@ class _WinDesktopState extends State<WinDesktop> {
   bool _start = false;
   bool _search = false;
   bool _tasks = false;
+  final _rename = TextEditingController();
+  String? _renaming;
+
+  @override
+  void dispose() {
+    _rename.dispose();
+    super.dispose();
+  }
+
+  void _beginRename(String id, String label) {
+    _rename.text = label;
+    _rename.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _rename.text.length,
+    );
+    setState(() => _renaming = id);
+  }
+
+  void _commitRename() {
+    final id = _renaming;
+    if (id == null) return;
+    final name = _rename.text;
+    setState(() => _renaming = null);
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => renameDeskItem(current, id, name),
+    );
+  }
+
+  void _newFolder() {
+    widget.store.updateOs(widget.device.id, addDeskFolder);
+  }
+
+  String _named(OsSettings os, String id, String fallback) {
+    final named = os.deskNames[id]?.trim() ?? '';
+    return named.isEmpty ? fallback : named;
+  }
 
   void _open(String? id) {
     setState(() {
@@ -91,6 +132,21 @@ class _WinDesktopState extends State<WinDesktop> {
             ),
             child: const SizedBox.expand(),
           ),
+        Positioned.fill(
+          child: GestureDetector(
+            key: const Key('win-desk-area'),
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTap: _newFolder,
+          ),
+        ),
+        if (widget.overlay != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 46,
+            child: widget.overlay!,
+          ),
         Positioned(
           left: 2,
           top: 2,
@@ -98,7 +154,8 @@ class _WinDesktopState extends State<WinDesktop> {
           width: 246,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final count = _shortcuts.length + widget.apps.length;
+              final count =
+                  _shortcuts.length + widget.apps.length + live.os.deskFolders.length;
               final rows = (count / 3).ceil().clamp(1, 99);
               final cellH = constraints.maxHeight / rows;
               return Wrap(
@@ -109,19 +166,51 @@ class _WinDesktopState extends State<WinDesktop> {
                 children: [
                   for (final shortcut in _shortcuts)
                     _DesktopIcon(
-                      label: shortcut.label,
+                      label: _named(live.os, shortcut.id, shortcut.label),
                       iconKey: shortcut.key,
+                      labelKey: Key('win-label-${shortcut.id}'),
                       height: cellH,
+                      editing: _renaming == shortcut.id,
+                      controller: _rename,
+                      onRename: () => _beginRename(
+                        shortcut.id,
+                        _named(live.os, shortcut.id, shortcut.label),
+                      ),
+                      onCommit: _commitRename,
                       onTap: () => _open(shortcut.id),
                       child: shortcut.mark,
                     ),
                   for (final app in widget.apps)
                     _DesktopIcon(
-                      label: app.$2,
+                      label: _named(live.os, app.$1, app.$2),
                       iconKey: Key('win-icon-${app.$1}'),
+                      labelKey: Key('win-label-${app.$1}'),
                       height: cellH,
+                      editing: _renaming == app.$1,
+                      controller: _rename,
+                      onRename: () =>
+                          _beginRename(app.$1, _named(live.os, app.$1, app.$2)),
+                      onCommit: _commitRename,
                       onTap: () => _open(app.$1),
                       child: _Tile(_tint(app.$1), app.$3),
+                    ),
+                  for (final id in live.os.deskFolders)
+                    _DesktopIcon(
+                      label: _named(live.os, id, 'New Folder'),
+                      iconKey: Key('win-folder-$id'),
+                      labelKey: Key('win-label-$id'),
+                      height: cellH,
+                      editing: _renaming == id,
+                      controller: _rename,
+                      onRename: () =>
+                          _beginRename(id, _named(live.os, id, 'New Folder')),
+                      onCommit: _commitRename,
+                      onTap: () => _open(id),
+                      child: const Icon(
+                        Icons.folder,
+                        color: Color(0xFFE8B931),
+                        size: 28,
+                      ),
                     ),
                 ],
               );
@@ -200,11 +289,14 @@ class _WinDesktopState extends State<WinDesktop> {
   }
 
   String? _title(String? id, String? appTitle) {
+    final os =
+        widget.store.deviceById(widget.device.id)?.os ?? widget.device.os;
     return switch (id) {
       null => null,
-      'recycle' => 'Recycle Bin',
-      'edge' => 'Edge',
-      'files' => 'File Explorer',
+      'recycle' => _named(os, 'recycle', 'Recycle Bin'),
+      'edge' => _named(os, 'edge', 'Edge'),
+      'files' => _named(os, 'files', 'File Explorer'),
+      _ when id.startsWith('folder:') => _named(os, id, 'New Folder'),
       _ => appTitle,
     };
   }
@@ -214,6 +306,8 @@ class _WinDesktopState extends State<WinDesktop> {
       'recycle' => const _EmptyFolder(label: 'This folder is empty.'),
       'edge' => const _Browser(),
       'files' => const _Files(),
+      _ when id != null && id.startsWith('folder:') =>
+        const _EmptyFolder(label: 'This folder is empty.'),
       _ => widget.tool ?? const SizedBox.shrink(),
     };
   }
@@ -467,43 +561,47 @@ class _DesktopIcon extends StatelessWidget {
   const _DesktopIcon({
     required this.label,
     required this.iconKey,
+    required this.labelKey,
     required this.height,
+    required this.editing,
+    required this.controller,
+    required this.onRename,
+    required this.onCommit,
     required this.onTap,
     required this.child,
   });
 
   final String label;
   final Key? iconKey;
+  final Key labelKey;
   final double height;
+  final bool editing;
+  final TextEditingController controller;
+  final VoidCallback onRename;
+  final VoidCallback onCommit;
   final VoidCallback onTap;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      key: iconKey,
-      onTap: onTap,
-      child: SizedBox(
-        width: 78,
-        height: height,
-        child: Column(
-          children: [
-            child,
-            const SizedBox(height: 2),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                height: 1.05,
-                shadows: [Shadow(color: Color(0xCC000000), blurRadius: 3)],
-              ),
-            ),
-          ],
-        ),
+    return SizedBox(
+      width: 78,
+      height: height,
+      child: Column(
+        children: [
+          GestureDetector(key: iconKey, onTap: onTap, child: child),
+          const SizedBox(height: 2),
+          DeskIconName(
+            label: label,
+            labelKey: labelKey,
+            editing: editing,
+            controller: controller,
+            onStart: onRename,
+            onCommit: onCommit,
+            fontSize: 10,
+            maxLines: 2,
+          ),
+        ],
       ),
     );
   }
@@ -522,8 +620,7 @@ class _WinWindow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 360),
+    return DeskSizer(
       child: Material(
         color: Colors.white,
         elevation: 16,

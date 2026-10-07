@@ -16,7 +16,10 @@ import '../widgets/prompt.dart';
 import '../widgets/three_finger.dart';
 
 class VfxPage extends StatefulWidget {
-  const VfxPage({super.key});
+  const VfxPage({super.key, this.onExit});
+
+  /// Closes this stage when it is open on top of another screen.
+  final VoidCallback? onExit;
 
   @override
   State<VfxPage> createState() => _VfxPageState();
@@ -395,7 +398,14 @@ class _VfxPageState extends State<VfxPage> {
                 children: [
                   IconButton(
                     tooltip: 'Exit stage',
-                    onPressed: () => StoreScope.of(context).openTab(0),
+                    onPressed: () {
+                      final exit = widget.onExit;
+                      if (exit != null) {
+                        exit();
+                      } else {
+                        StoreScope.of(context).openTab(0);
+                      }
+                    },
                     icon: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
                   ),
                   IconButton(

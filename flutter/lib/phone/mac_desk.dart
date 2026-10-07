@@ -60,8 +60,16 @@ class MacGlyph {
 }
 
 MacGlyph macGlyph(String id, OsSettings os) {
-  if (id.startsWith('file:')) {
-    return MacGlyph(id.substring(5), Icons.folder_outlined, Colors.white);
+  final base = _macGlyph(id, os);
+  final named = os.deskNames[id]?.trim() ?? '';
+  if (named.isEmpty) return base;
+  return MacGlyph(named, base.icon, base.color, image: base.image);
+}
+
+MacGlyph _macGlyph(String id, OsSettings os) {
+  if (id.startsWith('file:') || id.startsWith('folder:')) {
+    final fallback = id.startsWith('file:') ? id.substring(5) : 'New Folder';
+    return MacGlyph(fallback, Icons.folder_outlined, Colors.white);
   }
   if (id == 'appstore') {
     return const MacGlyph('App Store', Icons.shopping_bag, Color(0xFF0A84FF));
@@ -242,6 +250,52 @@ class MacLayout {
       os.copyWith(macStatus: items.isEmpty ? const ['-'] : items);
 }
 
+/// The next "New Folder" name that is not already on the desktop.
+String freshFolderName(OsSettings os) {
+  final used = <String>{
+    ...os.deskNames.values,
+    for (final id in MacLayout.desktop(os)) _macGlyph(id, os).label,
+    ...kMacFileNames,
+  };
+  var name = 'New Folder';
+  var count = 2;
+  while (used.contains(name)) {
+    name = 'New Folder $count';
+    count++;
+  }
+  return name;
+}
+
+/// Adds a desktop folder. A spot places it on the Mac desktop.
+OsSettings addDeskFolder(OsSettings os, {Offset? spot, Size? area}) {
+  final id = 'folder:${DateTime.now().microsecondsSinceEpoch}';
+  final names = Map<String, String>.from(os.deskNames)
+    ..[id] = freshFolderName(os);
+  final folders = [...os.deskFolders, id];
+  if (spot == null || area == null) {
+    return os.copyWith(deskFolders: folders, deskNames: names);
+  }
+  final spots = Map<String, Offset>.from(MacLayout.spots(os, area));
+  spots[id] = MacLayout.clampSpot(spot, area);
+  return MacLayout.writeDesktop(os, spots, area).copyWith(
+    deskFolders: folders,
+    deskNames: names,
+  );
+}
+
+/// Stores the name typed onto a desktop icon. An empty name restores the
+/// original label.
+OsSettings renameDeskItem(OsSettings os, String id, String name) {
+  final names = Map<String, String>.from(os.deskNames);
+  final trimmed = name.trim();
+  if (trimmed.isEmpty) {
+    names.remove(id);
+  } else {
+    names[id] = trimmed;
+  }
+  return os.copyWith(deskNames: names);
+}
+
 /// Same catalog as the phone App Library, with Dock and Desktop actions.
 class MacAppStore extends StatefulWidget {
   const MacAppStore({
@@ -361,6 +415,7 @@ class _MacAppStoreState extends State<MacAppStore> {
                   if (section.apps.isNotEmpty || section.name == 'Custom')
                     _StoreSection(
                       name: section.name,
+                      searching: query.isNotEmpty,
                       apps: [
                         for (final app in section.apps)
                           if (query.isEmpty ||
@@ -383,9 +438,10 @@ class _MacAppStoreState extends State<MacAppStore> {
   }
 }
 
-class _StoreSection extends StatelessWidget {
+class _StoreSection extends StatefulWidget {
   const _StoreSection({
     required this.name,
+    required this.searching,
     required this.apps,
     required this.favs,
     required this.dock,
@@ -396,6 +452,7 @@ class _StoreSection extends StatelessWidget {
   });
 
   final String name;
+  final bool searching;
   final List<(String, MacGlyph)> apps;
   final Set<String> favs;
   final Set<String> dock;
@@ -405,22 +462,46 @@ class _StoreSection extends StatelessWidget {
   final ValueChanged<String> onDesktop;
 
   @override
+  State<_StoreSection> createState() => _StoreSectionState();
+}
+
+class _StoreSectionState extends State<_StoreSection> {
+  bool _open = false;
+
+  @override
   Widget build(BuildContext context) {
+    final open = widget.searching || _open;
+    final apps = widget.apps;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
-          child: Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+        InkWell(
+          key: Key('mac-store-section-${widget.name}'),
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Icon(
+                  open ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.white54,
+                  size: 16,
+                ),
+              ],
             ),
           ),
         ),
-        if (apps.isEmpty)
+        if (open && apps.isEmpty)
           const Padding(
             padding: EdgeInsets.only(left: 4, bottom: 6),
             child: Text(
@@ -428,14 +509,15 @@ class _StoreSection extends StatelessWidget {
               style: TextStyle(color: Colors.white38, fontSize: 11),
             ),
           ),
-        for (final app in apps)
+        if (open)
+          for (final app in apps)
           Row(
             children: [
               IconButton(
                 key: Key('mac-store-fav-${app.$1}'),
-                onPressed: () => onFav(app.$1),
+                onPressed: () => widget.onFav(app.$1),
                 icon: Icon(
-                  favs.contains(app.$1) ? Icons.star : Icons.star_border,
+                  widget.favs.contains(app.$1) ? Icons.star : Icons.star_border,
                   color: const Color(0xFFFFD60A),
                   size: 16,
                 ),
@@ -452,13 +534,17 @@ class _StoreSection extends StatelessWidget {
               ),
               TextButton(
                 key: Key('mac-store-dock-${app.$1}'),
-                onPressed: dock.contains(app.$1) ? null : () => onDock(app.$1),
-                child: Text(dock.contains(app.$1) ? 'Docked' : 'Dock'),
+                onPressed: widget.dock.contains(app.$1)
+                    ? null
+                    : () => widget.onDock(app.$1),
+                child: Text(widget.dock.contains(app.$1) ? 'Docked' : 'Dock'),
               ),
               TextButton(
                 key: Key('mac-store-desk-${app.$1}'),
-                onPressed: desk.contains(app.$1) ? null : () => onDesktop(app.$1),
-                child: Text(desk.contains(app.$1) ? 'Placed' : 'Desktop'),
+                onPressed: widget.desk.contains(app.$1)
+                    ? null
+                    : () => widget.onDesktop(app.$1),
+                child: Text(widget.desk.contains(app.$1) ? 'Placed' : 'Desktop'),
               ),
             ],
           ),

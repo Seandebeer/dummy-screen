@@ -1,6 +1,7 @@
 import 'package:dummy_phone/models.dart';
 import 'package:dummy_phone/phone/form_factor.dart';
 import 'package:dummy_phone/store.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -131,6 +132,10 @@ void main() {
     await tester.pump();
     expect(find.text('Settings'), findsWidgets);
     expect(find.text('INTERFACE'), findsOneWidget);
+    expect(find.text('MENU BAR'), findsOneWidget);
+    expect(find.text('STATUS BAR'), findsNothing);
+    expect(find.text('Battery'), findsOneWidget);
+    expect(find.text('Clock'), findsWidgets);
     expect(find.text('Mac'), findsOneWidget);
     expect(find.text('Ring Duration'), findsNothing);
     expect(find.text('Contacts Dial Codes'), findsNothing);
@@ -204,9 +209,21 @@ void main() {
     );
 
     await show(const Key('desk-show-search'));
+    expect(find.text('MENU BAR ITEMS'), findsOneWidget);
     await tester.tap(find.byKey(const Key('desk-show-search')));
     await tester.pump();
     expect(find.byKey(const Key('mac-menu-search')), findsNothing);
+
+    await show(const Key('desk-style-battery-icon'));
+    await tester.tap(find.byKey(const Key('desk-style-battery-icon')));
+    await tester.pump();
+    expect(find.byKey(const Key('mac-menu-battery')), findsNothing);
+    await tester.tap(find.byKey(const Key('desk-style-clock-date')));
+    await tester.pump();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('mac-menu-clock'))).data,
+      isNot(contains(':')),
+    );
 
     await show(const Key('desk-dock-right-word'));
     final excelBefore = tester.getCenter(find.byKey(const Key('mac-dock-excel')));
@@ -255,7 +272,12 @@ void main() {
     await tester.tap(find.byKey(const Key('mac-dock-appstore')));
     await tester.pump();
     expect(find.text('App Library'), findsWidgets);
+    expect(find.text('Slate'), findsNothing);
+    await tester.tap(find.byKey(const Key('mac-store-section-Custom')));
+    await tester.pump();
     expect(find.text('Slate'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mac-store-section-Functional')));
+    await tester.pump();
     final notes = find.byKey(const Key('mac-store-dock-notes'));
     await tester.dragUntilVisible(
       notes,
@@ -305,6 +327,86 @@ void main() {
     await tester.pump();
     final after = tester.getCenter(find.byKey(const Key('mac-file-Projects')));
     expect(after.dx, lessThan(before.dx - 80));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('desktop windows resize, folders rename, and tools cover the screen', (
+    tester,
+  ) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 640));
+    final device = PropDevice(
+      id: 'mac-tools',
+      name: 'Stage mac',
+      projectId: 'sandbox',
+      kind: 'computer',
+    );
+    store.upsertDevice(device);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: FormOs(store: store, device: device),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('mac-dock-word')));
+    await tester.pump();
+    final window = find
+        .ancestor(
+          of: find.byKey(const Key('mac-window-close')),
+          matching: find.byType(Material),
+        )
+        .first;
+    final opened = tester.getSize(window);
+    expect(opened.width, greaterThan(700));
+    expect(opened.height, greaterThan(400));
+    await tester.drag(
+      find.byKey(const Key('desk-window-resize')),
+      const Offset(-120, -80),
+    );
+    await tester.pump();
+    final resized = tester.getSize(window);
+    expect(resized.width, lessThan(opened.width - 60));
+    expect(resized.height, lessThan(opened.height - 40));
+    await tester.tap(find.byKey(const Key('mac-window-close')));
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const Key('mac-desk-area')),
+      buttons: kSecondaryButton,
+    );
+    await tester.pump();
+    expect(find.text('New Folder'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('mac-label-file:Documents')));
+    await tester.pump();
+    expect(find.byKey(const Key('desk-rename-field')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('desk-rename-field')), 'Sides');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(find.text('Sides'), findsOneWidget);
+    expect(find.text('Documents'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('mac-dock-tracking')));
+    await tester.pump();
+    expect(find.text('Lock'), findsWidgets);
+    await tester.tap(find.byKey(const Key('mac-dock-tracking')));
+    await tester.pump();
+    expect(find.text('Lock'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('mac-dock-markers')));
+    await tester.pump();
+    expect(find.textContaining('Tap to add numbers'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mac-dock-markers')));
+    await tester.pump();
+    expect(find.textContaining('Tap to add numbers'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('mac-dock-video')));
+    await tester.pump();
+    expect(find.text('Videos'), findsOneWidget);
+    expect(find.text('Add video from this device'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

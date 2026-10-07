@@ -193,10 +193,22 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: FormOs(store: store, device: device),
+          home: FormOs(
+          key: ValueKey(shell),
+          store: store,
+          device: device,
+        ),
         ),
       );
-      final calculator = find.text('Calculator').first;
+      final calculator = find.byKey(
+        Key(
+          switch (shell) {
+            'windows' => 'win-icon-calculator',
+            'linux' => 'linux-icon-calculator',
+            _ => 'mac-desk-calculator',
+          },
+        ),
+      );
       await tester.ensureVisible(calculator);
       await tester.tap(calculator);
       await tester.pump();

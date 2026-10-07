@@ -89,6 +89,9 @@ class OsSettings {
     this.macDesktop = const [],
     this.macPlaces = const {},
     this.macStatus = const [],
+    this.macStatusStyle = const {},
+    this.deskFolders = const [],
+    this.deskNames = const {},
     this.consolePins = const [],
     this.consoleStatus = const [],
   });
@@ -168,6 +171,17 @@ class OsSettings {
   /// A single `-` means every status item was hidden.
   final List<String> macStatus;
 
+  /// How each menu-bar item is drawn, keyed by status token. A token that is
+  /// missing uses the built-in look for that item.
+  final Map<String, String> macStatusStyle;
+
+  /// Folders made on the desktop by right-clicking it, in the order they
+  /// were made. The icon id of a folder is `file:` and the name.
+  final List<String> deskFolders;
+
+  /// Names typed over a desktop icon, keyed by icon id.
+  final Map<String, String> deskNames;
+
   /// Apps pinned from the console App Store onto the console home.
   final List<String> consolePins;
 
@@ -230,6 +244,9 @@ class OsSettings {
     List<String>? macDesktop,
     Map<String, String>? macPlaces,
     List<String>? macStatus,
+    Map<String, String>? macStatusStyle,
+    List<String>? deskFolders,
+    Map<String, String>? deskNames,
     List<String>? consolePins,
     List<String>? consoleStatus,
   }) => OsSettings(
@@ -279,6 +296,9 @@ class OsSettings {
     macDesktop: macDesktop ?? this.macDesktop,
     macPlaces: macPlaces ?? this.macPlaces,
     macStatus: macStatus ?? this.macStatus,
+    macStatusStyle: macStatusStyle ?? this.macStatusStyle,
+    deskFolders: deskFolders ?? this.deskFolders,
+    deskNames: deskNames ?? this.deskNames,
     consolePins: consolePins ?? this.consolePins,
     consoleStatus: consoleStatus ?? this.consoleStatus,
   );
@@ -330,6 +350,9 @@ class OsSettings {
     'macDesktop': macDesktop,
     'macPlaces': macPlaces,
     'macStatus': macStatus,
+    'macStatusStyle': macStatusStyle,
+    'deskFolders': deskFolders,
+    'deskNames': deskNames,
     'consolePins': consolePins,
     'consoleStatus': consoleStatus,
   };
@@ -399,6 +422,9 @@ class OsSettings {
       macDesktop: _idList(json['macDesktop']),
       macPlaces: _panelNames(json['macPlaces']),
       macStatus: _idList(json['macStatus']),
+      macStatusStyle: _panelNames(json['macStatusStyle']),
+      deskFolders: _idList(json['deskFolders']),
+      deskNames: _panelNames(json['deskNames']),
       consolePins: _idList(json['consolePins']),
       consoleStatus: _idList(json['consoleStatus']),
     );
@@ -450,9 +476,12 @@ class OsSettings {
         _sameOrder(macDock, other.macDock) &&
         _sameOrder(macDesktop, other.macDesktop) &&
         _sameOrder(macStatus, other.macStatus) &&
+        _sameOrder(deskFolders, other.deskFolders) &&
         _sameOrder(consolePins, other.consolePins) &&
         _sameOrder(consoleStatus, other.consoleStatus) &&
         _sameNames(macPlaces, other.macPlaces) &&
+        _sameNames(macStatusStyle, other.macStatusStyle) &&
+        _sameNames(deskNames, other.deskNames) &&
         _samePeople(people, other.people) &&
         _sameGlyphs(glyphs, other.glyphs);
   }
@@ -489,11 +518,20 @@ class OsSettings {
     Object.hashAll(macDock),
     Object.hashAll(macDesktop),
     Object.hashAll(macStatus),
+    Object.hashAll(deskFolders),
     Object.hashAll(consolePins),
     Object.hashAll(consoleStatus),
     Object.hashAll([
       for (final key in (macPlaces.keys.toList()..sort()))
         '$key=${macPlaces[key]}',
+    ]),
+    Object.hashAll([
+      for (final key in (macStatusStyle.keys.toList()..sort()))
+        '$key=${macStatusStyle[key]}',
+    ]),
+    Object.hashAll([
+      for (final key in (deskNames.keys.toList()..sort()))
+        '$key=${deskNames[key]}',
     ]),
     Object.hashAll(people.map((person) => person.name)),
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
