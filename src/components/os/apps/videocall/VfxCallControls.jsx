@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, X } from "lucide-react";
 import MarkAdjust from "@/components/os/MarkAdjust";
+import CustomColour from "@/components/vfx/CustomColour";
 import { trackingMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
 
@@ -27,11 +28,9 @@ export default function VfxCallControls({ vfx, onChange, onClose }) {
                 vfx.bgColor === c.hex && "ring-1 ring-amber ring-offset-1 ring-offset-[#1c1c1e]")}
               style={{ background: c.hex }} />
           ))}
-          <label title="Custom colour" className="cursor-pointer">
-            <input type="color" value={vfx.bgColor || "#00B140"}
-              onChange={(e) => onChange({ bgColor: e.target.value })}
-              className="h-7 w-7 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
-          </label>
+          <div className="basis-full">
+            <CustomColour value={vfx.bgColor} onChange={(hex) => onChange({ bgColor: hex })} />
+          </div>
         </div>
 
         <p className={label}>Tracking marks</p>
@@ -58,11 +57,9 @@ export default function VfxCallControls({ vfx, onChange, onClose }) {
                 vfx.markColor === c.hex && "ring-1 ring-amber ring-offset-1 ring-offset-[#1c1c1e]")}
               style={{ background: c.hex }} />
           ))}
-          <label title="Custom colour" className="cursor-pointer">
-            <input type="color" value={vfx.markColor || "#FFFFFF"}
-              onChange={(e) => onChange({ markColor: e.target.value })}
-              className="h-7 w-7 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
-          </label>
+          <div className="basis-full">
+            <CustomColour label="Custom mark colour" value={vfx.markColor} onChange={(hex) => onChange({ markColor: hex })} />
+          </div>
         </div>
 
         <MarkAdjust size={vfx.markSize} thickness={vfx.markThick} rot={vfx.markRot}

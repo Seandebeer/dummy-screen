@@ -21,10 +21,10 @@ export default function AppSettingsPanel() {
   const shareApp = async () => {
     const storeUrl = null;
     const text = storeUrl
-      ? `Get PropSync: ${storeUrl}`
-      : "PropSync - coming soon to the App Store and Google Play";
+      ? `Get Dummy Screen: ${storeUrl}`
+      : "Dummy Screen - coming soon to the App Store and Google Play";
     try {
-      if (navigator.share) { await navigator.share({ title: "PropSync", text, ...(storeUrl ? { url: storeUrl } : {}) }); return; }
+      if (navigator.share) { await navigator.share({ title: "Dummy Screen", text, ...(storeUrl ? { url: storeUrl } : {}) }); return; }
       await navigator.clipboard.writeText(text);
       toast({ description: "Copied - store links coming soon" });
     } catch {}
@@ -107,7 +107,7 @@ export default function AppSettingsPanel() {
       <div className="flex items-center justify-between gap-4 pt-3 border-t border-border">
         <div>
           <div className="text-sm font-body">Share App</div>
-          <div className="text-[11px] text-muted-foreground font-body">Send PropSync to the rest of the crew</div>
+          <div className="text-[11px] text-muted-foreground font-body">Send Dummy Screen to the rest of the crew</div>
         </div>
         <button onClick={shareApp}
           className="flex items-center gap-1.5 rounded-lg border border-signal/40 bg-signal/10 px-3 py-2 text-xs font-display font-semibold text-signal hover:bg-signal/20 transition">

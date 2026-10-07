@@ -42,7 +42,7 @@ export default function TutorialDialog({ open, onOpenChange }) {
       <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display font-bold">Tutorial</DialogTitle>
-          <DialogDescription>A guided walkthrough of PropSync - follow these steps in order</DialogDescription>
+          <DialogDescription>A guided walkthrough of Dummy Screen - follow these steps in order</DialogDescription>
         </DialogHeader>
 
         {TUTORIAL_VIDEO ? (

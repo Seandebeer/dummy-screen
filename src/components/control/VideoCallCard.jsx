@@ -6,6 +6,7 @@ import { getScreenId } from "@/lib/deviceLink";
 import { trackingMarks, vfxColors } from "@/lib/vfxData";
 import { cn } from "@/lib/utils";
 import ControlCard from "@/components/control/ControlCard";
+import CustomColour from "@/components/vfx/CustomColour";
 
 // Remote-triggered mock video call: the operator starts a "video_call" command
 // carrying the caller's content (live camera, VFX screen, uploaded video or
@@ -179,10 +180,9 @@ export default function VideoCallCard({ contact, channel = "stage-1" }) {
                 vfx.bgColor === c.hex && "ring-1 ring-signal ring-offset-1 ring-offset-surface")}
               style={{ background: c.hex }} />
           ))}
-          <label title="Custom colour" className="cursor-pointer">
-            <input type="color" value={vfx.bgColor} onChange={(e) => setVfxPatch({ bgColor: e.target.value })}
-              className="h-6 w-6 cursor-pointer rounded-full border border-border bg-transparent p-0" />
-          </label>
+          <div className="basis-full">
+            <CustomColour value={vfx.bgColor} onChange={(hex) => setVfxPatch({ bgColor: hex })} />
+          </div>
           <select value={vfx.markStyle} onChange={(e) => setVfxPatch({ markStyle: e.target.value })}
             className="rounded-lg border border-border bg-secondary/40 px-2 py-1.5 text-[10px] font-body text-foreground outline-none">
             {trackingMarks.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}

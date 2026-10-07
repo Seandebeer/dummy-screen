@@ -3,6 +3,7 @@ import { Check, Eye, EyeOff, ImagePlus, Lock, Palette, RotateCcw, Save, Shapes, 
 import SaveTargetSheet from "@/components/save/SaveTargetSheet";
 import MarkAdjust from "@/components/os/MarkAdjust";
 import TouchGlow from "@/components/os/TouchGlow";
+import CustomColour from "@/components/vfx/CustomColour";
 import { DEFAULT_OVERLAY, OverlayControl, OverlayLayer } from "@/components/vfx/OverlayImage";
 import ThreeFingerHint from "@/components/os/ThreeFingerHint";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -583,12 +584,7 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                     {bgColor === c.hex && <Check size={12} className="ml-auto text-amber" />}
                   </button>
                 ))}
-                <label className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[11px] font-body transition hover:bg-white/10 cursor-pointer">
-                  <input type="color" value={bgColor || "#00A651"}
-                    onChange={(e) => saveMarkers({ bgColor: e.target.value })}
-                    className="h-4 w-4 shrink-0 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
-                  Custom colour
-                </label>
+                <CustomColour value={bgColor} onChange={(hex) => saveMarkers({ bgColor: hex })} />
               </PopoverContent>
             </Popover>
             <Popover>
@@ -624,12 +620,8 @@ export default function UIMarkersApp({ config, update, onLockChange }) {
                           markers.markColor === c.hex && "ring-1 ring-amber ring-offset-1 ring-offset-black")}
                         style={{ background: c.hex }} />
                     ))}
-                    <label title="Custom colour" className="cursor-pointer">
-                      <input type="color" value={markers.markColor || "#FFFFFF"}
-                        onChange={(e) => saveMarkers({ markColor: e.target.value })}
-                        className="h-4 w-4 shrink-0 cursor-pointer rounded-full border border-white/25 bg-transparent p-0" />
-                    </label>
                   </div>
+                  <CustomColour label="Custom mark colour" value={markers.markColor} onChange={(hex) => saveMarkers({ markColor: hex })} />
                 </div>
                 <MarkAdjust size={markers.markSize} thickness={markers.markThick} rot={markers.markRot}
                   onChange={(p) => saveMarkers({
