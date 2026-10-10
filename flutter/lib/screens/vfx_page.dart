@@ -67,7 +67,10 @@ class _VfxPageState extends State<VfxPage> {
     _marksId = config['marksId'] as String? ?? 'cross';
     _scale = (config['scale'] as num?)?.toDouble() ?? 1;
     _thickness = (config['thickness'] as num?)?.toDouble() ?? 1;
-    _opacity = (config['opacity'] as num?)?.toDouble() ?? 1;
+    final storedOpacity = (config['opacity'] as num?)?.toDouble();
+    _opacity = storedOpacity == null
+        ? 1
+        : (storedOpacity > 1 ? storedOpacity / 100 : storedOpacity).clamp(0.15, 1).toDouble();
     _markColor = config['markColor'] as String?;
     _bgColor = config['bgColor'] as String?;
     _bgImage = config['bgImage'] as String?;
@@ -413,16 +416,6 @@ class _VfxPageState extends State<VfxPage> {
                     onPressed: _colourSheet,
                     icon: const Icon(Icons.palette_outlined, color: Colors.white, size: 18),
                   ),
-                  if (point)
-                    _menu(
-                      icon: Icons.my_location,
-                      title: 'New marker type',
-                      onSelected: (index) => setState(() => _addKind = kMarkerKinds[index].id),
-                      children: [
-                        for (final kind in kMarkerKinds)
-                          _menuItem(kind.name, selected: _addKind == kind.id),
-                      ],
-                    ),
                   _menu(
                     icon: Icons.category_outlined,
                     title: 'Tracking marks',
@@ -439,6 +432,16 @@ class _VfxPageState extends State<VfxPage> {
                         _menuItem(style.name, selected: _marksId == style.id),
                     ],
                   ),
+                  if (point)
+                    _menu(
+                      icon: Icons.my_location,
+                      title: 'New marker type',
+                      onSelected: (index) => setState(() => _addKind = kMarkerKinds[index].id),
+                      children: [
+                        for (final kind in kMarkerKinds)
+                          _menuItem(kind.name, selected: _addKind == kind.id),
+                      ],
+                    ),
                   if (_marksId != 'none')
                     IconButton(
                       tooltip: 'Size & thickness',

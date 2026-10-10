@@ -119,15 +119,20 @@ class PhoneShell extends StatelessWidget {
                       for (final banner in banners.take(3))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: OsBanner(
-                            banner: banner,
-                            onTap: () {
-                              if (onOpenBanner != null) {
-                                onOpenBanner!(banner);
-                              } else {
-                                onDismissBanner?.call(banner.id);
-                              }
-                            },
+                          child: Dismissible(
+                            key: ValueKey('banner-${banner.id}'),
+                            direction: DismissDirection.horizontal,
+                            onDismissed: (_) => onDismissBanner?.call(banner.id),
+                            child: OsBanner(
+                              banner: banner,
+                              onTap: () {
+                                if (onOpenBanner != null) {
+                                  onOpenBanner!(banner);
+                                } else {
+                                  onDismissBanner?.call(banner.id);
+                                }
+                              },
+                            ),
                           ),
                         ),
                     ],

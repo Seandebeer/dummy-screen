@@ -17,6 +17,7 @@ import '../phone/lock_screen.dart';
 import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
 import '../phone/form_factor.dart';
+import 'home_page.dart';
 import '../phone/settings_app.dart';
 import '../phone/smart_home.dart';
 import '../theme.dart';
@@ -43,6 +44,7 @@ class _OsPageState extends State<OsPage> {
   int _closeTick = 0;
   bool _openingPending = false;
   int _side = 0;
+  bool _quarter = false;
   StageStore? _store;
   final Set<String> _lockedVisit = {};
   String? _sheet;
@@ -114,6 +116,8 @@ class _OsPageState extends State<OsPage> {
   void _toggleFilming() {
     FocusManager.instance.primaryFocus?.unfocus();
     final store = StoreScope.of(context);
+    final entering = !store.filming;
+    if (entering && _quarter) setState(() => _quarter = false);
     store.setFilming(!store.filming);
   }
 
@@ -208,8 +212,9 @@ class _OsPageState extends State<OsPage> {
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final framed = constraints.maxWidth >= 520 && !store.filming;
-                      final landscape = device.os.autoRotate && _side != 0;
-                      final metrics = metricsFor(device.kind, landscape: landscape);
+                      final turned = !store.filming &&
+                          (_quarter || (device.os.autoRotate && _side != 0));
+                      final metrics = metricsForTurn(device.kind, turned: turned);
                       final aspect = metrics.aspect;
                       var height = constraints.maxHeight - (framed ? 24 : 0);
                       var width = height * aspect;
@@ -240,7 +245,12 @@ class _OsPageState extends State<OsPage> {
                           banners: store.bannersFor(device.id),
                           onDismissBanner: store.dismissBanner,
                           onOpenBanner: _openBanner,
-                          body: _body(store, device, now),
+                          body: _body(
+                            store,
+                            device,
+                            now,
+                            wide: device.kind == 'tablet' || metrics.aspect > 1,
+                          ),
                           device: device,
                         )
                           : FormOs(
@@ -253,32 +263,14 @@ class _OsPageState extends State<OsPage> {
                             );
                       final marked = _withMarks(stage, device, store);
                       final screen = Center(
-                        child: DecoratedBox(
-                          decoration: framed
-                              ? const BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x66FFFFFF),
-                                      blurRadius: 36,
-                                      spreadRadius: 2,
-                                    ),
-                                    BoxShadow(
-                                      color: Color(0x332A6CFF),
-                                      blurRadius: 64,
-                                      spreadRadius: 10,
-                                    ),
-                                  ],
-                                )
-                              : const BoxDecoration(),
-                          child: SizedBox(
-                            width: framed ? width : constraints.maxWidth,
-                            height: framed ? height : constraints.maxHeight,
-                            child: IgnorePointer(
-                              ignoring: driven,
-                              child: framed
-                                  ? DeviceBezel(frame: metrics.frame, child: marked)
-                                  : marked,
-                            ),
+                        child: SizedBox(
+                          width: framed ? width : constraints.maxWidth,
+                          height: framed ? height : constraints.maxHeight,
+                          child: IgnorePointer(
+                            ignoring: driven,
+                            child: framed
+                                ? DeviceBezel(frame: metrics.frame, child: marked)
+                                : marked,
                           ),
                         ),
                       );
@@ -362,6 +354,13 @@ class _OsPageState extends State<OsPage> {
           icon: Icons.redo,
           size: size,
           onPressed: store.redoOs,
+        ),
+        _roundTool(
+          key: const Key('os-rotate'),
+          tooltip: 'Rotate',
+          icon: Icons.screen_rotation,
+          size: size,
+          onPressed: () => setState(() => _quarter = !_quarter),
         ),
       ],
     );
@@ -485,10 +484,16 @@ class _OsPageState extends State<OsPage> {
             IconButton(
               key: const Key('os-tracking'),
               tooltip: 'Tracking marks',
-              onPressed: () => store.updateOs(
-                device.id,
-                (os) => os.copyWith(showTracking: !os.showTracking),
-              ),
+              onPressed: () {
+                final next = !device.os.showTracking;
+                if (next) {
+                  store.setScreenConfig({...store.screenConfig, 'opacity': 1});
+                }
+                store.updateOs(
+                  device.id,
+                  (os) => os.copyWith(showTracking: next),
+                );
+              },
               icon: Icon(
                 Icons.center_focus_strong,
                 size: iconSize,
@@ -545,6 +550,18 @@ class _OsPageState extends State<OsPage> {
           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         const SizedBox(height: 8),
+        ListTile(
+          key: const Key('os-device-new'),
+          leading: const Icon(Icons.add),
+          title: const Text('New'),
+          onTap: () => _createDevice(store, current, duplicate: false),
+        ),
+        ListTile(
+          key: const Key('os-device-duplicate'),
+          leading: const Icon(Icons.copy),
+          title: const Text('Duplicate'),
+          onTap: () => _createDevice(store, current, duplicate: true),
+        ),
         if (devices.isEmpty)
           const Text('No devices in this project yet.', style: TextStyle(color: kMuted)),
         for (final item in devices)
@@ -675,7 +692,7 @@ class _OsPageState extends State<OsPage> {
     }
     final scale = (config['scale'] as num?)?.toDouble() ?? 1;
     final thick = (config['thickness'] as num?)?.toDouble() ?? 1;
-    final fade = (config['opacity'] as num?)?.toDouble() ?? 1;
+    final fade = _markOpacity(config['opacity']);
     final ink = parseHex(config['markColor'] as String?, Colors.white);
     return Stack(
       fit: StackFit.expand,
@@ -705,6 +722,13 @@ class _OsPageState extends State<OsPage> {
         ),
       ],
     );
+  }
+
+  double _markOpacity(Object? raw) {
+    if (raw is! num) return 1;
+    final value = raw.toDouble();
+    if (value > 1) return (value / 100).clamp(0.15, 1);
+    return value.clamp(0.15, 1);
   }
 
   void _writeScreen(StageStore store, Map<String, dynamic> patch) {
@@ -749,18 +773,6 @@ class _OsPageState extends State<OsPage> {
                 ],
               ),
               PopupMenuButton<String>(
-                tooltip: 'New marker type',
-                icon: const Icon(Icons.my_location, color: Colors.white),
-                onSelected: (id) => _writeScreen(store, {'addKind': id, 'marksId': id}),
-                itemBuilder: (context) => [
-                  for (final kind in kMarkerKinds)
-                    PopupMenuItem(
-                      value: kind.id,
-                      child: Text(kind.id == addKind ? '${kind.name} ·' : kind.name),
-                    ),
-                ],
-              ),
-              PopupMenuButton<String>(
                 key: const Key('os-track-menu'),
                 tooltip: 'Tracking marks',
                 icon: const Icon(Icons.category_outlined, color: Colors.white),
@@ -771,6 +783,18 @@ class _OsPageState extends State<OsPage> {
                       key: Key('os-track-${style.id}'),
                       value: style.id,
                       child: Text(style.id == selected ? '${style.name} ·' : style.name),
+                    ),
+                ],
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'New marker type',
+                icon: const Icon(Icons.my_location, color: Colors.white),
+                onSelected: (id) => _writeScreen(store, {'addKind': id, 'marksId': id}),
+                itemBuilder: (context) => [
+                  for (final kind in kMarkerKinds)
+                    PopupMenuItem(
+                      value: kind.id,
+                      child: Text(kind.id == addKind ? '${kind.name} ·' : kind.name),
                     ),
                 ],
               ),
@@ -826,7 +850,7 @@ class _OsPageState extends State<OsPage> {
   Future<void> _markSizeSheet(StageStore store) async {
     var scale = (store.screenConfig['scale'] as num?)?.toDouble() ?? 1;
     var thick = (store.screenConfig['thickness'] as num?)?.toDouble() ?? 1;
-    var fade = (store.screenConfig['opacity'] as num?)?.toDouble() ?? 1;
+    var fade = _markOpacity(store.screenConfig['opacity']);
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -904,7 +928,25 @@ class _OsPageState extends State<OsPage> {
     );
   }
 
-  Widget _body(StageStore store, PropDevice device, DateTime now) {
+  Future<void> _createDevice(StageStore store, PropDevice current, {required bool duplicate}) async {
+    final created = await addProjectDevice(
+      context,
+      store: store,
+      projectId: current.projectId,
+      copyFrom: duplicate ? current : null,
+    );
+    if (created == null || !mounted) return;
+    store.bindDevice(created.id);
+    setState(() {
+      _sheet = null;
+      _app = null;
+      _thread = null;
+      _grey = false;
+      _launchApp = null;
+    });
+  }
+
+  Widget _body(StageStore store, PropDevice device, DateTime now, {bool wide = false}) {
     if (device.locked && device.os.lockType != 'off') {
       return LockView(
         device: device,
@@ -927,7 +969,7 @@ class _OsPageState extends State<OsPage> {
         return PhoneHome(
         skin: device.skin,
         os: device.os,
-        wide: device.kind == 'tablet',
+        wide: wide,
         light: device.os.isLight,
         onOpen: _open,
       );

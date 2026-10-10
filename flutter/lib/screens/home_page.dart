@@ -153,6 +153,11 @@ class ProfileAvatar extends StatelessWidget {
     return IconButton(
       key: const Key('profile-button'),
       tooltip: 'Profile',
+      style: IconButton.styleFrom(
+        padding: EdgeInsets.zero,
+        minimumSize: Size(size, size),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
       onPressed: () => showProfileSheet(context),
       icon: Container(
         width: size,
@@ -168,7 +173,7 @@ class ProfileAvatar extends StatelessWidget {
           style: TextStyle(
             color: kAccent,
             fontWeight: FontWeight.w700,
-            fontSize: size < 36 ? 11 : 14,
+            fontSize: size >= 40 ? 16 : (size < 36 ? 11 : 14),
           ),
         ),
       ),
@@ -655,33 +660,52 @@ class _DevicesBody extends StatelessWidget {
 
   Future<void> _addDevice(BuildContext context, Project project) async {
     final store = StoreScope.of(context);
-    final result = await showDialog<_NewDevice>(
-      context: context,
-      builder: (context) => _AddDeviceDialog(palette: palette),
-    );
-    if (result == null) return;
-    store.addDevice(projectId: project.id, name: result.name, kind: result.kind);
-    PropDevice? created;
-    for (final device in store.devices.reversed) {
-      if (device.name == result.name && device.projectId == project.id) {
-        created = device;
-        break;
-      }
-    }
+    final created = await addProjectDevice(context, store: store, projectId: project.id);
     if (created == null) return;
-    store.updateDevice(
-      created.id,
-      (device) => device.copyWith(
-        make: result.make,
-        model: result.model,
-        colour: result.colour,
-        serial: result.serial,
-        photo: result.photo,
-      ),
-    );
     store.bindDevice(created.id);
     store.openTab(1);
   }
+}
+
+/// Home and OS edit share this dialog. [copyFrom] fills the hardware fields
+/// and the OS, and leaves the name empty.
+Future<PropDevice?> addProjectDevice(
+  BuildContext context, {
+  required StageStore store,
+  required String projectId,
+  PropDevice? copyFrom,
+}) async {
+  final result = await showDialog<_NewDevice>(
+    context: context,
+    builder: (context) => _AddDeviceDialog(
+      palette: paletteFor(store.appTheme),
+      kind: copyFrom?.kind ?? 'phone',
+      make: copyFrom?.make ?? '',
+      model: copyFrom?.model ?? '',
+      colour: copyFrom?.colour ?? '',
+      serial: copyFrom?.serial ?? '',
+      photo: copyFrom?.photo ?? '',
+    ),
+  );
+  if (result == null) return null;
+  final created = store.addDevice(
+    projectId: projectId,
+    name: result.name,
+    kind: result.kind,
+    skin: copyFrom?.skin ?? 'modern',
+    os: copyFrom?.os ?? const OsSettings(),
+  );
+  store.updateDevice(
+    created.id,
+    (device) => device.copyWith(
+      make: result.make,
+      model: result.model,
+      colour: result.colour,
+      serial: result.serial,
+      photo: result.photo,
+    ),
+  );
+  return store.deviceById(created.id) ?? created;
 }
 
 class _NewDevice {
@@ -705,9 +729,23 @@ class _NewDevice {
 }
 
 class _AddDeviceDialog extends StatefulWidget {
-  const _AddDeviceDialog({required this.palette});
+  const _AddDeviceDialog({
+    required this.palette,
+    this.kind = 'phone',
+    this.make = '',
+    this.model = '',
+    this.colour = '',
+    this.serial = '',
+    this.photo = '',
+  });
 
   final DeckPalette palette;
+  final String kind;
+  final String make;
+  final String model;
+  final String colour;
+  final String serial;
+  final String photo;
 
   @override
   State<_AddDeviceDialog> createState() => _AddDeviceDialogState();
@@ -726,6 +764,16 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
   @override
   void initState() {
     super.initState();
+    _kind = widget.kind;
+    _make.text = widget.make;
+    _model.text = widget.model;
+    _colour.text = widget.colour;
+    _serial.text = widget.serial;
+    _photo = widget.photo;
+    _details = widget.model.isNotEmpty ||
+        widget.colour.isNotEmpty ||
+        widget.serial.isNotEmpty ||
+        widget.photo.isNotEmpty;
     _name.addListener(() => setState(() {}));
   }
 
@@ -1462,7 +1510,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           Wrap(
             spacing: 8,
             children: [
-              for (final entry in const [('black', 'Black'), ('grey', 'Grey'), ('white', 'Cream')])
+              for (final entry in const [('black', 'Dark'), ('grey', 'Grey'), ('white', 'Cream')])
                 ChoiceChip(
                   label: Text(entry.$2, style: TextStyle(color: palette.ink)),
                   selected: store.appTheme == entry.$1,

@@ -492,10 +492,12 @@ class StageStore extends ChangeNotifier {
     _touch({'kind': 'delete_project', 'id': id});
   }
 
-  void addDevice({
+  PropDevice addDevice({
     required String projectId,
     required String name,
     String kind = 'phone',
+    String skin = 'modern',
+    OsSettings os = const OsSettings(),
   }) {
     final trimmed = name.trim();
     final device = PropDevice(
@@ -503,10 +505,13 @@ class StageStore extends ChangeNotifier {
       name: trimmed.isEmpty ? 'Phone' : trimmed,
       projectId: projectId,
       kind: kind,
+      skin: skin,
+      os: os,
     );
     boundDeviceId ??= device.id;
     targetDeviceId ??= device.id;
     upsertDevice(device);
+    return device;
   }
 
   void upsertDevice(PropDevice device) {

@@ -22,32 +22,34 @@ class DeckPalette {
   final bool light;
 }
 
+/// Base44 app themes. Ids stay stable so a saved choice still applies.
+/// Dark is `black`, Cream is `white`.
 const kDeckPalettes = <String, DeckPalette>{
   'black': DeckPalette(
-    background: Color(0xFF06070A),
-    surface: Color(0xFF10141A),
-    line: Color(0xFF1C2129),
-    muted: Color(0xFF9098A6),
+    background: Color(0xFF06060A),
+    surface: Color(0xFF101219),
+    line: Color(0xFF1D212B),
+    muted: Color(0xFF9198AC),
     ink: Colors.white,
-    secondary: Color(0xFF1C2129),
+    secondary: Color(0xFF1D212B),
     light: false,
   ),
   'grey': DeckPalette(
-    background: Color(0xFF2E333B),
-    surface: Color(0xFF3C424B),
-    line: Color(0xFF4E5560),
-    muted: Color(0xFFB8BCC2),
+    background: Color(0xFF2E3038),
+    surface: Color(0xFF3C3F49),
+    line: Color(0xFF4E525F),
+    muted: Color(0xFFBABDC4),
     ink: Colors.white,
-    secondary: Color(0xFF49505A),
+    secondary: Color(0xFF494E5A),
     light: false,
   ),
   'white': DeckPalette(
-    background: Color(0xFFF6F1E4),
-    surface: Color(0xFFEBE4D4),
-    line: Color(0xFFCDC4B4),
-    muted: Color(0xFF756C60),
-    ink: Color(0xFF261F16),
-    secondary: Color(0xFFDDD6C6),
+    background: Color(0xFFF7F2E9),
+    surface: Color(0xFFECE7DA),
+    line: Color(0xFFD0C8B9),
+    muted: Color(0xFF756957),
+    ink: Color(0xFF262017),
+    secondary: Color(0xFFDDD7CA),
     light: true,
   ),
 };

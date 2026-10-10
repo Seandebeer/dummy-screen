@@ -191,6 +191,9 @@ class _NavRail extends StatelessWidget {
         ),
     ];
     if (vertical) {
+      final palette = paletteFor(store.appTheme);
+      final sheen = Color.lerp(palette.secondary, palette.ink, palette.light ? 0.12 : 0.22)!;
+      final edge = palette.light ? Colors.black : Colors.white;
       return ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
@@ -200,18 +203,18 @@ class _NavRail extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF3A4454).withValues(alpha: 0.72),
-                  const Color(0xFF12161C).withValues(alpha: 0.82),
-                  const Color(0xFF07090C).withValues(alpha: 0.9),
+                  sheen.withValues(alpha: 0.72),
+                  palette.surface.withValues(alpha: 0.82),
+                  palette.background.withValues(alpha: 0.9),
                 ],
                 stops: const [0, 0.28, 1],
               ),
               border: Border(
-                right: BorderSide(color: Colors.white.withValues(alpha: 0.34)),
+                right: BorderSide(color: edge.withValues(alpha: palette.light ? 0.22 : 0.34)),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: edge.withValues(alpha: palette.light ? 0.12 : 0.16),
                   blurRadius: 18,
                   offset: const Offset(8, 0),
                 ),
@@ -222,7 +225,7 @@ class _NavRail extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 10),
-                  const ProfileAvatar(size: 28),
+                  const ProfileAvatar(size: 46),
                   const SizedBox(height: 8),
                   Expanded(
                     child: ListView(
@@ -238,7 +241,7 @@ class _NavRail extends StatelessWidget {
       );
     }
     return Material(
-      color: kSurface,
+      color: paletteFor(store.appTheme).surface,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
@@ -269,7 +272,8 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? kAccent : kMuted;
+    final palette = paletteFor(StoreScope.of(context).appTheme);
+    final color = selected ? kAccent : palette.muted;
     if (compact) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
