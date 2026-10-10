@@ -1512,11 +1512,25 @@ class _ProfileSheetState extends State<_ProfileSheet> {
             children: [
               for (final entry in const [('black', 'Dark'), ('grey', 'Grey'), ('white', 'Cream')])
                 ChoiceChip(
-                  label: Text(entry.$2, style: TextStyle(color: palette.ink)),
+                  label: Text(entry.$2),
+                  labelStyle: TextStyle(
+                    color: palette.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                   selected: store.appTheme == entry.$1,
                   showCheckmark: false,
-                  selectedColor: kAccent.withValues(alpha: 0.16),
-                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  pressElevation: 0,
+                  surfaceTintColor: Colors.transparent,
+                  color: WidgetStateProperty.resolveWith((states) {
+                    final selected = states.contains(WidgetState.selected);
+                    if (!selected) return palette.secondary;
+                    return Color.alphaBlend(
+                      kAccent.withValues(alpha: palette.light ? 0.2 : 0.34),
+                      palette.secondary,
+                    );
+                  }),
                   side: BorderSide(
                     color: store.appTheme == entry.$1 ? kAccent : palette.line,
                     width: store.appTheme == entry.$1 ? 1.6 : 1,
