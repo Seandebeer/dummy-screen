@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
       palette: palette,
       icon: Icons.movie_creation_outlined,
       title: 'Projects',
-      subtitle: 'Production projects',
+      subtitle: '',
       open: _projectsOpen,
       tall: wide,
       onToggle: () => setState(() => _projectsOpen = !_projectsOpen),
@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
       palette: palette,
       mark: const _DevicesMark(),
       title: 'Devices',
-      subtitle: 'Prop devices & stage sync',
+      subtitle: '',
       open: _devicesOpen,
       tall: wide,
       onToggle: () => setState(() => _devicesOpen = !_devicesOpen),
@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
       palette: palette,
       icon: Icons.bookmark_border,
       title: 'Saved',
-      subtitle: 'Saved marker & screen configurations',
+      subtitle: '',
       open: _savedOpen,
       tall: wide,
       onToggle: () => setState(() => _savedOpen = !_savedOpen),
@@ -135,30 +135,41 @@ class _Header extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: _Brand(ink: palette.ink, wide: wide)),
-            IconButton(
-              key: const Key('profile-button'),
-              tooltip: 'Profile',
-              onPressed: () => showProfileSheet(context),
-              icon: Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: kAccent.withValues(alpha: 0.16),
-                  border: Border.all(color: kAccent.withValues(alpha: 0.45)),
-                ),
-                child: Text(
-                  _initials(StoreScope.of(context).operatorName),
-                  style: const TextStyle(
-                    color: kAccent,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
+            if (!wide) const ProfileAvatar(size: 44),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileAvatar extends StatelessWidget {
+  const ProfileAvatar({super.key, this.size = 28});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const Key('profile-button'),
+      tooltip: 'Profile',
+      onPressed: () => showProfileSheet(context),
+      icon: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: kAccent.withValues(alpha: 0.16),
+          border: Border.all(color: kAccent.withValues(alpha: 0.45)),
+        ),
+        child: Text(
+          _initials(StoreScope.of(context).operatorName),
+          style: TextStyle(
+            color: kAccent,
+            fontWeight: FontWeight.w700,
+            fontSize: size < 36 ? 11 : 14,
+          ),
         ),
       ),
     );
@@ -337,10 +348,11 @@ class _HomeSection extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(color: palette.muted, fontSize: 11),
-                        ),
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            style: TextStyle(color: palette.muted, fontSize: 11),
+                          ),
                       ],
                     ),
                   ),
@@ -667,6 +679,8 @@ class _DevicesBody extends StatelessWidget {
         photo: result.photo,
       ),
     );
+    store.bindDevice(created.id);
+    store.openTab(1);
   }
 }
 
@@ -707,6 +721,7 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
   final _serial = TextEditingController();
   String _kind = 'phone';
   String _photo = '';
+  bool _details = false;
 
   @override
   void initState() {
@@ -758,25 +773,36 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
               const SizedBox(height: 8),
               TextField(controller: _make, decoration: deckField(palette, 'Make (e.g. Apple)')),
               const SizedBox(height: 8),
-              TextField(controller: _model, decoration: deckField(palette, 'Model (e.g. iPhone 1)')),
-              const SizedBox(height: 8),
-              TextField(controller: _colour, decoration: deckField(palette, 'Colour')),
-              const SizedBox(height: 8),
-              TextField(controller: _serial, decoration: deckField(palette, 'Serial number')),
-              const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () async {
-                    final file = await FilePicker.pickFile(type: FileType.image);
-                    if (file == null) return;
-                    final path = await persistPickedImage(file);
-                    if (path != null && mounted) setState(() => _photo = path);
-                  },
-                  icon: const Icon(Icons.image_outlined, size: 16),
-                  label: Text(_photo.isEmpty ? 'Upload photo' : 'Replace photo'),
+                  key: const Key('device-details'),
+                  onPressed: () => setState(() => _details = !_details),
+                  icon: Icon(_details ? Icons.expand_less : Icons.expand_more, size: 16),
+                  label: const Text('Device details'),
                 ),
               ),
+              if (_details) ...[
+                TextField(controller: _model, decoration: deckField(palette, 'Model (e.g. iPhone 1)')),
+                const SizedBox(height: 8),
+                TextField(controller: _colour, decoration: deckField(palette, 'Colour')),
+                const SizedBox(height: 8),
+                TextField(controller: _serial, decoration: deckField(palette, 'Serial number')),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final file = await FilePicker.pickFile(type: FileType.image);
+                      if (file == null) return;
+                      final path = await persistPickedImage(file);
+                      if (path != null && mounted) setState(() => _photo = path);
+                    },
+                    icon: const Icon(Icons.image_outlined, size: 16),
+                    label: Text(_photo.isEmpty ? 'Upload photo' : 'Replace photo'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1138,9 +1164,15 @@ class _SavedBodyState extends State<_SavedBody> {
                 style: TextStyle(color: palette.muted, fontSize: 10, letterSpacing: 0.8),
               ),
               onTap: () {
-                final deviceId = store.boundDeviceId ?? store.targetDeviceId;
-                if (deviceId == null && item.kind == 'os') return;
-                store.applyLayout(item, deviceId ?? '');
+                final deviceId = item.deviceId.isNotEmpty
+                    ? item.deviceId
+                    : (store.boundDeviceId ?? store.targetDeviceId ?? '');
+                if (deviceId.isNotEmpty) {
+                  store.bindDevice(deviceId);
+                  store.bypassLock = true;
+                  store.setLocked(deviceId, false);
+                }
+                store.applyLayout(item, deviceId);
               },
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1179,8 +1211,10 @@ class _SavedBodyState extends State<_SavedBody> {
       ),
     );
     if (id == null) return;
-    store.applyLayout(layout, id);
     store.bindDevice(id);
+    store.bypassLock = true;
+    store.setLocked(id, false);
+    store.applyLayout(layout, id);
   }
 }
 
@@ -1267,6 +1301,7 @@ void showProfileSheet(BuildContext context) {
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Profile',
+    barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 280),
     pageBuilder: (context, _, _) {
       final width = MediaQuery.sizeOf(context).width;

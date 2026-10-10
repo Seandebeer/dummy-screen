@@ -328,10 +328,10 @@ class _VfxPageState extends State<VfxPage> {
                   right: 8,
                   child: TextButton.icon(
                     onPressed: _lock,
-                    icon: Icon(Icons.lock, size: 12, color: _light ? Colors.black54 : Colors.white54),
+                    icon: Icon(Icons.fullscreen, size: 18, color: _light ? Colors.black87 : Colors.white),
                     label: Text(
-                      'Lock',
-                      style: TextStyle(fontSize: 10, color: _light ? Colors.black54 : Colors.white54),
+                      'Fullscreen',
+                      style: TextStyle(fontSize: 10, color: _light ? Colors.black87 : Colors.white),
                     ),
                   ),
                 ),
@@ -413,6 +413,16 @@ class _VfxPageState extends State<VfxPage> {
                     onPressed: _colourSheet,
                     icon: const Icon(Icons.palette_outlined, color: Colors.white, size: 18),
                   ),
+                  if (point)
+                    _menu(
+                      icon: Icons.my_location,
+                      title: 'New marker type',
+                      onSelected: (index) => setState(() => _addKind = kMarkerKinds[index].id),
+                      children: [
+                        for (final kind in kMarkerKinds)
+                          _menuItem(kind.name, selected: _addKind == kind.id),
+                      ],
+                    ),
                   _menu(
                     icon: Icons.category_outlined,
                     title: 'Tracking marks',
@@ -454,15 +464,6 @@ class _VfxPageState extends State<VfxPage> {
                       ),
                     ),
                   if (point) ...[
-                    _menu(
-                      icon: Icons.my_location,
-                      title: 'New marker type',
-                      onSelected: (index) => setState(() => _addKind = kMarkerKinds[index].id),
-                      children: [
-                        for (final kind in kMarkerKinds)
-                          _menuItem(kind.name, selected: _addKind == kind.id),
-                      ],
-                    ),
                     IconButton(
                       tooltip: 'Rotate all markers 45°',
                       onPressed: () => _setLayout([
@@ -506,7 +507,8 @@ class _VfxPageState extends State<VfxPage> {
     var fade = _opacity;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xCC000000),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheet) {
@@ -515,28 +517,40 @@ class _VfxPageState extends State<VfxPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white, fontSize: 11)),
                   Slider(
                     value: scale,
                     min: 0.5,
                     max: 3,
                     divisions: 10,
-                    onChanged: (value) => setSheet(() => scale = value),
+                    onChanged: (value) {
+                      setSheet(() => scale = value);
+                      setState(() => _scale = value);
+                      _persist();
+                    },
                   ),
-                  Text('THICKNESS  ${thick.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text('THICKNESS  ${thick.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white, fontSize: 11)),
                   Slider(
                     value: thick,
                     min: 0.5,
                     max: 3,
                     divisions: 10,
-                    onChanged: (value) => setSheet(() => thick = value),
+                    onChanged: (value) {
+                      setSheet(() => thick = value);
+                      setState(() => _thickness = value);
+                      _persist();
+                    },
                   ),
-                  Text('OPACITY  ${(fade * 100).round()}%', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text('OPACITY  ${(fade * 100).round()}%', style: const TextStyle(color: Colors.white, fontSize: 11)),
                   Slider(
                     value: fade,
                     min: 0.15,
                     max: 1,
-                    onChanged: (value) => setSheet(() => fade = value),
+                    onChanged: (value) {
+                      setSheet(() => fade = value);
+                      setState(() => _opacity = value);
+                      _persist();
+                    },
                   ),
                 ],
               ),

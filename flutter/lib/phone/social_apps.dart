@@ -186,6 +186,24 @@ class _GrapevineAppState extends State<GrapevineApp> {
     'posts': _posts,
   };
 
+  void _keep() {
+    StoreScope.of(context).setPage('facepage', _snapshot());
+  }
+
+  Widget _editText(String value, ValueChanged<String> onChanged, TextStyle style, {int lines = 1}) {
+    if (!_editing) return Text(value, style: style);
+    return TextFormField(
+      initialValue: value,
+      style: style,
+      maxLines: lines,
+      decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+      onChanged: (next) {
+        onChanged(next);
+        _keep();
+      },
+    );
+  }
+
   Future<void> _compose() async {
     final text = await promptText(context, title: "What's on your mind?", confirm: 'Post');
     if (text == null || text.trim().isEmpty) return;
@@ -285,22 +303,48 @@ class _GrapevineAppState extends State<GrapevineApp> {
         children: [
           ListTile(
             leading: HueAvatar(name: '${post['author']}', hue: Color(post['hue'] as int? ?? 0xFF1877F2), size: 36),
-            title: Text('${post['author']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            subtitle: Text('${post['time']}', style: const TextStyle(fontSize: 11)),
+            title: _editText(
+              '${post['author']}',
+              (value) => post['author'] = value,
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
+            ),
+            subtitle: _editText(
+              '${post['time']}',
+              (value) => post['time'] = value,
+              const TextStyle(fontSize: 11, color: Colors.black54),
+            ),
             dense: true,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-            child: Text('${post['text']}', style: const TextStyle(fontSize: 14, height: 1.3)),
+            child: _editText(
+              '${post['text']}',
+              (value) => post['text'] = value,
+              const TextStyle(fontSize: 14, height: 1.3, color: Colors.black),
+              lines: 4,
+            ),
           ),
           if (image.isNotEmpty) AspectRatio(aspectRatio: 4 / 3, child: NetPhoto(url: image)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               children: [
-                Text('👍 ${post['likes']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                _editText(
+                  '${post['likes']}',
+                  (value) => post['likes'] = int.tryParse(value) ?? post['likes'],
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
                 const Spacer(),
-                Text('${post['comments']} comments · ${post['shares']} shares', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                _editText(
+                  '${post['comments']}',
+                  (value) => post['comments'] = int.tryParse(value) ?? post['comments'],
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
+                _editText(
+                  '${post['shares']}',
+                  (value) => post['shares'] = int.tryParse(value) ?? post['shares'],
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
               ],
             ),
           ),
@@ -356,12 +400,25 @@ class _GrapevineAppState extends State<GrapevineApp> {
             children: [
               HueAvatar(name: _profile, hue: blue, size: 72),
               const SizedBox(height: 8),
-              Text(_profile, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              _editText(
+                _profile,
+                (value) => _profile = value,
+                const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                child: Text(_bio, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                child: _editText(
+                  _bio,
+                  (value) => _bio = value,
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                  lines: 3,
+                ),
               ),
-              Text('$_friends Friends', style: const TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.w600, fontSize: 12)),
+              _editText(
+                '$_friends',
+                (value) => _friends = int.tryParse(value) ?? _friends,
+                const TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.w600, fontSize: 12),
+              ),
             ],
           ),
         ),

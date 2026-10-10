@@ -185,7 +185,7 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = framed ? 10.0 : MediaQuery.paddingOf(context).top;
     final bars = os.cellular == 'NO SERVICE' ? 0 : os.signal.clamp(0, 4);
-    final radio = os.cellular == 'NO SERVICE' ? 'no service' : os.cellular;
+    final radio = os.cellular;
     return GestureDetector(
       key: const Key('phone-status'),
       behavior: HitTestBehavior.opaque,
@@ -239,7 +239,7 @@ class _StatusBar extends StatelessWidget {
               radio,
               style: TextStyle(
                 color: ink,
-                fontSize: radio == 'no service' ? 10 : 12,
+                fontSize: radio == 'NO SERVICE' ? 10 : 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),

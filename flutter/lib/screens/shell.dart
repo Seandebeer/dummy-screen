@@ -193,19 +193,37 @@ class _NavRail extends StatelessWidget {
     if (vertical) {
       return ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: kSurface.withValues(alpha: 0.28),
-              border: Border(
-                right: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF3A4454).withValues(alpha: 0.72),
+                  const Color(0xFF12161C).withValues(alpha: 0.82),
+                  const Color(0xFF07090C).withValues(alpha: 0.9),
+                ],
+                stops: const [0, 0.28, 1],
               ),
+              border: Border(
+                right: BorderSide(color: Colors.white.withValues(alpha: 0.34)),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  blurRadius: 18,
+                  offset: const Offset(8, 0),
+                ),
+              ],
             ),
             child: SizedBox(
               width: 96,
               child: Column(
                 children: [
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 10),
+                  const ProfileAvatar(size: 28),
+                  const SizedBox(height: 8),
                   Expanded(
                     child: ListView(
                       padding: EdgeInsets.zero,

@@ -86,6 +86,21 @@ class StageStore extends ChangeNotifier {
   String? targetDeviceId;
   bool filming = false;
   int lastTab = 0;
+  bool bypassLock = false;
+  bool osSession = false;
+  String? osFlash;
+  final String sessionId = 'sess-${DateTime.now().microsecondsSinceEpoch}';
+  String? activeTrigger;
+  bool _replay = false;
+  final List<_OsStep> _undo = [];
+  final List<_OsStep> _redo = [];
+  Timer? _flashTimer;
+
+  bool get holdsTrigger => activeTrigger == null || activeTrigger == sessionId;
+
+  /// A joined screen only accepts control from the device that connected.
+  bool get canTrigger =>
+      (sync?.role ?? LinkRole.solo) != LinkRole.client || holdsTrigger;
 
   factory StageStore.demo() {
     final store = StageStore()..persist = false;
@@ -205,7 +220,111 @@ class StageStore extends ChangeNotifier {
 
   void openTab(int index) {
     lastTab = index;
+    if (index != 1) endOsSession();
     _touch(null, sync: false);
+  }
+
+  void beginOsSession() {
+    osSession = true;
+    _undo.clear();
+    _redo.clear();
+    osFlash = null;
+  }
+
+  void endOsSession() {
+    if (!osSession && _undo.isEmpty && _redo.isEmpty) return;
+    osSession = false;
+    _undo.clear();
+    _redo.clear();
+    osFlash = null;
+    notifyListeners();
+  }
+
+  String? undoOs() {
+    if (_undo.isEmpty) return null;
+    final step = _undo.removeLast();
+    _redo.add(_OsStep('Redo ${step.label}', _editBlob()));
+    _replay = true;
+    _restoreEdit(step.blob);
+    _replay = false;
+    _flash('Undid ${step.label}');
+    return osFlash;
+  }
+
+  String? redoOs() {
+    if (_redo.isEmpty) return null;
+    final step = _redo.removeLast();
+    _undo.add(_OsStep(step.label.replaceFirst('Redo ', ''), _editBlob()));
+    _replay = true;
+    _restoreEdit(step.blob);
+    _replay = false;
+    _flash('Redid ${step.label.replaceFirst('Redo ', '')}');
+    return osFlash;
+  }
+
+  void _flash(String message) {
+    osFlash = message;
+    _flashTimer?.cancel();
+    _flashTimer = Timer(const Duration(milliseconds: 1400), () {
+      osFlash = null;
+      if (!_importing) notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  Map<String, dynamic> _editBlob() => {
+    'devices': devices.map((device) => device.toJson()).toList(),
+    'messages': messages.map((message) => message.toJson()).toList(),
+    'banners': banners.map((banner) => banner.toJson()).toList(),
+    'pages': pages,
+    'bound': boundDeviceId,
+  };
+
+  void _pushUndo(String label) {
+    if (!osSession || _replay) return;
+    _undo.add(_OsStep(label, _editBlob()));
+    if (_undo.length > 40) _undo.removeAt(0);
+    _redo.clear();
+  }
+
+  void _restoreEdit(Map<String, dynamic> blob) {
+    devices = [
+      for (final item in jsonList(blob['devices']))
+        if (item is Map) PropDevice.fromJson(jsonMap(item)),
+    ];
+    messages = [
+      for (final item in jsonList(blob['messages']))
+        if (item is Map) StageMessage.fromJson(jsonMap(item)),
+    ];
+    banners = [
+      for (final item in jsonList(blob['banners']))
+        if (item is Map) BannerNote.fromJson(jsonMap(item)),
+    ];
+    pages = jsonMap(blob['pages']);
+    boundDeviceId = blob['bound'] as String?;
+    _normalize();
+    _touch(null, sync: false);
+  }
+
+  String _changeLabel(PropDevice before, PropDevice next) {
+    if (before.name != next.name) return 'Renamed ${next.name}';
+    if (before.locked != next.locked) {
+      return next.locked ? 'Locked ${next.name}' : 'Unlocked ${next.name}';
+    }
+    if (before.skin != next.skin) return 'Changed the interface';
+    final os = before.os;
+    final now = next.os;
+    if (os.wifi != now.wifi) return now.wifi ? 'Turned Wi-Fi on' : 'Turned Wi-Fi off';
+    if (os.cellular != now.cellular) return 'Set mobile network to ${now.cellular}';
+    if (os.signal != now.signal) return 'Set mobile signal to ${now.signal}';
+    if (os.battery != now.battery) return 'Set battery to ${now.battery}%';
+    if (os.lockType != now.lockType) return 'Changed the lock screen';
+    if (os.homeOrder.length != now.homeOrder.length) return 'Changed home screen apps';
+    if (os.language != now.language) return 'Changed the language';
+    if (os.theme != now.theme) return 'Changed the theme';
+    if (os.ringtone != now.ringtone) return 'Changed the ringtone';
+    if (os.soundsMuted != now.soundsMuted) return now.soundsMuted ? 'Muted sounds' : 'Unmuted sounds';
+    return 'Changed ${next.name}';
   }
 
   /// Home opens with the Projects strip expanded.
@@ -276,6 +395,7 @@ class StageStore extends ChangeNotifier {
   /// Direct trigger-to-target control. Broadcast decks do not drive a screen.
   void driveOs(String deviceId, String? app) {
     if (deckBroadcast || deviceId.isEmpty) return;
+    if (!canTrigger) return;
     if ((sync?.role ?? LinkRole.solo) != LinkRole.client) return;
     sync?.sendPatch({
       'kind': 'os_drive',
@@ -300,6 +420,12 @@ class StageStore extends ChangeNotifier {
 
   void setTarget(String? id) {
     targetDeviceId = id;
+    if (id != null && id.isNotEmpty) {
+      boundDeviceId = id;
+      activeTrigger = sessionId;
+      _touch({'kind': 'claim_trigger', 'session': sessionId});
+      return;
+    }
     _touch(null, sync: false);
   }
 
@@ -402,7 +528,8 @@ class StageStore extends ChangeNotifier {
     final current = deviceById(id);
     if (current == null) return;
     final next = change(current);
-    if (identical(next, current)) return;
+    if (identical(next, current) || _sameDevice(current, next)) return;
+    _pushUndo(_changeLabel(current, next));
     upsertDevice(next);
   }
 
@@ -510,6 +637,7 @@ class StageStore extends ChangeNotifier {
     String mediaType = '',
     BannerNote? banner,
   }) {
+    if (!canTrigger) return;
     final trimmed = text.trim();
     if ((trimmed.isEmpty && media.isEmpty) || deviceId.isEmpty) return;
     final message = StageMessage(
@@ -1005,6 +1133,37 @@ class StageStore extends ChangeNotifier {
 
   void applyPatch(Map<String, dynamic> patch) {
     if ((sync?.role ?? LinkRole.solo) != LinkRole.host) return;
+    final session = patch['session'] as String?;
+    if (patch['kind'] == 'claim_trigger') {
+      activeTrigger = session;
+      _touch(null);
+      return;
+    }
+    const steered = {
+      'message',
+      'call_start',
+      'call_scene',
+      'call_status',
+      'call_end',
+      'alarm',
+      'banner',
+      'banner_dismiss',
+      'clear_messages',
+      'delete_message',
+      'clear_mail',
+      'clear_banners',
+      'os_drive',
+      'device',
+      'page',
+      'screen',
+      'marker_stage',
+    };
+    if (activeTrigger != null &&
+        session != null &&
+        session != activeTrigger &&
+        steered.contains(patch['kind'])) {
+      return;
+    }
     switch (patch['kind']) {
       case 'project':
         upsertProject(Project.fromJson(jsonMap(patch['project'])));
@@ -1137,6 +1296,7 @@ class StageStore extends ChangeNotifier {
     'screenConfig': screenConfig,
     'markerConfig': markerConfig,
     'pages': pages,
+    'activeTrigger': activeTrigger,
   };
 
   void importState(Map<String, dynamic> json) {
@@ -1224,6 +1384,7 @@ class StageStore extends ChangeNotifier {
     screenConfig = jsonMap(json['screenConfig']);
     markerConfig = jsonMap(json['markerConfig']);
     pages = jsonMap(json['pages']);
+    activeTrigger = json['activeTrigger'] as String?;
   }
 
   void _dropDevices(Set<String> ids) {
@@ -1264,7 +1425,7 @@ class StageStore extends ChangeNotifier {
     if (link.role == LinkRole.host) {
       link.broadcastState();
     } else if (link.role == LinkRole.client && patch != null) {
-      link.sendPatch(patch);
+      link.sendPatch({...patch, 'session': sessionId});
     }
   }
 
@@ -1326,6 +1487,13 @@ OsSettings _skinWallpaper(OsSettings os, String skin) {
     backgroundPreset: preset,
     backgroundUrl: '',
   );
+}
+
+class _OsStep {
+  _OsStep(this.label, this.blob);
+
+  final String label;
+  final Map<String, dynamic> blob;
 }
 
 bool _sameStrings(List<String> a, List<String> b) {

@@ -84,6 +84,13 @@ class OsSettings {
     this.customRingtone = '',
     this.ringtoneIn = 0,
     this.ringtoneOut = 30,
+    this.notifyTone = 'Pulse',
+    this.alarmTone = 'Alarm',
+    this.customNotify = '',
+    this.customAlarm = '',
+    this.vibrateNotify = 'Off',
+    this.vibrateAlarm = 'Standard',
+    this.soundsMuted = false,
     this.callerPhoto = 'circle',
     this.branded = false,
     this.shell = '',
@@ -150,6 +157,15 @@ class OsSettings {
   final String customRingtone;
   final double ringtoneIn;
   final double ringtoneOut;
+
+  /// Notification alerts (mail, messages, socials) and the alarm tone.
+  final String notifyTone;
+  final String alarmTone;
+  final String customNotify;
+  final String customAlarm;
+  final String vibrateNotify;
+  final String vibrateAlarm;
+  final bool soundsMuted;
 
   /// `circle` or `full` — how an incoming caller photo is drawn.
   final String callerPhoto;
@@ -251,6 +267,13 @@ class OsSettings {
     String? customRingtone,
     double? ringtoneIn,
     double? ringtoneOut,
+    String? notifyTone,
+    String? alarmTone,
+    String? customNotify,
+    String? customAlarm,
+    String? vibrateNotify,
+    String? vibrateAlarm,
+    bool? soundsMuted,
     String? callerPhoto,
     bool? branded,
     String? shell,
@@ -306,6 +329,13 @@ class OsSettings {
     customRingtone: customRingtone ?? this.customRingtone,
     ringtoneIn: ringtoneIn ?? this.ringtoneIn,
     ringtoneOut: ringtoneOut ?? this.ringtoneOut,
+    notifyTone: notifyTone ?? this.notifyTone,
+    alarmTone: alarmTone ?? this.alarmTone,
+    customNotify: customNotify ?? this.customNotify,
+    customAlarm: customAlarm ?? this.customAlarm,
+    vibrateNotify: vibrateNotify ?? this.vibrateNotify,
+    vibrateAlarm: vibrateAlarm ?? this.vibrateAlarm,
+    soundsMuted: soundsMuted ?? this.soundsMuted,
     callerPhoto: callerPhoto ?? this.callerPhoto,
     branded: branded ?? this.branded,
     shell: shell ?? this.shell,
@@ -363,6 +393,13 @@ class OsSettings {
     'customRingtone': customRingtone,
     'ringtoneIn': ringtoneIn,
     'ringtoneOut': ringtoneOut,
+    'notifyTone': notifyTone,
+    'alarmTone': alarmTone,
+    'customNotify': customNotify,
+    'customAlarm': customAlarm,
+    'vibrateNotify': vibrateNotify,
+    'vibrateAlarm': vibrateAlarm,
+    'soundsMuted': soundsMuted,
     'callerPhoto': callerPhoto,
     'branded': branded,
     'shell': shell,
@@ -434,6 +471,13 @@ class OsSettings {
       customRingtone: json['customRingtone'] as String? ?? '',
       ringtoneIn: (json['ringtoneIn'] as num?)?.toDouble() ?? 0,
       ringtoneOut: (json['ringtoneOut'] as num?)?.toDouble() ?? 30,
+      notifyTone: json['notifyTone'] as String? ?? 'Pulse',
+      alarmTone: json['alarmTone'] as String? ?? 'Alarm',
+      customNotify: json['customNotify'] as String? ?? '',
+      customAlarm: json['customAlarm'] as String? ?? '',
+      vibrateNotify: json['vibrateNotify'] as String? ?? 'Off',
+      vibrateAlarm: json['vibrateAlarm'] as String? ?? 'Standard',
+      soundsMuted: json['soundsMuted'] as bool? ?? false,
       callerPhoto: json['callerPhoto'] == 'full' ? 'full' : 'circle',
       branded: json['branded'] as bool? ?? false,
       shell: json['shell'] as String? ?? '',
@@ -498,6 +542,13 @@ class OsSettings {
         customRingtone == other.customRingtone &&
         ringtoneIn == other.ringtoneIn &&
         ringtoneOut == other.ringtoneOut &&
+        notifyTone == other.notifyTone &&
+        alarmTone == other.alarmTone &&
+        customNotify == other.customNotify &&
+        customAlarm == other.customAlarm &&
+        vibrateNotify == other.vibrateNotify &&
+        vibrateAlarm == other.vibrateAlarm &&
+        soundsMuted == other.soundsMuted &&
         callerPhoto == other.callerPhoto &&
         branded == other.branded &&
         shell == other.shell &&
@@ -553,6 +604,9 @@ class OsSettings {
     showAlarm,
     ringtone,
     vibrate,
+    notifyTone,
+    alarmTone,
+    soundsMuted,
     callerPhoto,
     branded,
     shell,

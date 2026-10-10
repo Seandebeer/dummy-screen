@@ -9,8 +9,8 @@ import '../theme.dart';
 const kSettingsPage = Color(0xFF0B0B0F);
 const kSettingsCard = Color(0x0DFFFFFF);
 const kSettingsEdge = Color(0x1AFFFFFF);
-const kSettingsHint = Color(0x66FFFFFF);
-const kSettingsLabel = Color(0x99FFFFFF);
+const kSettingsHint = Color(0xB3FFFFFF);
+const kSettingsLabel = Color(0xD9FFFFFF);
 
 /// Settings itself: a title, a scroll of titled cards, a factory reset, and
 /// the prop build line. [listKey] names the scroll so a test can reach it.
@@ -244,6 +244,80 @@ class SettingsSection extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A settings card that starts closed and opens on the heading.
+class CollapsibleSection extends StatefulWidget {
+  const CollapsibleSection({
+    super.key,
+    required this.title,
+    required this.child,
+    this.initiallyOpen = false,
+    this.sectionKey,
+  });
+
+  final String title;
+  final Widget child;
+  final bool initiallyOpen;
+  final Key? sectionKey;
+
+  @override
+  State<CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<CollapsibleSection> {
+  late bool _open = widget.initiallyOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: kSettingsCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kSettingsEdge),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InkWell(
+              key: widget.sectionKey,
+              onTap: () => setState(() => _open = !_open),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.title.toUpperCase(),
+                        style: const TextStyle(
+                          color: kSettingsHint,
+                          fontSize: 11,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      _open ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: kSettingsHint,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_open)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: widget.child,
+              ),
+          ],
+        ),
       ),
     );
   }

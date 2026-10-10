@@ -424,7 +424,7 @@ class _PlayerState extends State<_Player> {
                         ),
                         IconButton(
                           onPressed: () => setState(() => _locked = true),
-                          icon: const Icon(Icons.lock, color: Colors.white, size: 16),
+                          icon: const Icon(Icons.fullscreen, color: Colors.white, size: 22),
                         ),
                       ],
                     ),

@@ -129,6 +129,8 @@ class _SettingsAppState extends State<SettingsApp> {
         (os.lockType == 'passcode' && os.passcode.isEmpty) ||
         (os.lockType == 'pattern' && os.pattern.isEmpty);
     final delay = os.ringDelaySeconds;
+    final phone = device.kind == 'phone';
+    final tablet = device.kind == 'tablet';
 
     return SettingsPage(
       listKey: const Key('os-settings-list'),
@@ -136,7 +138,20 @@ class _SettingsAppState extends State<SettingsApp> {
       rtl: languageByCode(os.language).rtl,
       onReset: () => widget.store.factoryResetDevice(device.id),
       children: [
-        SettingsSection(
+        if (tablet)
+          SettingsSection(
+            title: 'Interface',
+            child: SettingsTile(
+              tileKey: const Key('skin-tablet'),
+              name: 'Tablet',
+              desc: 'One tablet layout for this device.',
+              preview: skinById('modern')!.preview,
+              active: true,
+              onTap: () {},
+            ),
+          ),
+        if (phone)
+          SettingsSection(
           title: 'Interface',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -213,7 +228,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        ExtraSettings(store: widget.store, device: device),
+        ExtraSettings(store: widget.store, device: device, cellular: phone),
         SettingsSection(
           title: copy.themes,
           child: SettingsThemeGrid(
@@ -231,7 +246,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ),
           ),
         ),
-        SettingsSection(
+        CollapsibleSection(
           title: copy.background,
           child: Column(
             children: [
@@ -271,7 +286,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        SettingsSection(
+        CollapsibleSection(
           title: 'Lock Screen',
           child: Column(
             children: [
@@ -311,8 +326,9 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        SettingsSection(
+        CollapsibleSection(
           title: 'Lock Screen Method',
+          sectionKey: const Key('lock-methods'),
           child: Column(
             children: [
               for (final method in lockMethods)
@@ -406,6 +422,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
+        if (phone)
         SettingsSection(
           title: copy.dialCodes,
           child: Column(
@@ -487,74 +504,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        SettingsSection(
-          title: copy.language,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InkWell(
-                onTap: () => setState(() => _langOpen = !_langOpen),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(languageByCode(os.language).native),
-                    ),
-                    Icon(
-                      _langOpen ? Icons.expand_less : Icons.expand_more,
-                      color: const Color(0x80FFFFFF),
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ),
-              if (_langOpen) ...[
-                const SizedBox(height: 10),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 3.4,
-                  children: [
-                    for (final language in osLanguages)
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: os.language == language.code
-                              ? kAccent
-                              : const Color(0xB3FFFFFF),
-                          backgroundColor: os.language == language.code
-                              ? kAccent.withValues(alpha: 0.1)
-                              : Colors.transparent,
-                          side: BorderSide(
-                            color: os.language == language.code
-                                ? kAccent
-                                : const Color(0x1AFFFFFF),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                        onPressed: () => widget.store.updateOs(
-                          device.id,
-                          (current) =>
-                              current.copyWith(language: language.code),
-                        ),
-                        child: Text(
-                          language.native,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const SettingsHint(
-                  'Default contacts follow this language; custom contacts are kept.',
-                ),
-              ],
-            ],
-          ),
-        ),
+        if (phone)
         SettingsSection(
           title: copy.answerCalls,
           child: Column(
@@ -594,6 +544,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
+        if (phone)
         SettingsSection(
           title: 'Ring Duration',
           child: Column(
@@ -636,7 +587,130 @@ class _SettingsAppState extends State<SettingsApp> {
             ),
           ),
         ),
+        _language(copy),
+        CollapsibleSection(
+          title: 'Sounds',
+          sectionKey: const Key('sound-settings'),
+          child: SoundSettings(store: widget.store, device: device),
+        ),
+        if (phone)
+          SettingsSection(
+            title: 'Caller details',
+            child: CallerDetails(store: widget.store, device: device),
+          ),
+        SettingsSection(
+          title: 'App branding',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Generic keeps the fictional names and icons. Branded uses the real product names and artwork.',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text('Generic'),
+                    labelStyle: TextStyle(color: !os.branded ? Colors.black : Colors.white),
+                    selectedColor: Colors.white,
+                    backgroundColor: const Color(0xFF2C2C2E),
+                    selected: !os.branded,
+                    onSelected: (_) => widget.store.updateOs(
+                      device.id,
+                      (current) => current.copyWith(branded: false),
+                    ),
+                  ),
+                  ChoiceChip(
+                    label: const Text('Branded'),
+                    labelStyle: TextStyle(color: os.branded ? Colors.black : Colors.white),
+                    selectedColor: Colors.white,
+                    backgroundColor: const Color(0xFF2C2C2E),
+                    selected: os.branded,
+                    onSelected: (_) => widget.store.updateOs(
+                      device.id,
+                      (current) => current.copyWith(branded: true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SettingsSection(
+          title: 'Custom apps',
+          child: CustomIconMaker(store: widget.store, device: device),
+        ),
       ],
+    );
+  }
+
+  Widget _language(OsCopy copy) {
+    return SettingsSection(
+      title: copy.language,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _langOpen = !_langOpen),
+            child: Row(
+              children: [
+                Expanded(child: Text(languageByCode(os.language).native)),
+                Icon(
+                  _langOpen ? Icons.expand_less : Icons.expand_more,
+                  color: const Color(0xB3FFFFFF),
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+          if (_langOpen) ...[
+            const SizedBox(height: 10),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 3.4,
+              children: [
+                for (final language in osLanguages)
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: os.language == language.code
+                          ? kAccent
+                          : const Color(0xD9FFFFFF),
+                      backgroundColor: os.language == language.code
+                          ? kAccent.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      side: BorderSide(
+                        color: os.language == language.code
+                            ? kAccent
+                            : const Color(0x33FFFFFF),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    onPressed: () => widget.store.updateOs(
+                      device.id,
+                      (current) => current.copyWith(language: language.code),
+                    ),
+                    child: Text(
+                      language.native,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const SettingsHint(
+              'Default contacts follow this language; custom contacts are kept.',
+            ),
+          ],
+        ],
+      ),
     );
   }
 

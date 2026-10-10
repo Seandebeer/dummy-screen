@@ -80,7 +80,7 @@ void main() {
     expect(find.text('STATUS BAR'), findsNothing);
     expect(find.text('WALLPAPER'), findsOneWidget);
     expect(find.text('APP BRANDING'), findsOneWidget);
-    expect(find.text('CUSTOM ICONS'), findsOneWidget);
+    expect(find.text('CUSTOM APPS'), findsOneWidget);
     expect(find.text('Factory Reset'), findsOneWidget);
 
     expect(find.text('CONTACTS DIAL CODES'), findsNothing);

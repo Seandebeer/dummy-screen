@@ -20,12 +20,18 @@ const kRingtones = [
 
 const kVibrates = ['Off', 'Standard', 'Heartbeat', 'Rapid', 'Long'];
 
-/// Status bar, sounds, caller photo, branding, and custom icons.
+/// Network name, radios, Wi-Fi, and battery for a phone or tablet.
 class ExtraSettings extends StatelessWidget {
-  const ExtraSettings({super.key, required this.store, required this.device});
+  const ExtraSettings({
+    super.key,
+    required this.store,
+    required this.device,
+    this.cellular = true,
+  });
 
   final StageStore store;
   final PropDevice device;
+  final bool cellular;
 
   OsSettings get os => device.os;
 
@@ -37,38 +43,26 @@ class ExtraSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       type: MaterialType.transparency,
-      child: Column(
-      children: [
-        _block(
-          'Status bar',
-          Column(
-            children: [
-              TextFormField(
-                initialValue: os.networkName,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Network name',
-                  labelStyle: TextStyle(color: Colors.white54),
-                ),
-                onFieldSubmitted: (value) =>
-                    _update((current) => current.copyWith(networkName: value.trim())),
+      child: _block(
+        'Network name',
+        Column(
+          children: [
+            TextFormField(
+              key: const Key('network-name'),
+              initialValue: os.networkName,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Network name',
+                labelStyle: TextStyle(color: Colors.white70),
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Wi-Fi'),
-                value: os.wifi,
-                onChanged: (value) => _update((current) => current.copyWith(wifi: value)),
-              ),
-              _slider('Wi-Fi signal', os.wifiBars.toDouble(), 3, (value) {
-                _update((current) => current.copyWith(wifiBars: value.round()));
-              }),
-              _slider('Signal strength', os.signal.toDouble(), 4, (value) {
-                _update((current) => current.copyWith(signal: value.round()));
-              }),
+              onFieldSubmitted: (value) =>
+                  _update((current) => current.copyWith(networkName: value.trim())),
+            ),
+            if (cellular) ...[
               const SizedBox(height: 8),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Mobile network', style: TextStyle(color: Colors.white70)),
+                child: Text('Mobile network', style: TextStyle(color: Colors.white)),
               ),
               const SizedBox(height: 6),
               Wrap(
@@ -78,153 +72,48 @@ class ExtraSettings extends StatelessWidget {
                   for (final radio in kCellularRadios)
                     ChoiceChip(
                       key: Key('cellular-$radio'),
-                      label: Text(radio == 'NO SERVICE' ? 'no service' : radio),
+                      label: Text(radio),
+                      labelStyle: TextStyle(
+                        color: os.cellular == radio ? Colors.black : Colors.white,
+                      ),
+                      selectedColor: Colors.white,
+                      backgroundColor: const Color(0xFF2C2C2E),
                       selected: os.cellular == radio,
                       onSelected: (_) =>
                           _update((current) => current.copyWith(cellular: radio)),
                     ),
                 ],
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Tracking marks'),
-                subtitle: const Text('Toolbar sits beside the device in OS edit'),
-                value: os.showTracking,
-                onChanged: (value) =>
-                    _update((current) => current.copyWith(showTracking: value)),
-              ),
-              _slider('Battery', os.battery.toDouble(), 100, (value) {
-                _update((current) => current.copyWith(battery: value.round()));
-              }),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Bluetooth'),
-                value: os.bluetooth,
-                onChanged: (value) => _update((current) => current.copyWith(bluetooth: value)),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Alarm icon'),
-                value: os.showAlarm,
-                onChanged: (value) => _update((current) => current.copyWith(showAlarm: value)),
-              ),
             ],
-          ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Wi-Fi'),
+              value: os.wifi,
+              onChanged: (value) => _update((current) => current.copyWith(wifi: value)),
+            ),
+            _slider('Wi-Fi signal', os.wifiBars.toDouble(), 3, (value) {
+              _update((current) => current.copyWith(wifiBars: value.round()));
+            }),
+            _slider('Mobile signal', os.signal.toDouble(), 4, (value) {
+              _update((current) => current.copyWith(signal: value.round()));
+            }),
+            _slider('Battery', os.battery.toDouble(), 100, (value) {
+              _update((current) => current.copyWith(battery: value.round()));
+            }),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Bluetooth'),
+              value: os.bluetooth,
+              onChanged: (value) => _update((current) => current.copyWith(bluetooth: value)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Alarm icon'),
+              value: os.showAlarm,
+              onChanged: (value) => _update((current) => current.copyWith(showAlarm: value)),
+            ),
+          ],
         ),
-        _block(
-          'Sounds',
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DropdownButton<String>(
-                value: kRingtones.contains(os.ringtone) ? os.ringtone : kRingtones.first,
-                dropdownColor: const Color(0xFF1C1C1E),
-                items: [
-                  for (final name in kRingtones)
-                    DropdownMenuItem(value: name, child: Text(name)),
-                ],
-                onChanged: (value) {
-                  if (value != null) _update((current) => current.copyWith(ringtone: value));
-                },
-              ),
-              DropdownButton<String>(
-                value: kVibrates.contains(os.vibrate) ? os.vibrate : kVibrates[1],
-                dropdownColor: const Color(0xFF1C1C1E),
-                items: [
-                  for (final name in kVibrates)
-                    DropdownMenuItem(value: name, child: Text(name)),
-                ],
-                onChanged: (value) {
-                  if (value != null) _update((current) => current.copyWith(vibrate: value));
-                },
-              ),
-              const SizedBox(height: 8),
-              Text(
-                os.customRingtone.isEmpty
-                    ? 'One custom ringtone can be saved on this device.'
-                    : 'Custom ringtone saved · ${os.ringtoneIn.toStringAsFixed(1)}s–${os.ringtoneOut.toStringAsFixed(1)}s',
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final file = await FilePicker.pickFile(type: FileType.audio);
-                  if (file == null) return;
-                  final bytes = await file.readAsBytes();
-                  if (bytes.length > 180000) return;
-                  final data = 'data:audio/mpeg;base64,${base64Encode(bytes)}';
-                  _update((current) => current.copyWith(customRingtone: data, ringtone: 'Custom'));
-                },
-                child: const Text('Upload ringtone'),
-              ),
-              if (os.customRingtone.isNotEmpty) ...[
-                _slider('Trim start', os.ringtoneIn, 30, (value) {
-                  _update((current) => current.copyWith(ringtoneIn: value));
-                }),
-                _slider('Trim end', os.ringtoneOut, 30, (value) {
-                  _update((current) => current.copyWith(ringtoneOut: value));
-                }),
-              ],
-            ],
-          ),
-        ),
-        _block(
-          'Caller details',
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'How the caller photo appears on an incoming call.',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: const Text('Round avatar'),
-                    selected: os.callerPhoto != 'full',
-                    onSelected: (_) => _update((current) => current.copyWith(callerPhoto: 'circle')),
-                  ),
-                  ChoiceChip(
-                    label: const Text('Full screen'),
-                    selected: os.callerPhoto == 'full',
-                    onSelected: (_) => _update((current) => current.copyWith(callerPhoto: 'full')),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        _block(
-          'App branding',
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Generic keeps the fictional names. Branded swaps in the real product names. Icons stay original artwork.',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: const Text('Generic'),
-                    selected: !os.branded,
-                    onSelected: (_) => _update((current) => current.copyWith(branded: false)),
-                  ),
-                  ChoiceChip(
-                    label: const Text('Branded'),
-                    selected: os.branded,
-                    onSelected: (_) => _update((current) => current.copyWith(branded: true)),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        _block('Custom icons', CustomIconMaker(store: store, device: device)),
-      ],
       ),
     );
   }
@@ -255,6 +144,175 @@ class ExtraSettings extends StatelessWidget {
           child,
         ],
       ),
+    );
+  }
+}
+
+/// Ringtone, notification alerts, and alarm. Each can vibrate and use one upload.
+class SoundSettings extends StatelessWidget {
+  const SoundSettings({super.key, required this.store, required this.device});
+
+  final StageStore store;
+  final PropDevice device;
+
+  OsSettings get os => device.os;
+
+  void _update(OsSettings Function(OsSettings) change) {
+    store.updateOs(device.id, change);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Mute'),
+          value: os.soundsMuted,
+          onChanged: (value) => _update((current) => current.copyWith(soundsMuted: value)),
+        ),
+        _tone(
+          'Ringtone',
+          tone: os.ringtone,
+          vibrate: os.vibrate,
+          custom: os.customRingtone,
+          onTone: (value) => _update((current) => current.copyWith(ringtone: value)),
+          onVibrate: (value) => _update((current) => current.copyWith(vibrate: value)),
+          onUpload: (data) => _update(
+            (current) => current.copyWith(customRingtone: data, ringtone: 'Custom'),
+          ),
+        ),
+        _tone(
+          'Notification alerts',
+          tone: os.notifyTone,
+          vibrate: os.vibrateNotify,
+          custom: os.customNotify,
+          onTone: (value) => _update((current) => current.copyWith(notifyTone: value)),
+          onVibrate: (value) => _update((current) => current.copyWith(vibrateNotify: value)),
+          onUpload: (data) => _update(
+            (current) => current.copyWith(customNotify: data, notifyTone: 'Custom'),
+          ),
+        ),
+        _tone(
+          'Alarm',
+          tone: os.alarmTone,
+          vibrate: os.vibrateAlarm,
+          custom: os.customAlarm,
+          onTone: (value) => _update((current) => current.copyWith(alarmTone: value)),
+          onVibrate: (value) => _update((current) => current.copyWith(vibrateAlarm: value)),
+          onUpload: (data) => _update(
+            (current) => current.copyWith(customAlarm: data, alarmTone: 'Custom'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tone(
+    String label, {
+    required String tone,
+    required String vibrate,
+    required String custom,
+    required ValueChanged<String> onTone,
+    required ValueChanged<String> onVibrate,
+    required ValueChanged<String> onUpload,
+  }) {
+    final toneValue = tone == 'Custom' || kRingtones.contains(tone) ? tone : kRingtones.first;
+    final vibrateValue = kVibrates.contains(vibrate) ? vibrate : kVibrates.first;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          DropdownButton<String>(
+            value: toneValue,
+            dropdownColor: const Color(0xFF1C1C1E),
+            style: const TextStyle(color: Colors.white),
+            items: [
+              for (final name in kRingtones)
+                DropdownMenuItem(value: name, child: Text(name)),
+              if (custom.isNotEmpty)
+                const DropdownMenuItem(value: 'Custom', child: Text('Custom')),
+            ],
+            onChanged: (value) {
+              if (value != null) onTone(value);
+            },
+          ),
+          DropdownButton<String>(
+            value: vibrateValue,
+            dropdownColor: const Color(0xFF1C1C1E),
+            style: const TextStyle(color: Colors.white),
+            items: [
+              for (final name in kVibrates)
+                DropdownMenuItem(value: name, child: Text('Vibrate · $name')),
+            ],
+            onChanged: (value) {
+              if (value != null) onVibrate(value);
+            },
+          ),
+          TextButton(
+            onPressed: () async {
+              final file = await FilePicker.pickFile(type: FileType.audio);
+              if (file == null) return;
+              final bytes = await file.readAsBytes();
+              if (bytes.length > 180000) return;
+              onUpload('data:audio/mpeg;base64,${base64Encode(bytes)}');
+            },
+            child: Text(custom.isEmpty ? 'Upload custom sound' : 'Replace custom sound'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CallerDetails extends StatelessWidget {
+  const CallerDetails({super.key, required this.store, required this.device});
+
+  final StageStore store;
+  final PropDevice device;
+
+  @override
+  Widget build(BuildContext context) {
+    final os = device.os;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'How the caller photo appears on an incoming call.',
+          style: TextStyle(color: Colors.white, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            ChoiceChip(
+              label: const Text('Round avatar'),
+              labelStyle: TextStyle(color: os.callerPhoto != 'full' ? Colors.black : Colors.white),
+              selectedColor: Colors.white,
+              backgroundColor: const Color(0xFF2C2C2E),
+              selected: os.callerPhoto != 'full',
+              onSelected: (_) => store.updateOs(
+                device.id,
+                (current) => current.copyWith(callerPhoto: 'circle'),
+              ),
+            ),
+            ChoiceChip(
+              label: const Text('Full screen'),
+              labelStyle: TextStyle(color: os.callerPhoto == 'full' ? Colors.black : Colors.white),
+              selectedColor: Colors.white,
+              backgroundColor: const Color(0xFF2C2C2E),
+              selected: os.callerPhoto == 'full',
+              onSelected: (_) => store.updateOs(
+                device.id,
+                (current) => current.copyWith(callerPhoto: 'full'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

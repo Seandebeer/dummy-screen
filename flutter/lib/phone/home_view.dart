@@ -66,6 +66,7 @@ class PhoneHome extends StatelessWidget {
         ],
       );
     }
+    final modern = chrome == SkinChrome.modern;
     final grid = [
       for (final id in layout)
         if (_resolve(id) case final app? when !kDockIds.contains(id)) app,
@@ -87,6 +88,7 @@ class PhoneHome extends StatelessWidget {
             round: chrome == SkinChrome.android,
             labelColor: ink,
             branded: os.branded,
+            modern: modern,
             onOpen: onOpen,
           ),
         ),
@@ -125,6 +127,7 @@ class PhoneHome extends StatelessWidget {
                   round: chrome == SkinChrome.android,
                   labelColor: ink,
                   branded: os.branded,
+                  modern: modern,
                   onTap: () => onOpen(app.id),
                 ),
             ],
@@ -147,6 +150,7 @@ class _HomePages extends StatefulWidget {
     required this.round,
     required this.labelColor,
     required this.branded,
+    this.modern = false,
     required this.onOpen,
   });
 
@@ -156,6 +160,7 @@ class _HomePages extends StatefulWidget {
   final bool round;
   final Color labelColor;
   final bool branded;
+  final bool modern;
   final void Function(String id) onOpen;
 
   @override
@@ -183,7 +188,7 @@ class _HomePagesState extends State<_HomePages> {
             children: [
               for (final page in widget.pages)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                  padding: EdgeInsets.fromLTRB(12, widget.modern ? 22 : 4, 12, 4),
                   child: Wrap(
                     alignment: WrapAlignment.spaceEvenly,
                     spacing: 6,
@@ -191,8 +196,8 @@ class _HomePagesState extends State<_HomePages> {
                     children: [
                       for (final app in page)
                         SizedBox(
-                          width: 76,
-                          height: 92,
+                          width: widget.modern ? 84 : 76,
+                          height: widget.modern ? 104 : 92,
                           child: _IconApp(
                             key: Key('home-${app.id}'),
                             app: app,
@@ -200,6 +205,7 @@ class _HomePagesState extends State<_HomePages> {
                             round: widget.round,
                             labelColor: widget.labelColor,
                             branded: widget.branded,
+                            modern: widget.modern,
                             onTap: () => widget.onOpen(app.id),
                           ),
                         ),
@@ -263,7 +269,37 @@ class _HomePagesState extends State<_HomePages> {
   }
 }
 
-Widget _glyph(PropApp app) {
+const _brandArt = <String, (Color, IconData)>{
+  'facepage': (Color(0xFF1877F2), Icons.facebook),
+  'photogram': (Color(0xFFE1306C), Icons.photo_camera),
+  'vidtube': (Color(0xFFFF0000), Icons.smart_display),
+  'quicktok': (Color(0xFF111111), Icons.music_note),
+  'browser': (Color(0xFF0A84FF), Icons.explore),
+  'webdeck': (Color(0xFF4285F4), Icons.language),
+  'videocall': (Color(0xFF34C759), Icons.video_call),
+  'maps': (Color(0xFF34A853), Icons.map),
+  'appstore': (Color(0xFF0A84FF), Icons.shopping_bag),
+  'email': (Color(0xFFEA4335), Icons.mail),
+  'messages': (Color(0xFF34C759), Icons.chat_bubble),
+  'music': (Color(0xFFFC3C44), Icons.music_note),
+  'property': (Color(0xFF006AFF), Icons.home),
+  'news': (Color(0xFFDC4A38), Icons.newspaper),
+  'ping': (Color(0xFF0084FF), Icons.messenger),
+  'buzz': (Color(0xFF111111), Icons.tag),
+  'visage': (Color(0xFF2D8CFF), Icons.videocam),
+  'flixiq': (Color(0xFFE50914), Icons.movie),
+  'waveform': (Color(0xFF1DB954), Icons.audiotrack),
+  'findit': (Color(0xFFFF9900), Icons.shopping_cart),
+  'zippyride': (Color(0xFF111111), Icons.local_taxi),
+};
+
+Widget _glyph(PropApp app, {required bool branded}) {
+  if (branded) {
+    final art = _brandArt[app.id];
+    if (art != null) {
+      return Icon(art.$2, color: Colors.white, size: 32);
+    }
+  }
   final provider = app.image.isEmpty ? null : imageProviderForPath(app.image);
   if (provider == null) {
     return Icon(app.icon, color: Colors.white, size: 30);
@@ -290,6 +326,7 @@ class _IconApp extends StatelessWidget {
     this.round = false,
     this.labelColor = Colors.white,
     this.branded = false,
+    this.modern = false,
   });
 
   final PropApp app;
@@ -298,6 +335,7 @@ class _IconApp extends StatelessWidget {
   final bool round;
   final Color labelColor;
   final bool branded;
+  final bool modern;
 
   @override
   Widget build(BuildContext context) {
@@ -307,10 +345,10 @@ class _IconApp extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: modern ? 68 : 60,
+            height: modern ? 68 : 60,
             decoration: BoxDecoration(
-              color: app.color,
+              color: branded ? (_brandArt[app.id]?.$1 ?? app.color) : app.color,
               borderRadius: BorderRadius.circular(
                 round ? 20 : (glossy ? 10 : 12),
               ),
@@ -322,7 +360,7 @@ class _IconApp extends StatelessWidget {
                     )
                   : null,
             ),
-            child: _glyph(app),
+            child: _glyph(app, branded: branded),
           ),
           const SizedBox(height: 4),
           Text(
