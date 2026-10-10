@@ -461,14 +461,14 @@ class _ComputerSettingsState extends State<ComputerSettings> {
               const Align(
                 alignment: Alignment.centerLeft,
                 child: SettingsHint(
-                  'Generic keeps the fictional names. Branded swaps in the real product names. Icons stay original artwork.',
+                  'Generic keeps the fictional names and icons. Branded uses the real product names and artwork.',
                 ),
               ),
             ],
           ),
         ),
         SettingsSection(
-          title: 'Custom icons',
+          title: 'Custom apps',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

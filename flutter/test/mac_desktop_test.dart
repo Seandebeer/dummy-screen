@@ -390,10 +390,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mac-dock-tracking')));
     await tester.pump();
-    expect(find.text('Lock'), findsWidgets);
+    expect(find.text('Fullscreen'), findsWidgets);
     await tester.tap(find.byKey(const Key('mac-dock-tracking')));
     await tester.pump();
-    expect(find.text('Lock'), findsNothing);
+    expect(find.text('Fullscreen'), findsNothing);
 
     await tester.tap(find.byKey(const Key('mac-dock-markers')));
     await tester.pump();

@@ -34,6 +34,34 @@ class DeviceMetrics {
   final String frame;
 }
 
+/// Phones and tablets start portrait. Everything else starts landscape.
+bool kindStartsLandscape(String kind) {
+  switch (kind) {
+    case 'phone':
+    case 'tablet':
+    case 'homephone':
+      return false;
+    default:
+      return true;
+  }
+}
+
+/// [turned] swaps the device between its default orientation and a 90° turn.
+DeviceMetrics metricsForTurn(String kind, {required bool turned}) {
+  final landscape = kindStartsLandscape(kind) != turned;
+  switch (kind) {
+    case 'phone':
+    case 'homephone':
+      return metricsFor('phone', landscape: landscape);
+    case 'tablet':
+      return metricsFor('tablet', landscape: landscape);
+    default:
+      final base = metricsFor(kind);
+      if (!turned) return base;
+      return DeviceMetrics(1 / base.aspect, base.frame);
+  }
+}
+
 DeviceMetrics metricsFor(String kind, {bool landscape = false}) {
   switch (kind) {
     case 'tablet':
@@ -260,9 +288,14 @@ class _FormOsState extends State<FormOs> {
               for (final banner in banners.take(3))
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: OsBanner(
-                    banner: banner,
-                    onTap: () => widget.onOpenBanner?.call(banner),
+                  child: Dismissible(
+                    key: ValueKey('banner-${banner.id}'),
+                    direction: DismissDirection.horizontal,
+                    onDismissed: (_) => widget.store.dismissBanner(banner.id),
+                    child: OsBanner(
+                      banner: banner,
+                      onTap: () => widget.onOpenBanner?.call(banner),
+                    ),
                   ),
                 ),
             ],
@@ -290,7 +323,7 @@ List<(String, String, IconData)> deskApps(OsSettings os) {
   for (final id in homePageOne()) {
     final prop = propAppById(id);
     if (prop != null) {
-      out.add((id, appLabel(prop, branded: os.branded), prop.icon));
+      out.add((id, appLabel(prop, branded: os.branded), brandedGlyph(prop, branded: os.branded).$1));
     }
   }
   for (final entry in _toolIcons.entries) {
@@ -669,7 +702,11 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
                                 os,
                                 item.$1,
                                 item.$2,
-                                Icon(item.$3, color: ink, size: 32),
+                                Icon(
+                                  item.$3,
+                                  color: os.branded ? (brandMark(item.$1)?.$1 ?? ink) : ink,
+                                  size: 32,
+                                ),
                               ),
                           ],
                         ),
@@ -714,7 +751,7 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
     final docked = [
       for (final id in kDockIds)
         if (propAppById(id) case final prop?)
-          (id, appLabel(prop, branded: os.branded), prop.icon),
+          (id, appLabel(prop, branded: os.branded), brandedGlyph(prop, branded: os.branded).$1),
       for (final item in widget.apps)
         if (item.$1 == 'settings') item,
     ];

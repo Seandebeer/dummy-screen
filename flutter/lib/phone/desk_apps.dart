@@ -27,6 +27,7 @@ class _BulletinAppState extends State<BulletinApp> {
   String _name = 'Bulletin';
   String _tagline = 'The world, twice daily';
   bool _ready = false;
+  bool _editing = false;
   late List<Map<String, dynamic>> _articles;
 
   @override
@@ -79,6 +80,11 @@ class _BulletinAppState extends State<BulletinApp> {
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.white : Colors.white70),
+                ),
+                IconButton(
                   tooltip: 'Save',
                   onPressed: () => savePhonePage(
                     context,
@@ -103,6 +109,31 @@ class _BulletinAppState extends State<BulletinApp> {
           ),
         ],
       ),
+    );
+  }
+
+  void _keepNews() {
+    StoreScope.of(context).setPage('news', {
+      'name': _name,
+      'tagline': _tagline,
+      'articles': _articles,
+    });
+  }
+
+  Widget _storyField(Map<String, dynamic> article, String key, TextStyle style, {int lines = 1}) {
+    final value = '${article[key]}';
+    if (!_editing) {
+      return Text(value, maxLines: lines, overflow: TextOverflow.ellipsis, style: style);
+    }
+    return TextFormField(
+      initialValue: value,
+      style: style,
+      maxLines: lines,
+      decoration: const InputDecoration(isDense: true),
+      onChanged: (next) {
+        article[key] = next;
+        _keepNews();
+      },
     );
   }
 
@@ -133,9 +164,9 @@ class _BulletinAppState extends State<BulletinApp> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${article['title']}', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: lead ? 21 : 15, height: 1.15)),
+                    _storyField(article, 'title', TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: lead ? 21 : 15, height: 1.15)),
                     const SizedBox(height: 4),
-                    Text('${article['body']}', maxLines: lead ? 6 : 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white60, fontSize: lead ? 13 : 12.5, height: 1.35)),
+                    _storyField(article, 'body', TextStyle(color: Colors.white70, fontSize: lead ? 13 : 12.5, height: 1.35), lines: lead ? 6 : 3),
                   ],
                 ),
               ),
@@ -408,6 +439,7 @@ class RealtyApp extends StatefulWidget {
 
 class _RealtyAppState extends State<RealtyApp> {
   bool _ready = false;
+  bool _editing = false;
   String? _openId;
   final Set<String> _booked = {};
   late List<Map<String, dynamic>> _listings;
@@ -427,6 +459,25 @@ class _RealtyAppState extends State<RealtyApp> {
             _home('p3', 'R 6 750 000', '14 Protea Lane, Constantia', '4', '3', '210 m²', 'Classic gable with a mature garden, pool and cottage ideal for guests or a studio.', stock(4)),
             _home('p4', 'R 1 695 000', '77 Beach Road, Sea Point', '1', '1', '58 m²', 'Compact studio a block off the promenade, ideal first step onto the ladder.', stock(2)),
           ];
+  }
+
+  void _keepListings() {
+    StoreScope.of(context).setPage('property', {'listings': _listings});
+  }
+
+  Widget _listingField(Map<String, dynamic> listing, String key, TextStyle style, {int lines = 1}) {
+    final value = '${listing[key]}';
+    if (!_editing) return Text(value, style: style);
+    return TextFormField(
+      initialValue: value,
+      style: style,
+      maxLines: lines,
+      decoration: const InputDecoration(isDense: true),
+      onChanged: (next) {
+        listing[key] = next;
+        _keepListings();
+      },
+    );
   }
 
   Map<String, dynamic> _home(String id, String price, String address, String beds, String baths, String size, String blurb, String image) => {
@@ -452,13 +503,35 @@ class _RealtyAppState extends State<RealtyApp> {
       color: Colors.black,
       child: ListView(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 4),
-            child: Text('Realty', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 8, 4),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text('Realty', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700)),
+                ),
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.white : Colors.white70),
+                ),
+                IconButton(
+                  tooltip: 'Save',
+                  onPressed: () => savePhonePage(
+                    context,
+                    app: 'property',
+                    category: 'Apps',
+                    initial: 'Realty listings',
+                    data: {'listings': _listings},
+                  ),
+                  icon: const Icon(Icons.save_outlined, color: Colors.white70),
+                ),
+              ],
+            ),
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Text('FIND THE ONE', style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1.4)),
+            child: Text('FIND THE ONE', style: TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 1.4)),
           ),
           for (final listing in _listings)
             InkWell(
@@ -472,9 +545,21 @@ class _RealtyAppState extends State<RealtyApp> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${listing['price']}', style: const TextStyle(color: Color(0xFF32D74B), fontSize: 18, fontWeight: FontWeight.w700)),
-                        Text('${listing['address']}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                        Text('${listing['beds']} bed · ${listing['baths']} bath · ${listing['size']}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                        _listingField(listing, 'price', const TextStyle(color: Color(0xFF32D74B), fontSize: 18, fontWeight: FontWeight.w700)),
+                        _listingField(listing, 'address', const TextStyle(color: Colors.white70, fontSize: 13)),
+                        if (!_editing)
+                          Text(
+                            '${listing['beds']} bed · ${listing['baths']} bath · ${listing['size']}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(child: _listingField(listing, 'beds', const TextStyle(color: Colors.white70, fontSize: 12))),
+                              Expanded(child: _listingField(listing, 'baths', const TextStyle(color: Colors.white70, fontSize: 12))),
+                              Expanded(child: _listingField(listing, 'size', const TextStyle(color: Colors.white70, fontSize: 12))),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -507,12 +592,14 @@ class _RealtyAppState extends State<RealtyApp> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${listing['price']}', style: const TextStyle(color: Color(0xFF32D74B), fontSize: 22, fontWeight: FontWeight.w700)),
-                      Text('${listing['address']}', style: const TextStyle(color: Colors.white60)),
+                      _listingField(listing, 'price', const TextStyle(color: Color(0xFF32D74B), fontSize: 22, fontWeight: FontWeight.w700)),
+                      _listingField(listing, 'address', const TextStyle(color: Colors.white70)),
                       const SizedBox(height: 12),
-                      Text('${listing['beds']} bed   ${listing['baths']} bath   ${listing['size']}', style: const TextStyle(color: Colors.white70)),
+                      _listingField(listing, 'beds', const TextStyle(color: Colors.white70)),
+                      _listingField(listing, 'baths', const TextStyle(color: Colors.white70)),
+                      _listingField(listing, 'size', const TextStyle(color: Colors.white70)),
                       const SizedBox(height: 12),
-                      Text('${listing['blurb']}', style: const TextStyle(color: Colors.white, height: 1.4)),
+                      _listingField(listing, 'blurb', const TextStyle(color: Colors.white, height: 1.4), lines: 5),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,

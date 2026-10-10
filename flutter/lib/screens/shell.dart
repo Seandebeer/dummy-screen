@@ -152,7 +152,11 @@ class _ShellState extends State<Shell> {
                     ],
                   ),
           );
-          if (!wide) return body;
+          final themed = Theme(
+            data: deckTheme(Theme.of(context), paletteFor(store.appTheme)),
+            child: body,
+          );
+          if (!wide) return themed;
           return Stack(
             children: [
               Positioned.fill(
@@ -161,7 +165,7 @@ class _ShellState extends State<Shell> {
                   child: const SizedBox.expand(),
                 ),
               ),
-              body,
+              themed,
             ],
           );
         },
@@ -191,21 +195,42 @@ class _NavRail extends StatelessWidget {
         ),
     ];
     if (vertical) {
+      final palette = paletteFor(store.appTheme);
+      final sheen = Color.lerp(palette.secondary, palette.ink, palette.light ? 0.12 : 0.22)!;
+      final edge = palette.light ? Colors.black : Colors.white;
       return ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: kSurface.withValues(alpha: 0.28),
-              border: Border(
-                right: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  sheen.withValues(alpha: 0.72),
+                  palette.surface.withValues(alpha: 0.82),
+                  palette.background.withValues(alpha: 0.9),
+                ],
+                stops: const [0, 0.28, 1],
               ),
+              border: Border(
+                right: BorderSide(color: edge.withValues(alpha: palette.light ? 0.22 : 0.34)),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: edge.withValues(alpha: palette.light ? 0.12 : 0.16),
+                  blurRadius: 18,
+                  offset: const Offset(8, 0),
+                ),
+              ],
             ),
             child: SizedBox(
               width: 96,
               child: Column(
                 children: [
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 10),
+                  const ProfileAvatar(size: 46),
+                  const SizedBox(height: 8),
                   Expanded(
                     child: ListView(
                       padding: EdgeInsets.zero,
@@ -220,7 +245,7 @@ class _NavRail extends StatelessWidget {
       );
     }
     return Material(
-      color: kSurface,
+      color: paletteFor(store.appTheme).surface,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
@@ -251,7 +276,8 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? kAccent : kMuted;
+    final palette = paletteFor(StoreScope.of(context).appTheme);
+    final color = selected ? kAccent : palette.muted;
     if (compact) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),

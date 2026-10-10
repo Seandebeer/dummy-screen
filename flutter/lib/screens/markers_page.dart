@@ -312,8 +312,10 @@ class _MarkersPageState extends State<MarkersPage> {
         ? const Color(0xFF0B0B0F)
         : parseHex(_bgColor, const Color(0xFF0B0B0F));
     final light = _bgColor != null && lightHex(bg);
-    final line = light ? Colors.black26 : Colors.white24;
+    final line = light ? Colors.black87 : Colors.white70;
     final ink = light ? Colors.black87 : Colors.white;
+    final chrome = light ? const Color(0xF21A1A1E) : const Color(0xF2F4F4F8);
+    final chromeInk = light ? Colors.white : const Color(0xFF1C1C1E);
     return ThreeFingerToggle(
       onToggle: () => _locked ? _unlock() : _lock(),
       child: CallbackShortcuts(
@@ -485,11 +487,9 @@ class _MarkersPageState extends State<MarkersPage> {
                           StoreScope.of(context).openTab(0);
                         }
                       },
-                      icon: Icon(Icons.arrow_back, size: 16, color: light ? Colors.black54 : Colors.white54),
-                      label: Text(
-                        'Back',
-                        style: TextStyle(color: light ? Colors.black54 : Colors.white54),
-                      ),
+                      icon: Icon(Icons.arrow_back, size: 16, color: chromeInk),
+                      label: Text('Back', style: TextStyle(color: chromeInk, fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(backgroundColor: chrome),
                     ),
                   ),
                 if (!_locked)
@@ -501,7 +501,7 @@ class _MarkersPageState extends State<MarkersPage> {
                       child: Text(
                         'Tap to add numbers · hold to clear · drag to rearrange',
                         style: TextStyle(
-                          color: light ? Colors.black38 : Colors.white38,
+                          color: light ? Colors.black87 : Colors.white70,
                           fontSize: 9,
                         ),
                       ),
@@ -513,9 +513,9 @@ class _MarkersPageState extends State<MarkersPage> {
                     right: 8,
                     child: TextButton.icon(
                       onPressed: _lock,
-                      icon: const Icon(Icons.lock, size: 12, color: Colors.white70),
-                      label: const Text('Lock', style: TextStyle(color: Colors.white70, fontSize: 10)),
-                      style: TextButton.styleFrom(backgroundColor: const Color(0xFF1C1C1E)),
+                      icon: Icon(Icons.fullscreen, size: 18, color: chromeInk),
+                      label: Text('Fullscreen', style: TextStyle(color: chromeInk, fontSize: 10, fontWeight: FontWeight.w600)),
+                      style: TextButton.styleFrom(backgroundColor: chrome),
                     ),
                   ),
                 if (!_locked)
@@ -527,33 +527,42 @@ class _MarkersPageState extends State<MarkersPage> {
                       alignment: WrapAlignment.center,
                       spacing: 6,
                       children: [
-                        _tool(Icons.palette_outlined, () => _pickColor()),
-                        _tool(Icons.category_outlined, () => _pickMarks()),
+                        _tool(Icons.palette_outlined, () => _pickColor(light), fill: chrome, ink: chromeInk),
+                        _tool(Icons.category_outlined, () => _pickMarks(light: light), fill: chrome, ink: chromeInk),
+                        _tool(Icons.my_location, () => _pickMarks(light: light, kinds: true), fill: chrome, ink: chromeInk),
                         _tool(Icons.auto_awesome, () {
                           setState(() => _glow = !_glow);
                           _persist();
-                        }, on: _glow),
-                        _tool(Icons.save_outlined, _save),
-                        _tool(Icons.restart_alt, () {
+                        }, on: _glow, fill: chrome, ink: chromeInk),
+                        _tool(Icons.save_outlined, _save, fill: chrome, ink: chromeInk),
+                        _markedTool('×', () {
+                          setState(() {
+                            _markLayouts[_markStyle] = defaultLayoutFor(_markStyle);
+                            _markSize = 1.1;
+                            _markThick = 0.6;
+                          });
+                          _persist();
+                        }, fill: chrome, ink: chromeInk),
+                        _markedTool('1', () {
                           setState(() {
                             _assignments.clear();
                             _barNumber = [];
                             _barVNumber = [];
                           });
                           _persist();
-                        }),
+                        }, fill: chrome, ink: chromeInk),
                       ],
                     ),
                   ),
                 if (_locked && _hint)
-                  const Positioned(
+                  Positioned(
                     top: 36,
                     left: 0,
                     right: 0,
                     child: Text(
                       'Three-finger tap or L unlocks',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: chromeInk.withValues(alpha: 0.75), fontSize: 12),
                     ),
                   ),
               ],
@@ -564,30 +573,66 @@ class _MarkersPageState extends State<MarkersPage> {
     );
   }
 
-  Widget _tool(IconData icon, VoidCallback onTap, {bool on = false}) {
+  Widget _markedTool(String mark, VoidCallback onTap, {required Color fill, required Color ink}) {
+    final wide = MediaQuery.sizeOf(context).width >= 768;
+    return IconButton(
+      tooltip: mark == '1' ? 'Reset numbers' : 'Reset tracking marks',
+      onPressed: onTap,
+      icon: Stack(
+        alignment: Alignment.center,
+        children: [
+          Icon(Icons.restart_alt, size: wide ? 28 : 16, color: ink),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.white, width: 1),
+            ),
+            child: Text(
+              mark,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: wide ? 11 : 9,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+      style: IconButton.styleFrom(
+        backgroundColor: fill,
+        fixedSize: Size(wide ? 76 : 40, wide ? 64 : 36),
+      ),
+    );
+  }
+
+  Widget _tool(IconData icon, VoidCallback onTap, {bool on = false, required Color fill, required Color ink}) {
     final wide = MediaQuery.sizeOf(context).width >= 768;
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon, size: wide ? 28 : 16, color: on ? kAccent : Colors.white70),
+      icon: Icon(icon, size: wide ? 28 : 16, color: on ? kAccent : ink),
       style: IconButton.styleFrom(
-        backgroundColor: const Color(0xCC1C1C1E),
+        backgroundColor: fill,
         fixedSize: Size(wide ? 76 : 40, wide ? 64 : 36),
         iconSize: wide ? 32 : 18,
       ),
     );
   }
 
-  Future<void> _pickColor() async {
+  Future<void> _pickColor(bool light) async {
+    final chrome = StageChrome(light);
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xE6000000),
+      backgroundColor: chrome.fill,
       builder: (context) => ListView(
         shrinkWrap: true,
         children: [
           for (final color in kVfxPalette)
             ListTile(
               leading: CircleAvatar(backgroundColor: color.hex, radius: 8),
-              title: Text(color.label, style: const TextStyle(color: Colors.white)),
+              title: Text(color.label, style: TextStyle(color: chrome.ink)),
               trailing: _bgColor == hexOf(color.hex)
                   ? const Icon(Icons.check, color: kAccent)
                   : null,
@@ -602,23 +647,26 @@ class _MarkersPageState extends State<MarkersPage> {
     );
   }
 
-  Future<void> _pickMarks() async {
+  Future<void> _pickMarks({required bool light, bool kinds = false}) async {
+    final chrome = StageChrome(light);
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xE6000000),
+      backgroundColor: chrome.fill,
       builder: (context) => ListView(
+        shrinkWrap: true,
         children: [
-          ListTile(
-            title: const Text('NONE', style: TextStyle(color: Colors.white, fontSize: 12)),
-            onTap: () {
-              setState(() => _markStyle = 'none');
-              _persist();
-              Navigator.pop(context);
-            },
-          ),
-          for (final style in kMarkerKinds)
+          if (!kinds)
             ListTile(
-              title: Text(style.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12)),
+              title: Text('NONE', style: TextStyle(color: chrome.ink, fontSize: 12)),
+              onTap: () {
+                setState(() => _markStyle = 'none');
+                _persist();
+                Navigator.pop(context);
+              },
+            ),
+          for (final style in (kinds ? kMarkerKinds : kTrackingStyles))
+            ListTile(
+              title: Text(style.name.toUpperCase(), style: TextStyle(color: chrome.ink, fontSize: 12)),
               trailing: _markStyle == style.id ? const Icon(Icons.check, color: kAccent) : null,
               onTap: () {
                 setState(() => _markStyle = style.id);
@@ -972,6 +1020,7 @@ class _MarkerButtonState extends State<_MarkerButton> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: widget.locked && widget.empty ? Colors.transparent : widget.line,
+          width: 1.6,
         ),
         boxShadow: _glow
             ? const [

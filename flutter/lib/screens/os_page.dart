@@ -8,6 +8,7 @@ import '../deck/chrome.dart';
 import '../store.dart';
 import '../format.dart';
 import '../models.dart';
+import '../phone/app_catalog.dart';
 import '../phone/catalog.dart';
 import '../phone/console_apps.dart';
 import '../phone/desk_settings.dart';
@@ -16,10 +17,13 @@ import '../phone/lock_screen.dart';
 import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
 import '../phone/form_factor.dart';
+import 'home_page.dart';
 import '../phone/settings_app.dart';
+import '../phone/smart_home.dart';
 import '../theme.dart';
 import '../vfx/catalog.dart';
 import '../vfx/mark_glyph.dart';
+import '../widgets/prompt.dart';
 import '../widgets/three_finger.dart';
 
 class OsPage extends StatefulWidget {
@@ -40,6 +44,7 @@ class _OsPageState extends State<OsPage> {
   int _closeTick = 0;
   bool _openingPending = false;
   int _side = 0;
+  bool _quarter = false;
   StageStore? _store;
   final Set<String> _lockedVisit = {};
   String? _sheet;
@@ -49,6 +54,9 @@ class _OsPageState extends State<OsPage> {
     super.initState();
     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) StoreScope.of(context).beginOsSession();
     });
     try {
       _tilt = accelerometerEventStream().listen(
@@ -69,14 +77,21 @@ class _OsPageState extends State<OsPage> {
     super.didChangeDependencies();
     _store = StoreScope.of(context);
     final device = _store!.deviceById(_store!.boundDeviceId);
-    if (device != null &&
-        (device.kind == 'phone' || device.kind == 'tablet') &&
-        _lockedVisit.add(device.id) &&
-        !device.locked) {
+    if (device != null && (device.kind == 'phone' || device.kind == 'tablet')) {
       final id = device.id;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _store?.setLocked(id, true);
-      });
+      final skip = _store!.bypassLock || device.os.lockType == 'off';
+      if (skip) {
+        _store!.bypassLock = false;
+        if (device.locked) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _store?.setLocked(id, false);
+          });
+        }
+      } else if (_lockedVisit.add(id) && !device.locked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _store?.setLocked(id, true);
+        });
+      }
     }
     final pending = StoreScope.of(context).pendingApp;
     if (pending == null || _openingPending) return;
@@ -94,12 +109,15 @@ class _OsPageState extends State<OsPage> {
     _tilt?.cancel();
     final id = _store?.boundDeviceId;
     if (id != null) _store!.driveOs(id, null);
+    _store?.endOsSession();
     super.dispose();
   }
 
   void _toggleFilming() {
     FocusManager.instance.primaryFocus?.unfocus();
     final store = StoreScope.of(context);
+    final entering = !store.filming;
+    if (entering && _quarter) setState(() => _quarter = false);
     store.setFilming(!store.filming);
   }
 
@@ -194,14 +212,33 @@ class _OsPageState extends State<OsPage> {
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final framed = constraints.maxWidth >= 520 && !store.filming;
-                      final landscape = device.os.autoRotate && _side != 0;
-                      final metrics = metricsFor(device.kind, landscape: landscape);
-                      final aspect = metrics.aspect;
-                      var height = constraints.maxHeight - (framed ? 24 : 0);
-                      var width = height * aspect;
-                      if (width > constraints.maxWidth - (framed ? 24 : 0)) {
-                        width = constraints.maxWidth - (framed ? 24 : 0);
-                        height = width / aspect;
+                      final turned = !store.filming &&
+                          (_quarter || (device.os.autoRotate && _side != 0));
+                      final metrics = metricsForTurn(device.kind, turned: turned);
+                      // Fit the default orientation first. A 90° turn keeps that
+                      // scale and only shrinks when the swapped box leaves the stage.
+                      final fit = framed || store.filming;
+                      final margin = framed ? 24.0 : 0.0;
+                      final maxW = constraints.maxWidth - margin;
+                      final maxH = constraints.maxHeight - margin;
+                      final base = metricsForTurn(device.kind, turned: false);
+                      var baseHeight = maxH;
+                      var baseWidth = baseHeight * base.aspect;
+                      if (baseWidth > maxW && base.aspect > 0) {
+                        baseWidth = maxW;
+                        baseHeight = baseWidth / base.aspect;
+                      }
+                      var width = turned ? baseHeight : baseWidth;
+                      var height = turned ? baseWidth : baseHeight;
+                      if (width > maxW && width > 0) {
+                        final scale = maxW / width;
+                        width *= scale;
+                        height *= scale;
+                      }
+                      if (height > maxH && height > 0) {
+                        final scale = maxH / height;
+                        width *= scale;
+                        height *= scale;
                       }
                       final now = propNow(device.clockOffsetMinutes);
                       final phone = device.kind == 'phone' || device.kind == 'tablet';
@@ -226,7 +263,12 @@ class _OsPageState extends State<OsPage> {
                           banners: store.bannersFor(device.id),
                           onDismissBanner: store.dismissBanner,
                           onOpenBanner: _openBanner,
-                          body: _body(store, device, now),
+                          body: _body(
+                            store,
+                            device,
+                            now,
+                            wide: device.kind == 'tablet' || metrics.aspect > 1,
+                          ),
                           device: device,
                         )
                           : FormOs(
@@ -240,8 +282,8 @@ class _OsPageState extends State<OsPage> {
                       final marked = _withMarks(stage, device, store);
                       final screen = Center(
                         child: SizedBox(
-                          width: framed ? width : constraints.maxWidth,
-                          height: framed ? height : constraints.maxHeight,
+                          width: fit ? width : constraints.maxWidth,
+                          height: fit ? height : constraints.maxHeight,
                           child: IgnorePointer(
                             ignoring: driven,
                             child: framed
@@ -251,20 +293,41 @@ class _OsPageState extends State<OsPage> {
                         ),
                       );
                       if (!editing) return screen;
-                      final room = constraints.maxWidth - width > 140;
                       return Stack(
                         children: [
                           screen,
                           Positioned(
                             left: 8,
-                            bottom: 16,
-                            child: _workspaceBack(device),
+                            top: 8,
+                            child: _workspaceTools(device, store),
                           ),
-                          if (device.os.showTracking && room)
+                          if (store.osFlash != null)
                             Positioned(
-                              right: 8,
-                              top: 12,
-                              bottom: 12,
+                              left: 0,
+                              right: 0,
+                              bottom: 72,
+                              child: Center(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xE610141A),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    child: Text(
+                                      store.osFlash!,
+                                      key: const Key('os-undo-flash'),
+                                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (device.os.showTracking)
+                            Positioned(
+                              left: 12,
+                              right: 12,
+                              bottom: 16,
                               child: _trackingBar(store),
                             ),
                           if (_sheet != null)
@@ -289,7 +352,58 @@ class _OsPageState extends State<OsPage> {
     store.updateOs(device.id, (os) => os.copyWith(cellular: next));
   }
 
-  Widget _workspaceBack(PropDevice device) {
+  Widget _workspaceTools(PropDevice device, StageStore store) {
+    final wide = MediaQuery.sizeOf(context).width >= 768;
+    final size = wide ? 28.0 : 18.0;
+    return Row(
+      children: [
+        _workspaceBack(device, size),
+        const SizedBox(width: 4),
+        _roundTool(
+          key: const Key('os-undo'),
+          tooltip: 'Undo',
+          icon: Icons.undo,
+          size: size,
+          onPressed: store.undoOs,
+        ),
+        _roundTool(
+          key: const Key('os-redo'),
+          tooltip: 'Redo',
+          icon: Icons.redo,
+          size: size,
+          onPressed: store.redoOs,
+        ),
+        _roundTool(
+          key: const Key('os-rotate'),
+          tooltip: 'Rotate',
+          icon: Icons.screen_rotation,
+          size: size,
+          onPressed: () => setState(() => _quarter = !_quarter),
+        ),
+      ],
+    );
+  }
+
+  Widget _roundTool({
+    required Key key,
+    required String tooltip,
+    required IconData icon,
+    required double size,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.45),
+      shape: const CircleBorder(),
+      child: IconButton(
+        key: key,
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: size),
+      ),
+    );
+  }
+
+  Widget _workspaceBack(PropDevice device, double size) {
     return Material(
       color: Colors.black.withValues(alpha: 0.45),
       shape: const CircleBorder(),
@@ -309,17 +423,20 @@ class _OsPageState extends State<OsPage> {
             _closeTick++;
           });
         },
-        icon: const Icon(Icons.arrow_back, size: 18),
+        icon: Icon(Icons.arrow_back, size: size),
       ),
     );
   }
 
   Widget _editHeader(StageStore store, PropDevice? device, DeckPalette palette) {
+    final wide = MediaQuery.sizeOf(context).width >= 768;
+    final iconSize = wide ? 32.0 : 22.0;
     final linked = device != null &&
         store.targetDeviceId == device.id &&
         (store.sync?.role ?? LinkRole.solo) != LinkRole.solo;
     final apps = device != null &&
         const {'phone', 'tablet', 'computer', 'tv', 'console'}.contains(device.kind);
+    final project = _projectName(store, device);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -330,7 +447,7 @@ class _OsPageState extends State<OsPage> {
           IconButton(
             tooltip: 'Home',
             onPressed: () => store.openTab(0),
-            icon: const Icon(Icons.home_outlined, size: 20),
+            icon: Icon(Icons.home_outlined, size: iconSize),
           ),
           Expanded(
             child: device == null
@@ -363,28 +480,48 @@ class _OsPageState extends State<OsPage> {
           if (device != null)
             IconButton(
               key: const Key('os-devices'),
-              tooltip: 'Devices',
+              tooltip: '$project devices',
               onPressed: () => setState(() => _sheet = _sheet == 'devices' ? null : 'devices'),
-              icon: const Icon(Icons.devices, size: 22),
+              icon: Icon(Icons.devices, size: iconSize),
             ),
           if (apps)
             IconButton(
               key: const Key('os-apps'),
               tooltip: 'Apps',
               onPressed: () => setState(() => _sheet = _sheet == 'apps' ? null : 'apps'),
-              icon: const Icon(Icons.apps, size: 22),
+              icon: Icon(Icons.apps, size: iconSize),
             ),
           if (device != null)
             IconButton(
               key: const Key('os-settings'),
               tooltip: 'Device settings',
               onPressed: () => setState(() => _sheet = _sheet == 'settings' ? null : 'settings'),
-              icon: const Icon(Icons.settings_outlined, size: 22),
+              icon: Icon(Icons.settings_outlined, size: iconSize),
+            ),
+          if (device != null)
+            IconButton(
+              key: const Key('os-tracking'),
+              tooltip: 'Tracking marks',
+              onPressed: () {
+                final next = !device.os.showTracking;
+                if (next) {
+                  store.setScreenConfig({...store.screenConfig, 'opacity': 1});
+                }
+                store.updateOs(
+                  device.id,
+                  (os) => os.copyWith(showTracking: next),
+                );
+              },
+              icon: Icon(
+                Icons.center_focus_strong,
+                size: iconSize,
+                color: device.os.showTracking ? kSignal : null,
+              ),
             ),
           IconButton(
             tooltip: 'Fullscreen',
             onPressed: device == null ? null : _toggleFilming,
-            icon: const Icon(Icons.expand_less),
+            icon: Icon(Icons.fullscreen, size: iconSize),
           ),
         ],
       ),
@@ -426,8 +563,23 @@ class _OsPageState extends State<OsPage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('Devices', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        Text(
+          '${_projectName(store, current)} Devices',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
         const SizedBox(height: 8),
+        ListTile(
+          key: const Key('os-device-new'),
+          leading: const Icon(Icons.add),
+          title: const Text('New'),
+          onTap: () => _createDevice(store, current, duplicate: false),
+        ),
+        ListTile(
+          key: const Key('os-device-duplicate'),
+          leading: const Icon(Icons.copy),
+          title: const Text('Duplicate'),
+          onTap: () => _createDevice(store, current, duplicate: true),
+        ),
         if (devices.isEmpty)
           const Text('No devices in this project yet.', style: TextStyle(color: kMuted)),
         for (final item in devices)
@@ -450,23 +602,53 @@ class _OsPageState extends State<OsPage> {
   }
 
   Widget _appList(PropDevice device) {
-    final apps = [
-      for (final id in device.os.homeOrder.isEmpty ? kHomeOrder : device.os.homeOrder)
-        ?propAppById(id),
+    final store = StoreScope.of(context);
+    final order = device.os.homeOrder.isEmpty ? kHomeOrder : device.os.homeOrder;
+    final sections = <(String, List<(String, String, IconData, Color)>)>[
+      (
+        'Functional',
+        [
+          for (final app in kPropApps)
+            (app.id, app.label, app.icon, app.color),
+        ],
+      ),
+      for (final section in mockCatalog)
+        (
+          section.name,
+          [
+            for (final app in section.apps)
+              (app.id, app.label, app.icon, app.color),
+          ],
+        ),
     ];
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text('${device.name} apps', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        const SizedBox(height: 4),
+        const Text(
+          'Categories start closed. Show or hide an app on the home screen.',
+          style: TextStyle(color: kMuted, fontSize: 12),
+        ),
         const SizedBox(height: 8),
-        for (final app in apps)
-          ListTile(
-            key: Key('os-app-${app.id}'),
-            leading: Icon(app.icon, color: app.color),
-            title: Text(app.label),
-            onTap: () {
+        for (final section in sections)
+          _AppCategory(
+            name: section.$1,
+            apps: section.$2,
+            shown: order.toSet(),
+            onOpen: (id) {
               setState(() => _sheet = null);
-              _open(app.id);
+              _open(id);
+            },
+            onToggle: (id) {
+              if (kDockIds.contains(id)) return;
+              final next = [...order];
+              if (next.contains(id)) {
+                next.remove(id);
+              } else {
+                next.add(id);
+              }
+              store.updateOs(device.id, (os) => os.copyWith(homeOrder: next));
             },
           ),
       ],
@@ -482,6 +664,18 @@ class _OsPageState extends State<OsPage> {
           device: live,
           onClose: () => setState(() => _sheet = null),
         ),
+      'tv' => _ShellSettings(
+          title: 'Smart TV',
+          shells: const [('aurora', 'Aurora'), ('slate', 'Slate'), ('neon', 'Neon')],
+          selected: live.os.shell.isEmpty ? 'aurora' : live.os.shell,
+          onSelect: (id) => store.updateOs(live.id, (os) => os.copyWith(shell: id)),
+        ),
+      'atm' => _AtmSettings(store: store, device: live),
+      'cctv' => const _NoteSettings(
+          title: 'CCTV',
+          body: 'This camera wall uses one fixed layout.',
+        ),
+      'smarthome' || 'homephone' => _PanelSettings(store: store, device: live),
       _ => SettingsApp(store: store, device: live),
     };
     return Column(
@@ -501,9 +695,23 @@ class _OsPageState extends State<OsPage> {
 
   Widget _withMarks(Widget stage, PropDevice device, StageStore store) {
     if (!device.os.showTracking) return stage;
-    final style = store.screenConfig['marksId'] as String? ?? 'cross';
-    if (!kMarkerKinds.any((item) => item.id == style)) return stage;
-    final marks = defaultLayoutFor(style);
+    final config = store.screenConfig;
+    final style = config['marksId'] as String? ?? 'cross';
+    if (!kMarkerKinds.any((item) => item.id == style) && style != 'checkerboard' && style != 'dots') {
+      return stage;
+    }
+    final raw = config['layouts'];
+    List<StageMark> marks = defaultLayoutFor(style);
+    if (raw is Map && raw[style] is List) {
+      marks = [
+        for (final item in jsonList(raw[style]))
+          if (item is Map) StageMark.fromJson(jsonMap(item)),
+      ];
+    }
+    final scale = (config['scale'] as num?)?.toDouble() ?? 1;
+    final thick = (config['thickness'] as num?)?.toDouble() ?? 1;
+    final fade = _markOpacity(config['opacity']);
+    final ink = parseHex(config['markColor'] as String?, Colors.white);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -514,14 +722,17 @@ class _OsPageState extends State<OsPage> {
               for (final item in marks)
                 Align(
                   alignment: Alignment(item.x / 50 - 1, item.y / 50 - 1),
-                  child: MarkGlyph(
-                    kind: item.kind,
-                    color: Colors.white,
-                    scale: 1.1,
-                    thickness: 0.6,
-                    rotation: item.rot,
-                    x: item.x,
-                    y: item.y,
+                  child: Opacity(
+                    opacity: fade.clamp(0.15, 1),
+                    child: MarkGlyph(
+                      kind: item.kind,
+                      color: ink,
+                      scale: 1.1 * scale,
+                      thickness: 0.6 * thick,
+                      rotation: item.rot,
+                      x: item.x,
+                      y: item.y,
+                    ),
                   ),
                 ),
             ],
@@ -531,51 +742,235 @@ class _OsPageState extends State<OsPage> {
     );
   }
 
+  double _markOpacity(Object? raw) {
+    if (raw is! num) return 1;
+    final value = raw.toDouble();
+    if (value > 1) return (value / 100).clamp(0.15, 1);
+    return value.clamp(0.15, 1);
+  }
+
+  void _writeScreen(StageStore store, Map<String, dynamic> patch) {
+    store.setScreenConfig({...store.screenConfig, ...patch});
+  }
+
+  List<StageMark> _marksFor(StageStore store, String style) {
+    final raw = store.screenConfig['layouts'];
+    if (raw is Map && raw[style] is List) {
+      return [
+        for (final item in jsonList(raw[style]))
+          if (item is Map) StageMark.fromJson(jsonMap(item)),
+      ];
+    }
+    return defaultLayoutFor(style);
+  }
+
   Widget _trackingBar(StageStore store) {
     final selected = store.screenConfig['marksId'] as String? ?? 'cross';
-    return Material(
-      color: const Color(0xCC10141A),
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        width: 128,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(bottom: 6),
-              child: Text('Tracking', style: TextStyle(fontSize: 11, color: Colors.white70)),
-            ),
-            for (final style in kMarkerKinds)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: TextButton(
-                  key: Key('os-track-${style.id}'),
-                  style: TextButton.styleFrom(
-                    backgroundColor: selected == style.id
-                        ? kSignal.withValues(alpha: 0.25)
-                        : Colors.white10,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  onPressed: () {
-                    final next = Map<String, dynamic>.from(store.screenConfig);
-                    next['marksId'] = style.id;
-                    store.setScreenConfig(next);
-                  },
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(style.name, style: const TextStyle(fontSize: 12)),
-                  ),
-                ),
+    final addKind = store.screenConfig['addKind'] as String? ?? 'cross';
+    final point = isPointStyle(selected);
+    final chrome = StageChrome(store.deviceById(store.boundDeviceId)?.os.isLight ?? false);
+    final menu = TextStyle(color: chrome.ink);
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Material(
+        color: chrome.bar,
+        borderRadius: BorderRadius.circular(28),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              PopupMenuButton<String>(
+                tooltip: 'Colour',
+                icon: Icon(Icons.palette_outlined, color: chrome.ink),
+                color: chrome.fill,
+                onSelected: (hex) => _writeScreen(store, {'markColor': hex}),
+                itemBuilder: (context) => [
+                  for (final color in kVfxPalette)
+                    PopupMenuItem(
+                      value: '#${(color.hex.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+                      child: Text(color.name, style: menu),
+                    ),
+                  PopupMenuItem(value: '#FFFFFF', child: Text('White', style: menu)),
+                ],
               ),
-          ],
+              PopupMenuButton<String>(
+                key: const Key('os-track-menu'),
+                tooltip: 'Tracking marks',
+                icon: Icon(Icons.category_outlined, color: chrome.ink),
+                color: chrome.fill,
+                onSelected: (id) => _writeScreen(store, {'marksId': id}),
+                itemBuilder: (context) => [
+                  for (final style in kTrackingStyles)
+                    PopupMenuItem(
+                      key: Key('os-track-${style.id}'),
+                      value: style.id,
+                      child: Text(style.id == selected ? '${style.name} ·' : style.name, style: menu),
+                    ),
+                ],
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'New marker type',
+                icon: Icon(Icons.my_location, color: chrome.ink),
+                color: chrome.fill,
+                onSelected: (id) => _writeScreen(store, {'addKind': id, 'marksId': id}),
+                itemBuilder: (context) => [
+                  for (final kind in kMarkerKinds)
+                    PopupMenuItem(
+                      value: kind.id,
+                      child: Text(kind.id == addKind ? '${kind.name} ·' : kind.name, style: menu),
+                    ),
+                ],
+              ),
+              IconButton(
+                tooltip: 'Size & thickness',
+                onPressed: () => _markSizeSheet(store),
+                icon: Icon(Icons.tune, color: chrome.ink),
+              ),
+              if (point)
+                IconButton(
+                  tooltip: 'Rotate all markers 45°',
+                  onPressed: () {
+                    final next = [
+                      for (final mark in _marksFor(store, selected))
+                        mark.copyWith(rot: (mark.rot + 45) % 360),
+                    ];
+                    final layouts = Map<String, dynamic>.from(
+                      store.screenConfig['layouts'] as Map? ?? {},
+                    );
+                    layouts[selected] = [for (final mark in next) mark.toJson()];
+                    _writeScreen(store, {'layouts': layouts});
+                  },
+                  icon: Icon(Icons.rotate_right, color: chrome.ink),
+                ),
+              IconButton(
+                tooltip: 'Save screen',
+                onPressed: () => _saveTracking(store, selected),
+                icon: Icon(Icons.save_outlined, color: chrome.ink),
+              ),
+              IconButton(
+                tooltip: 'Reset tracking marks',
+                onPressed: () {
+                  final layouts = Map<String, dynamic>.from(
+                    store.screenConfig['layouts'] as Map? ?? {},
+                  );
+                  layouts.remove(selected);
+                  _writeScreen(store, {
+                    'layouts': layouts,
+                    'scale': 1,
+                    'thickness': 1,
+                    'opacity': 1,
+                  });
+                },
+                icon: Icon(Icons.restart_alt, color: chrome.ink),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _body(StageStore store, PropDevice device, DateTime now) {
-    if (device.locked) {
+  Future<void> _markSizeSheet(StageStore store) async {
+    final chrome = StageChrome(store.deviceById(store.boundDeviceId)?.os.isLight ?? false);
+    var scale = (store.screenConfig['scale'] as num?)?.toDouble() ?? 1;
+    var thick = (store.screenConfig['thickness'] as num?)?.toDouble() ?? 1;
+    var fade = _markOpacity(store.screenConfig['opacity']);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: chrome.fill,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheet) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: TextStyle(color: chrome.ink, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Slider(
+                    value: scale.clamp(0.5, 3),
+                    min: 0.5,
+                    max: 3,
+                    onChanged: (value) {
+                      setSheet(() => scale = value);
+                      _writeScreen(store, {'scale': value, 'thickness': thick, 'opacity': fade});
+                    },
+                  ),
+                  Text('THICKNESS  ${thick.toStringAsFixed(2)}', style: TextStyle(color: chrome.ink, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Slider(
+                    value: thick.clamp(0.4, 3),
+                    min: 0.4,
+                    max: 3,
+                    onChanged: (value) {
+                      setSheet(() => thick = value);
+                      _writeScreen(store, {'scale': scale, 'thickness': value, 'opacity': fade});
+                    },
+                  ),
+                  Text('OPACITY  ${fade.toStringAsFixed(2)}', style: TextStyle(color: chrome.ink, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Slider(
+                    value: fade.clamp(0.15, 1),
+                    min: 0.15,
+                    max: 1,
+                    onChanged: (value) {
+                      setSheet(() => fade = value);
+                      _writeScreen(store, {'scale': scale, 'thickness': thick, 'opacity': value});
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _saveTracking(StageStore store, String marksId) async {
+    final name = await promptText(
+      context,
+      title: 'Save screen',
+      initial: marksId,
+      confirm: 'Save',
+    );
+    if (name == null || name.trim().isEmpty || !mounted) return;
+    final device = store.deviceById(store.boundDeviceId);
+    store.upsertSaved(
+      SavedLayout(
+        id: 's-${DateTime.now().microsecondsSinceEpoch}',
+        name: name.trim(),
+        skin: device?.skin ?? 'modern',
+        clockOffsetMinutes: 0,
+        notes: '',
+        vfxColor: store.vfxColor,
+        vfxMarks: const [],
+        uiMarkers: const [],
+        kind: 'screen',
+        deviceId: store.boundDeviceId ?? '',
+        payload: Map<String, dynamic>.from(store.screenConfig),
+      ),
+    );
+  }
+
+  Future<void> _createDevice(StageStore store, PropDevice current, {required bool duplicate}) async {
+    final created = await addProjectDevice(
+      context,
+      store: store,
+      projectId: current.projectId,
+      copyFrom: duplicate ? current : null,
+    );
+    if (created == null || !mounted) return;
+    store.bindDevice(created.id);
+    setState(() {
+      _sheet = null;
+      _app = null;
+      _thread = null;
+      _grey = false;
+      _launchApp = null;
+    });
+  }
+
+  Widget _body(StageStore store, PropDevice device, DateTime now, {bool wide = false}) {
+    if (device.locked && device.os.lockType != 'off') {
       return LockView(
         device: device,
         timeLabel: formatClock(now),
@@ -597,7 +992,7 @@ class _OsPageState extends State<OsPage> {
         return PhoneHome(
         skin: device.skin,
         os: device.os,
-        wide: device.kind == 'tablet',
+        wide: wide,
         light: device.os.isLight,
         onOpen: _open,
       );
@@ -648,6 +1043,210 @@ class _PickDevice extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+String _projectName(StageStore store, PropDevice? device) {
+  final id = device?.projectId ?? store.selectedProjectId;
+  for (final project in store.projects) {
+    if (project.id == id) return project.name;
+  }
+  return 'Project';
+}
+
+class _AppCategory extends StatefulWidget {
+  const _AppCategory({
+    required this.name,
+    required this.apps,
+    required this.shown,
+    required this.onOpen,
+    required this.onToggle,
+  });
+
+  final String name;
+  final List<(String, String, IconData, Color)> apps;
+  final Set<String> shown;
+  final ValueChanged<String> onOpen;
+  final ValueChanged<String> onToggle;
+
+  @override
+  State<_AppCategory> createState() => _AppCategoryState();
+}
+
+class _AppCategoryState extends State<_AppCategory> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Icon(_open ? Icons.expand_less : Icons.expand_more, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(widget.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_open)
+          for (final app in widget.apps)
+            InkWell(
+              key: Key('os-app-${app.$1}'),
+              onTap: () => widget.onOpen(app.$1),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(app.$3, color: app.$4, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(app.$2)),
+                    IconButton(
+                      tooltip: widget.shown.contains(app.$1) ? 'Hide on home' : 'Show on home',
+                      onPressed: () => widget.onToggle(app.$1),
+                      icon: Icon(
+                        widget.shown.contains(app.$1) ? Icons.visibility : Icons.visibility_off,
+                        size: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+      ],
+    );
+  }
+}
+
+class _ShellSettings extends StatelessWidget {
+  const _ShellSettings({
+    required this.title,
+    required this.shells,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final String title;
+  final List<(String, String)> shells;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        const Text('Interface', style: TextStyle(color: kMuted)),
+        for (final shell in shells)
+          ListTile(
+            key: Key('shell-${shell.$1}'),
+            title: Text(shell.$2),
+            trailing: selected == shell.$1 ? const Icon(Icons.check, color: kSignal) : null,
+            onTap: () => onSelect(shell.$1),
+          ),
+      ],
+    );
+  }
+}
+
+class _NoteSettings extends StatelessWidget {
+  const _NoteSettings({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text(body, style: const TextStyle(color: kMuted)),
+      ],
+    );
+  }
+}
+
+class _AtmSettings extends StatelessWidget {
+  const _AtmSettings({required this.store, required this.device});
+
+  final StageStore store;
+  final PropDevice device;
+
+  @override
+  Widget build(BuildContext context) {
+    final os = device.os;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('ATM', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        TextFormField(
+          initialValue: os.bankName,
+          decoration: const InputDecoration(labelText: 'Bank name'),
+          onFieldSubmitted: (value) => store.updateOs(
+            device.id,
+            (current) => current.copyWith(bankName: value.trim()),
+          ),
+        ),
+        TextFormField(
+          initialValue: os.bankHolder,
+          decoration: const InputDecoration(labelText: 'Account holder'),
+          onFieldSubmitted: (value) => store.updateOs(
+            device.id,
+            (current) => current.copyWith(bankHolder: value.trim()),
+          ),
+        ),
+        TextFormField(
+          initialValue: '${os.bankBalance}',
+          decoration: const InputDecoration(labelText: 'Balance'),
+          keyboardType: TextInputType.number,
+          onFieldSubmitted: (value) => store.updateOs(
+            device.id,
+            (current) => current.copyWith(bankBalance: int.tryParse(value) ?? current.bankBalance),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PanelSettings extends StatelessWidget {
+  const _PanelSettings({required this.store, required this.device});
+
+  final StageStore store;
+  final PropDevice device;
+
+  @override
+  Widget build(BuildContext context) {
+    final os = device.os;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          device.kind == 'homephone' ? 'Smart home phone' : 'Smart home',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        for (final id in homePanelOrder(os))
+          TextFormField(
+            initialValue: homePanelName(os, id),
+            decoration: InputDecoration(labelText: kHomePanelDefaults[id] ?? id),
+            onFieldSubmitted: (value) {
+              final names = {...os.panelNames, id: value.trim()};
+              store.updateOs(device.id, (current) => current.copyWith(panelNames: names));
+            },
+          ),
+      ],
     );
   }
 }

@@ -42,7 +42,6 @@ class _ControlPageState extends State<ControlPage> {
   late final TextEditingController _message;
   late final TextEditingController _reply;
   late final TextEditingController _banner;
-  late final TextEditingController _join;
   String _photo = '';
   String _photoMode = 'circle';
   bool _mic = true;
@@ -73,7 +72,6 @@ class _ControlPageState extends State<ControlPage> {
     _message = TextEditingController();
     _reply = TextEditingController();
     _banner = TextEditingController();
-    _join = TextEditingController();
     for (final controller in [_name, _number, _message, _reply, _banner]) {
       controller.addListener(() {
         if (mounted) setState(() {});
@@ -89,7 +87,6 @@ class _ControlPageState extends State<ControlPage> {
     _message.dispose();
     _reply.dispose();
     _banner.dispose();
-    _join.dispose();
     super.dispose();
   }
 
@@ -144,7 +141,6 @@ class _ControlPageState extends State<ControlPage> {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final palette = paletteFor(store.appTheme);
-    final link = store.sync;
     final target = store.deviceById(store.targetDeviceId);
     final channel = _broadcast
         ? 'stage-1'
@@ -195,8 +191,6 @@ class _ControlPageState extends State<ControlPage> {
                       setState(() => _broadcast = value);
                       store.setDeckBroadcast(value);
                     },
-                    link: link,
-                    join: _join,
                   ),
                   const SizedBox(height: 20),
                   CollapsibleCard(
@@ -576,8 +570,6 @@ class _TargetCard extends StatelessWidget {
     required this.channel,
     required this.broadcast,
     required this.onBroadcast,
-    required this.link,
-    required this.join,
   });
 
   final DeckPalette palette;
@@ -585,8 +577,6 @@ class _TargetCard extends StatelessWidget {
   final String? channel;
   final bool broadcast;
   final ValueChanged<bool> onBroadcast;
-  final StageSync? link;
-  final TextEditingController join;
 
   @override
   Widget build(BuildContext context) {
@@ -707,49 +697,13 @@ class _TargetCard extends StatelessWidget {
                 : 'tap the panel to pick a device - None disconnects',
             style: TextStyle(color: palette.muted, fontSize: 11),
           ),
-          const SizedBox(height: 12),
-          Text(
-            link?.status ?? 'On this device only.',
-            style: TextStyle(color: palette.muted, fontSize: 12),
-          ),
-          if (link?.address != null)
-            SelectableText(
-              link!.address!,
-              style: const TextStyle(
-                color: kAccent,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+          if (!store.holdsTrigger) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Another signed-in device is the trigger. Connect here to take control.',
+              style: TextStyle(color: palette.ink, fontSize: 12),
             ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: link == null || link!.role == LinkRole.host
-                    ? null
-                    : () => link!.host(),
-                child: const Text('Host deck'),
-              ),
-              SizedBox(
-                width: 180,
-                child: TextField(
-                  controller: join,
-                  decoration: deckField(palette, 'Join address'),
-                ),
-              ),
-              OutlinedButton(
-                onPressed: link == null
-                    ? null
-                    : () {
-                        link!.join(join.text);
-                        join.clear();
-                      },
-                child: const Text('Join'),
-              ),
-            ],
-          ),
+          ],
         ],
       ),
     );

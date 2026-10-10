@@ -1,7 +1,11 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../app.dart';
+import '../image_file.dart';
 import '../models.dart';
+import '../video_source.dart';
 import '../widgets/prompt.dart';
 import 'social_feed.dart';
 
@@ -38,6 +42,42 @@ String fmtCount(num value) {
     return '${text.replaceAll(RegExp(r'\.0$'), '')}K';
   }
   return number.round().toString();
+}
+
+/// Text that becomes a field while an OS app is in edit mode.
+Widget osField({
+  required bool editing,
+  required String value,
+  required ValueChanged<String> onChanged,
+  TextStyle? style,
+  int lines = 1,
+  TextAlign textAlign = TextAlign.start,
+}) {
+  if (!editing) return Text(value, style: style, textAlign: textAlign, maxLines: lines);
+  final ink = style?.color ?? const Color(0xFF111111);
+  final onDark = ink.computeLuminance() > 0.55;
+  final field = TextFormField(
+    initialValue: value,
+    style: style,
+    maxLines: lines,
+    textAlign: textAlign,
+    cursorColor: ink,
+    decoration: InputDecoration(
+      isDense: true,
+      filled: true,
+      fillColor: onDark ? const Color(0xE6111111) : Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      border: const OutlineInputBorder(),
+    ),
+    onChanged: onChanged,
+  );
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.maxWidth.isFinite) return field;
+      final guess = (value.length * 8.0 + 28).clamp(56.0, 240.0);
+      return SizedBox(width: guess, child: field);
+    },
+  );
 }
 
 class HueAvatar extends StatelessWidget {
@@ -81,13 +121,151 @@ class NetPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (url.isEmpty) return const ColoredBox(color: Color(0xFF1C1C1E));
-    return Image.network(
-      url,
+    final provider = imageProviderForPath(url);
+    if (provider == null) return const ColoredBox(color: Color(0xFF1C1C1E));
+    return Image(
+      image: provider,
       fit: fit,
       width: double.infinity,
       height: double.infinity,
       errorBuilder: (context, error, stack) => const ColoredBox(color: Color(0xFF1C1C1E)),
+    );
+  }
+}
+
+/// A feed photo or video, with upload controls while the app is being edited.
+class FeedMedia extends StatelessWidget {
+  const FeedMedia({
+    super.key,
+    required this.post,
+    required this.editing,
+    required this.onChanged,
+  });
+
+  final Map<String, dynamic> post;
+  final bool editing;
+  final VoidCallback onChanged;
+
+  Future<void> _pick(bool video) async {
+    final file = await FilePicker.pickFile(type: video ? FileType.video : FileType.image);
+    if (file == null) return;
+    final path = video ? await persistPickedVideo(file) : await persistPickedImage(file);
+    if (path == null) return;
+    if (video) {
+      post['video'] = path;
+    } else {
+      post['image'] = path;
+      post['video'] = '';
+    }
+    onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final video = '${post['video'] ?? ''}';
+    final image = '${post['image'] ?? ''}';
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (video.isNotEmpty)
+          _ClipView(url: video)
+        else
+          NetPhoto(url: image),
+        if (editing)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Row(
+              children: [
+                _upload(Icons.photo_outlined, 'Replace photo', () => _pick(false)),
+                const SizedBox(width: 6),
+                _upload(Icons.videocam_outlined, 'Replace video', () => _pick(true)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _upload(IconData icon, String tip, VoidCallback onTap) {
+    return Material(
+      color: const Color(0xCC111111),
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: tip,
+        onPressed: onTap,
+        icon: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
+  }
+}
+
+class _ClipView extends StatefulWidget {
+  const _ClipView({required this.url});
+
+  final String url;
+
+  @override
+  State<_ClipView> createState() => _ClipViewState();
+}
+
+class _ClipViewState extends State<_ClipView> {
+  VideoPlayerController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _open();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ClipView old) {
+    super.didUpdateWidget(old);
+    if (old.url != widget.url) {
+      _controller?.dispose();
+      _controller = null;
+      _open();
+    }
+  }
+
+  void _open() {
+    final url = widget.url;
+    final file = url.startsWith('/') || url.startsWith('file:');
+    final controller = file
+        ? playerForPath(url)
+        : VideoPlayerController.networkUrl(Uri.parse(url));
+    if (controller == null) return;
+    _controller = controller;
+    controller.initialize().then((_) {
+      if (!mounted) return;
+      controller
+        ..setLooping(true)
+        ..setVolume(0)
+        ..play();
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return const ColoredBox(color: Color(0xFF1C1C1E));
+    }
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: controller.value.size.width,
+        height: controller.value.size.height,
+        child: VideoPlayer(controller),
+      ),
     );
   }
 }
@@ -185,6 +363,23 @@ class _GrapevineAppState extends State<GrapevineApp> {
     'profile': {'name': _profile, 'bio': _bio, 'friends': _friends},
     'posts': _posts,
   };
+
+  void _keep() {
+    StoreScope.of(context).setPage('facepage', _snapshot());
+  }
+
+  Widget _editText(String value, ValueChanged<String> onChanged, TextStyle style, {int lines = 1}) {
+    return osField(
+      editing: _editing,
+      value: value,
+      style: style,
+      lines: lines,
+      onChanged: (next) {
+        onChanged(next);
+        _keep();
+      },
+    );
+  }
 
   Future<void> _compose() async {
     final text = await promptText(context, title: "What's on your mind?", confirm: 'Post');
@@ -285,22 +480,59 @@ class _GrapevineAppState extends State<GrapevineApp> {
         children: [
           ListTile(
             leading: HueAvatar(name: '${post['author']}', hue: Color(post['hue'] as int? ?? 0xFF1877F2), size: 36),
-            title: Text('${post['author']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            subtitle: Text('${post['time']}', style: const TextStyle(fontSize: 11)),
+            title: _editText(
+              '${post['author']}',
+              (value) => post['author'] = value,
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
+            ),
+            subtitle: _editText(
+              '${post['time']}',
+              (value) => post['time'] = value,
+              const TextStyle(fontSize: 11, color: Colors.black54),
+            ),
             dense: true,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-            child: Text('${post['text']}', style: const TextStyle(fontSize: 14, height: 1.3)),
+            child: _editText(
+              '${post['text']}',
+              (value) => post['text'] = value,
+              const TextStyle(fontSize: 14, height: 1.3, color: Colors.black),
+              lines: 4,
+            ),
           ),
-          if (image.isNotEmpty) AspectRatio(aspectRatio: 4 / 3, child: NetPhoto(url: image)),
+          if (image.isNotEmpty || '${post['video'] ?? ''}'.isNotEmpty || _editing)
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               children: [
-                Text('👍 ${post['likes']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                _editText(
+                  '${post['likes']}',
+                  (value) => post['likes'] = int.tryParse(value) ?? post['likes'],
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
                 const Spacer(),
-                Text('${post['comments']} comments · ${post['shares']} shares', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                _editText(
+                  '${post['comments']}',
+                  (value) => post['comments'] = int.tryParse(value) ?? post['comments'],
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
+                _editText(
+                  '${post['shares']}',
+                  (value) => post['shares'] = int.tryParse(value) ?? post['shares'],
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
               ],
             ),
           ),
@@ -356,12 +588,25 @@ class _GrapevineAppState extends State<GrapevineApp> {
             children: [
               HueAvatar(name: _profile, hue: blue, size: 72),
               const SizedBox(height: 8),
-              Text(_profile, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              _editText(
+                _profile,
+                (value) => _profile = value,
+                const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-                child: Text(_bio, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                child: _editText(
+                  _bio,
+                  (value) => _bio = value,
+                  const TextStyle(fontSize: 12, color: Colors.black87),
+                  lines: 3,
+                ),
               ),
-              Text('$_friends Friends', style: const TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.w600, fontSize: 12)),
+              _editText(
+                '$_friends',
+                (value) => _friends = int.tryParse(value) ?? _friends,
+                const TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.w600, fontSize: 12),
+              ),
             ],
           ),
         ),
@@ -373,7 +618,14 @@ class _GrapevineAppState extends State<GrapevineApp> {
           crossAxisSpacing: 2,
           children: [
             for (final post in photos)
-              NetPhoto(url: post['image'] as String),
+              FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
           ],
         ),
       ],
@@ -415,6 +667,7 @@ class _LumeAppState extends State<LumeApp> {
   int _following = 312;
   String _tab = 'home';
   bool _ready = false;
+  bool _editing = false;
   late List<Map<String, dynamic>> _posts;
 
   @override
@@ -433,6 +686,20 @@ class _LumeAppState extends State<LumeApp> {
     _posts = topUpFeed(saved['posts'], lumePosts());
   }
 
+  void _keep() {
+    StoreScope.of(context).setPage('photogram', {
+      'name': _name,
+      'profile': {
+        'name': _profile,
+        'handle': _handle,
+        'bio': _bio,
+        'followers': _followers,
+        'following': _following,
+      },
+      'posts': _posts,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_ready) return const SizedBox.shrink();
@@ -445,8 +712,22 @@ class _LumeAppState extends State<LumeApp> {
             padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
             child: Row(
               children: [
-                Text(_name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic)),
-                const Spacer(),
+                Expanded(
+                  child: osField(
+                    editing: _editing,
+                    value: _name,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic),
+                    onChanged: (value) {
+                      _name = value;
+                      _keep();
+                    },
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.black : Colors.black54, size: 18),
+                ),
                 IconButton(
                   tooltip: 'Save',
                   onPressed: () => savePhonePage(
@@ -536,9 +817,27 @@ class _LumeAppState extends State<LumeApp> {
         ListTile(
           dense: true,
           leading: HueAvatar(name: '${post['author']}', hue: Color(post['hue'] as int? ?? 0xFF833AB4), size: 30),
-          title: Text('${post['author']}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          title: osField(
+            editing: _editing,
+            value: '${post['author']}',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            onChanged: (value) {
+              post['author'] = value;
+              _keep();
+            },
+          ),
         ),
-        AspectRatio(aspectRatio: 1, child: NetPhoto(url: '${post['image']}')),
+        AspectRatio(
+          aspectRatio: 1,
+          child: FeedMedia(
+            post: post,
+            editing: _editing,
+            onChanged: () {
+              setState(() {});
+              _keep();
+            },
+          ),
+        ),
         Row(
           children: [
             IconButton(
@@ -565,12 +864,36 @@ class _LumeAppState extends State<LumeApp> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${post['likes']} likes', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text.rich(TextSpan(children: [
-                TextSpan(text: '${post['author']} ', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                TextSpan(text: '${post['caption']}', style: const TextStyle(fontSize: 13)),
-              ])),
-              Text('View all ${post['comments']} comments', style: const TextStyle(fontSize: 12, color: Colors.black45)),
+              osField(
+                editing: _editing,
+                value: '${post['likes']} likes',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                onChanged: (value) {
+                  final likes = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (likes != null) post['likes'] = likes;
+                  _keep();
+                },
+              ),
+              osField(
+                editing: _editing,
+                value: '${post['caption']}',
+                style: const TextStyle(fontSize: 13),
+                lines: 3,
+                onChanged: (value) {
+                  post['caption'] = value;
+                  _keep();
+                },
+              ),
+              osField(
+                editing: _editing,
+                value: 'View all ${post['comments']} comments',
+                style: const TextStyle(fontSize: 12, color: Colors.black45),
+                onChanged: (value) {
+                  final comments = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (comments != null) post['comments'] = comments;
+                  _keep();
+                },
+              ),
             ],
           ),
         ),
@@ -591,16 +914,33 @@ class _LumeAppState extends State<LumeApp> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _stat('${_posts.length}', 'Posts'),
-                  _stat(fmtCount(_followers), 'Followers'),
-                  _stat(fmtCount(_following), 'Following'),
+                  _countStat(_followers, 'Followers', (value) => _followers = value),
+                  _countStat(_following, 'Following', (value) => _following = value),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        Text(_profile, style: const TextStyle(fontWeight: FontWeight.w700)),
-        Text(_bio, style: const TextStyle(fontSize: 13)),
+        osField(
+          editing: _editing,
+          value: _profile,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+          onChanged: (value) {
+            _profile = value;
+            _keep();
+          },
+        ),
+        osField(
+          editing: _editing,
+          value: _bio,
+          style: const TextStyle(fontSize: 13),
+          lines: 3,
+          onChanged: (value) {
+            _bio = value;
+            _keep();
+          },
+        ),
         const SizedBox(height: 12),
         GridView.count(
           shrinkWrap: true,
@@ -608,7 +948,17 @@ class _LumeAppState extends State<LumeApp> {
           crossAxisCount: 3,
           mainAxisSpacing: 2,
           crossAxisSpacing: 2,
-          children: [for (final post in _posts) NetPhoto(url: '${post['image']}')],
+          children: [
+            for (final post in _posts)
+              FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
+          ],
         ),
       ],
     );
@@ -618,6 +968,25 @@ class _LumeAppState extends State<LumeApp> {
     return Column(
       children: [
         Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text(label, style: const TextStyle(fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _countStat(int value, String label, ValueChanged<int> onChanged) {
+    return Column(
+      children: [
+        osField(
+          editing: _editing,
+          value: fmtCount(value),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+          onChanged: (next) {
+            final parsed = int.tryParse(next.replaceAll(RegExp(r'[^0-9]'), ''));
+            if (parsed != null) onChanged(parsed);
+            _keep();
+          },
+        ),
         Text(label, style: const TextStyle(fontSize: 11)),
       ],
     );
@@ -647,6 +1016,7 @@ class _StreamlyAppState extends State<StreamlyApp> {
   String _chip = 'All';
   String? _watchId;
   bool _ready = false;
+  bool _editing = false;
   late List<Map<String, dynamic>> _videos;
   final Map<String, bool> _subs = {};
 
@@ -658,6 +1028,10 @@ class _StreamlyAppState extends State<StreamlyApp> {
     final saved = _savedPage(context, 'vidtube');
     _name = saved['name'] as String? ?? _name;
     _videos = topUpFeed(saved['videos'], streamlyVideos());
+  }
+
+  void _keep() {
+    StoreScope.of(context).setPage('vidtube', {'name': _name, 'videos': _videos});
   }
 
   @override
@@ -688,8 +1062,35 @@ class _StreamlyAppState extends State<StreamlyApp> {
                     child: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
                   ),
                   const SizedBox(width: 6),
-                  Text(_name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                  Expanded(
+                    child: osField(
+                      editing: _editing,
+                      value: _name,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                      onChanged: (value) {
+                        _name = value;
+                        _keep();
+                      },
+                    ),
+                  ),
                 ],
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.black : Colors.black54, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Save',
+                  onPressed: () => savePhonePage(
+                    context,
+                    app: 'vidtube',
+                    category: 'Socials',
+                    initial: '$_name page',
+                    data: {'name': _name, 'videos': _videos},
+                  ),
+                  icon: const Icon(Icons.save_outlined, size: 18),
+                ),
               ],
             ),
           ),
@@ -748,14 +1149,29 @@ class _StreamlyAppState extends State<StreamlyApp> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                NetPhoto(url: '${video['image']}'),
+                FeedMedia(
+                  post: video,
+                  editing: _editing,
+                  onChanged: () {
+                    setState(() {});
+                    _keep();
+                  },
+                ),
                 Positioned(
                   right: 6,
                   bottom: 6,
                   child: Container(
                     color: const Color(0xBF000000),
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    child: Text('${video['duration']}', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                    child: osField(
+                      editing: _editing,
+                      value: '${video['duration']}',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                      onChanged: (value) {
+                        video['duration'] = value;
+                        _keep();
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -763,8 +1179,31 @@ class _StreamlyAppState extends State<StreamlyApp> {
           ),
           ListTile(
             leading: HueAvatar(name: '${video['channel']}', hue: Color(video['chHue'] as int? ?? 0xFF1877F2), size: 34),
-            title: Text('${video['title']}', maxLines: 2, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-            subtitle: Text('${video['channel']} · ${fmtCount(video['views'] as num)} views · ${video['age']}', style: const TextStyle(fontSize: 11)),
+            title: osField(
+              editing: _editing,
+              value: '${video['title']}',
+              lines: 2,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              onChanged: (value) {
+                video['title'] = value;
+                _keep();
+              },
+            ),
+            subtitle: osField(
+              editing: _editing,
+              value: '${video['channel']} · ${fmtCount(video['views'] as num)} views · ${video['age']}',
+              style: const TextStyle(fontSize: 11),
+              onChanged: (value) {
+                final parts = value.split('·');
+                if (parts.isNotEmpty) video['channel'] = parts.first.trim();
+                if (parts.length > 1) {
+                  final views = int.tryParse(parts[1].replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (views != null) video['views'] = views;
+                }
+                if (parts.length > 2) video['age'] = parts[2].trim();
+                _keep();
+              },
+            ),
           ),
         ],
       ),
@@ -776,21 +1215,63 @@ class _StreamlyAppState extends State<StreamlyApp> {
     final subbed = _subs[channel] == true;
     return ListView(
       children: [
-        AspectRatio(aspectRatio: 16 / 9, child: NetPhoto(url: '${video['image']}')),
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: FeedMedia(
+            post: video,
+            editing: _editing,
+            onChanged: () {
+              setState(() {});
+              _keep();
+            },
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${video['title']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              osField(
+                editing: _editing,
+                value: '${video['title']}',
+                lines: 2,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                onChanged: (value) {
+                  video['title'] = value;
+                  _keep();
+                },
+              ),
               const SizedBox(height: 4),
-              Text('${fmtCount(video['views'] as num)} views · ${video['age']}', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              osField(
+                editing: _editing,
+                value: '${fmtCount(video['views'] as num)} views · ${video['age']}',
+                style: const TextStyle(color: Colors.black54, fontSize: 12),
+                onChanged: (value) {
+                  final parts = value.split('·');
+                  if (parts.isNotEmpty) {
+                    final views = int.tryParse(parts.first.replaceAll(RegExp(r'[^0-9]'), ''));
+                    if (views != null) video['views'] = views;
+                  }
+                  if (parts.length > 1) video['age'] = parts[1].trim();
+                  _keep();
+                },
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [
                   HueAvatar(name: channel, hue: Color(video['chHue'] as int? ?? 0xFF1877F2)),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(channel, style: const TextStyle(fontWeight: FontWeight.w600))),
+                  Expanded(
+                    child: osField(
+                      editing: _editing,
+                      value: channel,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      onChanged: (value) {
+                        video['channel'] = value;
+                        _keep();
+                      },
+                    ),
+                  ),
                   FilledButton(
                     style: FilledButton.styleFrom(backgroundColor: subbed ? const Color(0xFFE5E5E5) : Colors.black, foregroundColor: subbed ? Colors.black : Colors.white),
                     onPressed: () => setState(() => _subs[channel] = !subbed),
@@ -835,6 +1316,10 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
   String _feed = 'foryou';
   String _tab = 'home';
   bool _ready = false;
+  bool _editing = false;
+  String _handle = '@alex.carter';
+  int _followers = 2431;
+  int _likes = 89500;
   final List<String> _following = ['dan.m', 'sara.lane'];
   late List<Map<String, dynamic>> _posts;
 
@@ -845,6 +1330,18 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
     _ready = true;
     final saved = _savedPage(context, 'quicktok');
     _posts = topUpFeed(saved['posts'], flickdeckPosts());
+    _handle = saved['handle'] as String? ?? _handle;
+    _followers = (saved['followers'] as num?)?.toInt() ?? _followers;
+    _likes = (saved['likes'] as num?)?.toInt() ?? _likes;
+  }
+
+  void _keep() {
+    StoreScope.of(context).setPage('quicktok', {
+      'posts': _posts,
+      'handle': _handle,
+      'followers': _followers,
+      'likes': _likes,
+    });
   }
 
   @override
@@ -865,11 +1362,40 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
             )
           else
             _me(),
+          Positioned(
+            top: 8,
+            right: 4,
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.white : Colors.white70, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Save',
+                  onPressed: () => savePhonePage(
+                    context,
+                    app: 'quicktok',
+                    category: 'Socials',
+                    initial: 'Flickdeck page',
+                    data: {
+                      'posts': _posts,
+                      'handle': _handle,
+                      'followers': _followers,
+                      'likes': _likes,
+                    },
+                  ),
+                  icon: const Icon(Icons.save_outlined, color: Colors.white70, size: 18),
+                ),
+              ],
+            ),
+          ),
           if (_tab == 'home')
             Positioned(
               top: 8,
               left: 0,
-              right: 0,
+              right: 80,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -900,7 +1426,14 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        NetPhoto(url: '${post['image']}'),
+        FeedMedia(
+          post: post,
+          editing: _editing,
+          onChanged: () {
+            setState(() {});
+            _keep();
+          },
+        ),
         const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -917,11 +1450,36 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('@${post['author']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              osField(
+                editing: _editing,
+                value: '@${post['author']}',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                onChanged: (value) {
+                  post['author'] = value.replaceFirst(RegExp(r'^@'), '');
+                  _keep();
+                },
+              ),
               const SizedBox(height: 4),
-              Text('${post['caption']}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+              osField(
+                editing: _editing,
+                value: '${post['caption']}',
+                lines: 3,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                onChanged: (value) {
+                  post['caption'] = value;
+                  _keep();
+                },
+              ),
               const SizedBox(height: 6),
-              Text('♪ ${post['music']}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              osField(
+                editing: _editing,
+                value: '${post['music']}',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                onChanged: (value) {
+                  post['music'] = value;
+                  _keep();
+                },
+              ),
             ],
           ),
         ),
@@ -932,18 +1490,25 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
             children: [
               HueAvatar(name: '${post['author']}', hue: const Color(0xFF25F4EE), size: 40),
               const SizedBox(height: 12),
-              _side(liked ? Icons.favorite : Icons.favorite_border, fmtCount(post['likes'] as num), () {
+              _side(liked ? Icons.favorite : Icons.favorite_border, '${post['likes']}', () {
                 setState(() {
                   post['liked'] = !liked;
                   post['likes'] = (post['likes'] as int) + (liked ? -1 : 1);
+                  _keep();
                 });
-              }),
-              _side(Icons.chat_bubble, fmtCount(post['comments'] as num), () {
-                setState(() => post['comments'] = (post['comments'] as int) + 1);
-              }),
-              _side(Icons.share, fmtCount(post['shares'] as num), () {
-                setState(() => post['shares'] = (post['shares'] as int) + 1);
-              }),
+              }, field: 'likes', post: post),
+              _side(Icons.chat_bubble, '${post['comments']}', () {
+                setState(() {
+                  post['comments'] = (post['comments'] as int) + 1;
+                  _keep();
+                });
+              }, field: 'comments', post: post),
+              _side(Icons.share, '${post['shares']}', () {
+                setState(() {
+                  post['shares'] = (post['shares'] as int) + 1;
+                  _keep();
+                });
+              }, field: 'shares', post: post),
             ],
           ),
         ),
@@ -951,15 +1516,28 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
     );
   }
 
-  Widget _side(IconData icon, String label, VoidCallback onTap) {
+  Widget _side(IconData icon, String label, VoidCallback onTap, {required String field, required Map<String, dynamic> post}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-        onTap: onTap,
+        onTap: _editing ? null : onTap,
         child: Column(
           children: [
             Icon(icon, color: Colors.white, size: 28),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+            SizedBox(
+              width: 52,
+              child: osField(
+                editing: _editing,
+                value: _editing ? label : fmtCount(int.tryParse(label) ?? 0),
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  final parsed = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (parsed != null) post[field] = parsed;
+                  _keep();
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -998,13 +1576,32 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
       children: [
         const Center(child: HueAvatar(name: 'Alex Carter', hue: Color(0xFF25F4EE), size: 84)),
         const SizedBox(height: 8),
-        const Center(child: Text('@alex.carter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+        Center(
+          child: osField(
+            editing: _editing,
+            value: _handle,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            textAlign: TextAlign.center,
+            onChanged: (value) {
+              _handle = value;
+              _keep();
+            },
+          ),
+        ),
         const SizedBox(height: 12),
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _ProfileStat('2431', 'Followers'),
-            _ProfileStat('89.5K', 'Likes'),
+            _ProfileStat(_editing ? '$_followers' : fmtCount(_followers), 'Followers', editing: _editing, onChanged: (value) {
+              final parsed = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+              if (parsed != null) _followers = parsed;
+              _keep();
+            }),
+            _ProfileStat(_editing ? '$_likes' : fmtCount(_likes), 'Likes', editing: _editing, onChanged: (value) {
+              final parsed = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+              if (parsed != null) _likes = parsed;
+              _keep();
+            }),
           ],
         ),
         const SizedBox(height: 16),
@@ -1014,7 +1611,17 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
           crossAxisCount: 3,
           mainAxisSpacing: 2,
           crossAxisSpacing: 2,
-          children: [for (final post in _posts) NetPhoto(url: '${post['image']}')],
+          children: [
+            for (final post in _posts)
+              FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
+          ],
         ),
       ],
     );
@@ -1022,17 +1629,25 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
 }
 
 class _ProfileStat extends StatelessWidget {
-  const _ProfileStat(this.value, this.label);
+  const _ProfileStat(this.value, this.label, {this.editing = false, this.onChanged});
 
   final String value;
   final String label;
+  final bool editing;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        osField(
+          editing: editing,
+          value: value,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+          onChanged: onChanged ?? (_) {},
+        ),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
       ],
     );
   }

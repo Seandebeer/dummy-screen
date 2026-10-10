@@ -301,6 +301,7 @@ const osLanguages = <OsLanguage>[
 
 const lockMethods = <LockMethod>[
   LockMethod('none', 'Skin Default', 'era-accurate for this skin', Icons.auto_awesome),
+  LockMethod('off', 'None', 'opens on the home screen', Icons.home_outlined),
   LockMethod('slide', 'Slide to Unlock', 'drag the slider right', Icons.keyboard_double_arrow_right),
   LockMethod('ring', 'Unlock Ring', 'drag the lock into the ring', Icons.album_outlined),
   LockMethod('passcode', 'Passcode', '4-digit keypad', Icons.tag),
@@ -702,6 +703,7 @@ String skinLockMethod(String skin) {
 }
 
 String resolvedLockMethod(String skin, String type) {
+  if (type == 'off') return 'off';
   if (type.isEmpty || type == 'none') return skinLockMethod(skin);
   return type;
 }

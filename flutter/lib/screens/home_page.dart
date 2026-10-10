@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
       palette: palette,
       icon: Icons.movie_creation_outlined,
       title: 'Projects',
-      subtitle: 'Production projects',
+      subtitle: '',
       open: _projectsOpen,
       tall: wide,
       onToggle: () => setState(() => _projectsOpen = !_projectsOpen),
@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
       palette: palette,
       mark: const _DevicesMark(),
       title: 'Devices',
-      subtitle: 'Prop devices & stage sync',
+      subtitle: '',
       open: _devicesOpen,
       tall: wide,
       onToggle: () => setState(() => _devicesOpen = !_devicesOpen),
@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
       palette: palette,
       icon: Icons.bookmark_border,
       title: 'Saved',
-      subtitle: 'Saved marker & screen configurations',
+      subtitle: '',
       open: _savedOpen,
       tall: wide,
       onToggle: () => setState(() => _savedOpen = !_savedOpen),
@@ -135,30 +135,46 @@ class _Header extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: _Brand(ink: palette.ink, wide: wide)),
-            IconButton(
-              key: const Key('profile-button'),
-              tooltip: 'Profile',
-              onPressed: () => showProfileSheet(context),
-              icon: Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: kAccent.withValues(alpha: 0.16),
-                  border: Border.all(color: kAccent.withValues(alpha: 0.45)),
-                ),
-                child: Text(
-                  _initials(StoreScope.of(context).operatorName),
-                  style: const TextStyle(
-                    color: kAccent,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
+            if (!wide) const ProfileAvatar(size: 44),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileAvatar extends StatelessWidget {
+  const ProfileAvatar({super.key, this.size = 28});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const Key('profile-button'),
+      tooltip: 'Profile',
+      style: IconButton.styleFrom(
+        padding: EdgeInsets.zero,
+        minimumSize: Size(size, size),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      onPressed: () => showProfileSheet(context),
+      icon: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: kAccent.withValues(alpha: 0.16),
+          border: Border.all(color: kAccent.withValues(alpha: 0.45)),
+        ),
+        child: Text(
+          _initials(StoreScope.of(context).operatorName),
+          style: TextStyle(
+            color: kAccent,
+            fontWeight: FontWeight.w700,
+            fontSize: size >= 40 ? 16 : (size < 36 ? 11 : 14),
+          ),
         ),
       ),
     );
@@ -337,10 +353,11 @@ class _HomeSection extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(color: palette.muted, fontSize: 11),
-                        ),
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            style: TextStyle(color: palette.muted, fontSize: 11),
+                          ),
                       ],
                     ),
                   ),
@@ -643,31 +660,52 @@ class _DevicesBody extends StatelessWidget {
 
   Future<void> _addDevice(BuildContext context, Project project) async {
     final store = StoreScope.of(context);
-    final result = await showDialog<_NewDevice>(
-      context: context,
-      builder: (context) => _AddDeviceDialog(palette: palette),
-    );
-    if (result == null) return;
-    store.addDevice(projectId: project.id, name: result.name, kind: result.kind);
-    PropDevice? created;
-    for (final device in store.devices.reversed) {
-      if (device.name == result.name && device.projectId == project.id) {
-        created = device;
-        break;
-      }
-    }
+    final created = await addProjectDevice(context, store: store, projectId: project.id);
     if (created == null) return;
-    store.updateDevice(
-      created.id,
-      (device) => device.copyWith(
-        make: result.make,
-        model: result.model,
-        colour: result.colour,
-        serial: result.serial,
-        photo: result.photo,
-      ),
-    );
+    store.bindDevice(created.id);
+    store.openTab(1);
   }
+}
+
+/// Home and OS edit share this dialog. [copyFrom] fills the hardware fields
+/// and the OS, and leaves the name empty.
+Future<PropDevice?> addProjectDevice(
+  BuildContext context, {
+  required StageStore store,
+  required String projectId,
+  PropDevice? copyFrom,
+}) async {
+  final result = await showDialog<_NewDevice>(
+    context: context,
+    builder: (context) => _AddDeviceDialog(
+      palette: paletteFor(store.appTheme),
+      kind: copyFrom?.kind ?? 'phone',
+      make: copyFrom?.make ?? '',
+      model: copyFrom?.model ?? '',
+      colour: copyFrom?.colour ?? '',
+      serial: copyFrom?.serial ?? '',
+      photo: copyFrom?.photo ?? '',
+    ),
+  );
+  if (result == null) return null;
+  final created = store.addDevice(
+    projectId: projectId,
+    name: result.name,
+    kind: result.kind,
+    skin: copyFrom?.skin ?? 'modern',
+    os: copyFrom?.os ?? const OsSettings(),
+  );
+  store.updateDevice(
+    created.id,
+    (device) => device.copyWith(
+      make: result.make,
+      model: result.model,
+      colour: result.colour,
+      serial: result.serial,
+      photo: result.photo,
+    ),
+  );
+  return store.deviceById(created.id) ?? created;
 }
 
 class _NewDevice {
@@ -691,9 +729,23 @@ class _NewDevice {
 }
 
 class _AddDeviceDialog extends StatefulWidget {
-  const _AddDeviceDialog({required this.palette});
+  const _AddDeviceDialog({
+    required this.palette,
+    this.kind = 'phone',
+    this.make = '',
+    this.model = '',
+    this.colour = '',
+    this.serial = '',
+    this.photo = '',
+  });
 
   final DeckPalette palette;
+  final String kind;
+  final String make;
+  final String model;
+  final String colour;
+  final String serial;
+  final String photo;
 
   @override
   State<_AddDeviceDialog> createState() => _AddDeviceDialogState();
@@ -707,10 +759,21 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
   final _serial = TextEditingController();
   String _kind = 'phone';
   String _photo = '';
+  bool _details = false;
 
   @override
   void initState() {
     super.initState();
+    _kind = widget.kind;
+    _make.text = widget.make;
+    _model.text = widget.model;
+    _colour.text = widget.colour;
+    _serial.text = widget.serial;
+    _photo = widget.photo;
+    _details = widget.model.isNotEmpty ||
+        widget.colour.isNotEmpty ||
+        widget.serial.isNotEmpty ||
+        widget.photo.isNotEmpty;
     _name.addListener(() => setState(() {}));
   }
 
@@ -758,25 +821,36 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
               const SizedBox(height: 8),
               TextField(controller: _make, decoration: deckField(palette, 'Make (e.g. Apple)')),
               const SizedBox(height: 8),
-              TextField(controller: _model, decoration: deckField(palette, 'Model (e.g. iPhone 1)')),
-              const SizedBox(height: 8),
-              TextField(controller: _colour, decoration: deckField(palette, 'Colour')),
-              const SizedBox(height: 8),
-              TextField(controller: _serial, decoration: deckField(palette, 'Serial number')),
-              const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: () async {
-                    final file = await FilePicker.pickFile(type: FileType.image);
-                    if (file == null) return;
-                    final path = await persistPickedImage(file);
-                    if (path != null && mounted) setState(() => _photo = path);
-                  },
-                  icon: const Icon(Icons.image_outlined, size: 16),
-                  label: Text(_photo.isEmpty ? 'Upload photo' : 'Replace photo'),
+                  key: const Key('device-details'),
+                  onPressed: () => setState(() => _details = !_details),
+                  icon: Icon(_details ? Icons.expand_less : Icons.expand_more, size: 16),
+                  label: const Text('Device details'),
                 ),
               ),
+              if (_details) ...[
+                TextField(controller: _model, decoration: deckField(palette, 'Model (e.g. iPhone 1)')),
+                const SizedBox(height: 8),
+                TextField(controller: _colour, decoration: deckField(palette, 'Colour')),
+                const SizedBox(height: 8),
+                TextField(controller: _serial, decoration: deckField(palette, 'Serial number')),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final file = await FilePicker.pickFile(type: FileType.image);
+                      if (file == null) return;
+                      final path = await persistPickedImage(file);
+                      if (path != null && mounted) setState(() => _photo = path);
+                    },
+                    icon: const Icon(Icons.image_outlined, size: 16),
+                    label: Text(_photo.isEmpty ? 'Upload photo' : 'Replace photo'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1138,9 +1212,15 @@ class _SavedBodyState extends State<_SavedBody> {
                 style: TextStyle(color: palette.muted, fontSize: 10, letterSpacing: 0.8),
               ),
               onTap: () {
-                final deviceId = store.boundDeviceId ?? store.targetDeviceId;
-                if (deviceId == null && item.kind == 'os') return;
-                store.applyLayout(item, deviceId ?? '');
+                final deviceId = item.deviceId.isNotEmpty
+                    ? item.deviceId
+                    : (store.boundDeviceId ?? store.targetDeviceId ?? '');
+                if (deviceId.isNotEmpty) {
+                  store.bindDevice(deviceId);
+                  store.bypassLock = true;
+                  store.setLocked(deviceId, false);
+                }
+                store.applyLayout(item, deviceId);
               },
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1179,8 +1259,10 @@ class _SavedBodyState extends State<_SavedBody> {
       ),
     );
     if (id == null) return;
-    store.applyLayout(layout, id);
     store.bindDevice(id);
+    store.bypassLock = true;
+    store.setLocked(id, false);
+    store.applyLayout(layout, id);
   }
 }
 
@@ -1267,11 +1349,15 @@ void showProfileSheet(BuildContext context) {
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Profile',
+    barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 280),
     pageBuilder: (context, _, _) {
       final width = MediaQuery.sizeOf(context).width;
       final panel = width >= 768 ? 420.0 : width * 0.86;
-      return Align(
+      final palette = paletteFor(store.appTheme);
+      return Theme(
+        data: deckTheme(Theme.of(context), palette),
+        child: Align(
         alignment: Alignment.centerRight,
         child: Material(
           color: Colors.transparent,
@@ -1281,6 +1367,7 @@ void showProfileSheet(BuildContext context) {
             child: _ProfileSheet(store: store),
           ),
         ),
+      ),
       );
     },
     transitionBuilder: (context, animation, _, child) {
@@ -1427,13 +1514,27 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           Wrap(
             spacing: 8,
             children: [
-              for (final entry in const [('black', 'Black'), ('grey', 'Grey'), ('white', 'Cream')])
+              for (final entry in const [('black', 'Dark'), ('grey', 'Grey'), ('white', 'Cream')])
                 ChoiceChip(
-                  label: Text(entry.$2, style: TextStyle(color: palette.ink)),
+                  label: Text(entry.$2),
+                  labelStyle: TextStyle(
+                    color: palette.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                   selected: store.appTheme == entry.$1,
                   showCheckmark: false,
-                  selectedColor: kAccent.withValues(alpha: 0.16),
-                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  pressElevation: 0,
+                  surfaceTintColor: Colors.transparent,
+                  color: WidgetStateProperty.resolveWith((states) {
+                    final selected = states.contains(WidgetState.selected);
+                    if (!selected) return palette.secondary;
+                    return Color.alphaBlend(
+                      kAccent.withValues(alpha: palette.light ? 0.2 : 0.34),
+                      palette.secondary,
+                    );
+                  }),
                   side: BorderSide(
                     color: store.appTheme == entry.$1 ? kAccent : palette.line,
                     width: store.appTheme == entry.$1 ? 1.6 : 1,

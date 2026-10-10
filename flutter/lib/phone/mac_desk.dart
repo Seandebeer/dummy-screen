@@ -93,11 +93,12 @@ MacGlyph _macGlyph(String id, OsSettings os) {
   }
   final prop = propAppById(id);
   if (prop != null) {
+    final glyph = brandedGlyph(prop, branded: os.branded);
     return MacGlyph(
       appLabel(prop, branded: os.branded),
-      prop.icon,
-      prop.color,
-      image: prop.image,
+      glyph.$1,
+      glyph.$2,
+      image: os.branded ? '' : prop.image,
     );
   }
   for (final section in mockCatalog) {

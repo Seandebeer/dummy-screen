@@ -205,6 +205,7 @@ class _WinDesktopState extends State<WinDesktop> {
             child: Center(
               child: _StartMenu(
                 apps: widget.apps,
+                branded: widget.device.os.branded,
                 onOpen: _open,
                 onShell: widget.onShell,
                 shells: widget.shells,
@@ -376,7 +377,11 @@ class _Taskbar extends StatelessWidget {
                       key: Key('win-bar-$id'),
                       tooltip: appLabel(prop, branded: os.branded),
                       onTap: () => onPinned(id),
-                      child: Icon(prop.icon, size: 18, color: prop.color),
+                      child: Icon(
+                        brandedGlyph(prop, branded: os.branded).$1,
+                        size: 18,
+                        color: brandedGlyph(prop, branded: os.branded).$2,
+                      ),
                     ),
               ],
             ),
@@ -580,12 +585,14 @@ class _WinWindow extends StatelessWidget {
 class _StartMenu extends StatelessWidget {
   const _StartMenu({
     required this.apps,
+    required this.branded,
     required this.onOpen,
     required this.onShell,
     required this.shells,
   });
 
   final List<(String, String, IconData)> apps;
+  final bool branded;
   final ValueChanged<String?> onOpen;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
@@ -622,7 +629,13 @@ class _StartMenu extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(app.$3, size: 22, color: const Color(0xFF1A1A1A)),
+                            Icon(
+                              app.$3,
+                              size: 22,
+                              color: branded
+                                  ? (brandMark(app.$1)?.$1 ?? const Color(0xFF1A1A1A))
+                                  : const Color(0xFF1A1A1A),
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               app.$2,

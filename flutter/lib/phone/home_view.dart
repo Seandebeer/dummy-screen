@@ -45,7 +45,6 @@ class PhoneHome extends StatelessWidget {
     final chrome = chromeFor(skin);
     final ink = light ? const Color(0xD9000000) : Colors.white;
     final layout = os.homeOrder.isEmpty ? kHomeOrder : os.homeOrder;
-    final columns = wide ? 5 : 4;
     if (chrome == SkinChrome.tiles) {
       return GridView.count(
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -66,72 +65,78 @@ class PhoneHome extends StatelessWidget {
         ],
       );
     }
+    final modern = chrome == SkinChrome.modern;
     final grid = [
       for (final id in layout)
         if (_resolve(id) case final app? when !kDockIds.contains(id)) app,
     ];
-    final pages = <List<PropApp>>[];
-    for (var i = 0; i < grid.length; i += kPageSize) {
-      final end = i + kPageSize > grid.length ? grid.length : i + kPageSize;
-      pages.add(grid.sublist(i, end));
-    }
-    if (pages.isEmpty) pages.add(const []);
     final dock = [for (final id in kDockIds) propAppById(id)!];
+    final cellW = modern ? 84.0 : 76.0;
+    final cellH = modern ? 104.0 : 92.0;
     return Column(
       children: [
         Expanded(
           child: _HomePages(
-            pages: pages,
-            columns: columns,
+            apps: grid,
+            cellWidth: cellW,
+            cellHeight: cellH,
             glossy: chrome == SkinChrome.classic,
             round: chrome == SkinChrome.android,
             labelColor: ink,
             branded: os.branded,
+            modern: modern,
             onOpen: onOpen,
           ),
         ),
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.white.withValues(alpha: 0.46),
-                Colors.white.withValues(alpha: 0.16),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.62)),
-            boxShadow: const [
-              BoxShadow(color: Color(0x66FFFFFF), blurRadius: 10, offset: Offset(0, -1)),
-            ],
-          ),
-          child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              for (final app in dock)
-                _IconApp(
-                  key: Key('dock-${app.id}'),
-                  app: app,
-                  glossy: chrome == SkinChrome.classic,
-                  round: chrome == SkinChrome.android,
-                  labelColor: ink,
-                  branded: os.branded,
-                  onTap: () => onOpen(app.id),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Align(
+            alignment: Alignment.center,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.46),
+                        Colors.white.withValues(alpha: 0.16),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.62)),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x66FFFFFF), blurRadius: 10, offset: Offset(0, -1)),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final app in dock)
+                          SizedBox(
+                            width: cellW,
+                            child: _IconApp(
+                              key: Key('dock-${app.id}'),
+                              app: app,
+                              glossy: chrome == SkinChrome.classic,
+                              round: chrome == SkinChrome.android,
+                              labelColor: ink,
+                              branded: os.branded,
+                              modern: modern,
+                              onTap: () => onOpen(app.id),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
-            ],
-          ),
-          ),
-          ),
-          ),
+              ),
+            ),
           ),
         ),
       ],
@@ -139,23 +144,47 @@ class PhoneHome extends StatelessWidget {
   }
 }
 
+/// How many fixed-size cells fit along [extent]. [stride] is the cell plus
+/// the gap that follows every cell, including the last.
+int _spanCount(double extent, double stride) {
+  if (extent <= 0 || stride <= 0) return 1;
+  final count = (extent / stride).floor();
+  return count < 1 ? 1 : count;
+}
+
+class _HomeScroll extends MaterialScrollBehavior {
+  const _HomeScroll();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.trackpad,
+  };
+}
+
 class _HomePages extends StatefulWidget {
   const _HomePages({
-    required this.pages,
-    required this.columns,
+    required this.apps,
+    required this.cellWidth,
+    required this.cellHeight,
     required this.glossy,
     required this.round,
     required this.labelColor,
     required this.branded,
+    this.modern = false,
     required this.onOpen,
   });
 
-  final List<List<PropApp>> pages;
-  final int columns;
+  final List<PropApp> apps;
+  final double cellWidth;
+  final double cellHeight;
   final bool glossy;
   final bool round;
   final Color labelColor;
   final bool branded;
+  final bool modern;
   final void Function(String id) onOpen;
 
   @override
@@ -174,87 +203,167 @@ class _HomePagesState extends State<_HomePages> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: PageView(
-            controller: _controller,
-            onPageChanged: (index) => setState(() => _page = index),
-            children: [
-              for (final page in widget.pages)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceEvenly,
-                    spacing: 6,
-                    runSpacing: 14,
-                    children: [
-                      for (final app in page)
-                        SizedBox(
-                          width: 76,
-                          height: 92,
-                          child: _IconApp(
-                            key: Key('home-${app.id}'),
-                            app: app,
-                            glossy: widget.glossy,
-                            round: widget.round,
-                            labelColor: widget.labelColor,
-                            branded: widget.branded,
-                            onTap: () => widget.onOpen(app.id),
-                          ),
+    const foot = 36.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final top = widget.modern ? 22.0 : 4.0;
+        final gridWidth = constraints.maxWidth - 16;
+        final gridHeight = constraints.maxHeight - foot - top - 4;
+        final columns = _spanCount(gridWidth, widget.cellWidth);
+        final rows = _spanCount(gridHeight, widget.cellHeight + 10);
+        final pageSize = columns * rows;
+        final pages = <List<PropApp>>[];
+        for (var i = 0; i < widget.apps.length; i += pageSize) {
+          final end = i + pageSize > widget.apps.length ? widget.apps.length : i + pageSize;
+          pages.add(widget.apps.sublist(i, end));
+        }
+        if (pages.isEmpty) pages.add(const []);
+        final shown = _page >= pages.length ? pages.length - 1 : _page;
+        if (shown != _page) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _page = shown);
+            if (_controller.hasClients) _controller.jumpToPage(shown);
+          });
+        }
+        return Column(
+          children: [
+            Expanded(
+              child: PageView(
+                controller: _controller,
+                scrollBehavior: const _HomeScroll(),
+                onPageChanged: (index) => setState(() => _page = index),
+                children: [
+                  for (final page in pages)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(8, top, 8, 4),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: _IconGrid(
+                          apps: page,
+                          columns: columns,
+                          cellWidth: widget.cellWidth,
+                          cellHeight: widget.cellHeight,
+                          glossy: widget.glossy,
+                          round: widget.round,
+                          labelColor: widget.labelColor,
+                          branded: widget.branded,
+                          modern: widget.modern,
+                          onOpen: widget.onOpen,
                         ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        if (_page == 0)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Center(
-              child: Container(
-                key: const Key('home-search'),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.search, size: 16, color: widget.labelColor.withValues(alpha: 0.85)),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Search',
-                      style: TextStyle(
-                        color: widget.labelColor.withValues(alpha: 0.85),
-                        fontSize: 15,
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
-          )
-        else if (widget.pages.length > 1)
+            SizedBox(
+              height: foot,
+              child: shown == 0
+                  ? Center(
+                      child: Container(
+                        key: const Key('home-search'),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.search, size: 16, color: widget.labelColor.withValues(alpha: 0.85)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Search',
+                              style: TextStyle(
+                                color: widget.labelColor.withValues(alpha: 0.85),
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : pages.length > 1
+                      ? Row(
+                          key: const Key('home-pages'),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < pages.length; i++)
+                              Container(
+                                width: 6,
+                                height: 6,
+                                margin: const EdgeInsets.symmetric(horizontal: 3),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: i == shown
+                                      ? widget.labelColor
+                                      : widget.labelColor.withValues(alpha: 0.35),
+                                ),
+                              ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _IconGrid extends StatelessWidget {
+  const _IconGrid({
+    required this.apps,
+    required this.columns,
+    required this.cellWidth,
+    required this.cellHeight,
+    required this.glossy,
+    required this.round,
+    required this.labelColor,
+    required this.branded,
+    required this.modern,
+    required this.onOpen,
+  });
+
+  final List<PropApp> apps;
+  final int columns;
+  final double cellWidth;
+  final double cellHeight;
+  final bool glossy;
+  final bool round;
+  final Color labelColor;
+  final bool branded;
+  final bool modern;
+  final void Function(String id) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = (apps.length / columns).ceil();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var row = 0; row < rows; row++)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: 10),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                for (var i = 0; i < widget.pages.length; i++)
-                  Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: i == _page
-                          ? widget.labelColor
-                          : widget.labelColor.withValues(alpha: 0.35),
+                for (var column = 0; column < columns; column++)
+                  if (row * columns + column < apps.length)
+                    SizedBox(
+                      width: cellWidth,
+                      height: cellHeight,
+                      child: _IconApp(
+                        key: Key('home-${apps[row * columns + column].id}'),
+                        app: apps[row * columns + column],
+                        glossy: glossy,
+                        round: round,
+                        labelColor: labelColor,
+                        branded: branded,
+                        modern: modern,
+                        onTap: () => onOpen(apps[row * columns + column].id),
+                      ),
                     ),
-                  ),
               ],
             ),
           ),
@@ -263,7 +372,13 @@ class _HomePagesState extends State<_HomePages> {
   }
 }
 
-Widget _glyph(PropApp app) {
+Widget _glyph(PropApp app, {required bool branded}) {
+  if (branded) {
+    final art = brandMark(app.id);
+    if (art != null) {
+      return Icon(art.$2, color: Colors.white, size: 32);
+    }
+  }
   final provider = app.image.isEmpty ? null : imageProviderForPath(app.image);
   if (provider == null) {
     return Icon(app.icon, color: Colors.white, size: 30);
@@ -290,6 +405,7 @@ class _IconApp extends StatelessWidget {
     this.round = false,
     this.labelColor = Colors.white,
     this.branded = false,
+    this.modern = false,
   });
 
   final PropApp app;
@@ -298,6 +414,7 @@ class _IconApp extends StatelessWidget {
   final bool round;
   final Color labelColor;
   final bool branded;
+  final bool modern;
 
   @override
   Widget build(BuildContext context) {
@@ -307,10 +424,10 @@ class _IconApp extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: modern ? 68 : 60,
+            height: modern ? 68 : 60,
             decoration: BoxDecoration(
-              color: app.color,
+              color: branded ? (brandMark(app.id)?.$1 ?? app.color) : app.color,
               borderRadius: BorderRadius.circular(
                 round ? 20 : (glossy ? 10 : 12),
               ),
@@ -322,7 +439,7 @@ class _IconApp extends StatelessWidget {
                     )
                   : null,
             ),
-            child: _glyph(app),
+            child: _glyph(app, branded: branded),
           ),
           const SizedBox(height: 4),
           Text(
