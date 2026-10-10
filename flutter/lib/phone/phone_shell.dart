@@ -9,6 +9,7 @@ import 'call_stage.dart';
 import 'ios_keyboard.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
+import 'legacy_homes.dart';
 
 class PhoneShell extends StatelessWidget {
   const PhoneShell({
@@ -55,7 +56,9 @@ class PhoneShell extends StatelessWidget {
     final skin = device.skin;
     final chrome = chromeFor(skin);
     final light = device.os.isLight;
-    final ink = light ? const Color(0xD9000000) : Colors.white;
+    // Legacy homes paint their own wallpaper, so the status ink follows that
+    // paper instead of a light theme sitting underneath it.
+    final ink = isLegacySkin(skin) || !light ? Colors.white : const Color(0xD9000000);
     final paper = wallpaperFor(device, locked: device.locked);
     final image = paper.imagePath.isEmpty
         ? null
@@ -96,6 +99,7 @@ class PhoneShell extends StatelessWidget {
                     framed: framed,
                     ink: ink,
                     os: device.os,
+                    skin: skin,
                     onTap: onStatusTap,
                   ),
                   Expanded(
@@ -103,7 +107,7 @@ class PhoneShell extends StatelessWidget {
                       route: keyboardRoute,
                       footer: device.locked
                           ? null
-                          : _HomeControl(chrome: chrome, onHome: onHome, ink: ink),
+                          : _HomeControl(chrome: chrome, skin: skin, onHome: onHome, ink: ink),
                       child: body,
                     ),
                   ),
@@ -177,6 +181,7 @@ class _StatusBar extends StatelessWidget {
     required this.framed,
     required this.ink,
     required this.os,
+    required this.skin,
     this.onTap,
   });
 
@@ -184,6 +189,7 @@ class _StatusBar extends StatelessWidget {
   final bool framed;
   final Color ink;
   final OsSettings os;
+  final String skin;
   final VoidCallback? onTap;
 
   @override
@@ -191,6 +197,10 @@ class _StatusBar extends StatelessWidget {
     final top = framed ? 10.0 : MediaQuery.paddingOf(context).top;
     final bars = os.cellular == 'NO SERVICE' ? 0 : os.signal.clamp(0, 4);
     final radio = os.cellular;
+    final era = _statusEra(skin);
+    if (era != _StatusEra.standard) {
+      return _eraStatus(top, bars, era);
+    }
     return GestureDetector(
       key: const Key('phone-status'),
       behavior: HitTestBehavior.opaque,
@@ -276,6 +286,76 @@ class _StatusBar extends StatelessWidget {
       ),
     );
   }
+
+  Widget _eraStatus(double top, int bars, _StatusEra era) {
+    final carrier = os.networkName.isEmpty ? 'Carrier' : os.networkName;
+    final signal = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < 4; i++)
+          Container(
+            width: 3,
+            height: 4 + i * 2.0,
+            margin: const EdgeInsets.only(right: 1),
+            color: i < bars ? ink : ink.withValues(alpha: 0.28),
+          ),
+      ],
+    );
+    final battery = Text('${os.battery}%', style: TextStyle(color: ink, fontSize: 12));
+    Widget sideLeft;
+    Widget sideRight;
+    final batteryIcon = Icon(Icons.battery_full, size: 18, color: ink);
+    switch (era) {
+      case _StatusEra.wp:
+        sideLeft = const SizedBox.shrink();
+        sideRight = Text(timeLabel, style: TextStyle(color: ink, fontSize: 14));
+      case _StatusEra.holo:
+        sideLeft = Icon(Icons.notifications_none, size: 16, color: ink);
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 6), Text(timeLabel, style: TextStyle(color: ink, fontSize: 13))]);
+      case _StatusEra.belle:
+        sideLeft = Text(carrier, style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600));
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 8), Text(timeLabel, style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w700))]);
+      case _StatusEra.webos:
+        sideLeft = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(color: const Color(0xFF111111), borderRadius: BorderRadius.circular(10)),
+          child: const Text('Launcher', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+        );
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 4), const Icon(Icons.battery_full, size: 16, color: Color(0xFF3DDC5A))]);
+      case _StatusEra.ios7:
+        sideLeft = Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(os.cellular == 'NO SERVICE' ? 'No Service' : carrier, style: TextStyle(color: ink, fontSize: 12)),
+          const SizedBox(width: 4),
+          signal,
+        ]);
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [if (os.bluetooth) Icon(Icons.bluetooth, size: 14, color: ink), if (os.bluetooth) const SizedBox(width: 4), batteryIcon]);
+      case _StatusEra.ios6:
+        sideLeft = Text(os.cellular == 'NO SERVICE' ? 'No SIM' : carrier, style: TextStyle(color: ink, fontSize: 12));
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 4), battery, const SizedBox(width: 2), batteryIcon]);
+      case _StatusEra.ios:
+        sideLeft = Text(carrier, style: TextStyle(color: ink, fontSize: 12));
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 4), batteryIcon]);
+      case _StatusEra.standard:
+        sideLeft = const SizedBox.shrink();
+        sideRight = const SizedBox.shrink();
+    }
+    final centered = era == _StatusEra.ios || era == _StatusEra.ios6 || era == _StatusEra.ios7 || era == _StatusEra.webos;
+    return GestureDetector(
+      key: const Key('phone-status'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12, top + 6, 12, 4),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Row(children: [sideLeft, const Spacer(), sideRight]),
+            if (centered) Text(timeLabel, style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 IconData _wifiIcon(int bars) {
@@ -288,6 +368,187 @@ IconData _wifiIcon(int bars) {
       return Icons.wifi_2_bar;
     default:
       return Icons.wifi;
+  }
+}
+
+class _NavStrip extends StatelessWidget {
+  const _NavStrip({required this.onHome, required this.children, this.color = const Color(0xFF000000)});
+
+  final VoidCallback onHome;
+  final List<Widget> children;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: color,
+      child: SizedBox(
+        height: 46,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            for (var i = 0; i < children.length; i++)
+              IconButton(
+                key: i == 0 ? const Key('os-home') : null,
+                onPressed: onHome,
+                icon: children[i],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IosChin extends StatelessWidget {
+  const _IosChin({required this.onHome});
+
+  final VoidCallback onHome;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFF0A0A0C),
+      child: SizedBox(
+        height: 52,
+        child: Center(
+          child: InkWell(
+            key: const Key('os-home'),
+            onTap: onHome,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF4A4A4E), Color(0xFF1A1A1C)],
+                ),
+                border: Border.all(color: const Color(0xFF8A8A8E)),
+              ),
+              child: Center(
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.white70),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuadMark extends StatelessWidget {
+  const _QuadMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 16,
+      height: 16,
+      child: Wrap(
+        spacing: 2,
+        runSpacing: 2,
+        children: [
+          _Quad(),
+          _Quad(),
+          _Quad(),
+          _Quad(),
+        ],
+      ),
+    );
+  }
+}
+
+class _Quad extends StatelessWidget {
+  const _Quad();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(width: 7, height: 7, child: ColoredBox(color: Colors.white));
+  }
+}
+
+class _DotGrid extends StatelessWidget {
+  const _DotGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 16,
+      height: 16,
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: [
+          _NavDot(),
+          _NavDot(),
+          _NavDot(),
+          _NavDot(),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavDot extends StatelessWidget {
+  const _NavDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle));
+  }
+}
+
+class _WebOsGesture extends StatelessWidget {
+  const _WebOsGesture({required this.onHome});
+
+  final VoidCallback onHome;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 22,
+      child: InkWell(
+        key: const Key('os-home'),
+        onTap: onHome,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _CardPeek(),
+            SizedBox(width: 4),
+            _CardPeek(),
+            SizedBox(width: 10),
+            Icon(Icons.keyboard_arrow_up, color: Colors.white70, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardPeek extends StatelessWidget {
+  const _CardPeek();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 18,
+      height: 8,
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A3A3C),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: Colors.white24),
+      ),
+    );
   }
 }
 
@@ -455,19 +716,92 @@ class _ControlShadeState extends State<_ControlShade> {
   }
 }
 
+enum _StatusEra { standard, ios, ios6, ios7, wp, holo, webos, belle }
+
+_StatusEra _statusEra(String skin) {
+  switch (skin) {
+    case 'iphoneos':
+    case 'aqua':
+    case 'classic':
+    case 'ios6':
+      return _StatusEra.ios6;
+    case 'ios7':
+      return _StatusEra.ios7;
+    case 'winphone':
+    case 'tiles':
+      return _StatusEra.wp;
+    case 'holo':
+    case 'material':
+      return _StatusEra.holo;
+    case 'webos':
+      return _StatusEra.webos;
+    case 'belle':
+    case 'blackberry':
+      return _StatusEra.belle;
+    default:
+      return _StatusEra.standard;
+  }
+}
+
 class _HomeControl extends StatelessWidget {
   const _HomeControl({
     required this.chrome,
+    required this.skin,
     required this.onHome,
     required this.ink,
   });
 
   final SkinChrome chrome;
+  final String skin;
   final VoidCallback onHome;
   final Color ink;
 
   @override
   Widget build(BuildContext context) {
+    switch (skin) {
+      case 'winphone':
+      case 'tiles':
+        return _NavStrip(
+          onHome: onHome,
+          children: const [
+            Icon(Icons.arrow_back, color: Colors.white, size: 22),
+            _QuadMark(),
+            Icon(Icons.search, color: Colors.white, size: 22),
+          ],
+        );
+      case 'holo':
+      case 'material':
+        return _NavStrip(
+          onHome: onHome,
+          color: const Color(0xFF111111),
+          children: const [
+            Icon(Icons.arrow_back, color: Colors.white, size: 22),
+            Icon(Icons.home_outlined, color: Colors.white, size: 22),
+            Icon(Icons.crop_square, color: Colors.white, size: 18),
+          ],
+        );
+      case 'belle':
+      case 'blackberry':
+        return _NavStrip(
+          onHome: onHome,
+          color: Colors.transparent,
+          children: const [
+            _DotGrid(),
+            Icon(Icons.phone, color: Colors.white, size: 26),
+            Icon(Icons.menu, color: Colors.white, size: 26),
+          ],
+        );
+      case 'iphoneos':
+      case 'aqua':
+      case 'classic':
+      case 'ios6':
+      case 'ios7':
+        return _IosChin(onHome: onHome);
+      case 'webos':
+        return _WebOsGesture(onHome: onHome);
+      default:
+        break;
+    }
     if (chrome == SkinChrome.tiles) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 10, top: 4),

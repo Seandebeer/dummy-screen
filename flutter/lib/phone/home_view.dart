@@ -6,6 +6,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import 'catalog.dart';
+import 'legacy_homes.dart';
 
 class PhoneHome extends StatelessWidget {
   const PhoneHome({
@@ -42,6 +43,9 @@ class PhoneHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isLegacySkin(skin)) {
+      return LegacyHome(skin: skin, os: os, light: light, onOpen: onOpen);
+    }
     final chrome = chromeFor(skin);
     final ink = light ? const Color(0xD9000000) : Colors.white;
     final layout = os.homeOrder.isEmpty ? kHomeOrder : os.homeOrder;

@@ -300,7 +300,7 @@ export default function Homescreen({ config, update, onOpen }) {
           </button>
         </div>
       )}
-      <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white", ui.widget === "holo" && "hidden")}>
+      <div className={cn("relative flex flex-col items-center pt-9 pb-2", light ? "text-black/85" : "text-white", (ui.widget === "holo" || ui.clock?.hidden) && "hidden")}>
         <button onClick={() => setClockEdit(true)} className="flex flex-col items-center">
           <div
             className="font-display text-[52px] leading-none tracking-[-0.02em]"
@@ -338,7 +338,7 @@ export default function Homescreen({ config, update, onOpen }) {
               {pageApps.length === 0 ? (
                 <p className={cn("pt-10 text-center text-xs font-body", light ? "text-black/40" : "text-white/40")}>No apps - open Apps to add some</p>
               ) : (
-                <div className="grid grid-cols-4 gap-y-5 gap-x-4 content-start">
+                <div className={cn("grid gap-y-5 gap-x-4 content-start", ui.columns === 3 ? "grid-cols-3" : "grid-cols-4")}>
                   {pageApps.map((a) => (
                     <div key={a.id} className="flex justify-center">{tileButton(a)}</div>
                   ))}

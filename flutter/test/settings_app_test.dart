@@ -42,12 +42,20 @@ void main() {
     expect(find.text('DESKTOP'), findsNothing);
     expect(find.byKey(const Key('desk-shell-macos')), findsNothing);
     expect(find.text('LEGACY'), findsOneWidget);
+    expect(find.text('Nokia Belle'), findsNothing);
     expect(find.text('BlackBerry'), findsNothing);
 
     await tester.tap(find.byKey(const Key('legacy-skins')));
     await tester.pump();
-    expect(find.text('BlackBerry'), findsOneWidget);
-    expect(find.text('OS 5'), findsOneWidget);
+    expect(find.text('iPhone OS'), findsOneWidget);
+    expect(find.text('iOS 6'), findsOneWidget);
+    expect(find.text('iOS 7'), findsOneWidget);
+    expect(find.text('Windows Phone'), findsOneWidget);
+    expect(find.text('Android Holo'), findsOneWidget);
+    expect(find.text('webOS'), findsOneWidget);
+    expect(find.text('Nokia Belle'), findsOneWidget);
+    expect(find.text('OS 5'), findsNothing);
+    expect(find.text('BlackBerry'), findsNothing);
     expect(find.text('LEGACY'), findsOneWidget);
   });
 
