@@ -216,10 +216,14 @@ class _OsPageState extends State<OsPage> {
                           (_quarter || (device.os.autoRotate && _side != 0));
                       final metrics = metricsForTurn(device.kind, turned: turned);
                       final aspect = metrics.aspect;
-                      var height = constraints.maxHeight - (framed ? 24 : 0);
+                      // Fullscreen drops the edit rotation and fits the default
+                      // aspect, so a portrait phone does not stretch landscape.
+                      final fit = framed || store.filming;
+                      final margin = framed ? 24.0 : 0.0;
+                      var height = constraints.maxHeight - margin;
                       var width = height * aspect;
-                      if (width > constraints.maxWidth - (framed ? 24 : 0)) {
-                        width = constraints.maxWidth - (framed ? 24 : 0);
+                      if (width > constraints.maxWidth - margin) {
+                        width = constraints.maxWidth - margin;
                         height = width / aspect;
                       }
                       final now = propNow(device.clockOffsetMinutes);
@@ -264,8 +268,8 @@ class _OsPageState extends State<OsPage> {
                       final marked = _withMarks(stage, device, store);
                       final screen = Center(
                         child: SizedBox(
-                          width: framed ? width : constraints.maxWidth,
-                          height: framed ? height : constraints.maxHeight,
+                          width: fit ? width : constraints.maxWidth,
+                          height: fit ? height : constraints.maxHeight,
                           child: IgnorePointer(
                             ignoring: driven,
                             child: framed
