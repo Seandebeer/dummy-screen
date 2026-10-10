@@ -64,7 +64,11 @@ class _ClockSettingsState extends State<ClockSettings> {
             style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 11),
           ),
           const SizedBox(height: 8),
-          const Text('Clock style', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const Text('Screen clock', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const Text(
+            'Analog replaces the clock on the screen. The header stays digital.',
+            style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 11),
+          ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,

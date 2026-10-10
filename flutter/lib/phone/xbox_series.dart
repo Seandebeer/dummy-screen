@@ -4,7 +4,6 @@ import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
-import 'clock_face.dart';
 import 'console_apps.dart';
 
 /// Xbox Series dashboard: green ribbon, a featured tile, and the home rows.
@@ -334,9 +333,7 @@ class _Header extends StatelessWidget {
           ],
           if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
             const SizedBox(width: 8),
-            os.clockStyle == 'analog'
-                ? ClockFace(key: const Key('xbox-clock'), time: osNow(os), color: Colors.white, size: 16)
-                : Text(time, key: const Key('xbox-clock'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(time, key: const Key('xbox-clock'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
           ],
         ],
       ),

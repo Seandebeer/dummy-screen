@@ -12,7 +12,6 @@ import '../store.dart';
 import 'atm_home.dart';
 import 'console_apps.dart';
 import 'catalog.dart';
-import 'clock_face.dart';
 import 'desk_os_apps.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
@@ -640,13 +639,11 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
           ),
           Expanded(
             child: os.showClock
-                ? os.clockStyle == 'analog'
-                    ? Center(child: ClockFace(time: now, color: ink, size: 18))
-                    : Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: ink, fontSize: 13),
-                      )
+                ? Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: ink, fontSize: 13),
+                  )
                 : const SizedBox.shrink(),
           ),
           const Icon(Icons.wifi, color: Colors.white, size: 16),

@@ -2,6 +2,7 @@ import 'package:dummy_phone/format.dart';
 import 'package:dummy_phone/models.dart';
 import 'package:dummy_phone/phone/clock_face.dart';
 import 'package:dummy_phone/phone/home_view.dart';
+import 'package:dummy_phone/phone/lock_screen.dart';
 import 'package:dummy_phone/phone/phone_shell.dart';
 import 'package:dummy_phone/phone/settings_app.dart';
 import 'package:dummy_phone/store.dart';
@@ -101,7 +102,7 @@ void main() {
     expect(store.deviceById(device.id)!.os.showClock, isFalse);
   });
 
-  testWidgets('the status clock stays put, hides, and can be a face', (tester) async {
+  testWidgets('the header stays digital while the screen clock can be a face', (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(400, 860));
     final store = StageStore.demo();
@@ -137,7 +138,22 @@ void main() {
     expect(find.byType(ClockFace), findsNothing);
 
     await pump(device.os.copyWith(clockStyle: 'analog'));
-    expect(find.byType(ClockFace), findsWidgets);
+    expect(find.byType(ClockFace), findsNothing);
+    expect(find.text('3:05'), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: LockView(
+          device: device.copyWith(os: device.os.copyWith(clockStyle: 'analog', lockType: 'off')),
+          dateLabel: 'Saturday, October 10',
+          onUnlock: () {},
+          onSetPasscode: (_) {},
+          onSetPattern: (_) {},
+        ),
+      ),
+    );
+    expect(find.byType(ClockFace), findsOneWidget);
     expect(find.text('3:05'), findsNothing);
   });
 

@@ -10,7 +10,6 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'atm_chrome.dart';
-import 'clock_face.dart';
 
 /// Landscape ATM for an iPad mounted in a machine.
 ///
@@ -1700,13 +1699,10 @@ class _Header extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (os.showClock && os.clockStyle == 'analog')
-              ClockFace(time: now, color: skin.muted, size: 18 * scale)
-            else
-              Text(
-                os.showClock ? '$month ${now.day}, $clock' : '$month ${now.day}',
-                style: TextStyle(color: skin.muted, fontSize: 12 * scale),
-              ),
+            Text(
+              os.showClock ? '$month ${now.day}, $clock' : '$month ${now.day}',
+              style: TextStyle(color: skin.muted, fontSize: 12 * scale),
+            ),
             SizedBox(width: 10 * scale),
             Text(
               '$temperature°C',

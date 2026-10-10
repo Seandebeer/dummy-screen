@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import '../format.dart';
 import '../models.dart';
 
-/// Digital text or a small face. Hidden when the device turns the time off.
+/// Digital text, or a face when this is the on-screen clock.
+/// A header clock stays digital even when the screen clock is analog.
 class ClockReadout extends StatelessWidget {
   const ClockReadout({
     super.key,
@@ -15,6 +16,7 @@ class ClockReadout extends StatelessWidget {
     this.fontWeight = FontWeight.w600,
     this.faceSize,
     this.digitalKey,
+    this.header = false,
   });
 
   final OsSettings os;
@@ -24,11 +26,14 @@ class ClockReadout extends StatelessWidget {
   final double? faceSize;
   final Key? digitalKey;
 
+  /// Status bars, menu bars, and other chrome. Always digital.
+  final bool header;
+
   @override
   Widget build(BuildContext context) {
     if (!os.showClock) return const SizedBox.shrink();
     final time = osNow(os);
-    if (os.clockStyle == 'analog') {
+    if (!header && os.clockStyle == 'analog') {
       return ClockFace(time: time, color: color, size: faceSize ?? fontSize + 6);
     }
     return Text(

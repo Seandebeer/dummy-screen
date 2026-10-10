@@ -6,7 +6,6 @@ import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
-import 'clock_face.dart';
 import 'console_apps.dart';
 import 'mac_desk.dart';
 
@@ -226,22 +225,15 @@ class _Header extends StatelessWidget {
           Icon(Icons.crop_square, color: Colors.white, size: metrics.fs(16)),
           if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
             SizedBox(width: metrics.gap),
-            os.clockStyle == 'analog'
-                ? ClockFace(
-                    key: const Key('ps5-clock'),
-                    time: osNow(os),
-                    color: Colors.white,
-                    size: metrics.fs(16),
-                  )
-                : Text(
-                    time,
-                    key: const Key('ps5-clock'),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: metrics.fs(14),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+            Text(
+              time,
+              key: const Key('ps5-clock'),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: metrics.fs(14),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ],
       ),

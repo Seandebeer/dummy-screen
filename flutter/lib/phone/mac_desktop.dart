@@ -8,7 +8,6 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
-import 'clock_face.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
 import 'mac_desk.dart';
@@ -695,19 +694,11 @@ class _MacDesktopState extends State<MacDesktop> {
         gap,
       ],
       if (shown.contains('clock') && os.showClock) ...[
-        if (os.clockStyle == 'analog')
-          ClockFace(
-            key: const Key('mac-menu-clock'),
-            time: now,
-            color: Colors.white,
-            size: 16,
-          )
-        else
-          Text(
-            _clockFace(now, _look(os, 'clock', 'time')),
-            key: const Key('mac-menu-clock'),
-            style: itemStyle.copyWith(fontSize: 12),
-          ),
+        Text(
+          _clockFace(now, _look(os, 'clock', 'time')),
+          key: const Key('mac-menu-clock'),
+          style: itemStyle.copyWith(fontSize: 12),
+        ),
         gap,
       ],
       if (shown.contains('search')) ...[
