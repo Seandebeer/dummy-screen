@@ -108,6 +108,7 @@ class _DeviceKeyboardState extends State<DeviceKeyboard> {
 
   void _hide() {
     if (!mounted || _controller == null) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _controller = null;
       _onChanged = null;

@@ -778,20 +778,23 @@ class _InboxAppState extends State<InboxApp> {
                 const Spacer(),
                 Text('Inbox', style: TextStyle(color: Colors.black.withValues(alpha: 0.9), fontSize: 17, fontWeight: FontWeight.w600)),
                 const Spacer(),
-                TextButton(
-                  onPressed: () => _openCompose(),
-                  child: const Text('Compose', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
-                ),
                 if (unread > 0)
                   Text('$unread', style: const TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.w600)),
               ],
             ),
           ),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text('Inbox', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: Colors.black)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text('Inbox', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: Colors.black)),
+                ),
+                TextButton(
+                  onPressed: () => _openCompose(),
+                  child: const Text('Compose', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -976,6 +979,7 @@ class _InboxAppState extends State<InboxApp> {
               controller: _body,
               readOnly: true,
               showCursor: true,
+              onTapAlwaysCalled: true,
               maxLines: null,
               expands: true,
               textAlignVertical: TextAlignVertical.top,
@@ -984,6 +988,8 @@ class _InboxAppState extends State<InboxApp> {
               decoration: const InputDecoration(
                 hintText: 'Message',
                 hintStyle: TextStyle(color: Color(0xFF8E8E93)),
+                filled: true,
+                fillColor: Colors.white,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.fromLTRB(16, 12, 16, 12),
               ),
@@ -1013,9 +1019,16 @@ class _InboxAppState extends State<InboxApp> {
               controller: controller,
               readOnly: true,
               showCursor: true,
+              onTapAlwaysCalled: true,
               onTap: () => openIosKeyboard(context, controller),
               style: const TextStyle(color: Colors.black, fontSize: 16),
-              decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+              cursorColor: Colors.black,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+              ),
             ),
           ),
         ],

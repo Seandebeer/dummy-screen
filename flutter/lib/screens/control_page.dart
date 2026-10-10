@@ -1774,32 +1774,48 @@ class _LibraryPickerState extends State<_LibraryPicker> {
           ],
         ),
         const SizedBox(height: 6),
-        SizedBox(
-          height: 220,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.line),
-            ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: palette.line),
+          ),
+          child: SizedBox(
+            height: 220,
             child: ListView(
               key: const Key('notif-app-library'),
               children: [
                 for (final item in apps)
-                  ListTile(
+                  InkWell(
                     key: Key('notif-app-${item.id}'),
-                    dense: true,
-                    selected: item.id == widget.selected,
-                    leading: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: item.color,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Icon(item.icon, color: Colors.white, size: 15),
-                    ),
-                    title: Text(item.label, style: TextStyle(color: palette.ink, fontSize: 13)),
                     onTap: () => widget.onSelect(item.id),
+                    child: ColoredBox(
+                      color: item.id == widget.selected
+                          ? kSignal.withValues(alpha: 0.16)
+                          : Colors.transparent,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: item.color,
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                              child: Icon(item.icon, color: Colors.white, size: 15),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                item.label,
+                                style: TextStyle(color: palette.ink, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
               ],
             ),

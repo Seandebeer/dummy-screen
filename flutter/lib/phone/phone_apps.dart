@@ -811,6 +811,7 @@ class _MessagesAppState extends State<MessagesApp> {
                     controller: _reply,
                     readOnly: true,
                     showCursor: true,
+                    onTapAlwaysCalled: true,
                     style: TextStyle(color: _ink),
                     onTap: () => openIosKeyboard(context, _reply, onDone: _send),
                     decoration: InputDecoration(
@@ -828,6 +829,7 @@ class _MessagesAppState extends State<MessagesApp> {
                 ),
                 const SizedBox(width: 6),
                 IconButton(
+                  tooltip: 'Send',
                   onPressed: _send,
                   icon: const Icon(Icons.arrow_upward, color: Colors.white),
                   style: IconButton.styleFrom(backgroundColor: _sent),
@@ -887,10 +889,12 @@ class ContactsApp extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
+                          tooltip: 'Call',
                           onPressed: () => onCall(contact),
                           icon: const Icon(Icons.phone, color: Color(0xFF34C759)),
                         ),
                         IconButton(
+                          tooltip: 'Message',
                           onPressed: () => onMessage(contact),
                           icon: const Icon(Icons.message, color: Color(0xFF0A84FF)),
                         ),

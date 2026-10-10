@@ -85,8 +85,8 @@ class GridFill extends StatelessWidget {
         ? const Color(0x1A000000)
         : const Color(0x1AFFFFFF);
     final vignette = palette.light
-        ? const Color(0x12000000)
-        : const Color(0x24000000);
+        ? const Color(0x18000000)
+        : const Color(0x50000000);
     return ColoredBox(
       color: palette.background,
       child: CustomPaint(
