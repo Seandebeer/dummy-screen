@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../app.dart';
 import '../deck/chrome.dart';
+import '../store.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
@@ -19,64 +20,92 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool _projectsOpen = false;
-  bool _devicesOpen = true;
+  bool _devicesOpen = false;
+  bool _savedOpen = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final store = StoreScope.of(context);
+    if (!store.revealProjects) return;
+    store.revealProjects = false;
+    _projectsOpen = true;
+  }
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final palette = paletteFor(store.appTheme);
     final project = store.selectedProject;
+    final wide = MediaQuery.sizeOf(context).width >= 768;
+    final projects = _HomeSection(
+      palette: palette,
+      icon: Icons.movie_creation_outlined,
+      title: 'Projects',
+      subtitle: 'Production projects',
+      open: _projectsOpen,
+      tall: wide,
+      onToggle: () => setState(() => _projectsOpen = !_projectsOpen),
+      child: _ProjectsBody(
+        palette: palette,
+        onPicked: () => setState(() => _devicesOpen = true),
+      ),
+    );
+    final devices = _HomeSection(
+      palette: palette,
+      mark: const _DevicesMark(),
+      title: 'Devices',
+      subtitle: 'Prop devices & stage sync',
+      open: _devicesOpen,
+      tall: wide,
+      onToggle: () => setState(() => _devicesOpen = !_devicesOpen),
+      child: _DevicesBody(
+        palette: palette,
+        project: project,
+      ),
+    );
+    final saved = _HomeSection(
+      palette: palette,
+      icon: Icons.bookmark_border,
+      title: 'Saved',
+      subtitle: 'Saved marker & screen configurations',
+      open: _savedOpen,
+      tall: wide,
+      onToggle: () => setState(() => _savedOpen = !_savedOpen),
+      child: _SavedBody(palette: palette),
+    );
     return GridFill(
       palette: palette,
       child: Column(
         children: [
-          _Header(palette: palette),
+          _Header(palette: palette, wide: wide),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+              padding: EdgeInsets.fromLTRB(28, wide ? 72 : 20, 28, 28),
               children: [
                 Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1280),
-                    child: Column(
-                      children: [
-                        _HomeSection(
-                          palette: palette,
-                          icon: Icons.movie_creation_outlined,
-                          title: 'Projects',
-                          subtitle: 'Production projects',
-                          open: _projectsOpen,
-                          onToggle: () =>
-                              setState(() => _projectsOpen = !_projectsOpen),
-                          child: _ProjectsBody(
-                            palette: palette,
-                            onPicked: () => setState(() => _devicesOpen = true),
+                    child: wide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: projects),
+                              const SizedBox(width: 40),
+                              Expanded(child: devices),
+                              const SizedBox(width: 40),
+                              Expanded(child: saved),
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              projects,
+                              const SizedBox(height: 20),
+                              devices,
+                              const SizedBox(height: 20),
+                              saved,
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        _HomeSection(
-                          palette: palette,
-                          icon: Icons.phone_android,
-                          title: 'Devices',
-                          subtitle: 'Prop devices & stage sync',
-                          open: _devicesOpen,
-                          onToggle: () =>
-                              setState(() => _devicesOpen = !_devicesOpen),
-                          child: _DevicesBody(
-                            palette: palette,
-                            project: project,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        _HomeSection(
-                          palette: palette,
-                          icon: Icons.bookmark_border,
-                          title: 'Saved',
-                          subtitle: 'Saved marker & screen configurations',
-                          child: _SavedBody(palette: palette),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -89,38 +118,42 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.palette});
+  const _Header({required this.palette, required this.wide});
 
   final DeckPalette palette;
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
+        color: palette.surface.withValues(alpha: 0.92),
         border: Border(bottom: BorderSide(color: palette.line)),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
         child: Row(
           children: [
-            const Expanded(child: SizedBox.shrink()),
-            _Brand(ink: palette.ink),
-            Expanded(
-              child: Align(
+            Expanded(child: _Brand(ink: palette.ink, wide: wide)),
+            IconButton(
+              key: const Key('profile-button'),
+              tooltip: 'Profile',
+              onPressed: () => showProfileSheet(context),
+              icon: Container(
+                width: 44,
+                height: 44,
                 alignment: Alignment.center,
-                child: IconButton(
-                  tooltip: 'Profile & saved layouts',
-                  onPressed: () => showProfileSheet(context),
-                  icon: Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: kAccent.withValues(alpha: 0.1),
-                      border: Border.all(color: kAccent.withValues(alpha: 0.3)),
-                    ),
-                    child: const Icon(Icons.person_outline, color: kAccent, size: 18),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: kAccent.withValues(alpha: 0.16),
+                  border: Border.all(color: kAccent.withValues(alpha: 0.45)),
+                ),
+                child: Text(
+                  _initials(StoreScope.of(context).operatorName),
+                  style: const TextStyle(
+                    color: kAccent,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
                   ),
                 ),
               ),
@@ -132,10 +165,45 @@ class _Header extends StatelessWidget {
   }
 }
 
+String _initials(String name) {
+  final parts = name
+      .split(RegExp(r'[\s@.]+'))
+      .where((part) => part.isNotEmpty)
+      .take(2)
+      .map((part) => part[0].toUpperCase())
+      .join();
+  return parts.isEmpty ? 'SD' : parts;
+}
+
+class _DevicesMark extends StatelessWidget {
+  const _DevicesMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 22,
+      height: 18,
+      child: Stack(
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: Icon(Icons.desktop_windows_outlined, color: kAccent, size: 15),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Icon(Icons.smartphone, color: kAccent, size: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Brand extends StatelessWidget {
-  const _Brand({required this.ink});
+  const _Brand({required this.ink, required this.wide});
 
   final Color ink;
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
@@ -154,13 +222,20 @@ class _Brand extends StatelessWidget {
                 0, 0, 0, 0, 255,
                 0.2126, 0.7152, 0.0722, 0, 0,
               ]),
-              child: Image.asset(
-                'assets/brand/dummy_screen_logo.jpg',
-                key: const Key('app-logo'),
-                height: 52,
-                excludeFromSemantics: true,
-                filterQuality: FilterQuality.high,
-                fit: BoxFit.contain,
+              child: SizedBox(
+                height: wide ? 56 : 48,
+                width: double.infinity,
+                child: FittedBox(
+                  alignment: Alignment.centerLeft,
+                  fit: BoxFit.contain,
+                  child: Image.asset(
+                    'assets/brand/dummy_screen_logo.jpg',
+                    key: const Key('app-logo'),
+                    height: 52,
+                    excludeFromSemantics: true,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
               ),
             ),
           ),
@@ -171,7 +246,7 @@ class _Brand extends StatelessWidget {
             'PROPS MASTERTOOL',
             style: TextStyle(
               color: ink,
-              fontSize: 8,
+              fontSize: wide ? 12 : 8,
               letterSpacing: 2.4,
               fontWeight: FontWeight.w500,
             ),
@@ -185,27 +260,35 @@ class _Brand extends StatelessWidget {
 class _HomeSection extends StatelessWidget {
   const _HomeSection({
     required this.palette,
-    required this.icon,
     required this.title,
     required this.subtitle,
     required this.child,
+    this.icon,
+    this.mark,
     this.open = false,
+    this.tall = false,
     this.onToggle,
   });
 
   final DeckPalette palette;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? mark;
   final String title;
   final String subtitle;
   final Widget child;
   final bool open;
+  final bool tall;
   final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
+    final glyph = mark ?? Icon(icon, color: kAccent, size: 18);
     return Container(
+      constraints: tall && !open
+          ? const BoxConstraints(minHeight: 248)
+          : null,
       decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.8),
+        color: palette.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: palette.line.withValues(alpha: 0.7)),
         boxShadow: const [
@@ -237,7 +320,7 @@ class _HomeSection extends StatelessWidget {
                       ),
                       border: Border.all(color: kAccent.withValues(alpha: 0.2)),
                     ),
-                    child: Icon(icon, color: kAccent, size: 18),
+                    child: glyph,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -648,7 +731,7 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
       backgroundColor: palette.surface,
       title: Text('Add device', style: TextStyle(color: palette.ink)),
       content: SizedBox(
-        width: 360,
+        width: 560,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -669,8 +752,6 @@ class _AddDeviceDialogState extends State<_AddDeviceDialog> {
                   DropdownMenuItem(value: 'cctv', child: Text('CCTV')),
                   DropdownMenuItem(value: 'smarthome', child: Text('Smart home')),
                   DropdownMenuItem(value: 'homephone', child: Text('Smart home phone')),
-                  DropdownMenuItem(value: 'screen', child: Text('Screen')),
-                  DropdownMenuItem(value: 'remote', child: Text('Remote')),
                 ],
                 onChanged: (value) => setState(() => _kind = value ?? 'phone'),
               ),
@@ -1181,28 +1262,41 @@ String _kindLabel(String kind) {
 }
 
 void showProfileSheet(BuildContext context) {
+  final store = StoreScope.of(context);
   showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Profile',
+    transitionDuration: const Duration(milliseconds: 280),
     pageBuilder: (context, _, _) {
       final width = MediaQuery.sizeOf(context).width;
+      final panel = width >= 768 ? 420.0 : width * 0.86;
       return Align(
         alignment: Alignment.centerRight,
         child: Material(
+          color: Colors.transparent,
           child: SizedBox(
-            width: width * 0.85,
+            width: panel,
             height: double.infinity,
-            child: const _ProfileSheet(),
+            child: _ProfileSheet(store: store),
           ),
         ),
       );
+    },
+    transitionBuilder: (context, animation, _, child) {
+      final slide = Tween<Offset>(
+        begin: const Offset(1, 0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+      return SlideTransition(position: slide, child: child);
     },
   );
 }
 
 class _ProfileSheet extends StatefulWidget {
-  const _ProfileSheet();
+  const _ProfileSheet({required this.store});
+
+  final StageStore store;
 
   @override
   State<_ProfileSheet> createState() => _ProfileSheetState();
@@ -1215,9 +1309,8 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   @override
   void initState() {
     super.initState();
-    final store = StoreScope.of(context);
-    _name = TextEditingController(text: store.operatorName);
-    _title = TextEditingController(text: store.operatorTitle);
+    _name = TextEditingController(text: widget.store.operatorName);
+    _title = TextEditingController(text: widget.store.operatorTitle);
   }
 
   @override
@@ -1237,28 +1330,76 @@ class _ProfileSheetState extends State<_ProfileSheet> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         children: [
-          Text('Profile', style: TextStyle(color: palette.ink, fontSize: 18, fontWeight: FontWeight.w700)),
+          Text('Profile', style: TextStyle(color: palette.ink, fontSize: 22, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
-          TextField(
-            controller: _name,
-            decoration: deckField(palette, 'Name'),
-            onSubmitted: (value) => store.setOperator(name: value),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'DESIGNATION / TITLE',
-            style: TextStyle(color: palette.muted, fontSize: 10, letterSpacing: 1),
-          ),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _title,
-            decoration: deckField(palette, 'e.g. Prop Master'),
-            onSubmitted: (value) => store.setOperator(title: value),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Saved on this device. There is no cloud sign-in.',
-            style: TextStyle(color: palette.muted, fontSize: 11),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: palette.line),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: kAccent.withValues(alpha: 0.18),
+                          border: Border.all(color: kAccent.withValues(alpha: 0.5)),
+                        ),
+                        child: Text(
+                          _initials(store.operatorName),
+                          style: const TextStyle(color: kAccent, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(store.operatorName, style: TextStyle(color: palette.ink, fontWeight: FontWeight.w700)),
+                            Text(
+                              'Saved on this device',
+                              style: TextStyle(color: palette.muted, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _name,
+                    decoration: deckField(palette, 'Name'),
+                    onSubmitted: (value) => store.setOperator(name: value),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'DESIGNATION / TITLE',
+                    style: TextStyle(color: palette.muted, fontSize: 10, letterSpacing: 1.2),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _title,
+                    decoration: deckField(palette, 'e.g. Prop Master'),
+                    onSubmitted: (value) => store.setOperator(title: value),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _resetPassword(context),
+                    icon: const Icon(Icons.key_outlined, size: 16),
+                    label: const Text('Reset password'),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           for (final layout in layouts)
@@ -1288,8 +1429,15 @@ class _ProfileSheetState extends State<_ProfileSheet> {
             children: [
               for (final entry in const [('black', 'Black'), ('grey', 'Grey'), ('white', 'Cream')])
                 ChoiceChip(
-                  label: Text(entry.$2),
+                  label: Text(entry.$2, style: TextStyle(color: palette.ink)),
                   selected: store.appTheme == entry.$1,
+                  showCheckmark: false,
+                  selectedColor: kAccent.withValues(alpha: 0.16),
+                  backgroundColor: Colors.transparent,
+                  side: BorderSide(
+                    color: store.appTheme == entry.$1 ? kAccent : palette.line,
+                    width: store.appTheme == entry.$1 ? 1.6 : 1,
+                  ),
                   onSelected: (_) => store.setAppTheme(entry.$1),
                 ),
             ],
@@ -1324,13 +1472,25 @@ class _ProfileSheetState extends State<_ProfileSheet> {
             contentPadding: EdgeInsets.zero,
             title: const Text('Report a bug'),
             subtitle: const Text('Something not working? Send a report'),
-            trailing: OutlinedButton(onPressed: () => _bug(context), child: const Text('Report')),
+            trailing: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF3A1216),
+                foregroundColor: const Color(0xFFFF5A5A),
+              ),
+              onPressed: () => _bug(context),
+              icon: const Icon(Icons.chat_bubble_outline, size: 16),
+              label: const Text('Report'),
+            ),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Share App'),
             subtitle: const Text('Send Dummy Screen to the rest of the crew'),
-            trailing: OutlinedButton(
+            trailing: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF12301C),
+                foregroundColor: const Color(0xFF3DDC84),
+              ),
               onPressed: () async {
                 await Clipboard.setData(
                   const ClipboardData(
@@ -1343,9 +1503,25 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                   );
                 }
               },
-              child: const Text('Share'),
+              icon: const Icon(Icons.ios_share, size: 16),
+              label: const Text('Share'),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resetPassword(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset password'),
+        content: const Text(
+          'This prop build keeps the profile on the device. A password reset is sent from the signed-in account when the crew app is connected.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
         ],
       ),
     );

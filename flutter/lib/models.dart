@@ -41,6 +41,17 @@ class Project {
 /// On-device OS settings. Field names follow the Base44 `takeover-os-config`
 /// object: theme, wallpaper, lock screen, dial codes, language, answer mode,
 /// ring duration, and auto-rotate.
+/// Phone status radios, in the order a tap cycles through them.
+const kCellularRadios = [
+  '5G',
+  'LTE',
+  '4G',
+  '3G',
+  'H',
+  'EDGE',
+  'NO SERVICE',
+];
+
 class OsSettings {
   const OsSettings({
     this.theme = 'dark',
@@ -61,7 +72,10 @@ class OsSettings {
     this.homeOrder = const [],
     this.networkName = '',
     this.wifi = true,
+    this.wifiBars = 3,
     this.signal = 4,
+    this.cellular = '5G',
+    this.showTracking = false,
     this.battery = 80,
     this.bluetooth = false,
     this.showAlarm = false,
@@ -118,7 +132,16 @@ class OsSettings {
   /// Carrier label drawn beside the clock. Empty keeps the clock alone.
   final String networkName;
   final bool wifi;
+
+  /// Wi-Fi arcs, 0 through 3, drawn when Wi-Fi is on.
+  final int wifiBars;
   final int signal;
+
+  /// Radio label drawn with the signal bars.
+  final String cellular;
+
+  /// Tracking marks on the device screen, with the toolbar in OS edit.
+  final bool showTracking;
   final int battery;
   final bool bluetooth;
   final bool showAlarm;
@@ -216,7 +239,10 @@ class OsSettings {
     List<String>? homeOrder,
     String? networkName,
     bool? wifi,
+    int? wifiBars,
     int? signal,
+    String? cellular,
+    bool? showTracking,
     int? battery,
     bool? bluetooth,
     bool? showAlarm,
@@ -268,7 +294,10 @@ class OsSettings {
     homeOrder: homeOrder ?? this.homeOrder,
     networkName: networkName ?? this.networkName,
     wifi: wifi ?? this.wifi,
+    wifiBars: wifiBars ?? this.wifiBars,
     signal: signal ?? this.signal,
+    cellular: cellular ?? this.cellular,
+    showTracking: showTracking ?? this.showTracking,
     battery: battery ?? this.battery,
     bluetooth: bluetooth ?? this.bluetooth,
     showAlarm: showAlarm ?? this.showAlarm,
@@ -322,7 +351,10 @@ class OsSettings {
     'homeOrder': homeOrder,
     'networkName': networkName,
     'wifi': wifi,
+    'wifiBars': wifiBars,
     'signal': signal,
+    'cellular': cellular,
+    'showTracking': showTracking,
     'battery': battery,
     'bluetooth': bluetooth,
     'showAlarm': showAlarm,
@@ -388,7 +420,12 @@ class OsSettings {
       ].where((id) => id.isNotEmpty).toList(),
       networkName: json['networkName'] as String? ?? '',
       wifi: json['wifi'] as bool? ?? true,
+      wifiBars: ((json['wifiBars'] as num?)?.toInt() ?? 3).clamp(0, 3),
       signal: ((json['signal'] as num?)?.toInt() ?? 4).clamp(0, 4),
+      cellular: kCellularRadios.contains(json['cellular'])
+          ? json['cellular'] as String
+          : '5G',
+      showTracking: json['showTracking'] as bool? ?? false,
       battery: ((json['battery'] as num?)?.toInt() ?? 80).clamp(0, 100),
       bluetooth: json['bluetooth'] as bool? ?? false,
       showAlarm: json['showAlarm'] as bool? ?? false,
@@ -449,7 +486,10 @@ class OsSettings {
         autoRotate == other.autoRotate &&
         networkName == other.networkName &&
         wifi == other.wifi &&
+        wifiBars == other.wifiBars &&
         signal == other.signal &&
+        cellular == other.cellular &&
+        showTracking == other.showTracking &&
         battery == other.battery &&
         bluetooth == other.bluetooth &&
         showAlarm == other.showAlarm &&
@@ -504,7 +544,10 @@ class OsSettings {
     autoRotate,
     networkName,
     wifi,
+    wifiBars,
     signal,
+    cellular,
+    showTracking,
     battery,
     bluetooth,
     showAlarm,
@@ -985,18 +1028,21 @@ class BannerNote {
     required this.deviceId,
     required this.appLabel,
     required this.text,
+    this.appId = '',
   });
 
   final String id;
   final String deviceId;
   final String appLabel;
   final String text;
+  final String appId;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'deviceId': deviceId,
     'appLabel': appLabel,
     'text': text,
+    'appId': appId,
   };
 
   factory BannerNote.fromJson(Map<String, dynamic> json) => BannerNote(
@@ -1004,6 +1050,7 @@ class BannerNote {
     deviceId: json['deviceId'] as String? ?? '',
     appLabel: json['appLabel'] as String? ?? 'Messages',
     text: json['text'] as String? ?? '',
+    appId: json['appId'] as String? ?? '',
   );
 }
 

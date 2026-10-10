@@ -57,19 +57,12 @@ void main() {
     expect(await icons(const Size(834, 1112), wide: true), homePageOne());
   });
 
-  test('a computer desktop starts with the same apps plus the desk tools', () {
+  test('a computer keeps apps in the launcher and one folder on the desktop', () {
     final ids = [for (final app in deskApps(const OsSettings())) app.$1];
     expect(ids.take(kPageSize).toList(), homePageOne());
     expect(ids, containsAll(['word', 'excel', 'terminal']));
-
-    final mac = MacLayout.defaultDesktop();
-    for (final id in homePageOne()) {
-      expect(
-        mac.contains(id) || kMacDockIds.contains(id),
-        isTrue,
-        reason: id,
-      );
-    }
+    expect(MacLayout.defaultDesktop(), ['folder:Untitled Folder']);
+    expect(MacLayout.dock(const OsSettings()), containsAll(kDockIds));
   });
 
   testWidgets('every shared app has a desktop build that fits a window', (
@@ -187,7 +180,11 @@ void main() {
         name: 'Stage $shell',
         projectId: 'sandbox',
         kind: 'computer',
-        os: OsSettings(shell: shell),
+        os: OsSettings(
+          shell: shell,
+          macDesktop: const ['calculator'],
+          macPlaces: const {'_': '1', 'calculator': '120,80'},
+        ),
       );
       store.upsertDevice(device);
       await tester.pumpWidget(
@@ -200,16 +197,24 @@ void main() {
         ),
         ),
       );
+      if (shell == 'windows') {
+        await tester.tap(find.byKey(const Key('win-start')));
+        await tester.pump();
+      } else if (shell == 'linux') {
+        await tester.tap(find.byKey(const Key('ubuntu-activities')));
+        await tester.pump();
+      }
       final calculator = find.byKey(
         Key(
           switch (shell) {
-            'windows' => 'win-icon-calculator',
+            'windows' => 'win-pin-calculator',
             'linux' => 'linux-icon-calculator',
             _ => 'mac-desk-calculator',
           },
         ),
       );
       await tester.ensureVisible(calculator);
+      await tester.pump();
       await tester.tap(calculator);
       await tester.pump();
       expect(find.text('AC'), findsOneWidget, reason: shell);

@@ -208,6 +208,14 @@ class StageStore extends ChangeNotifier {
     _touch(null, sync: false);
   }
 
+  /// Home opens with the Projects strip expanded.
+  bool revealProjects = false;
+
+  void openHomeProjects() {
+    revealProjects = true;
+    openTab(0);
+  }
+
   void bindDevice(String id) {
     boundDeviceId = id;
     _touch(null, sync: false);
@@ -525,6 +533,7 @@ class StageStore extends ChangeNotifier {
         id: _nid('b'),
         deviceId: deviceId,
         appLabel: 'Messages',
+        appId: 'messages',
         text: trimmed,
       );
     }
@@ -565,7 +574,41 @@ class StageStore extends ChangeNotifier {
       key: {'items': [mail, ...items]},
     };
     _touch({'kind': 'page', 'app': key, 'data': pages[key]});
-    pushBanner(deviceId: deviceId, appLabel: 'Mail', text: subject);
+    pushBanner(
+      deviceId: deviceId,
+      appLabel: 'Mail',
+      appId: 'email',
+      text: subject,
+    );
+  }
+
+  void clearMail(String deviceId) {
+    if (deviceId.isEmpty) return;
+    final key = 'mail-$deviceId';
+    final hadMail = pages.containsKey(key);
+    final hadBanner = banners.any(
+      (banner) =>
+          banner.deviceId == deviceId &&
+          (banner.appId == 'email' ||
+              banner.appId == 'mail' ||
+              banner.appLabel == 'Mail'),
+    );
+    if (!hadMail && !hadBanner) return;
+    if (hadMail) {
+      pages = {...pages}..remove(key);
+    }
+    if (hadBanner) {
+      banners = banners
+          .where(
+            (banner) =>
+                banner.deviceId != deviceId ||
+                (banner.appId != 'email' &&
+                    banner.appId != 'mail' &&
+                    banner.appLabel != 'Mail'),
+          )
+          .toList();
+    }
+    _touch({'kind': 'clear_mail', 'deviceId': deviceId});
   }
 
   void clearMessages(String deviceId) {
@@ -573,7 +616,20 @@ class StageStore extends ChangeNotifier {
     messages = messages
         .where((message) => message.deviceId != deviceId)
         .toList();
+    banners = banners
+        .where(
+          (banner) =>
+              banner.deviceId != deviceId ||
+              (banner.appId != 'messages' && banner.appLabel != 'Messages'),
+        )
+        .toList();
     _touch({'kind': 'clear_messages', 'deviceId': deviceId});
+  }
+
+  void deleteMessage(String id) {
+    if (id.isEmpty || !messages.any((message) => message.id == id)) return;
+    messages = messages.where((message) => message.id != id).toList();
+    _touch({'kind': 'delete_message', 'id': id});
   }
 
   void startCall({
@@ -669,6 +725,7 @@ class StageStore extends ChangeNotifier {
     required String deviceId,
     required String appLabel,
     required String text,
+    String appId = '',
   }) {
     final trimmed = text.trim();
     if (trimmed.isEmpty || deviceId.isEmpty) return;
@@ -677,6 +734,7 @@ class StageStore extends ChangeNotifier {
       deviceId: deviceId,
       appLabel: appLabel.trim().isEmpty ? 'Messages' : appLabel.trim(),
       text: trimmed,
+      appId: appId,
     );
     if (note.id.isEmpty || banners.any((item) => item.id == note.id)) return;
     banners = [note, ...banners].take(20).toList();
@@ -1010,11 +1068,16 @@ class StageStore extends ChangeNotifier {
           deviceId: banner.deviceId,
           appLabel: banner.appLabel,
           text: banner.text,
+          appId: banner.appId,
         );
       case 'banner_dismiss':
         dismissBanner(patch['id'] as String? ?? '');
       case 'clear_messages':
         clearMessages(patch['deviceId'] as String? ?? '');
+      case 'delete_message':
+        deleteMessage(patch['id'] as String? ?? '');
+      case 'clear_mail':
+        clearMail(patch['deviceId'] as String? ?? '');
       case 'clear_banners':
         clearBanners(patch['deviceId'] as String? ?? '');
       case 'screen':

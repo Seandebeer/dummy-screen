@@ -6,6 +6,7 @@ import '../image_file.dart';
 import '../media/call_media.dart';
 import '../models.dart';
 import 'call_stage.dart';
+import 'ios_keyboard.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
 
@@ -23,7 +24,10 @@ class PhoneShell extends StatelessWidget {
     this.onDismissAlarm,
     this.banners = const [],
     this.onDismissBanner,
+    this.onOpenBanner,
     this.framed = true,
+    this.onStatusTap,
+    this.keyboardRoute = '',
   });
 
   final PropDevice device;
@@ -37,7 +41,14 @@ class PhoneShell extends StatelessWidget {
   final VoidCallback? onDismissAlarm;
   final List<BannerNote> banners;
   final void Function(String id)? onDismissBanner;
+  final void Function(BannerNote banner)? onOpenBanner;
   final bool framed;
+
+  /// OS edit only. Cycles the cellular radio shown in the status bar.
+  final VoidCallback? onStatusTap;
+
+  /// Open app on this device. The keypad closes when it changes.
+  final String keyboardRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -85,10 +96,17 @@ class PhoneShell extends StatelessWidget {
                     framed: framed,
                     ink: ink,
                     os: device.os,
+                    onTap: onStatusTap,
                   ),
-                  Expanded(child: body),
-                  if (!device.locked)
-                    _HomeControl(chrome: chrome, onHome: onHome, ink: ink),
+                  Expanded(
+                    child: DeviceKeyboard(
+                      route: keyboardRoute,
+                      footer: device.locked
+                          ? null
+                          : _HomeControl(chrome: chrome, onHome: onHome, ink: ink),
+                      child: body,
+                    ),
+                  ),
                 ],
               ),
               if (banners.isNotEmpty && call == null && !alarm)
@@ -101,9 +119,15 @@ class PhoneShell extends StatelessWidget {
                       for (final banner in banners.take(3))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: _Banner(
+                          child: OsBanner(
                             banner: banner,
-                            onDismiss: () => onDismissBanner?.call(banner.id),
+                            onTap: () {
+                              if (onOpenBanner != null) {
+                                onOpenBanner!(banner);
+                              } else {
+                                onDismissBanner?.call(banner.id);
+                              }
+                            },
                           ),
                         ),
                     ],
@@ -148,18 +172,25 @@ class _StatusBar extends StatelessWidget {
     required this.framed,
     required this.ink,
     required this.os,
+    this.onTap,
   });
 
   final String timeLabel;
   final bool framed;
   final Color ink;
   final OsSettings os;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final top = framed ? 10.0 : MediaQuery.paddingOf(context).top;
-    final bars = os.signal.clamp(0, 4);
-    return Padding(
+    final bars = os.cellular == 'NO SERVICE' ? 0 : os.signal.clamp(0, 4);
+    final radio = os.cellular == 'NO SERVICE' ? 'no service' : os.cellular;
+    return GestureDetector(
+      key: const Key('phone-status'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
       padding: EdgeInsets.fromLTRB(22, top + 8, 18, 6),
       child: Row(
         children: [
@@ -188,19 +219,35 @@ class _StatusBar extends StatelessWidget {
             const SizedBox(width: 4),
           ],
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               for (var i = 0; i < 4; i++)
                 Container(
                   width: 3,
-                  height: 6 + i * 2.0,
-                  margin: const EdgeInsets.only(right: 1),
-                  color: i < bars ? ink : ink.withValues(alpha: 0.25),
+                  height: 4 + i * 2.5,
+                  margin: const EdgeInsets.only(right: 1.5),
+                  decoration: BoxDecoration(
+                    color: i < bars ? ink : ink.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(0.5),
+                  ),
                 ),
             ],
           ),
+          if (radio.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            Text(
+              radio,
+              style: TextStyle(
+                color: ink,
+                fontSize: radio == 'no service' ? 10 : 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
           if (os.wifi) ...[
             const SizedBox(width: 4),
-            Icon(Icons.wifi, size: 16, color: ink),
+            Icon(_wifiIcon(os.wifiBars), size: 16, color: ink),
           ],
           const SizedBox(width: 6),
           Container(
@@ -221,7 +268,21 @@ class _StatusBar extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
+  }
+}
+
+IconData _wifiIcon(int bars) {
+  switch (bars.clamp(0, 3)) {
+    case 0:
+      return Icons.signal_wifi_0_bar;
+    case 1:
+      return Icons.wifi_1_bar;
+    case 2:
+      return Icons.wifi_2_bar;
+    default:
+      return Icons.wifi;
   }
 }
 
@@ -499,11 +560,11 @@ class _HomeControl extends StatelessWidget {
   }
 }
 
-class _Banner extends StatelessWidget {
-  const _Banner({required this.banner, required this.onDismiss});
+class OsBanner extends StatelessWidget {
+  const OsBanner({super.key, required this.banner, required this.onTap});
 
   final BannerNote banner;
-  final VoidCallback onDismiss;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -511,7 +572,7 @@ class _Banner extends StatelessWidget {
       color: const Color(0xF22C2C2E),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: onDismiss,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

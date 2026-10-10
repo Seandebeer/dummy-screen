@@ -82,12 +82,15 @@ class GridFill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final line = palette.light
-        ? const Color(0x07000000)
-        : const Color(0x07FFFFFF);
+        ? const Color(0x1A000000)
+        : const Color(0x1AFFFFFF);
+    final vignette = palette.light
+        ? const Color(0x18000000)
+        : const Color(0x50000000);
     return ColoredBox(
       color: palette.background,
       child: CustomPaint(
-        painter: _GridPainter(line),
+        painter: _GridPainter(line, vignette),
         child: child,
       ),
     );
@@ -95,9 +98,10 @@ class GridFill extends StatelessWidget {
 }
 
 class _GridPainter extends CustomPainter {
-  const _GridPainter(this.line);
+  const _GridPainter(this.line, this.vignette);
 
   final Color line;
+  final Color vignette;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -110,11 +114,28 @@ class _GridPainter extends CustomPainter {
     for (var y = 0.0; y <= size.height; y += 44) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
+    if (size.width <= 0 || size.height <= 0) return;
+    final reach = (size.shortestSide * 0.34).clamp(72.0, 220.0);
+    final soft = vignette.withValues(alpha: vignette.a * 0.28);
+    for (final corner in [
+      Offset.zero,
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      Offset(size.width, size.height),
+    ]) {
+      final rect = Rect.fromCircle(center: corner, radius: reach);
+      final shade = Paint()
+        ..shader = RadialGradient(
+          colors: [vignette, soft, const Color(0x00000000)],
+          stops: const [0.0, 0.38, 1],
+        ).createShader(rect);
+      canvas.drawCircle(corner, reach, shade);
+    }
   }
 
   @override
   bool shouldRepaint(covariant _GridPainter oldDelegate) =>
-      oldDelegate.line != line;
+      oldDelegate.line != line || oldDelegate.vignette != vignette;
 }
 
 class DeckCard extends StatelessWidget {

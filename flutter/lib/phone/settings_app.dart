@@ -29,6 +29,7 @@ class _SettingsAppState extends State<SettingsApp> {
   String _draft = '';
   final _codeController = TextEditingController();
   bool _langOpen = false;
+  bool _legacy = false;
   bool _uploading = false;
   bool _lockUploading = false;
   bool _uploadError = false;
@@ -143,22 +144,69 @@ class _SettingsAppState extends State<SettingsApp> {
               _skinButton(skinById('modern')!),
               const SizedBox(height: 8),
               _skinButton(skinById('android')!),
-              const Padding(
-                padding: EdgeInsets.only(top: 12, bottom: 8),
-                child: Text(
-                  'LEGACY',
-                  style: TextStyle(
-                    color: Color(0x59FFFFFF),
-                    fontSize: 10,
-                    letterSpacing: 1.1,
-                  ),
+              const SizedBox(height: 8),
+              Material(
+                color: light
+                    ? const Color(0x14000000)
+                    : const Color(0x18FFFFFF),
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InkWell(
+                      key: const Key('legacy-skins'),
+                      onTap: () => setState(() => _legacy = !_legacy),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _legacy ? Icons.expand_less : Icons.expand_more,
+                              size: 18,
+                              color: light ? Colors.black54 : Colors.white70,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'LEGACY',
+                              style: TextStyle(
+                                color: light ? Colors.black87 : Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'Interfaces',
+                              style: TextStyle(
+                                color: light ? Colors.black45 : Colors.white60,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_legacy)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                        child: Column(
+                          children: [
+                            for (final skin in osSkins)
+                              if (skin.era == 'legacy') ...[
+                                _skinButton(skin),
+                                const SizedBox(height: 8),
+                              ],
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              for (final skin in osSkins)
-                if (skin.era != 'modern' && skin.id != 'blackberry') ...[
-                  _skinButton(skin),
-                  const SizedBox(height: 8),
-                ],
               const SettingsHint(
                 'Restyles the status bar, dock, icons and home button of this device.',
               ),

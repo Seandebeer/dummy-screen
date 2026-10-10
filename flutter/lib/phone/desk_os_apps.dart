@@ -12,6 +12,7 @@ import 'app_catalog.dart';
 import 'browser_frame.dart';
 import 'catalog.dart';
 import 'desk_apps.dart';
+import 'ios_keyboard.dart';
 import 'desk_settings.dart';
 import 'library_app.dart';
 import 'maps_app.dart';
@@ -428,6 +429,27 @@ class _DeskMessagesState extends State<_DeskMessages> {
       thread: thread,
     );
     _reply.clear();
+    hideIosKeyboard(context);
+  }
+
+  Future<void> _confirmDelete(StageMessage message) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this message?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) widget.store.deleteMessage(message.id);
   }
 
   @override
@@ -473,7 +495,9 @@ class _DeskMessagesState extends State<_DeskMessages> {
                     padding: const EdgeInsets.all(12),
                     children: [
                       for (final message in items)
-                        Align(
+                        GestureDetector(
+                          onLongPress: () => _confirmDelete(message),
+                          child: Align(
                           alignment: message.sender == 'phone'
                               ? Alignment.centerRight
                               : Alignment.centerLeft,
@@ -498,6 +522,7 @@ class _DeskMessagesState extends State<_DeskMessages> {
                               ),
                             ),
                           ),
+                        ),
                         ),
                     ],
                   ),
@@ -941,14 +966,37 @@ class _DeskMail extends StatefulWidget {
 }
 
 class _DeskMailState extends State<_DeskMail> {
-  late final List<Map<String, dynamic>> _mail = [
-    for (final item in jsonList(
-      jsonMap(widget.store.pages['mail-${widget.device.id}'])['items'],
-    ))
-      if (item is Map) jsonMap(item),
-    ...inboxSeed(),
-  ];
+  late final List<Map<String, dynamic>> _mail = [...inboxSeed()];
   int _open = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncPushed();
+  }
+
+  @override
+  void didUpdateWidget(_DeskMail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncPushed();
+  }
+
+  void _syncPushed() {
+    final raw = widget.store.pages['mail-${widget.device.id}'];
+    final pushed = raw is Map
+        ? [
+            for (final item in jsonList(raw['items']))
+              if (item is Map) {...jsonMap(item), 'pushed': true},
+          ]
+        : const <Map<String, dynamic>>[];
+    final ids = pushed.map((item) => item['id']).toSet();
+    _mail.removeWhere((item) => item['pushed'] == true && !ids.contains(item['id']));
+    for (final item in pushed.reversed) {
+      if (!_mail.any((existing) => existing['id'] == item['id'])) {
+        _mail.insert(0, item);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

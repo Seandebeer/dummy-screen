@@ -14,9 +14,11 @@ import 'catalog.dart';
 import 'desk_os_apps.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
+import 'ios_keyboard.dart';
 import 'mac_desk.dart';
 import 'mac_desktop.dart';
 import 'os_apps.dart';
+import 'phone_shell.dart';
 import 'win_desktop.dart';
 import 'ps2_home.dart';
 import 'smart_home.dart';
@@ -37,15 +39,15 @@ DeviceMetrics metricsFor(String kind, {bool landscape = false}) {
     case 'tablet':
       return DeviceMetrics(landscape ? 4 / 3 : 3 / 4, 'tablet');
     case 'computer':
-      return const DeviceMetrics(16 / 10, 'monitor');
+      return const DeviceMetrics(16 / 10, 'laptop');
     case 'tv':
     case 'console':
-    case 'cctv':
       return const DeviceMetrics(16 / 9, 'tv');
+    case 'cctv':
+      return const DeviceMetrics(16 / 9, 'monitor');
     case 'atm':
-      return const DeviceMetrics(4 / 3, 'kiosk');
     case 'smarthome':
-      return const DeviceMetrics(4 / 3, 'panel');
+      return const DeviceMetrics(4 / 3, 'tablet');
     case 'homephone':
       return const DeviceMetrics(390 / 844, 'phone');
     default:
@@ -74,16 +76,59 @@ class DeviceBezel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = switch (frame) {
-      'phone' => 36.0,
-      'tablet' => 28.0,
-      'kiosk' => 18.0,
-      'panel' => 16.0,
+      'phone' => 34.0,
+      'tablet' => 18.0,
+      'laptop' => 10.0,
+      'tv' => 6.0,
+      'monitor' => 8.0,
       _ => 12.0,
     };
+    final pad = switch (frame) {
+      'phone' => 8.0,
+      'tablet' => 10.0,
+      'tv' => 8.0,
+      'laptop' => 8.0,
+      _ => 10.0,
+    };
+    final screen = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: child,
+    );
+    if (frame == 'laptop') {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF2C2C32),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF6A6A72)),
+          boxShadow: const [
+            BoxShadow(color: Color(0x66000000), blurRadius: 28, offset: Offset(0, 16)),
+          ],
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                child: screen,
+              ),
+            ),
+            Container(
+              height: 14,
+              margin: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A30),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
-        borderRadius: BorderRadius.circular(radius + 8),
+        color: const Color(0xFF2E2E34),
+        borderRadius: BorderRadius.circular(radius + pad),
+        border: Border.all(color: const Color(0xFF8A8A92), width: 1.4),
         boxShadow: const [
           BoxShadow(
             color: Color(0x66000000),
@@ -93,20 +138,15 @@ class DeviceBezel extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(10, 10, 10, frame == 'monitor' ? 28 : 10),
+        padding: EdgeInsets.fromLTRB(pad, pad, pad, frame == 'monitor' ? 22 : pad),
         child: Column(
           children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(radius),
-                child: child,
-              ),
-            ),
+            Expanded(child: screen),
             if (frame == 'monitor')
               Container(
-                width: 72,
-                height: 10,
-                margin: const EdgeInsets.only(top: 8),
+                width: 84,
+                height: 8,
+                margin: const EdgeInsets.only(top: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2C2C30),
                   borderRadius: BorderRadius.circular(2),
@@ -121,10 +161,22 @@ class DeviceBezel extends StatelessWidget {
 
 /// Computer, TV, console, ATM, CCTV, and smart-home screens.
 class FormOs extends StatefulWidget {
-  const FormOs({super.key, required this.store, required this.device});
+  const FormOs({
+    super.key,
+    required this.store,
+    required this.device,
+    this.onOpenBanner,
+    this.launchApp,
+    this.launchTick = 0,
+    this.closeTick = 0,
+  });
 
   final StageStore store;
   final PropDevice device;
+  final void Function(BannerNote banner)? onOpenBanner;
+  final String? launchApp;
+  final int launchTick;
+  final int closeTick;
 
   @override
   State<FormOs> createState() => _FormOsState();
@@ -150,8 +202,21 @@ class _FormOsState extends State<FormOs> {
   }
 
   @override
+  void didUpdateWidget(FormOs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.closeTick != oldWidget.closeTick) {
+      _app = null;
+    } else if (widget.launchTick != oldWidget.launchTick &&
+        widget.launchApp != null) {
+      _app = widget.launchApp;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return switch (device.kind) {
+    final stage = _app == 'grey-track'
+        ? const GreyTrackPage()
+        : switch (device.kind) {
       'tv' => _TvOs(
         shell: os.shell.isEmpty ? 'aurora' : os.shell,
         onShell: _shell,
@@ -181,6 +246,30 @@ class _FormOsState extends State<FormOs> {
         onOpen: _open,
       ),
     };
+    final banners = widget.store.bannersFor(device.id);
+    if (banners.isEmpty) return stage;
+    return Stack(
+      children: [
+        stage,
+        Positioned(
+          top: 8,
+          left: 10,
+          right: 10,
+          child: Column(
+            children: [
+              for (final banner in banners.take(3))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: OsBanner(
+                    banner: banner,
+                    onTap: () => widget.onOpenBanner?.call(banner),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -335,6 +424,8 @@ class _LinuxDesktop extends StatefulWidget {
 class _LinuxDesktopState extends State<_LinuxDesktop> {
   final _rename = TextEditingController();
   String? _renaming;
+  bool _activities = false;
+  bool _allApps = true;
 
   @override
   void dispose() {
@@ -388,7 +479,7 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
         final current =
             widget.store.deviceById(widget.device.id) ?? widget.device;
         return Material(
-          color: const Color(0xFF1C2833),
+          color: const Color(0xFF12352C),
           child: Column(
             children: [
               _menu(ink),
@@ -407,25 +498,19 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
                     ),
                     if (widget.overlay != null)
                       Positioned.fill(child: widget.overlay!),
-                    Padding(
-                      padding: const EdgeInsets.all(12),
+                    Positioned.fill(
+                      child: Padding(
+                      padding: const EdgeInsets.fromLTRB(72, 12, 12, 12),
                       child: SingleChildScrollView(
                         child: Wrap(
                           spacing: 10,
                           runSpacing: 10,
                           children: [
-                            for (final item in widget.apps)
-                              _linuxIcon(
-                                current.os,
-                                item.$1,
-                                item.$2,
-                                Icon(item.$3, color: ink, size: 28),
-                              ),
-                            for (final id in current.os.deskFolders)
+                            for (final id in MacLayout.deskFolders(current.os))
                               _linuxIcon(
                                 current.os,
                                 id,
-                                'New Folder',
+                                macGlyph(id, current.os).label,
                                 const Icon(
                                   Icons.folder,
                                   color: Color(0xFFE8B931),
@@ -435,6 +520,14 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
                           ],
                         ),
                       ),
+                    ),
+                    ),
+                    if (_activities) _activitiesView(current.os, ink),
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: _dock(ink, current.os),
                     ),
                     if (title != null)
                       Center(
@@ -454,7 +547,6 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
                   ],
                 ),
               ),
-              _dock(ink, current.os),
             ],
           ),
         );
@@ -465,15 +557,19 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
   Widget _linuxIcon(OsSettings os, String id, String fallback, Widget mark) {
     final label = _named(os, id, fallback);
     return SizedBox(
-      width: 72,
+      width: 88,
+      height: 92,
       child: Column(
         children: [
           GestureDetector(
             key: Key('linux-icon-$id'),
-            onTap: () => widget.onOpen(id),
-            child: mark,
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              setState(() => _activities = false);
+              widget.onOpen(id);
+            },
+            child: SizedBox(width: 72, height: 48, child: Center(child: mark)),
           ),
-          const SizedBox(height: 4),
           DeskIconName(
             label: label,
             labelKey: Key('linux-label-$id'),
@@ -488,30 +584,40 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
   }
 
   Widget _menu(Color ink) {
-    final label = kComputerShells
-        .firstWhere(
-          (item) => item.$1 == 'linux',
-          orElse: () => kComputerShells.first,
-        )
-        .$2;
+    final now = DateTime.now();
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final label = '${days[now.weekday - 1]} $hour:$minute';
     return Container(
-      height: 28,
-      color: Colors.black.withValues(alpha: 0.35),
+      height: 32,
+      color: const Color(0xCC1A1A1A),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: ink,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+          TextButton(
+            key: const Key('ubuntu-activities'),
+            onPressed: () => setState(() => _activities = !_activities),
+            child: Text(
+              'Activities',
+              style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
-          const Spacer(),
+          Expanded(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: ink, fontSize: 13),
+            ),
+          ),
+          const Icon(Icons.wifi, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
+          const Icon(Icons.volume_up, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
+          const Icon(Icons.power_settings_new, color: Colors.white, size: 16),
           PopupMenuButton<String>(
             tooltip: 'System',
-            icon: Icon(Icons.settings, size: 14, color: ink),
+            icon: Icon(Icons.arrow_drop_down, size: 18, color: ink),
             onSelected: widget.onShell,
             itemBuilder: (context) => [
               for (final item in kComputerShells)
@@ -523,30 +629,120 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
     );
   }
 
+  Widget _activitiesView(OsSettings os, Color ink) {
+    final apps = _allApps ? widget.apps : widget.apps.take(8).toList();
+    return Positioned.fill(
+      child: ColoredBox(
+        color: const Color(0xF0122E28),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(84, 18, 24, 18),
+          child: Column(
+            children: [
+              Container(
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.search, color: Colors.white54, size: 18),
+                    SizedBox(width: 8),
+                    Text('Type to search…', style: TextStyle(color: Colors.white54)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      child: SizedBox(
+                        width: constraints.maxWidth,
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            for (final item in apps)
+                              _linuxIcon(
+                                os,
+                                item.$1,
+                                item.$2,
+                                Icon(item.$3, color: ink, size: 32),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () => setState(() => _allApps = false),
+                    child: Text(
+                      'Frequent',
+                      style: TextStyle(
+                        color: _allApps ? Colors.white54 : Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _allApps = true),
+                    child: Text(
+                      'All',
+                      style: TextStyle(
+                        color: _allApps ? Colors.white : Colors.white54,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _dock(Color ink, OsSettings os) {
     final docked = [
       for (final id in kDockIds)
         if (propAppById(id) case final prop?)
           (id, appLabel(prop, branded: os.branded), prop.icon),
       for (final item in widget.apps)
-        if (item.$1 == 'appstore' || item.$1 == 'settings') item,
+        if (item.$1 == 'settings') item,
     ];
     return Container(
-      height: 54,
-      margin: const EdgeInsets.fromLTRB(40, 0, 40, 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      width: 58,
+      color: const Color(0x66111111),
+      child: Column(
         children: [
+          const SizedBox(height: 8),
           for (final item in docked)
             IconButton(
               tooltip: item.$2,
-              onPressed: () => widget.onOpen(item.$1),
-              icon: Icon(item.$3, color: ink, size: 20),
+              onPressed: () {
+                setState(() => _activities = false);
+                widget.onOpen(item.$1);
+              },
+              icon: Icon(item.$3, color: ink, size: 22),
             ),
+          const Spacer(),
+          Container(
+            width: 28,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
         ],
       ),
     );
@@ -595,7 +791,7 @@ class _Window extends StatelessWidget {
                 ],
               ),
             ),
-            Expanded(child: child),
+            Expanded(child: DeviceKeyboard(child: child)),
           ],
         ),
       ),

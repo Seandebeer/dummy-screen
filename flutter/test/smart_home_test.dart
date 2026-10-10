@@ -9,7 +9,7 @@ void main() {
   test('smart home has a wall panel and a phone screen', () {
     final wall = metricsFor('smarthome');
     expect(wall.aspect, 4 / 3);
-    expect(wall.frame, 'panel');
+    expect(wall.frame, 'tablet');
     final phone = metricsFor('homephone');
     expect(phone.aspect, 390 / 844);
     expect(phone.frame, 'phone');

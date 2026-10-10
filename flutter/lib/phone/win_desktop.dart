@@ -154,8 +154,8 @@ class _WinDesktopState extends State<WinDesktop> {
           width: 246,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final count =
-                  _shortcuts.length + widget.apps.length + live.os.deskFolders.length;
+              final folders = MacLayout.deskFolders(live.os);
+              final count = folders.length;
               final rows = (count / 3).ceil().clamp(1, 99);
               final cellH = constraints.maxHeight / rows;
               return Wrap(
@@ -164,46 +164,18 @@ class _WinDesktopState extends State<WinDesktop> {
                 spacing: 0,
                 runSpacing: 0,
                 children: [
-                  for (final shortcut in _shortcuts)
+                  for (final id in folders)
                     _DesktopIcon(
-                      label: _named(live.os, shortcut.id, shortcut.label),
-                      iconKey: shortcut.key,
-                      labelKey: Key('win-label-${shortcut.id}'),
-                      height: cellH,
-                      editing: _renaming == shortcut.id,
-                      controller: _rename,
-                      onRename: () => _beginRename(
-                        shortcut.id,
-                        _named(live.os, shortcut.id, shortcut.label),
-                      ),
-                      onCommit: _commitRename,
-                      onTap: () => _open(shortcut.id),
-                      child: shortcut.mark,
-                    ),
-                  for (final app in widget.apps)
-                    _DesktopIcon(
-                      label: _named(live.os, app.$1, app.$2),
-                      iconKey: Key('win-icon-${app.$1}'),
-                      labelKey: Key('win-label-${app.$1}'),
-                      height: cellH,
-                      editing: _renaming == app.$1,
-                      controller: _rename,
-                      onRename: () =>
-                          _beginRename(app.$1, _named(live.os, app.$1, app.$2)),
-                      onCommit: _commitRename,
-                      onTap: () => _open(app.$1),
-                      child: _Tile(_tint(app.$1), app.$3),
-                    ),
-                  for (final id in live.os.deskFolders)
-                    _DesktopIcon(
-                      label: _named(live.os, id, 'New Folder'),
+                      label: _named(live.os, id, macGlyph(id, live.os).label),
                       iconKey: Key('win-folder-$id'),
                       labelKey: Key('win-label-$id'),
                       height: cellH,
                       editing: _renaming == id,
                       controller: _rename,
-                      onRename: () =>
-                          _beginRename(id, _named(live.os, id, 'New Folder')),
+                      onRename: () => _beginRename(
+                        id,
+                        _named(live.os, id, macGlyph(id, live.os).label),
+                      ),
                       onCommit: _commitRename,
                       onTap: () => _open(id),
                       child: const Icon(
@@ -313,61 +285,6 @@ class _WinDesktopState extends State<WinDesktop> {
   }
 }
 
-class _Shortcut {
-  const _Shortcut(this.id, this.label, this.mark, {this.key});
-
-  final String id;
-  final String label;
-  final Widget mark;
-  final Key? key;
-}
-
-class _Tile extends StatelessWidget {
-  const _Tile(this.color, this.icon);
-
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 30,
-      height: 30,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(7),
-      ),
-      child: Icon(icon, color: Colors.white, size: 16),
-    );
-  }
-}
-
-/// Windows keeps its own shortcuts; the shared apps follow them.
-const _shortcuts = <_Shortcut>[
-  _Shortcut(
-    'recycle',
-    'Recycle Bin',
-    CustomPaint(painter: _BinPainter(), child: SizedBox(width: 30, height: 30)),
-    key: Key('win-recycle'),
-  ),
-  _Shortcut(
-    'edge',
-    'Edge',
-    CustomPaint(painter: _WavePainter(), child: SizedBox(width: 30, height: 30)),
-    key: Key('win-edge'),
-  ),
-  _Shortcut(
-    'files',
-    'File Explorer',
-    _Tile(Color(0xFFE8B931), Icons.folder_outlined),
-    key: Key('win-files-icon'),
-  ),
-];
-
-Color _tint(String id) =>
-    propAppById(id)?.color ?? const Color(0xFF4C6EF5);
-
 class _Taskbar extends StatelessWidget {
   const _Taskbar({
     required this.now,
@@ -439,6 +356,7 @@ class _Taskbar extends StatelessWidget {
                   child: const Icon(Icons.view_quilt_outlined, size: 18, color: Color(0xFF1A1A1A)),
                 ),
                 _BarButton(
+                  key: const Key('win-edge'),
                   tooltip: 'Edge',
                   onTap: onEdge,
                   child: const CustomPaint(
@@ -680,8 +598,8 @@ class _StartMenu extends StatelessWidget {
       elevation: 12,
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
-        width: 420,
-        height: 280,
+        width: 520,
+        height: 460,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
           child: Column(
@@ -968,48 +886,6 @@ class _PanesPainter extends CustomPainter {
         paint,
       );
     }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BinPainter extends CustomPainter {
-  const _BinPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final body = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.22, size.height * 0.28, size.width * 0.56, size.height * 0.58),
-      const Radius.circular(3),
-    );
-    canvas.drawRRect(body, Paint()..color = const Color(0xE6F4F8FC));
-    canvas.drawRRect(
-      body,
-      Paint()
-        ..color = const Color(0xFF3A6EA5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.3, size.height * 0.16, size.width * 0.4, size.height * 0.1),
-        const Radius.circular(2),
-      ),
-      Paint()..color = const Color(0xFF5B8FC4),
-    );
-    final arrow = Paint()
-      ..color = const Color(0xFF2F6FE0)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromLTWH(size.width * 0.32, size.height * 0.4, size.width * 0.36, size.height * 0.32),
-      0.4,
-      4.6,
-      false,
-      arrow,
-    );
   }
 
   @override

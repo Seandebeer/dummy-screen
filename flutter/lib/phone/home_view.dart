@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../image_file.dart';
@@ -90,14 +92,28 @@ class PhoneHome extends StatelessWidget {
         ),
         Container(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(
-              alpha: chrome == SkinChrome.classic ? 0.16 : 0.08,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withValues(alpha: 0.46),
+                Colors.white.withValues(alpha: 0.16),
+              ],
             ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white24),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.62)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x66FFFFFF), blurRadius: 10, offset: Offset(0, -1)),
+            ],
           ),
+          child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -112,6 +128,10 @@ class PhoneHome extends StatelessWidget {
                   onTap: () => onOpen(app.id),
                 ),
             ],
+          ),
+          ),
+          ),
+          ),
           ),
         ),
       ],
@@ -162,22 +182,18 @@ class _HomePagesState extends State<_HomePages> {
             onPageChanged: (index) => setState(() => _page = index),
             children: [
               for (final page in widget.pages)
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final rows = (page.length / widget.columns).ceil().clamp(1, 5);
-                    final aspect = constraints.maxWidth /
-                        widget.columns /
-                        (constraints.maxHeight / rows);
-                    return GridView.count(
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
-                      crossAxisCount: widget.columns,
-                      mainAxisSpacing: 2,
-                      crossAxisSpacing: 2,
-                      childAspectRatio: aspect.isFinite && aspect > 0 ? aspect : 1,
-                      children: [
-                        for (final app in page)
-                          _IconApp(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceEvenly,
+                    spacing: 6,
+                    runSpacing: 14,
+                    children: [
+                      for (final app in page)
+                        SizedBox(
+                          width: 76,
+                          height: 92,
+                          child: _IconApp(
                             key: Key('home-${app.id}'),
                             app: app,
                             glossy: widget.glossy,
@@ -186,14 +202,42 @@ class _HomePagesState extends State<_HomePages> {
                             branded: widget.branded,
                             onTap: () => widget.onOpen(app.id),
                           ),
-                      ],
-                    );
-                  },
+                        ),
+                    ],
+                  ),
                 ),
             ],
           ),
         ),
-        if (widget.pages.length > 1)
+        if (_page == 0)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Center(
+              child: Container(
+                key: const Key('home-search'),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.search, size: 16, color: widget.labelColor.withValues(alpha: 0.85)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Search',
+                      style: TextStyle(
+                        color: widget.labelColor.withValues(alpha: 0.85),
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else if (widget.pages.length > 1)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Row(
@@ -222,7 +266,7 @@ class _HomePagesState extends State<_HomePages> {
 Widget _glyph(PropApp app) {
   final provider = app.image.isEmpty ? null : imageProviderForPath(app.image);
   if (provider == null) {
-    return Icon(app.icon, color: Colors.white, size: 22);
+    return Icon(app.icon, color: Colors.white, size: 30);
   }
   return ClipRRect(
     borderRadius: BorderRadius.circular(8),
@@ -263,8 +307,8 @@ class _IconApp extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               color: app.color,
               borderRadius: BorderRadius.circular(

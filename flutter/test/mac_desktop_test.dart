@@ -27,21 +27,17 @@ void main() {
     );
     expect(find.byKey(const Key('mac-desktop')), findsOneWidget);
     expect(find.text('Finder'), findsOneWidget);
-    expect(find.text('Documents'), findsOneWidget);
-    expect(find.text('Projects'), findsOneWidget);
+    expect(find.text('Untitled Folder'), findsOneWidget);
+    expect(find.text('Documents'), findsNothing);
     expect(find.text('Insert card to begin.'), findsNothing);
 
-    final documents = tester.getCenter(
-      find.byKey(const Key('mac-file-Documents')),
-    );
-    final projects = tester.getCenter(
-      find.byKey(const Key('mac-file-Projects')),
+    final folder = tester.getCenter(
+      find.byKey(const Key('mac-file-Untitled Folder')),
     );
     final finder = tester.getCenter(find.text('Finder'));
-    expect(documents.dx, greaterThan(finder.dx));
-    expect(projects.dy, greaterThan(documents.dy));
+    expect(folder.dx, greaterThan(finder.dx));
 
-    await tester.tap(find.byKey(const Key('mac-file-Documents')));
+    await tester.tap(find.byKey(const Key('mac-file-Untitled Folder')));
     await tester.pump();
     expect(find.text('Scene 47.txt'), findsOneWidget);
     await tester.tap(find.byKey(const Key('mac-window-close')));
@@ -76,10 +72,8 @@ void main() {
     );
     expect(find.byKey(const Key('mac-desktop')), findsNothing);
     expect(find.byKey(const Key('win-desktop')), findsOneWidget);
-    expect(find.text('Recycle Bin'), findsOneWidget);
-    expect(find.text('Edge'), findsOneWidget);
-    expect(find.byKey(const Key('win-icon-calendar')), findsOneWidget);
-    expect(find.byKey(const Key('win-icon-notes')), findsOneWidget);
+    expect(find.text('Untitled Folder'), findsOneWidget);
+    expect(find.text('Recycle Bin'), findsNothing);
     expect(find.byKey(const Key('win-bar-phone')), findsOneWidget);
     expect(find.byKey(const Key('win-taskbar')), findsOneWidget);
     await tester.tap(find.byKey(const Key('win-edge')));
@@ -87,7 +81,12 @@ void main() {
     expect(find.text('northline.example'), findsOneWidget);
     await tester.tap(find.byKey(const Key('win-window-close')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('win-icon-calculator')));
+    await tester.tap(find.byKey(const Key('win-start')));
+    await tester.pump();
+    final pin = find.byKey(const Key('win-pin-calculator'));
+    await tester.ensureVisible(pin);
+    await tester.pump();
+    await tester.tap(pin);
     await tester.pump();
     expect(find.text('AC'), findsOneWidget);
     await tester.tap(find.byKey(const Key('win-window-close')));
@@ -96,8 +95,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Windows'), findsOneWidget);
     expect(find.text('Mac'), findsOneWidget);
-    expect(find.text('Linux'), findsOneWidget);
-    expect(find.text('Ubuntu'), findsNothing);
+    expect(find.text('Ubuntu'), findsOneWidget);
+    expect(find.text('Linux'), findsNothing);
     expect(find.text('Windows 95'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -243,14 +242,14 @@ void main() {
     expect(find.byKey(const Key('mac-dock-music')), findsNothing);
     expect(find.byKey(const Key('mac-desk-music')), findsOneWidget);
 
-    await show(const Key('desk-nudge-left-file:Documents'));
+    await show(const Key('desk-nudge-left-folder:Untitled Folder'));
     final documents = tester.getCenter(
-      find.byKey(const Key('mac-file-Documents')),
+      find.byKey(const Key('mac-file-Untitled Folder')),
     );
-    await tester.tap(find.byKey(const Key('desk-nudge-left-file:Documents')));
+    await tester.tap(find.byKey(const Key('desk-nudge-left-folder:Untitled Folder')));
     await tester.pump();
     expect(
-      tester.getCenter(find.byKey(const Key('mac-file-Documents'))).dx,
+      tester.getCenter(find.byKey(const Key('mac-file-Untitled Folder'))).dx,
       lessThan(documents.dx - 40),
     );
 
@@ -316,7 +315,7 @@ void main() {
         home: FormOs(store: store, device: device),
       ),
     );
-    final before = tester.getCenter(find.byKey(const Key('mac-file-Projects')));
+    final before = tester.getCenter(find.byKey(const Key('mac-file-Untitled Folder')));
     final gesture = await tester.startGesture(before);
     await tester.pump();
     await gesture.moveBy(const Offset(-30, 0));
@@ -325,7 +324,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     await gesture.up();
     await tester.pump();
-    final after = tester.getCenter(find.byKey(const Key('mac-file-Projects')));
+    final after = tester.getCenter(find.byKey(const Key('mac-file-Untitled Folder')));
     expect(after.dx, lessThan(before.dx - 80));
     expect(tester.takeException(), isNull);
   });
@@ -380,7 +379,7 @@ void main() {
     await tester.pump();
     expect(find.text('New Folder'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('mac-label-file:Documents')));
+    await tester.tap(find.byKey(const Key('mac-label-folder:Untitled Folder')));
     await tester.pump();
     expect(find.byKey(const Key('desk-rename-field')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('desk-rename-field')), 'Sides');
