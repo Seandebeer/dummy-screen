@@ -20,7 +20,8 @@ export const bgPresets = [
   { id: "wp", name: "Windows", dark: "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1.4px) 0 0 / 18px 18px, #111111", light: "#0a0a0a" },
   { id: "holo", name: "Holo", dark: "repeating-radial-gradient(circle at 78% 42%, rgba(95,166,229,0.09) 0 1px, transparent 1px 26px), radial-gradient(circle at 78% 42%, rgba(42,93,153,0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1420 0%, #090c10 55%, #05080c 100%)", light: "linear-gradient(180deg, #b8dbe8 0%, #e8f4f8 100%)" },
   { id: "material", name: "Material", dark: "linear-gradient(180deg, #263238 0%, #11181c 100%)", light: "linear-gradient(180deg, #cfe0e8 0%, #f2f6f8 100%)" },
-  { id: "webos", name: "webOS", dark: "linear-gradient(180deg, #06070d 0%, #10141f 100%)", light: "linear-gradient(180deg, #cfd6e4 0%, #eef1f8 100%)" },
+  { id: "webos", name: "webOS", dark: "linear-gradient(135deg, #8d8a7a 0%, #4e5248 100%)", light: "linear-gradient(180deg, #cfd6e4 0%, #eef1f8 100%)" },
+  { id: "belle", name: "Belle", dark: "linear-gradient(135deg, #f6b13a 0%, #1b4f8a 100%)", light: "linear-gradient(135deg, #ffe0b2 0%, #90caf9 100%)" },
 ];
 
 const defaults = {

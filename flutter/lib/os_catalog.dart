@@ -101,50 +101,34 @@ const osSkins = <OsSkin>[
     preview: [Color(0xFF1A1D2E), Color(0xFF0A0B14), Color(0xFF000000)],
   ),
   OsSkin(
-    id: 'aqua',
-    era: 'legacy',
-    name: 'OS 5',
-    desc: '2011-era OS 5 - glossy icons, dark metal dock, soft wallpaper.',
-    preset: 'aqua',
-    preview: [Color(0xFF0A1526), Color(0xFF050910)],
-  ),
-  OsSkin(
     id: 'iphoneos',
     era: 'legacy',
     name: 'iPhone OS',
-    desc: '2007 original - glossy reflections, tactile controls, metal dock.',
+    desc: '2007 original iPhone. Glossy icons and a metal dock.',
     preset: 'iphoneos',
-    preview: [Color(0xFF0D0E12), Color(0xFF000000)],
+    preview: [Color(0xFF2A2A2E), Color(0xFF050506)],
   ),
   OsSkin(
     id: 'ios6',
     era: 'legacy',
-    name: 'OS 6',
-    desc: 'Peak skeuomorphism - linen texture, glass and rich gloss.',
+    name: 'iOS 6',
+    desc: '2012. Glossy icons, water wallpaper, and a glass dock.',
     preset: 'linen',
-    preview: [Color(0xFF3C3C41), Color(0xFF1C1C20)],
+    preview: [Color(0xFF7EC8E3), Color(0xFF0E3A5A)],
   ),
   OsSkin(
     id: 'ios7',
     era: 'legacy',
-    name: 'OS 7',
-    desc: 'The flat turn - thin type, translucency, light gradients.',
+    name: 'iOS 7',
+    desc: '2013. Flat icons and a translucent dock.',
     preset: 'ios7',
-    preview: [Color(0xFF123253), Color(0xFF0B1E38)],
-  ),
-  OsSkin(
-    id: 'blackberry',
-    era: 'legacy',
-    name: 'BlackBerry',
-    desc: 'Corporate classic - dense info, tiny icons, dark blue.',
-    preset: 'bb',
-    preview: [Color(0xFF101B2A), Color(0xFF060B13)],
+    preview: [Color(0xFF3D6EA8), Color(0xFF0C1A33)],
   ),
   OsSkin(
     id: 'winphone',
     era: 'legacy',
     name: 'Windows Phone',
-    desc: 'Live-tile radical - giant type, flat squares, accent colour.',
+    desc: '2010. Metro live tiles and a three-button bar.',
     preset: 'wp',
     preview: [Color(0xFF000000), Color(0xFF1BA1E2)],
   ),
@@ -152,17 +136,25 @@ const osSkins = <OsSkin>[
     id: 'holo',
     era: 'legacy',
     name: 'Android Holo',
-    desc: 'Sci-fi Android - electric blue lines, dark panels, thin type.',
+    desc: '2011. Search, a clock, and a five-icon dock.',
     preset: 'holo',
-    preview: [Color(0xFF090C10), Color(0xFF020306)],
+    preview: [Color(0xFF2F80ED), Color(0xFF4A148C)],
   ),
   OsSkin(
-    id: 'material',
+    id: 'webos',
     era: 'legacy',
-    name: 'Android Material',
-    desc: "Google's Material - cards, elevation, bright colour.",
-    preset: 'material',
-    preview: [Color(0xFF263238), Color(0xFF11181C)],
+    name: 'webOS',
+    desc: '2009. A launcher grid and a quick-launch dock.',
+    preset: 'webos',
+    preview: [Color(0xFF8D8A7A), Color(0xFF4E5248)],
+  ),
+  OsSkin(
+    id: 'belle',
+    era: 'legacy',
+    name: 'Nokia Belle',
+    desc: '2011. Widgets, name plates, and a status bar.',
+    preset: 'belle',
+    preview: [Color(0xFFF6B13A), Color(0xFF1B4F8A)],
   ),
   OsSkin(
     id: 'android',
@@ -171,14 +163,6 @@ const osSkins = <OsSkin>[
     desc: 'Material You - circular icons, tinted dock, light status bar.',
     preset: 'droid',
     preview: [Color(0xFF101418), Color(0xFF14202A), Color(0xFF0A0E12)],
-  ),
-  OsSkin(
-    id: 'webos',
-    era: 'legacy',
-    name: 'webOS',
-    desc: 'The cult classic - cards in space, soft glow, gesture bar.',
-    preset: 'webos',
-    preview: [Color(0xFF06070D), Color(0xFF10141F)],
   ),
 ];
 
@@ -271,8 +255,14 @@ const bgPresets = <BgPreset>[
   BgPreset(
     id: 'webos',
     name: 'webOS',
-    dark: [Color(0xFF06070D), Color(0xFF10141F)],
+    dark: [Color(0xFF8D8A7A), Color(0xFF4E5248)],
     light: [Color(0xFFCFD6E4), Color(0xFFEEF1F8)],
+  ),
+  BgPreset(
+    id: 'belle',
+    name: 'Belle',
+    dark: [Color(0xFFF6B13A), Color(0xFF1B4F8A)],
+    light: [Color(0xFFFFE0B2), Color(0xFF90CAF9)],
   ),
 ];
 
@@ -673,6 +663,7 @@ SkinChrome chromeFor(String skin) {
     case 'aqua':
     case 'iphoneos':
     case 'ios6':
+    case 'ios7':
       return SkinChrome.classic;
     case 'tiles':
     case 'winphone':
@@ -680,6 +671,8 @@ SkinChrome chromeFor(String skin) {
     case 'android':
     case 'holo':
     case 'material':
+    case 'belle':
+    case 'blackberry':
       return SkinChrome.android;
     default:
       return SkinChrome.modern;

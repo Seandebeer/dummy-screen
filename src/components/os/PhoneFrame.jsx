@@ -62,6 +62,21 @@ function HomeButton({ variant, onHome }) {
       </div>
     );
   }
+  if (variant === "belle") {
+    return (
+      <div className="absolute bottom-1.5 inset-x-6 flex items-center justify-between text-white/90">
+        <button onClick={onHome} aria-label="Home" className="grid grid-cols-2 gap-1">
+          {[0, 1, 2, 3].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-white" />)}
+        </button>
+        <button onClick={onHome} aria-label="Phone">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 3h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z" /></svg>
+        </button>
+        <button onClick={onHome} aria-label="Menu" className="flex flex-col gap-[3px]">
+          {[0, 1, 2].map((i) => <span key={i} className="h-[2px] w-4 bg-white" />)}
+        </button>
+      </div>
+    );
+  }
   if (variant === "webos") {
     return (
       <button onClick={onHome} aria-label="Home"
@@ -137,7 +152,7 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
                 )}
               </div>
             )}
-            <div className={cn("flex items-center gap-1", st.timeCenter && "absolute left-1/2 -translate-x-1/2")}>
+            <div className={cn("flex items-center gap-1", st.timeCenter && "absolute left-1/2 -translate-x-1/2", st.timeRight && "ml-auto")}>
               {onTime ? (
                 <button onClick={onTime} title="Set clock" className="font-body">{time}</button>
               ) : (
@@ -153,7 +168,7 @@ export default function PhoneFrame({ children, onHome, onTime, light = false, ti
                 <AlarmClock size={12} className={s.alarm ? "opacity-100" : "opacity-0"} />
               </button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className={cn("flex items-center gap-2", st.timeRight && "hidden")}>
               {/* bluetooth - invisible until its slot is tapped, tap again to hide */}
               <button
                 onClick={edit ? () => onStatusChange({ bluetooth: !s.bluetooth }) : undefined}
