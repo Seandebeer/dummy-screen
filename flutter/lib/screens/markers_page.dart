@@ -527,9 +527,9 @@ class _MarkersPageState extends State<MarkersPage> {
                       alignment: WrapAlignment.center,
                       spacing: 6,
                       children: [
-                        _tool(Icons.palette_outlined, () => _pickColor(), fill: chrome, ink: chromeInk),
-                        _tool(Icons.category_outlined, () => _pickMarks(), fill: chrome, ink: chromeInk),
-                        _tool(Icons.my_location, () => _pickMarks(kinds: true), fill: chrome, ink: chromeInk),
+                        _tool(Icons.palette_outlined, () => _pickColor(light), fill: chrome, ink: chromeInk),
+                        _tool(Icons.category_outlined, () => _pickMarks(light: light), fill: chrome, ink: chromeInk),
+                        _tool(Icons.my_location, () => _pickMarks(light: light, kinds: true), fill: chrome, ink: chromeInk),
                         _tool(Icons.auto_awesome, () {
                           setState(() => _glow = !_glow);
                           _persist();
@@ -555,14 +555,14 @@ class _MarkersPageState extends State<MarkersPage> {
                     ),
                   ),
                 if (_locked && _hint)
-                  const Positioned(
+                  Positioned(
                     top: 36,
                     left: 0,
                     right: 0,
                     child: Text(
                       'Three-finger tap or L unlocks',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: chromeInk.withValues(alpha: 0.75), fontSize: 12),
                     ),
                   ),
               ],
@@ -621,17 +621,18 @@ class _MarkersPageState extends State<MarkersPage> {
     );
   }
 
-  Future<void> _pickColor() async {
+  Future<void> _pickColor(bool light) async {
+    final chrome = StageChrome(light);
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xE6000000),
+      backgroundColor: chrome.fill,
       builder: (context) => ListView(
         shrinkWrap: true,
         children: [
           for (final color in kVfxPalette)
             ListTile(
               leading: CircleAvatar(backgroundColor: color.hex, radius: 8),
-              title: Text(color.label, style: const TextStyle(color: Colors.white)),
+              title: Text(color.label, style: TextStyle(color: chrome.ink)),
               trailing: _bgColor == hexOf(color.hex)
                   ? const Icon(Icons.check, color: kAccent)
                   : null,
@@ -646,17 +647,17 @@ class _MarkersPageState extends State<MarkersPage> {
     );
   }
 
-  Future<void> _pickMarks({bool kinds = false}) async {
+  Future<void> _pickMarks({required bool light, bool kinds = false}) async {
+    final chrome = StageChrome(light);
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.transparent,
+      backgroundColor: chrome.fill,
       builder: (context) => ListView(
         shrinkWrap: true,
         children: [
           if (!kinds)
             ListTile(
-              title: const Text('NONE', style: TextStyle(color: Colors.white, fontSize: 12)),
+              title: Text('NONE', style: TextStyle(color: chrome.ink, fontSize: 12)),
               onTap: () {
                 setState(() => _markStyle = 'none');
                 _persist();
@@ -665,7 +666,7 @@ class _MarkersPageState extends State<MarkersPage> {
             ),
           for (final style in (kinds ? kMarkerKinds : kTrackingStyles))
             ListTile(
-              title: Text(style.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12)),
+              title: Text(style.name.toUpperCase(), style: TextStyle(color: chrome.ink, fontSize: 12)),
               trailing: _markStyle == style.id ? const Icon(Icons.check, color: kAccent) : null,
               onTap: () {
                 setState(() => _markStyle = style.id);

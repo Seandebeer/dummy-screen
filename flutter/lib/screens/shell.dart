@@ -152,7 +152,11 @@ class _ShellState extends State<Shell> {
                     ],
                   ),
           );
-          if (!wide) return body;
+          final themed = Theme(
+            data: deckTheme(Theme.of(context), paletteFor(store.appTheme)),
+            child: body,
+          );
+          if (!wide) return themed;
           return Stack(
             children: [
               Positioned.fill(
@@ -161,7 +165,7 @@ class _ShellState extends State<Shell> {
                   child: const SizedBox.expand(),
                 ),
               ),
-              body,
+              themed,
             ],
           );
         },

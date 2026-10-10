@@ -1,7 +1,11 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../app.dart';
+import '../image_file.dart';
 import '../models.dart';
+import '../video_source.dart';
 import '../widgets/prompt.dart';
 import 'social_feed.dart';
 
@@ -105,13 +109,151 @@ class NetPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (url.isEmpty) return const ColoredBox(color: Color(0xFF1C1C1E));
-    return Image.network(
-      url,
+    final provider = imageProviderForPath(url);
+    if (provider == null) return const ColoredBox(color: Color(0xFF1C1C1E));
+    return Image(
+      image: provider,
       fit: fit,
       width: double.infinity,
       height: double.infinity,
       errorBuilder: (context, error, stack) => const ColoredBox(color: Color(0xFF1C1C1E)),
+    );
+  }
+}
+
+/// A feed photo or video, with upload controls while the app is being edited.
+class FeedMedia extends StatelessWidget {
+  const FeedMedia({
+    super.key,
+    required this.post,
+    required this.editing,
+    required this.onChanged,
+  });
+
+  final Map<String, dynamic> post;
+  final bool editing;
+  final VoidCallback onChanged;
+
+  Future<void> _pick(bool video) async {
+    final file = await FilePicker.pickFile(type: video ? FileType.video : FileType.image);
+    if (file == null) return;
+    final path = video ? await persistPickedVideo(file) : await persistPickedImage(file);
+    if (path == null) return;
+    if (video) {
+      post['video'] = path;
+    } else {
+      post['image'] = path;
+      post['video'] = '';
+    }
+    onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final video = '${post['video'] ?? ''}';
+    final image = '${post['image'] ?? ''}';
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (video.isNotEmpty)
+          _ClipView(url: video)
+        else
+          NetPhoto(url: image),
+        if (editing)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Row(
+              children: [
+                _upload(Icons.photo_outlined, 'Replace photo', () => _pick(false)),
+                const SizedBox(width: 6),
+                _upload(Icons.videocam_outlined, 'Replace video', () => _pick(true)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _upload(IconData icon, String tip, VoidCallback onTap) {
+    return Material(
+      color: const Color(0xCC111111),
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: tip,
+        onPressed: onTap,
+        icon: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
+  }
+}
+
+class _ClipView extends StatefulWidget {
+  const _ClipView({required this.url});
+
+  final String url;
+
+  @override
+  State<_ClipView> createState() => _ClipViewState();
+}
+
+class _ClipViewState extends State<_ClipView> {
+  VideoPlayerController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _open();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ClipView old) {
+    super.didUpdateWidget(old);
+    if (old.url != widget.url) {
+      _controller?.dispose();
+      _controller = null;
+      _open();
+    }
+  }
+
+  void _open() {
+    final url = widget.url;
+    final file = url.startsWith('/') || url.startsWith('file:');
+    final controller = file
+        ? playerForPath(url)
+        : VideoPlayerController.networkUrl(Uri.parse(url));
+    if (controller == null) return;
+    _controller = controller;
+    controller.initialize().then((_) {
+      if (!mounted) return;
+      controller
+        ..setLooping(true)
+        ..setVolume(0)
+        ..play();
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return const ColoredBox(color: Color(0xFF1C1C1E));
+    }
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: controller.value.size.width,
+        height: controller.value.size.height,
+        child: VideoPlayer(controller),
+      ),
     );
   }
 }
@@ -348,7 +490,18 @@ class _GrapevineAppState extends State<GrapevineApp> {
               lines: 4,
             ),
           ),
-          if (image.isNotEmpty) AspectRatio(aspectRatio: 4 / 3, child: NetPhoto(url: image)),
+          if (image.isNotEmpty || '${post['video'] ?? ''}'.isNotEmpty || _editing)
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
@@ -454,7 +607,14 @@ class _GrapevineAppState extends State<GrapevineApp> {
           crossAxisSpacing: 2,
           children: [
             for (final post in photos)
-              NetPhoto(url: post['image'] as String),
+              FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
           ],
         ),
       ],
@@ -656,7 +816,17 @@ class _LumeAppState extends State<LumeApp> {
             },
           ),
         ),
-        AspectRatio(aspectRatio: 1, child: NetPhoto(url: '${post['image']}')),
+        AspectRatio(
+          aspectRatio: 1,
+          child: FeedMedia(
+            post: post,
+            editing: _editing,
+            onChanged: () {
+              setState(() {});
+              _keep();
+            },
+          ),
+        ),
         Row(
           children: [
             IconButton(
@@ -767,7 +937,17 @@ class _LumeAppState extends State<LumeApp> {
           crossAxisCount: 3,
           mainAxisSpacing: 2,
           crossAxisSpacing: 2,
-          children: [for (final post in _posts) NetPhoto(url: '${post['image']}')],
+          children: [
+            for (final post in _posts)
+              FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
+          ],
         ),
       ],
     );
@@ -958,7 +1138,14 @@ class _StreamlyAppState extends State<StreamlyApp> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                NetPhoto(url: '${video['image']}'),
+                FeedMedia(
+                  post: video,
+                  editing: _editing,
+                  onChanged: () {
+                    setState(() {});
+                    _keep();
+                  },
+                ),
                 Positioned(
                   right: 6,
                   bottom: 6,
@@ -1017,7 +1204,17 @@ class _StreamlyAppState extends State<StreamlyApp> {
     final subbed = _subs[channel] == true;
     return ListView(
       children: [
-        AspectRatio(aspectRatio: 16 / 9, child: NetPhoto(url: '${video['image']}')),
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: FeedMedia(
+            post: video,
+            editing: _editing,
+            onChanged: () {
+              setState(() {});
+              _keep();
+            },
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -1218,7 +1415,14 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        NetPhoto(url: '${post['image']}'),
+        FeedMedia(
+          post: post,
+          editing: _editing,
+          onChanged: () {
+            setState(() {});
+            _keep();
+          },
+        ),
         const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -1396,7 +1600,17 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
           crossAxisCount: 3,
           mainAxisSpacing: 2,
           crossAxisSpacing: 2,
-          children: [for (final post in _posts) NetPhoto(url: '${post['image']}')],
+          children: [
+            for (final post in _posts)
+              FeedMedia(
+                post: post,
+                editing: _editing,
+                onChanged: () {
+                  setState(() {});
+                  _keep();
+                },
+              ),
+          ],
         ),
       ],
     );

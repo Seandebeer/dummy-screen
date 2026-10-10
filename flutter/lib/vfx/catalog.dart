@@ -214,6 +214,18 @@ bool lightHex(Color color) {
   return luma > 150 / 255;
 }
 
+/// Toolbar and menu colours that stay readable on the stage behind them.
+class StageChrome {
+  const StageChrome(this.light);
+
+  final bool light;
+
+  Color get ink => light ? const Color(0xFF111111) : Colors.white;
+  Color get muted => light ? const Color(0xFF3A3A3C) : const Color(0xB3FFFFFF);
+  Color get fill => light ? const Color(0xF4F7F7F8) : const Color(0xF21A1A1E);
+  Color get bar => light ? const Color(0xF2F4F4F8) : const Color(0xE610141A);
+}
+
 Color parseHex(String? hex, Color fallback) {
   if (hex == null || hex.isEmpty) return fallback;
   var raw = hex.replaceFirst('#', '');

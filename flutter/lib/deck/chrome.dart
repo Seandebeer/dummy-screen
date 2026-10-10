@@ -48,13 +48,33 @@ const kDeckPalettes = <String, DeckPalette>{
     surface: Color(0xFFECE7DA),
     line: Color(0xFFD0C8B9),
     muted: Color(0xFF756957),
-    ink: Color(0xFF262017),
+    ink: Colors.black,
     secondary: Color(0xFFDDD7CA),
     light: true,
   ),
 };
 
 DeckPalette paletteFor(String id) => kDeckPalettes[id] ?? kDeckPalettes['black']!;
+
+/// Cream uses black text. Dark and Grey keep the existing light type.
+ThemeData deckTheme(ThemeData base, DeckPalette palette) {
+  if (!palette.light) return base;
+  const ink = Colors.black;
+  return base.copyWith(
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.light(
+      surface: palette.surface,
+      onSurface: ink,
+      primary: kAccent,
+      onPrimary: Colors.white,
+      secondary: palette.secondary,
+      onSecondary: ink,
+    ),
+    iconTheme: const IconThemeData(color: ink),
+    listTileTheme: const ListTileThemeData(textColor: ink, iconColor: ink),
+    textTheme: base.textTheme.apply(bodyColor: ink, displayColor: ink),
+  );
+}
 
 class AppLanguage {
   const AppLanguage(this.code, this.native, {this.rtl = false});

@@ -215,16 +215,30 @@ class _OsPageState extends State<OsPage> {
                       final turned = !store.filming &&
                           (_quarter || (device.os.autoRotate && _side != 0));
                       final metrics = metricsForTurn(device.kind, turned: turned);
-                      final aspect = metrics.aspect;
-                      // Fullscreen drops the edit rotation and fits the default
-                      // aspect, so a portrait phone does not stretch landscape.
+                      // Fit the default orientation first. A 90° turn keeps that
+                      // scale and only shrinks when the swapped box leaves the stage.
                       final fit = framed || store.filming;
                       final margin = framed ? 24.0 : 0.0;
-                      var height = constraints.maxHeight - margin;
-                      var width = height * aspect;
-                      if (width > constraints.maxWidth - margin) {
-                        width = constraints.maxWidth - margin;
-                        height = width / aspect;
+                      final maxW = constraints.maxWidth - margin;
+                      final maxH = constraints.maxHeight - margin;
+                      final base = metricsForTurn(device.kind, turned: false);
+                      var baseHeight = maxH;
+                      var baseWidth = baseHeight * base.aspect;
+                      if (baseWidth > maxW && base.aspect > 0) {
+                        baseWidth = maxW;
+                        baseHeight = baseWidth / base.aspect;
+                      }
+                      var width = turned ? baseHeight : baseWidth;
+                      var height = turned ? baseWidth : baseHeight;
+                      if (width > maxW && width > 0) {
+                        final scale = maxW / width;
+                        width *= scale;
+                        height *= scale;
+                      }
+                      if (height > maxH && height > 0) {
+                        final scale = maxH / height;
+                        width *= scale;
+                        height *= scale;
                       }
                       final now = propNow(device.clockOffsetMinutes);
                       final phone = device.kind == 'phone' || device.kind == 'tablet';
@@ -754,10 +768,12 @@ class _OsPageState extends State<OsPage> {
     final selected = store.screenConfig['marksId'] as String? ?? 'cross';
     final addKind = store.screenConfig['addKind'] as String? ?? 'cross';
     final point = isPointStyle(selected);
+    final chrome = StageChrome(store.deviceById(store.boundDeviceId)?.os.isLight ?? false);
+    final menu = TextStyle(color: chrome.ink);
     return Align(
       alignment: Alignment.bottomCenter,
       child: Material(
-        color: const Color(0xCC10141A),
+        color: chrome.bar,
         borderRadius: BorderRadius.circular(28),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -765,47 +781,50 @@ class _OsPageState extends State<OsPage> {
             children: [
               PopupMenuButton<String>(
                 tooltip: 'Colour',
-                icon: const Icon(Icons.palette_outlined, color: Colors.white),
+                icon: Icon(Icons.palette_outlined, color: chrome.ink),
+                color: chrome.fill,
                 onSelected: (hex) => _writeScreen(store, {'markColor': hex}),
                 itemBuilder: (context) => [
                   for (final color in kVfxPalette)
                     PopupMenuItem(
                       value: '#${(color.hex.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
-                      child: Text(color.name),
+                      child: Text(color.name, style: menu),
                     ),
-                  const PopupMenuItem(value: '#FFFFFF', child: Text('White')),
+                  PopupMenuItem(value: '#FFFFFF', child: Text('White', style: menu)),
                 ],
               ),
               PopupMenuButton<String>(
                 key: const Key('os-track-menu'),
                 tooltip: 'Tracking marks',
-                icon: const Icon(Icons.category_outlined, color: Colors.white),
+                icon: Icon(Icons.category_outlined, color: chrome.ink),
+                color: chrome.fill,
                 onSelected: (id) => _writeScreen(store, {'marksId': id}),
                 itemBuilder: (context) => [
                   for (final style in kTrackingStyles)
                     PopupMenuItem(
                       key: Key('os-track-${style.id}'),
                       value: style.id,
-                      child: Text(style.id == selected ? '${style.name} ·' : style.name),
+                      child: Text(style.id == selected ? '${style.name} ·' : style.name, style: menu),
                     ),
                 ],
               ),
               PopupMenuButton<String>(
                 tooltip: 'New marker type',
-                icon: const Icon(Icons.my_location, color: Colors.white),
+                icon: Icon(Icons.my_location, color: chrome.ink),
+                color: chrome.fill,
                 onSelected: (id) => _writeScreen(store, {'addKind': id, 'marksId': id}),
                 itemBuilder: (context) => [
                   for (final kind in kMarkerKinds)
                     PopupMenuItem(
                       value: kind.id,
-                      child: Text(kind.id == addKind ? '${kind.name} ·' : kind.name),
+                      child: Text(kind.id == addKind ? '${kind.name} ·' : kind.name, style: menu),
                     ),
                 ],
               ),
               IconButton(
                 tooltip: 'Size & thickness',
                 onPressed: () => _markSizeSheet(store),
-                icon: const Icon(Icons.tune, color: Colors.white),
+                icon: Icon(Icons.tune, color: chrome.ink),
               ),
               if (point)
                 IconButton(
@@ -821,12 +840,12 @@ class _OsPageState extends State<OsPage> {
                     layouts[selected] = [for (final mark in next) mark.toJson()];
                     _writeScreen(store, {'layouts': layouts});
                   },
-                  icon: const Icon(Icons.rotate_right, color: Colors.white),
+                  icon: Icon(Icons.rotate_right, color: chrome.ink),
                 ),
               IconButton(
                 tooltip: 'Save screen',
                 onPressed: () => _saveTracking(store, selected),
-                icon: const Icon(Icons.save_outlined, color: Colors.white),
+                icon: Icon(Icons.save_outlined, color: chrome.ink),
               ),
               IconButton(
                 tooltip: 'Reset tracking marks',
@@ -842,7 +861,7 @@ class _OsPageState extends State<OsPage> {
                     'opacity': 1,
                   });
                 },
-                icon: const Icon(Icons.restart_alt, color: Colors.white),
+                icon: Icon(Icons.restart_alt, color: chrome.ink),
               ),
             ],
           ),
@@ -852,13 +871,13 @@ class _OsPageState extends State<OsPage> {
   }
 
   Future<void> _markSizeSheet(StageStore store) async {
+    final chrome = StageChrome(store.deviceById(store.boundDeviceId)?.os.isLight ?? false);
     var scale = (store.screenConfig['scale'] as num?)?.toDouble() ?? 1;
     var thick = (store.screenConfig['thickness'] as num?)?.toDouble() ?? 1;
     var fade = _markOpacity(store.screenConfig['opacity']);
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.transparent,
+      backgroundColor: chrome.fill,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheet) {
@@ -867,7 +886,7 @@ class _OsPageState extends State<OsPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: TextStyle(color: chrome.ink, fontSize: 12, fontWeight: FontWeight.w700)),
                   Slider(
                     value: scale.clamp(0.5, 3),
                     min: 0.5,
@@ -877,7 +896,7 @@ class _OsPageState extends State<OsPage> {
                       _writeScreen(store, {'scale': value, 'thickness': thick, 'opacity': fade});
                     },
                   ),
-                  Text('THICKNESS  ${thick.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text('THICKNESS  ${thick.toStringAsFixed(2)}', style: TextStyle(color: chrome.ink, fontSize: 12, fontWeight: FontWeight.w700)),
                   Slider(
                     value: thick.clamp(0.4, 3),
                     min: 0.4,
@@ -887,7 +906,7 @@ class _OsPageState extends State<OsPage> {
                       _writeScreen(store, {'scale': scale, 'thickness': value, 'opacity': fade});
                     },
                   ),
-                  Text('OPACITY  ${fade.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text('OPACITY  ${fade.toStringAsFixed(2)}', style: TextStyle(color: chrome.ink, fontSize: 12, fontWeight: FontWeight.w700)),
                   Slider(
                     value: fade.clamp(0.15, 1),
                     min: 0.15,

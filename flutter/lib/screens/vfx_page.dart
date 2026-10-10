@@ -339,14 +339,14 @@ class _VfxPageState extends State<VfxPage> {
                   ),
                 ),
               if (_locked && _hint)
-                const Positioned(
+                Positioned(
                   top: 28,
                   left: 0,
                   right: 0,
                   child: Text(
                     'Three-finger tap or L unlocks',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(color: StageChrome(_light).ink.withValues(alpha: 0.8), fontSize: 12),
                   ),
                 ),
               if (!_locked && point)
@@ -380,7 +380,18 @@ class _VfxPageState extends State<VfxPage> {
     );
   }
 
+  StageChrome get _chrome => StageChrome(_light);
+
+  TextStyle _menuStyle({double fontSize = 14, double spacing = 0, bool muted = false}) {
+    return TextStyle(
+      color: muted ? _chrome.muted : _chrome.ink,
+      fontSize: fontSize,
+      letterSpacing: spacing,
+    );
+  }
+
   Widget _toolbar(bool point) {
+    final chrome = StageChrome(_light);
     return Positioned(
       left: 12,
       right: 12,
@@ -389,9 +400,9 @@ class _VfxPageState extends State<VfxPage> {
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0x8C000000),
+              color: chrome.bar,
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: const Color(0x26FFFFFF)),
+              border: Border.all(color: chrome.ink.withValues(alpha: 0.18)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(6),
@@ -409,12 +420,12 @@ class _VfxPageState extends State<VfxPage> {
                         StoreScope.of(context).openTab(0);
                       }
                     },
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                    icon: Icon(Icons.arrow_back, color: chrome.ink, size: 18),
                   ),
                   IconButton(
                     tooltip: 'Colour',
                     onPressed: _colourSheet,
-                    icon: const Icon(Icons.palette_outlined, color: Colors.white, size: 18),
+                    icon: Icon(Icons.palette_outlined, color: chrome.ink, size: 18),
                   ),
                   _menu(
                     icon: Icons.category_outlined,
@@ -446,12 +457,12 @@ class _VfxPageState extends State<VfxPage> {
                     IconButton(
                       tooltip: 'Size & thickness',
                       onPressed: _sizeSheet,
-                      icon: const Icon(Icons.tune, color: Colors.white, size: 18),
+                      icon: Icon(Icons.tune, color: chrome.ink, size: 18),
                     ),
                   IconButton(
                     tooltip: 'Image overlay',
                     onPressed: _overlaySheet,
-                    icon: const Icon(Icons.add_photo_alternate_outlined, color: Colors.white, size: 18),
+                    icon: Icon(Icons.add_photo_alternate_outlined, color: chrome.ink, size: 18),
                   ),
                   if ((_overlay['url'] as String?)?.isNotEmpty == true)
                     IconButton(
@@ -462,7 +473,7 @@ class _VfxPageState extends State<VfxPage> {
                       },
                       icon: Icon(
                         _overlay['hidden'] == true ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.white,
+                        color: chrome.ink,
                         size: 18,
                       ),
                     ),
@@ -473,13 +484,13 @@ class _VfxPageState extends State<VfxPage> {
                         for (final mark in _layout)
                           mark.copyWith(rot: (mark.rot + 45) % 360),
                       ]),
-                      icon: const Icon(Icons.rotate_right, color: Colors.white, size: 18),
+                      icon: Icon(Icons.rotate_right, color: chrome.ink, size: 18),
                     ),
                   ],
                   IconButton(
                     tooltip: 'Save screen',
                     onPressed: _save,
-                    icon: const Icon(Icons.save_outlined, color: Colors.white, size: 18),
+                    icon: Icon(Icons.save_outlined, color: chrome.ink, size: 18),
                   ),
                   if (_marksId != 'none')
                     IconButton(
@@ -492,7 +503,7 @@ class _VfxPageState extends State<VfxPage> {
                         });
                         _persist();
                       },
-                      icon: const Icon(Icons.restart_alt, color: Colors.white, size: 18),
+                      icon: Icon(Icons.restart_alt, color: chrome.ink, size: 18),
                     ),
                 ],
                 ),
@@ -510,8 +521,7 @@ class _VfxPageState extends State<VfxPage> {
     var fade = _opacity;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.transparent,
+      backgroundColor: _chrome.fill,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheet) {
@@ -520,7 +530,7 @@ class _VfxPageState extends State<VfxPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: _menuStyle(fontSize: 11)),
                   Slider(
                     value: scale,
                     min: 0.5,
@@ -532,7 +542,7 @@ class _VfxPageState extends State<VfxPage> {
                       _persist();
                     },
                   ),
-                  Text('THICKNESS  ${thick.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                  Text('THICKNESS  ${thick.toStringAsFixed(2)}×', style: _menuStyle(fontSize: 11)),
                   Slider(
                     value: thick,
                     min: 0.5,
@@ -544,7 +554,7 @@ class _VfxPageState extends State<VfxPage> {
                       _persist();
                     },
                   ),
-                  Text('OPACITY  ${(fade * 100).round()}%', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                  Text('OPACITY  ${(fade * 100).round()}%', style: _menuStyle(fontSize: 11)),
                   Slider(
                     value: fade,
                     min: 0.15,
@@ -616,10 +626,11 @@ class _VfxPageState extends State<VfxPage> {
     required List<Widget> children,
     required ValueChanged<int> onSelected,
   }) {
+    final chrome = StageChrome(_light);
     return PopupMenuButton<int>(
       tooltip: title,
-      color: const Color(0xCC000000),
-      icon: Icon(icon, color: Colors.white, size: 18),
+      color: chrome.fill,
+      icon: Icon(icon, color: chrome.ink, size: 18),
       onSelected: onSelected,
       itemBuilder: (context) => [
         for (var i = 0; i < children.length; i++)
@@ -641,7 +652,7 @@ class _VfxPageState extends State<VfxPage> {
           Expanded(
             child: Text(
               label.toUpperCase(),
-              style: const TextStyle(color: Colors.white, fontSize: 10, letterSpacing: 0.6),
+              style: TextStyle(color: StageChrome(_light).ink, fontSize: 10, letterSpacing: 0.6),
             ),
           ),
           if (selected) const Icon(Icons.check, color: kAccent, size: 14),
@@ -713,7 +724,7 @@ class _VfxPageState extends State<VfxPage> {
     ];
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xCC000000),
+      backgroundColor: _chrome.fill,
       isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
@@ -725,17 +736,17 @@ class _VfxPageState extends State<VfxPage> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const Text('BACKGROUND', style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1.2)),
+                  Text('BACKGROUND', style: _menuStyle(fontSize: 10, spacing: 1.2, muted: true)),
                   if (_marksId == 'checkerboard')
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('Black & white only', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Black & white only', style: _menuStyle(fontSize: 12, muted: true)),
                     )
                   else ...[
                     for (final color in kVfxPalette)
                       ListTile(
                         leading: _swatch(color.hex),
-                        title: Text(color.label, style: const TextStyle(color: Colors.white)),
+                        title: Text(color.label, style: _menuStyle()),
                         trailing: _colorId == color.id && _bgColor == null ? const Icon(Icons.check, color: kAccent) : null,
                         onTap: () {
                           setState(() {
@@ -757,8 +768,8 @@ class _VfxPageState extends State<VfxPage> {
                     ),
                     if (_bgColor != null)
                       ListTile(
-                        leading: const Icon(Icons.close, color: Colors.white70),
-                        title: const Text('Clear custom colour', style: TextStyle(color: Colors.white)),
+                        leading: Icon(Icons.close, color: _chrome.muted),
+                        title: Text('Clear custom colour', style: _menuStyle()),
                         onTap: () {
                           setState(() => _bgColor = null);
                           _persist();
@@ -768,7 +779,7 @@ class _VfxPageState extends State<VfxPage> {
                   ],
                   if (_marksId != 'checkerboard' && _marksId != 'none') ...[
                     const SizedBox(height: 8),
-                    const Text('MARKS', style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1.2)),
+                    Text('MARKS', style: _menuStyle(fontSize: 10, spacing: 1.2, muted: true)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -788,10 +799,10 @@ class _VfxPageState extends State<VfxPage> {
                     ),
                   ],
                   if (_marksId != 'checkerboard') ...[
-                    const Text('PHOTO', style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1.2)),
+                    Text('PHOTO', style: _menuStyle(fontSize: 10, spacing: 1.2, muted: true)),
                     ListTile(
-                      leading: const Icon(Icons.upload, color: Colors.white70),
-                      title: Text(_bgImage == null ? 'Upload photo' : 'Replace photo', style: const TextStyle(color: Colors.white)),
+                      leading: Icon(Icons.upload, color: _chrome.muted),
+                      title: Text(_bgImage == null ? 'Upload photo' : 'Replace photo', style: _menuStyle()),
                       onTap: () async {
                         final file = await FilePicker.pickFile(type: FileType.image);
                         if (file == null) return;
@@ -803,8 +814,8 @@ class _VfxPageState extends State<VfxPage> {
                     ),
                     if (_bgImage != null)
                       ListTile(
-                        leading: const Icon(Icons.close, color: Colors.white70),
-                        title: const Text('Remove photo', style: TextStyle(color: Colors.white)),
+                        leading: Icon(Icons.close, color: _chrome.muted),
+                        title: Text('Remove photo', style: _menuStyle()),
                         onTap: () {
                           setState(() => _bgImage = null);
                           _persist();
@@ -848,7 +859,7 @@ class _VfxPageState extends State<VfxPage> {
   Future<void> _overlaySheet() async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xCC000000),
+      backgroundColor: _chrome.fill,
       isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
@@ -866,10 +877,10 @@ class _VfxPageState extends State<VfxPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.upload, color: Colors.white70),
+                      leading: Icon(Icons.upload, color: _chrome.muted),
                       title: Text(
                         (_overlay['url'] as String?)?.isNotEmpty == true ? 'Replace image' : 'Upload image',
-                        style: const TextStyle(color: Colors.white),
+                        style: _menuStyle(),
                       ),
                       onTap: () async {
                         final file = await FilePicker.pickFile(type: FileType.image);
@@ -894,6 +905,7 @@ class _VfxPageState extends State<VfxPage> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(foregroundColor: _chrome.ink),
                               onPressed: () {
                                 setState(() => _overlay['flip'] = _overlay['flip'] != true);
                                 _persist();
@@ -905,6 +917,7 @@ class _VfxPageState extends State<VfxPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(foregroundColor: _chrome.ink),
                               onPressed: () {
                                 setState(() => _overlay['flop'] = _overlay['flop'] != true);
                                 _persist();
@@ -916,7 +929,7 @@ class _VfxPageState extends State<VfxPage> {
                         ],
                       ),
                       ListTile(
-                        title: const Text('Remove image', style: TextStyle(color: Colors.white)),
+                        title: Text('Remove image', style: _menuStyle()),
                         onTap: () {
                           setState(() => _overlay = {
                             'opacity': 50,
@@ -948,9 +961,9 @@ class _VfxPageState extends State<VfxPage> {
       children: [
         Row(
           children: [
-            Text(label.toUpperCase(), style: const TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1)),
+            Text(label.toUpperCase(), style: _menuStyle(fontSize: 10, spacing: 1, muted: true)),
             const Spacer(),
-            Text(value.toStringAsFixed(label == 'Size' ? 2 : 0), style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            Text(value.toStringAsFixed(label == 'Size' ? 2 : 0), style: _menuStyle(fontSize: 10, muted: true)),
           ],
         ),
         Slider(value: value.clamp(min, max), min: min, max: max, onChanged: onChanged),

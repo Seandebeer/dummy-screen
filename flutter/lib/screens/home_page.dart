@@ -1354,7 +1354,10 @@ void showProfileSheet(BuildContext context) {
     pageBuilder: (context, _, _) {
       final width = MediaQuery.sizeOf(context).width;
       final panel = width >= 768 ? 420.0 : width * 0.86;
-      return Align(
+      final palette = paletteFor(store.appTheme);
+      return Theme(
+        data: deckTheme(Theme.of(context), palette),
+        child: Align(
         alignment: Alignment.centerRight,
         child: Material(
           color: Colors.transparent,
@@ -1364,6 +1367,7 @@ void showProfileSheet(BuildContext context) {
             child: _ProfileSheet(store: store),
           ),
         ),
+      ),
       );
     },
     transitionBuilder: (context, animation, _, child) {
