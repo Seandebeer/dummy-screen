@@ -1,11 +1,11 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import 'clock_settings.dart';
 import 'extra_settings.dart';
 import 'mac_desk.dart';
 import 'settings_kit.dart';
@@ -151,7 +151,6 @@ class _ComputerSettingsState extends State<ComputerSettings> {
     final copy = copyFor(os.language);
     final hasImage = os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty;
     final shown = MacLayout.status(os).toSet();
-    final clock = propNow(device.clockOffsetMinutes);
     return SettingsPage(
       listKey: const Key('desk-settings-list'),
       title: copy.settings,
@@ -257,30 +256,16 @@ class _ComputerSettingsState extends State<ComputerSettings> {
                       current.copyWith(battery: value.round().clamp(0, 100)),
                 ),
               ),
+              ClockSettings(store: widget.store, device: device),
               SettingsField(
                 fieldKey: const Key('desk-status-network'),
                 label: 'Network name',
                 value: os.networkName,
                 onChanged: _rename,
               ),
-              const SizedBox(height: 10),
-              SettingsStepRow(
-                name: 'Clock',
-                label: formatClock(clock),
-                minusKey: const Key('desk-clock-back'),
-                plusKey: const Key('desk-clock-forward'),
-                onMinus: () => widget.store.setClockOffset(
-                  device.id,
-                  device.clockOffsetMinutes - 60,
-                ),
-                onPlus: () => widget.store.setClockOffset(
-                  device.id,
-                  device.clockOffsetMinutes + 60,
-                ),
-              ),
               const SizedBox(height: 8),
               const SettingsHint(
-                'Wi-Fi, Bluetooth, the alarm, the battery, the network name, and the clock shown on this machine.',
+                'Wi-Fi, Bluetooth, the alarm, the battery, the network name, and the time shown on this machine.',
               ),
             ],
           ),

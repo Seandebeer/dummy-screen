@@ -10,6 +10,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'atm_chrome.dart';
+import 'clock_face.dart';
 
 /// Landscape ATM for an iPad mounted in a machine.
 ///
@@ -54,7 +55,7 @@ class _AtmScreenState extends State<AtmScreen> {
     _bankName = TextEditingController(text: current.os.bankName);
     _userName = TextEditingController(text: current.os.bankHolder);
     _time = TextEditingController(
-      text: atmClock(propNow(current.clockOffsetMinutes)),
+      text: atmClock(osNow(current.os)),
     );
     _temperature = TextEditingController(text: '${current.os.temperature}');
     _balance = TextEditingController(text: '${current.os.bankBalance}');
@@ -265,7 +266,7 @@ class _AtmScreenState extends State<AtmScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(_live.clockOffsetMinutes);
+    final now = osNow(_live.os);
     final image = os.backgroundType == 'image'
         ? imageProviderForPath(os.backgroundUrl)
         : null;
@@ -306,6 +307,7 @@ class _AtmScreenState extends State<AtmScreen> {
                 child: Column(
                   children: [
                     _Header(
+                      os: os,
                       name: os.bankName,
                       now: now,
                       temperature: os.temperature,
@@ -946,11 +948,9 @@ class _AtmScreenState extends State<AtmScreen> {
     final hour = int.parse(match.group(1)!);
     final minute = int.parse(match.group(2)!);
     if (hour > 23 || minute > 59) return;
-    final shown = propNow(_live.clockOffsetMinutes);
-    final delta = (hour * 60 + minute) - (shown.hour * 60 + shown.minute);
-    widget.store.setClockOffset(
+    widget.store.updateOs(
       widget.device.id,
-      _live.clockOffsetMinutes + delta,
+      (current) => pinClock(current, hour, minute),
     );
     setState(() {});
   }
@@ -1655,6 +1655,7 @@ class _Minor extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   const _Header({
+    required this.os,
     required this.name,
     required this.now,
     required this.temperature,
@@ -1662,6 +1663,7 @@ class _Header extends StatelessWidget {
     required this.skin,
   });
 
+  final OsSettings os;
   final String name;
   final DateTime now;
   final int temperature;
@@ -1698,10 +1700,13 @@ class _Header extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '$month ${now.day}, $clock',
-              style: TextStyle(color: skin.muted, fontSize: 12 * scale),
-            ),
+            if (os.showClock && os.clockStyle == 'analog')
+              ClockFace(time: now, color: skin.muted, size: 18 * scale)
+            else
+              Text(
+                os.showClock ? '$month ${now.day}, $clock' : '$month ${now.day}',
+                style: TextStyle(color: skin.muted, fontSize: 12 * scale),
+              ),
             SizedBox(width: 10 * scale),
             Text(
               '$temperature°C',

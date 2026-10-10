@@ -134,7 +134,7 @@ void main() {
     expect(find.text('MENU BAR'), findsOneWidget);
     expect(find.text('STATUS BAR'), findsNothing);
     expect(find.text('Battery'), findsOneWidget);
-    expect(find.text('Clock'), findsWidgets);
+    expect(find.text('TIME'), findsWidgets);
     expect(find.text('Mac'), findsOneWidget);
     expect(find.text('Ring Duration'), findsNothing);
     expect(find.text('Contacts Dial Codes'), findsNothing);
@@ -196,11 +196,14 @@ void main() {
     await tester.pump();
     expect(find.text('Northline'), findsWidgets);
 
+    await show(const Key('clock-section'));
+    await tester.tap(find.byKey(const Key('clock-section')));
+    await tester.pump();
     final beforeClock = tester
         .widget<Text>(find.byKey(const Key('mac-menu-clock')))
         .data;
-    await show(const Key('desk-clock-forward'));
-    await tester.tap(find.byKey(const Key('desk-clock-forward')));
+    await show(const Key('clock-minute-up'));
+    await tester.tap(find.byKey(const Key('clock-minute-up')));
     await tester.pump();
     expect(
       tester.widget<Text>(find.byKey(const Key('mac-menu-clock'))).data,

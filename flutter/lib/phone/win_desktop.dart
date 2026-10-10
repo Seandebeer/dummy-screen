@@ -8,6 +8,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'catalog.dart';
+import 'clock_face.dart';
 import 'desk_window.dart';
 import 'mac_desk.dart';
 
@@ -105,7 +106,7 @@ class _WinDesktopState extends State<WinDesktop> {
   }
 
   Widget _scene(PropDevice live) {
-    final now = propNow(live.clockOffsetMinutes);
+    final now = osNow(live.os);
     final bloom = !live.os.isLight &&
         live.os.backgroundPreset == 'default' &&
         live.os.backgroundType != 'image';
@@ -408,7 +409,10 @@ class _Taskbar extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(clock, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, height: 1.1)),
+                      if (os.showClock)
+                        os.clockStyle == 'analog'
+                            ? ClockFace(time: now, color: const Color(0xFF1A1A1A), size: 16)
+                            : Text(clock, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, height: 1.1)),
                       Text(date, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, height: 1.1)),
                     ],
                   ),

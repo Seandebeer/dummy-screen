@@ -7,6 +7,7 @@ import '../os_catalog.dart';
 import '../store.dart';
 import 'app_catalog.dart';
 import 'catalog.dart';
+import 'clock_settings.dart';
 import 'extra_settings.dart';
 import 'mac_desk.dart';
 
@@ -257,28 +258,6 @@ class ConsoleSettings extends StatelessWidget {
             ) {
               _show('clock', value);
             }),
-            Row(
-              children: [
-                const Text('Clock', style: TextStyle(color: Colors.white)),
-                const Spacer(),
-                IconButton(
-                  key: const Key('console-clock-back'),
-                  onPressed: () => store.setClockOffset(
-                    device.id,
-                    device.clockOffsetMinutes - 60,
-                  ),
-                  icon: const Icon(Icons.remove, color: Colors.white),
-                ),
-                IconButton(
-                  key: const Key('console-clock-forward'),
-                  onPressed: () => store.setClockOffset(
-                    device.id,
-                    device.clockOffsetMinutes + 60,
-                  ),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                ),
-              ],
-            ),
             _switch(
               'Battery',
               shown.contains('battery'),
@@ -325,6 +304,7 @@ class ConsoleSettings extends StatelessWidget {
                     current.copyWith(battery: value.round().clamp(0, 100)),
               ),
             ),
+            ClockSettings(store: store, device: device),
             _switch('Player', shown.contains('tag'), 'console-show-tag', (
               value,
             ) {

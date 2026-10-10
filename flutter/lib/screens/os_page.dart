@@ -10,6 +10,7 @@ import '../format.dart';
 import '../models.dart';
 import '../phone/app_catalog.dart';
 import '../phone/catalog.dart';
+import '../phone/clock_settings.dart';
 import '../phone/console_apps.dart';
 import '../phone/desk_settings.dart';
 import '../phone/home_view.dart';
@@ -240,14 +241,13 @@ class _OsPageState extends State<OsPage> {
                         width *= scale;
                         height *= scale;
                       }
-                      final now = propNow(device.clockOffsetMinutes);
+                      final now = osNow(device.os);
                       final phone = device.kind == 'phone' || device.kind == 'tablet';
                       final driven = store.remoteDriving(device.id);
                       final shown = driven ? (store.drivenApp ?? '') : (_app ?? '');
                       final stage = phone
                           ? PhoneShell(
                           framed: false,
-                          timeLabel: formatClock(now),
                           keyboardRoute: _grey ? 'grey' : '$shown:${_thread ?? ''}',
                           onHome: () => _home(device),
                           onStatusTap: editing && device.kind == 'phone'
@@ -669,11 +669,13 @@ class _OsPageState extends State<OsPage> {
           shells: const [('aurora', 'Aurora'), ('slate', 'Slate'), ('neon', 'Neon')],
           selected: live.os.shell.isEmpty ? 'aurora' : live.os.shell,
           onSelect: (id) => store.updateOs(live.id, (os) => os.copyWith(shell: id)),
+          leading: ClockSettings(store: store, device: live),
         ),
       'atm' => _AtmSettings(store: store, device: live),
-      'cctv' => const _NoteSettings(
+      'cctv' => _NoteSettings(
           title: 'CCTV',
           body: 'This camera wall uses one fixed layout.',
+          leading: ClockSettings(store: store, device: live),
         ),
       'smarthome' || 'homephone' => _PanelSettings(store: store, device: live),
       _ => SettingsApp(store: store, device: live),
@@ -973,7 +975,6 @@ class _OsPageState extends State<OsPage> {
     if (device.locked && device.os.lockType != 'off') {
       return LockView(
         device: device,
-        timeLabel: formatClock(now),
         dateLabel: formatDay(now),
         onUnlock: () => store.setLocked(device.id, false),
         onSetPasscode: (code) => store.updateOs(
@@ -1131,12 +1132,14 @@ class _ShellSettings extends StatelessWidget {
     required this.shells,
     required this.selected,
     required this.onSelect,
+    this.leading,
   });
 
   final String title;
   final List<(String, String)> shells;
   final String selected;
   final ValueChanged<String> onSelect;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -1145,6 +1148,7 @@ class _ShellSettings extends StatelessWidget {
       children: [
         Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
+        ?leading,
         const Text('Interface', style: TextStyle(color: kMuted)),
         for (final shell in shells)
           ListTile(
@@ -1159,10 +1163,11 @@ class _ShellSettings extends StatelessWidget {
 }
 
 class _NoteSettings extends StatelessWidget {
-  const _NoteSettings({required this.title, required this.body});
+  const _NoteSettings({required this.title, required this.body, this.leading});
 
   final String title;
   final String body;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -1171,6 +1176,7 @@ class _NoteSettings extends StatelessWidget {
       children: [
         Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
+        ?leading,
         Text(body, style: const TextStyle(color: kMuted)),
       ],
     );
@@ -1190,6 +1196,7 @@ class _AtmSettings extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const Text('ATM', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        ClockSettings(store: store, device: device),
         TextFormField(
           initialValue: os.bankName,
           decoration: const InputDecoration(labelText: 'Bank name'),
@@ -1236,6 +1243,7 @@ class _PanelSettings extends StatelessWidget {
           device.kind == 'homephone' ? 'Smart home phone' : 'Smart home',
           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
         ),
+        ClockSettings(store: store, device: device),
         const SizedBox(height: 8),
         for (final id in homePanelOrder(os))
           TextFormField(

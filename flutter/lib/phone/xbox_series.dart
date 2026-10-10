@@ -4,6 +4,7 @@ import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+import 'clock_face.dart';
 import 'console_apps.dart';
 
 /// Xbox Series dashboard: green ribbon, a featured tile, and the home rows.
@@ -30,7 +31,7 @@ class XboxSeriesHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(device.clockOffsetMinutes);
+    final now = osNow(device.os);
     final featured = device.os.steamTitle.trim().isEmpty ? 'Night Run' : device.os.steamTitle.trim();
     final cover = imageProviderForPath(device.os.steamCover);
     final tag = store.operatorName.trim().isEmpty ? 'Player' : store.operatorName.trim();
@@ -331,9 +332,11 @@ class _Header extends StatelessWidget {
             const SizedBox(width: 4),
             Text('$level%', style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
-          if (ConsoleLayout.shows(os, 'clock')) ...[
+          if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
             const SizedBox(width: 8),
-            Text(time, key: const Key('xbox-clock'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+            os.clockStyle == 'analog'
+                ? ClockFace(key: const Key('xbox-clock'), time: osNow(os), color: Colors.white, size: 16)
+                : Text(time, key: const Key('xbox-clock'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
           ],
         ],
       ),

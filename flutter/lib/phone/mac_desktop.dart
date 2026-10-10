@@ -8,6 +8,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import 'clock_face.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
 import 'mac_desk.dart';
@@ -278,7 +279,7 @@ class _MacDesktopState extends State<MacDesktop> {
 
   Widget _scene(PropDevice live) {
     final os = live.os;
-    final now = propNow(live.clockOffsetMinutes);
+    final now = osNow(live.os);
     return Material(
       type: MaterialType.transparency,
       child: Stack(
@@ -693,12 +694,20 @@ class _MacDesktopState extends State<MacDesktop> {
         ),
         gap,
       ],
-      if (shown.contains('clock')) ...[
-        Text(
-          _clockFace(now, _look(os, 'clock', 'time')),
-          key: const Key('mac-menu-clock'),
-          style: itemStyle.copyWith(fontSize: 12),
-        ),
+      if (shown.contains('clock') && os.showClock) ...[
+        if (os.clockStyle == 'analog')
+          ClockFace(
+            key: const Key('mac-menu-clock'),
+            time: now,
+            color: Colors.white,
+            size: 16,
+          )
+        else
+          Text(
+            _clockFace(now, _look(os, 'clock', 'time')),
+            key: const Key('mac-menu-clock'),
+            style: itemStyle.copyWith(fontSize: 12),
+          ),
         gap,
       ],
       if (shown.contains('search')) ...[

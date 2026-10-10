@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../app.dart';
+import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../screens/markers_page.dart';
@@ -11,6 +12,7 @@ import '../store.dart';
 import 'atm_home.dart';
 import 'console_apps.dart';
 import 'catalog.dart';
+import 'clock_face.dart';
 import 'desk_os_apps.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
@@ -515,7 +517,7 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
           color: const Color(0xFF12352C),
           child: Column(
             children: [
-              _menu(ink),
+              _menu(ink, current.os),
               Expanded(
                 child: Stack(
                   children: [
@@ -616,8 +618,8 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
     );
   }
 
-  Widget _menu(Color ink) {
-    final now = DateTime.now();
+  Widget _menu(Color ink, OsSettings os) {
+    final now = osNow(os);
     final hour = now.hour.toString().padLeft(2, '0');
     final minute = now.minute.toString().padLeft(2, '0');
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -637,11 +639,15 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
             ),
           ),
           Expanded(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: ink, fontSize: 13),
-            ),
+            child: os.showClock
+                ? os.clockStyle == 'analog'
+                    ? Center(child: ClockFace(time: now, color: ink, size: 18))
+                    : Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: ink, fontSize: 13),
+                      )
+                : const SizedBox.shrink(),
           ),
           const Icon(Icons.wifi, color: Colors.white, size: 16),
           const SizedBox(width: 8),

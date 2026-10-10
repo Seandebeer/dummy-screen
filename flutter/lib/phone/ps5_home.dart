@@ -6,6 +6,7 @@ import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+import 'clock_face.dart';
 import 'console_apps.dart';
 import 'mac_desk.dart';
 
@@ -40,7 +41,7 @@ class _Ps5HomeState extends State<Ps5Home> {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(widget.device.clockOffsetMinutes);
+    final now = osNow(widget.device.os);
     final featured = widget.device.os.steamTitle.trim().isEmpty
         ? 'Night Run'
         : widget.device.os.steamTitle.trim();
@@ -223,17 +224,24 @@ class _Header extends StatelessWidget {
           ),
           SizedBox(width: metrics.gap),
           Icon(Icons.crop_square, color: Colors.white, size: metrics.fs(16)),
-          if (ConsoleLayout.shows(os, 'clock')) ...[
+          if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
             SizedBox(width: metrics.gap),
-            Text(
-              time,
-              key: const Key('ps5-clock'),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: metrics.fs(14),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            os.clockStyle == 'analog'
+                ? ClockFace(
+                    key: const Key('ps5-clock'),
+                    time: osNow(os),
+                    color: Colors.white,
+                    size: metrics.fs(16),
+                  )
+                : Text(
+                    time,
+                    key: const Key('ps5-clock'),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: metrics.fs(14),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
           ],
         ],
       ),
