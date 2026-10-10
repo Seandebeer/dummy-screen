@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+import 'clock_settings.dart';
 
 const kRingtones = [
   'Reflection',
@@ -100,6 +101,7 @@ class ExtraSettings extends StatelessWidget {
             _slider('Battery', os.battery.toDouble(), 100, (value) {
               _update((current) => current.copyWith(battery: value.round()));
             }),
+            ClockSettings(store: store, device: device),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Bluetooth'),

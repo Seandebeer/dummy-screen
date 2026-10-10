@@ -226,7 +226,7 @@ void main() {
     await tester.pump();
     await tester.enterText(find.byKey(const Key('atm-time')), '21:15');
     await tester.pump();
-    final shown = propNow(store.deviceById('atm-1')!.clockOffsetMinutes);
+    final shown = osNow(store.deviceById('atm-1')!.os);
     expect(shown.hour, 21);
     expect(shown.minute, 15);
     await tester.enterText(find.byKey(const Key('atm-temperature')), '27');
@@ -296,7 +296,7 @@ void main() {
     expect(find.text('Seleccione su transacción'), findsOneWidget);
     expect(find.text('Harbor Trust'), findsOneWidget);
     expect(find.textContaining('Mara Quinn'), findsOneWidget);
-    expect(find.textContaining('21:15'), findsOneWidget);
+    expect(find.textContaining('9:15 PM'), findsOneWidget);
     expect(find.text('27°C'), findsOneWidget);
     expect(
       find.descendant(

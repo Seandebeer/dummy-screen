@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-import '../format.dart';
 import '../image_file.dart';
 import '../media/call_media.dart';
 import '../models.dart';
+import 'android_home.dart';
 import 'call_stage.dart';
+import 'clock_face.dart';
 import 'ios_keyboard.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
@@ -15,7 +16,6 @@ class PhoneShell extends StatelessWidget {
   const PhoneShell({
     super.key,
     required this.device,
-    required this.timeLabel,
     required this.body,
     required this.onHome,
     this.call,
@@ -32,7 +32,6 @@ class PhoneShell extends StatelessWidget {
   });
 
   final PropDevice device;
-  final String timeLabel;
   final Widget body;
   final VoidCallback onHome;
   final LiveCall? call;
@@ -66,6 +65,9 @@ class PhoneShell extends StatelessWidget {
     final feed = call?.kind == 'video'
         ? CallMediaScope.maybeOf(context)?.remoteRenderer
         : null;
+    final ribbon = skin == 'android' && image == null;
+    final statusInk = ribbon ? const Color(0xFF1C1C1E) : ink;
+    final navInk = ribbon ? Colors.white : ink;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(framed ? 40 : 0),
@@ -89,15 +91,18 @@ class PhoneShell extends StatelessWidget {
                 : DecorationImage(image: image, fit: BoxFit.cover),
           ),
           child: IconTheme(
-            data: IconThemeData(color: ink),
+            data: IconThemeData(color: navInk),
             child: Stack(
             children: [
+              if (ribbon)
+                const Positioned.fill(
+                  child: CustomPaint(painter: AndroidRibbonPainter()),
+                ),
               Column(
                 children: [
                   _StatusBar(
-                    timeLabel: timeLabel,
                     framed: framed,
-                    ink: ink,
+                    ink: statusInk,
                     os: device.os,
                     skin: skin,
                     onTap: onStatusTap,
@@ -107,7 +112,7 @@ class PhoneShell extends StatelessWidget {
                       route: keyboardRoute,
                       footer: device.locked
                           ? null
-                          : _HomeControl(chrome: chrome, skin: skin, onHome: onHome, ink: ink),
+                          : _HomeControl(chrome: chrome, skin: skin, onHome: onHome, ink: navInk),
                       child: body,
                     ),
                   ),
@@ -164,7 +169,7 @@ class PhoneShell extends StatelessWidget {
                 ),
               if (alarm)
                 Positioned.fill(
-                  child: _AlarmOverlay(onDismiss: onDismissAlarm),
+                  child: _AlarmOverlay(onDismiss: onDismissAlarm, os: device.os),
                 ),
             ],
           ),
@@ -177,7 +182,6 @@ class PhoneShell extends StatelessWidget {
 
 class _StatusBar extends StatelessWidget {
   const _StatusBar({
-    required this.timeLabel,
     required this.framed,
     required this.ink,
     required this.os,
@@ -185,7 +189,6 @@ class _StatusBar extends StatelessWidget {
     this.onTap,
   });
 
-  final String timeLabel;
   final bool framed;
   final Color ink;
   final OsSettings os;
@@ -198,6 +201,7 @@ class _StatusBar extends StatelessWidget {
     final bars = os.cellular == 'NO SERVICE' ? 0 : os.signal.clamp(0, 4);
     final radio = os.cellular;
     final era = _statusEra(skin);
+    if (era == _StatusEra.android) return _androidStatus(top, bars);
     if (era != _StatusEra.standard) {
       return _eraStatus(top, bars, era);
     }
@@ -209,14 +213,7 @@ class _StatusBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(22, top + 8, 18, 6),
       child: Row(
         children: [
-          Text(
-            timeLabel,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: ink,
-            ),
-          ),
+          _time(ink, 15, FontWeight.w600),
           if (os.networkName.isNotEmpty) ...[
             const SizedBox(width: 6),
             Text(
@@ -287,6 +284,58 @@ class _StatusBar extends StatelessWidget {
     );
   }
 
+  Widget _time(Color ink, double size, FontWeight weight) {
+    return ClockReadout(
+      os: os,
+      color: ink,
+      fontSize: size,
+      fontWeight: weight,
+      digitalKey: const Key('status-clock'),
+      header: true,
+    );
+  }
+
+  Widget _androidStatus(double top, int bars) {
+    final signal = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < 4; i++)
+          Container(
+            width: 3,
+            height: 4 + i * 2.0,
+            margin: const EdgeInsets.only(right: 1),
+            color: i < bars ? ink : ink.withValues(alpha: 0.28),
+          ),
+      ],
+    );
+    return GestureDetector(
+      key: const Key('phone-status'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(18, top + 8, 16, 4),
+        child: Row(
+          children: [
+            _time(ink, 15, FontWeight.w600),
+            const SizedBox(width: 6),
+            Icon(Icons.cloud_outlined, size: 16, color: ink.withValues(alpha: 0.8)),
+            const Spacer(),
+            if (os.wifi) ...[
+              Icon(_wifiIcon(os.wifiBars), size: 16, color: ink),
+              const SizedBox(width: 6),
+            ],
+            signal,
+            const SizedBox(width: 6),
+            Text(
+              '${os.battery}%',
+              style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _eraStatus(double top, int bars, _StatusEra era) {
     final carrier = os.networkName.isEmpty ? 'Carrier' : os.networkName;
     final signal = Row(
@@ -308,13 +357,13 @@ class _StatusBar extends StatelessWidget {
     switch (era) {
       case _StatusEra.wp:
         sideLeft = const SizedBox.shrink();
-        sideRight = Text(timeLabel, style: TextStyle(color: ink, fontSize: 14));
+        sideRight = _time(ink, 14, FontWeight.w500);
       case _StatusEra.holo:
         sideLeft = Icon(Icons.notifications_none, size: 16, color: ink);
-        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 6), Text(timeLabel, style: TextStyle(color: ink, fontSize: 13))]);
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 6), _time(ink, 13, FontWeight.w500)]);
       case _StatusEra.belle:
         sideLeft = Text(carrier, style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600));
-        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 8), Text(timeLabel, style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w700))]);
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 8), _time(ink, 13, FontWeight.w700)]);
       case _StatusEra.webos:
         sideLeft = Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -335,6 +384,7 @@ class _StatusBar extends StatelessWidget {
       case _StatusEra.ios:
         sideLeft = Text(carrier, style: TextStyle(color: ink, fontSize: 12));
         sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 4), batteryIcon]);
+      case _StatusEra.android:
       case _StatusEra.standard:
         sideLeft = const SizedBox.shrink();
         sideRight = const SizedBox.shrink();
@@ -350,7 +400,7 @@ class _StatusBar extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             Row(children: [sideLeft, const Spacer(), sideRight]),
-            if (centered) Text(timeLabel, style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600)),
+            if (centered) _time(ink, 13, FontWeight.w600),
           ],
         ),
       ),
@@ -716,10 +766,12 @@ class _ControlShadeState extends State<_ControlShade> {
   }
 }
 
-enum _StatusEra { standard, ios, ios6, ios7, wp, holo, webos, belle }
+enum _StatusEra { standard, ios, ios6, ios7, wp, holo, webos, belle, android }
 
 _StatusEra _statusEra(String skin) {
   switch (skin) {
+    case 'android':
+      return _StatusEra.android;
     case 'iphoneos':
     case 'aqua':
     case 'classic':
@@ -799,6 +851,35 @@ class _HomeControl extends StatelessWidget {
         return _IosChin(onHome: onHome);
       case 'webos':
         return _WebOsGesture(onHome: onHome);
+      case 'android':
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6, top: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                onPressed: onHome,
+                icon: const _RecentsMark(),
+              ),
+              GestureDetector(
+                key: const Key('os-home'),
+                onTap: onHome,
+                child: Container(
+                  width: 36,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onHome,
+                icon: const Icon(Icons.chevron_left, color: Colors.white, size: 28),
+              ),
+            ],
+          ),
+        );
       default:
         break;
     }
@@ -1168,10 +1249,44 @@ class _RoundAction extends StatelessWidget {
   }
 }
 
+class _RecentsMark extends StatelessWidget {
+  const _RecentsMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 18,
+      height: 16,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _Bar(),
+          _Bar(),
+          _Bar(),
+        ],
+      ),
+    );
+  }
+}
+
+class _Bar extends StatelessWidget {
+  const _Bar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 3,
+      height: 16,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(1)),
+    );
+  }
+}
+
 class _AlarmOverlay extends StatelessWidget {
-  const _AlarmOverlay({this.onDismiss});
+  const _AlarmOverlay({this.onDismiss, required this.os});
 
   final VoidCallback? onDismiss;
+  final OsSettings os;
 
   @override
   Widget build(BuildContext context) {
@@ -1188,9 +1303,12 @@ class _AlarmOverlay extends StatelessWidget {
               style: TextStyle(fontSize: 40, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            Text(
-              formatClock(DateTime.now()),
-              style: const TextStyle(fontSize: 28, color: kMuted),
+            ClockReadout(
+              os: os,
+              color: kMuted,
+              fontSize: 28,
+              fontWeight: FontWeight.w400,
+              header: true,
             ),
             const SizedBox(height: 28),
             FilledButton(

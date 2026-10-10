@@ -10,6 +10,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'clock_face.dart';
 import 'ios_keyboard.dart';
 
 class ClockApp extends StatelessWidget {
@@ -20,15 +21,18 @@ class ClockApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(device.clockOffsetMinutes);
+    final now = osNow(device.os);
     return ColoredBox(
       color: Colors.black,
       child: Column(
         children: [
           const Spacer(),
-          Text(
-            formatClock(now),
-            style: const TextStyle(color: Colors.white, fontSize: 72, fontWeight: FontWeight.w200, letterSpacing: -1),
+          ClockReadout(
+            os: device.os,
+            color: Colors.white,
+            fontSize: 72,
+            fontWeight: FontWeight.w200,
+            faceSize: 160,
           ),
           Text(formatDay(now), style: const TextStyle(color: kMuted, fontSize: 16)),
           const SizedBox(height: 28),
@@ -42,7 +46,7 @@ class ClockApp extends StatelessWidget {
             ],
           ),
           TextButton(
-            onPressed: () => store.setClockOffset(device.id, 0),
+            onPressed: () => store.updateOs(device.id, followLocalClock),
             child: const Text('Use the real time'),
           ),
           const Spacer(),
@@ -53,8 +57,10 @@ class ClockApp extends StatelessWidget {
 
   Widget _shift(BuildContext context, String label, int delta) {
     return OutlinedButton(
-      onPressed: () =>
-          store.setClockOffset(device.id, device.clockOffsetMinutes + delta),
+      onPressed: () => store.updateOs(
+        device.id,
+        (current) => shiftClock(current, delta),
+      ),
       child: Text(label),
     );
   }

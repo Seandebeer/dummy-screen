@@ -115,6 +115,15 @@ class OsSettings {
     this.deskNames = const {},
     this.consolePins = const [],
     this.consoleStatus = const [],
+    this.clockStyle = 'digital',
+    this.clockFormat = '12',
+    this.clockSource = 'set',
+    this.clockZone = 'utc',
+    this.clockHour = 9,
+    this.clockMinute = 41,
+    this.clockRunning = false,
+    this.showClock = true,
+    this.clockAnchorMillis = 0,
   });
 
   final String theme;
@@ -228,6 +237,32 @@ class OsSettings {
   /// A single `-` means every status item was hidden.
   final List<String> consoleStatus;
 
+  /// `digital` or `analog`.
+  final String clockStyle;
+
+  /// `12` prints h:mm AM/PM. `24` prints HH:mm. Analog faces ignore this.
+  final String clockFormat;
+
+  /// `local`, `zone`, or `set`. A stopped clock always shows [clockHour]
+  /// and [clockMinute], whichever source last wrote them.
+  final String clockSource;
+
+  /// Id from the fixed-offset zone list. Used while [clockSource] is `zone`.
+  final String clockZone;
+
+  /// Wall-clock hour and minute. Shown as-is while the clock is stopped.
+  final int clockHour;
+  final int clockMinute;
+
+  /// A stopped clock does not advance. New devices start stopped.
+  final bool clockRunning;
+
+  /// Hides the time from status bars, lock screens, and menu clocks.
+  final bool showClock;
+
+  /// Real millis when a set clock was started. Zero until it runs.
+  final int clockAnchorMillis;
+
   bool get isLight => theme == 'light';
 
   int get ringDelaySeconds {
@@ -298,6 +333,15 @@ class OsSettings {
     Map<String, String>? deskNames,
     List<String>? consolePins,
     List<String>? consoleStatus,
+    String? clockStyle,
+    String? clockFormat,
+    String? clockSource,
+    String? clockZone,
+    int? clockHour,
+    int? clockMinute,
+    bool? clockRunning,
+    bool? showClock,
+    int? clockAnchorMillis,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -360,6 +404,15 @@ class OsSettings {
     deskNames: deskNames ?? this.deskNames,
     consolePins: consolePins ?? this.consolePins,
     consoleStatus: consoleStatus ?? this.consoleStatus,
+    clockStyle: clockStyle ?? this.clockStyle,
+    clockFormat: clockFormat ?? this.clockFormat,
+    clockSource: clockSource ?? this.clockSource,
+    clockZone: clockZone ?? this.clockZone,
+    clockHour: clockHour ?? this.clockHour,
+    clockMinute: clockMinute ?? this.clockMinute,
+    clockRunning: clockRunning ?? this.clockRunning,
+    showClock: showClock ?? this.showClock,
+    clockAnchorMillis: clockAnchorMillis ?? this.clockAnchorMillis,
   );
 
   Map<String, dynamic> toJson() => {
@@ -424,6 +477,15 @@ class OsSettings {
     'deskNames': deskNames,
     'consolePins': consolePins,
     'consoleStatus': consoleStatus,
+    'clockStyle': clockStyle,
+    'clockFormat': clockFormat,
+    'clockSource': clockSource,
+    'clockZone': clockZone,
+    'clockHour': clockHour,
+    'clockMinute': clockMinute,
+    'clockRunning': clockRunning,
+    'showClock': showClock,
+    'clockAnchorMillis': clockAnchorMillis,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -508,6 +570,17 @@ class OsSettings {
       deskNames: _panelNames(json['deskNames']),
       consolePins: _idList(json['consolePins']),
       consoleStatus: _idList(json['consoleStatus']),
+      clockStyle: json['clockStyle'] == 'analog' ? 'analog' : 'digital',
+      clockFormat: json['clockFormat'] == '24' ? '24' : '12',
+      clockSource: json['clockSource'] == 'local' || json['clockSource'] == 'zone'
+          ? json['clockSource'] as String
+          : 'set',
+      clockZone: json['clockZone'] as String? ?? 'utc',
+      clockHour: ((json['clockHour'] as num?)?.toInt() ?? 9).clamp(0, 23),
+      clockMinute: ((json['clockMinute'] as num?)?.toInt() ?? 41).clamp(0, 59),
+      clockRunning: json['clockRunning'] as bool? ?? false,
+      showClock: json['showClock'] as bool? ?? true,
+      clockAnchorMillis: (json['clockAnchorMillis'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -574,7 +647,16 @@ class OsSettings {
         _sameNames(macStatusStyle, other.macStatusStyle) &&
         _sameNames(deskNames, other.deskNames) &&
         _samePeople(people, other.people) &&
-        _sameGlyphs(glyphs, other.glyphs);
+        _sameGlyphs(glyphs, other.glyphs) &&
+        clockStyle == other.clockStyle &&
+        clockFormat == other.clockFormat &&
+        clockSource == other.clockSource &&
+        clockZone == other.clockZone &&
+        clockHour == other.clockHour &&
+        clockMinute == other.clockMinute &&
+        clockRunning == other.clockRunning &&
+        showClock == other.showClock &&
+        clockAnchorMillis == other.clockAnchorMillis;
   }
 
   @override
@@ -634,6 +716,15 @@ class OsSettings {
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
     temperature,
     bankKeypad,
+    clockStyle,
+    clockFormat,
+    clockSource,
+    clockZone,
+    clockHour,
+    clockMinute,
+    clockRunning,
+    showClock,
+    clockAnchorMillis,
     Object.hashAll(bankNotes),
     Object.hashAll([
       for (final key in (panelNames.keys.toList()..sort()))

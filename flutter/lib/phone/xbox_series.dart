@@ -30,7 +30,7 @@ class XboxSeriesHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(device.clockOffsetMinutes);
+    final now = osNow(device.os);
     final featured = device.os.steamTitle.trim().isEmpty ? 'Night Run' : device.os.steamTitle.trim();
     final cover = imageProviderForPath(device.os.steamCover);
     final tag = store.operatorName.trim().isEmpty ? 'Player' : store.operatorName.trim();
@@ -54,7 +54,11 @@ class XboxSeriesHome extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Header(tag: tag, time: _clock(now), os: shown),
+                  _Header(
+                    tag: tag,
+                    time: formatOsClock(now, hour24: shown.clockFormat == '24'),
+                    os: shown,
+                  ),
                   SizedBox(height: box.gap),
                   SizedBox(
                     height: box.featured,
@@ -331,7 +335,7 @@ class _Header extends StatelessWidget {
             const SizedBox(width: 4),
             Text('$level%', style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
-          if (ConsoleLayout.shows(os, 'clock')) ...[
+          if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
             const SizedBox(width: 8),
             Text(time, key: const Key('xbox-clock'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
           ],
@@ -970,9 +974,3 @@ class _WavePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-String _clock(DateTime time) {
-  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-  final minute = time.minute.toString().padLeft(2, '0');
-  final suffix = time.hour >= 12 ? 'PM' : 'AM';
-  return '$hour:$minute $suffix';
-}

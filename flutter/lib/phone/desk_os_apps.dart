@@ -11,6 +11,7 @@ import '../store.dart';
 import 'app_catalog.dart';
 import 'browser_frame.dart';
 import 'catalog.dart';
+import 'clock_face.dart';
 import 'desk_apps.dart';
 import 'ios_keyboard.dart';
 import 'desk_settings.dart';
@@ -83,7 +84,7 @@ class DeskAppView extends StatelessWidget {
       case 'clock':
         return _DeskClock(store: store, device: live);
       case 'calendar':
-        return _DeskCalendar(offsetMinutes: live.clockOffsetMinutes);
+        return _DeskCalendar(os: live.os);
       case 'photos':
         return _DeskPhotos(photos: store.photos[live.id] ?? const []);
       case 'camera':
@@ -1100,7 +1101,7 @@ class _DeskNotesState extends State<_DeskNotes> {
         children: [
           _Head(
             title: 'Note',
-            detail: formatDay(propNow(widget.device.clockOffsetMinutes)),
+            detail: formatDay(osNow(widget.device.os)),
           ),
           Expanded(
             child: Padding(
@@ -1331,7 +1332,7 @@ class _DeskClock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(device.clockOffsetMinutes);
+    final now = osNow(device.os);
     final utc = now.toUtc();
     return Row(
       children: [
@@ -1343,14 +1344,12 @@ class _DeskClock extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 FittedBox(
-                  child: Text(
-                    formatClock(now),
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 64,
-                      fontWeight: FontWeight.w200,
-                      height: 1,
-                    ),
+                  child: ClockReadout(
+                    os: device.os,
+                    color: _ink,
+                    fontSize: 64,
+                    fontWeight: FontWeight.w200,
+                    faceSize: 120,
                   ),
                 ),
                 Text(
@@ -1369,9 +1368,9 @@ class _DeskClock extends StatelessWidget {
                       ('+1h', 60),
                     ])
                       OutlinedButton(
-                        onPressed: () => store.setClockOffset(
+                        onPressed: () => store.updateOs(
                           device.id,
-                          device.clockOffsetMinutes + shift.$2,
+                          (current) => shiftClock(current, shift.$2),
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1380,7 +1379,7 @@ class _DeskClock extends StatelessWidget {
                         child: Text(shift.$1),
                       ),
                     TextButton(
-                      onPressed: () => store.setClockOffset(device.id, 0),
+                      onPressed: () => store.updateOs(device.id, followLocalClock),
                       child: const Text('Real time'),
                     ),
                   ],
@@ -1424,7 +1423,10 @@ class _DeskClock extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          formatClock(utc.add(Duration(hours: city.$2))),
+                          formatOsClock(
+                            utc.add(Duration(hours: city.$2)),
+                            hour24: device.os.clockFormat == '24',
+                          ),
                           style: const TextStyle(color: _ink, fontSize: 12),
                         ),
                       ],
@@ -1440,9 +1442,9 @@ class _DeskClock extends StatelessWidget {
 }
 
 class _DeskCalendar extends StatelessWidget {
-  const _DeskCalendar({required this.offsetMinutes});
+  const _DeskCalendar({required this.os});
 
-  final int offsetMinutes;
+  final OsSettings os;
 
   static const _agenda = [
     ('07:00', 'Crew call, east lot'),
@@ -1453,7 +1455,7 @@ class _DeskCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(offsetMinutes);
+    final now = osNow(os);
     final first = DateTime(now.year, now.month, 1);
     final days = DateTime(now.year, now.month + 1, 0).day;
     final pad = first.weekday % 7;
