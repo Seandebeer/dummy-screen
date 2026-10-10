@@ -53,6 +53,20 @@ void main() {
     expect(formatClock(osNow(frozen)), formatClock(now));
   });
 
+  test('typed times accept 12-hour and 24-hour text', () {
+    expect(parseClockText('9:41 AM'), (9, 41));
+    expect(parseClockText('9:41pm'), (21, 41));
+    expect(parseClockText('12:00 AM'), (0, 0));
+    expect(parseClockText('12:15 PM'), (12, 15));
+    expect(parseClockText('21:15'), (21, 15));
+    expect(parseClockText('3:05'), (3, 5));
+    expect(parseClockText('25:00'), isNull);
+    expect(parseClockText('noon'), isNull);
+    expect(formatOsClock(DateTime(2026, 10, 10, 3, 5), hour24: false), '3:05 AM');
+    expect(formatOsClock(DateTime(2026, 10, 10, 15, 5), hour24: true), '15:05');
+    expect(formatOsClock(DateTime(2026, 10, 10, 0, 7), hour24: false), '12:07 AM');
+  });
+
   testWidgets('time settings sit collapsed under the battery slider', (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(420, 7000));
@@ -90,6 +104,10 @@ void main() {
     expect(find.byKey(const Key('clock-source-local')), findsOneWidget);
     expect(find.byKey(const Key('clock-source-zone')), findsOneWidget);
     expect(find.byKey(const Key('clock-source-set')), findsOneWidget);
+    expect(find.byKey(const Key('clock-format-12')), findsOneWidget);
+    expect(find.byKey(const Key('clock-format-24')), findsOneWidget);
+    expect(find.byKey(const Key('clock-time-field')), findsOneWidget);
+    expect(find.byKey(const Key('clock-hour-up')), findsNothing);
     expect(tester.widget<Switch>(find.byKey(const Key('clock-running'))).value, isFalse);
     expect(tester.widget<Switch>(find.byKey(const Key('clock-show'))).value, isTrue);
 
@@ -100,6 +118,26 @@ void main() {
     await tester.tap(find.byKey(const Key('clock-show')));
     await tester.pump();
     expect(store.deviceById(device.id)!.os.showClock, isFalse);
+
+    await tester.enterText(find.byKey(const Key('clock-time-field')), '3:20 PM');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    final typed = store.deviceById(device.id)!.os;
+    expect(typed.clockHour, 15);
+    expect(typed.clockMinute, 20);
+    expect(typed.clockSource, 'set');
+    expect(find.text('3:20 PM'), findsWidgets);
+
+    await tester.enterText(find.byKey(const Key('clock-time-field')), 'nope');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(store.deviceById(device.id)!.os.clockHour, 15);
+
+    await tester.tap(find.byKey(const Key('clock-format-24')));
+    await tester.pump();
+    expect(store.deviceById(device.id)!.os.clockFormat, '24');
+    await tester.pump();
+    expect(find.text('15:20'), findsWidgets);
   });
 
   testWidgets('the header stays digital while the screen clock can be a face', (tester) async {
@@ -129,17 +167,21 @@ void main() {
     }
 
     await pump(device.os);
-    expect(find.text('3:05'), findsOneWidget);
+    expect(find.text('3:05 AM'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
-    expect(find.text('3:05'), findsOneWidget);
+    expect(find.text('3:05 AM'), findsOneWidget);
+
+    await pump(device.os.copyWith(clockFormat: '24'));
+    expect(find.text('03:05'), findsOneWidget);
+    expect(find.text('3:05 AM'), findsNothing);
 
     await pump(device.os.copyWith(showClock: false));
-    expect(find.text('3:05'), findsNothing);
+    expect(find.text('3:05 AM'), findsNothing);
     expect(find.byType(ClockFace), findsNothing);
 
     await pump(device.os.copyWith(clockStyle: 'analog'));
     expect(find.byType(ClockFace), findsNothing);
-    expect(find.text('3:05'), findsOneWidget);
+    expect(find.text('3:05 AM'), findsOneWidget);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -187,6 +229,11 @@ void main() {
     expect(find.byKey(const Key('dock-browser')), findsOneWidget);
     expect(find.byKey(const Key('dock-camera')), findsOneWidget);
     expect(find.byKey(const Key('dock-music')), findsNothing);
+    final dockTop = tester.getTopLeft(find.byKey(const Key('dock-phone'))).dy;
+    final dotsBottom = tester.getBottomLeft(find.byKey(const Key('android-pages'))).dy;
+    final weatherTop = tester.getTopLeft(find.byKey(const Key('android-weather'))).dy;
+    expect(dockTop - dotsBottom, inInclusiveRange(4, 20));
+    expect(weatherTop, greaterThan(120));
     expect(tester.takeException(), isNull);
   });
 }

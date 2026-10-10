@@ -54,7 +54,11 @@ class XboxSeriesHome extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Header(tag: tag, time: _clock(now), os: shown),
+                  _Header(
+                    tag: tag,
+                    time: formatOsClock(now, hour24: shown.clockFormat == '24'),
+                    os: shown,
+                  ),
                   SizedBox(height: box.gap),
                   SizedBox(
                     height: box.featured,
@@ -970,9 +974,3 @@ class _WavePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-String _clock(DateTime time) {
-  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-  final minute = time.minute.toString().padLeft(2, '0');
-  final suffix = time.hour >= 12 ? 'PM' : 'AM';
-  return '$hour:$minute $suffix';
-}

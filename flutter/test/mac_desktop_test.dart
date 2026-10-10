@@ -202,9 +202,14 @@ void main() {
     final beforeClock = tester
         .widget<Text>(find.byKey(const Key('mac-menu-clock')))
         .data;
-    await show(const Key('clock-minute-up'));
-    await tester.tap(find.byKey(const Key('clock-minute-up')));
+    await show(const Key('clock-time-field'));
+    await tester.enterText(find.byKey(const Key('clock-time-field')), '3:05 AM');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('mac-menu-clock'))).data,
+      contains('3:05 AM'),
+    );
     expect(
       tester.widget<Text>(find.byKey(const Key('mac-menu-clock'))).data,
       isNot(beforeClock),

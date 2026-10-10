@@ -17,16 +17,59 @@ class ClockSettings extends StatefulWidget {
 
 class _ClockSettingsState extends State<ClockSettings> {
   bool _open = false;
+  bool _editing = false;
+  late final TextEditingController _time;
 
   OsSettings get os => widget.device.os;
+
+  String get _shown => formatOsClock(osNow(os), hour24: os.clockFormat == '24');
+
+  @override
+  void initState() {
+    super.initState();
+    _time = TextEditingController(text: _shown);
+  }
+
+  @override
+  void didUpdateWidget(ClockSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncField();
+  }
+
+  @override
+  void dispose() {
+    _time.dispose();
+    super.dispose();
+  }
+
+  void _syncField() {
+    if (_editing) return;
+    final next = _shown;
+    if (_time.text == next) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _editing || _time.text == _shown) return;
+      _time.text = _shown;
+    });
+  }
 
   void _save(OsSettings Function(OsSettings) change) {
     widget.store.updateOs(widget.device.id, change);
   }
 
+  void _commit(String raw) {
+    _editing = false;
+    final parsed = parseClockText(raw);
+    if (parsed == null) {
+      _time.text = _shown;
+      return;
+    }
+    _save((current) => pinClock(current, parsed.$1, parsed.$2));
+    _syncField();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final shown = formatClock(osNow(os));
+    final shown = _shown;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -60,7 +103,7 @@ class _ClockSettingsState extends State<ClockSettings> {
         ),
         if (_open) ...[
           const Text(
-            'A stopped clock shows the set time and does not run.',
+            'Type the exact time. A stopped clock stays there and does not run.',
             style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 11),
           ),
           const SizedBox(height: 8),
@@ -118,25 +161,48 @@ class _ClockSettingsState extends State<ClockSettings> {
               },
             ),
           ],
-          if (os.clockSource == 'set' || !os.clockRunning) ...[
-            const SizedBox(height: 8),
-            _step(
-              'Hour',
-              '${os.clockHour}',
-              const Key('clock-hour-down'),
-              const Key('clock-hour-up'),
-              -60,
-              60,
+          const SizedBox(height: 10),
+          const Text('Clock format', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _chip('AM/PM', '12', os.clockFormat, 'clock-format-12', (value) {
+                _save((current) => current.copyWith(clockFormat: value));
+              }),
+              _chip('24-hour', '24', os.clockFormat, 'clock-format-24', (value) {
+                _save((current) => current.copyWith(clockFormat: value));
+              }),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text('Exact time', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const SizedBox(height: 4),
+          TextField(
+            key: const Key('clock-time-field'),
+            controller: _time,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            cursorColor: Colors.white,
+            keyboardType: TextInputType.datetime,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: const Color(0xFF2C2C2E),
+              hintText: os.clockFormat == '24' ? '21:15' : '9:41 AM',
+              hintStyle: const TextStyle(color: Colors.white38),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
             ),
-            _step(
-              'Minute',
-              os.clockMinute.toString().padLeft(2, '0'),
-              const Key('clock-minute-down'),
-              const Key('clock-minute-up'),
-              -1,
-              1,
-            ),
-          ],
+            onTap: () => _editing = true,
+            onChanged: (value) {
+              if (value != _shown) _editing = true;
+            },
+            onSubmitted: _commit,
+          ),
           _toggle(
             'Run clock',
             'A stopped clock keeps the set time on screen.',
@@ -182,28 +248,6 @@ class _ClockSettingsState extends State<ClockSettings> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _step(String label, String value, Key down, Key up, int minus, int plus) {
-    return Row(
-      children: [
-        SizedBox(width: 64, child: Text(label, style: const TextStyle(color: Colors.white))),
-        IconButton(
-          key: down,
-          onPressed: () => _save((current) => shiftClock(current, minus)),
-          icon: const Icon(Icons.remove, color: Colors.white),
-        ),
-        SizedBox(
-          width: 28,
-          child: Text(value, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
-        ),
-        IconButton(
-          key: up,
-          onPressed: () => _save((current) => shiftClock(current, plus)),
-          icon: const Icon(Icons.add, color: Colors.white),
-        ),
-      ],
     );
   }
 

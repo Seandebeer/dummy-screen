@@ -37,7 +37,7 @@ class ClockReadout extends StatelessWidget {
       return ClockFace(time: time, color: color, size: faceSize ?? fontSize + 6);
     }
     return Text(
-      formatClock(time),
+      formatOsClock(time, hour24: os.clockFormat == '24'),
       key: digitalKey,
       style: TextStyle(color: color, fontSize: fontSize, fontWeight: fontWeight),
     );

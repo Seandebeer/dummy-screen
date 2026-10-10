@@ -1423,7 +1423,10 @@ class _DeskClock extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          formatClock(utc.add(Duration(hours: city.$2))),
+                          formatOsClock(
+                            utc.add(Duration(hours: city.$2)),
+                            hour24: device.os.clockFormat == '24',
+                          ),
                           style: const TextStyle(color: _ink, fontSize: 12),
                         ),
                       ],

@@ -77,7 +77,7 @@ class _FirstPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Column(
         children: [
-          const Spacer(flex: 4),
+          const Spacer(),
           Row(
             children: [
               Expanded(
@@ -123,9 +123,9 @@ class _FirstPage extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           _Dots(count: pages, index: 0),
-          const Spacer(flex: 3),
+          const SizedBox(height: 8),
           const _DockRow(),
         ],
       ),

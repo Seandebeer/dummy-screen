@@ -116,6 +116,7 @@ class OsSettings {
     this.consolePins = const [],
     this.consoleStatus = const [],
     this.clockStyle = 'digital',
+    this.clockFormat = '12',
     this.clockSource = 'set',
     this.clockZone = 'utc',
     this.clockHour = 9,
@@ -239,6 +240,9 @@ class OsSettings {
   /// `digital` or `analog`.
   final String clockStyle;
 
+  /// `12` prints h:mm AM/PM. `24` prints HH:mm. Analog faces ignore this.
+  final String clockFormat;
+
   /// `local`, `zone`, or `set`. A stopped clock always shows [clockHour]
   /// and [clockMinute], whichever source last wrote them.
   final String clockSource;
@@ -330,6 +334,7 @@ class OsSettings {
     List<String>? consolePins,
     List<String>? consoleStatus,
     String? clockStyle,
+    String? clockFormat,
     String? clockSource,
     String? clockZone,
     int? clockHour,
@@ -400,6 +405,7 @@ class OsSettings {
     consolePins: consolePins ?? this.consolePins,
     consoleStatus: consoleStatus ?? this.consoleStatus,
     clockStyle: clockStyle ?? this.clockStyle,
+    clockFormat: clockFormat ?? this.clockFormat,
     clockSource: clockSource ?? this.clockSource,
     clockZone: clockZone ?? this.clockZone,
     clockHour: clockHour ?? this.clockHour,
@@ -472,6 +478,7 @@ class OsSettings {
     'consolePins': consolePins,
     'consoleStatus': consoleStatus,
     'clockStyle': clockStyle,
+    'clockFormat': clockFormat,
     'clockSource': clockSource,
     'clockZone': clockZone,
     'clockHour': clockHour,
@@ -564,6 +571,7 @@ class OsSettings {
       consolePins: _idList(json['consolePins']),
       consoleStatus: _idList(json['consoleStatus']),
       clockStyle: json['clockStyle'] == 'analog' ? 'analog' : 'digital',
+      clockFormat: json['clockFormat'] == '24' ? '24' : '12',
       clockSource: json['clockSource'] == 'local' || json['clockSource'] == 'zone'
           ? json['clockSource'] as String
           : 'set',
@@ -641,6 +649,7 @@ class OsSettings {
         _samePeople(people, other.people) &&
         _sameGlyphs(glyphs, other.glyphs) &&
         clockStyle == other.clockStyle &&
+        clockFormat == other.clockFormat &&
         clockSource == other.clockSource &&
         clockZone == other.clockZone &&
         clockHour == other.clockHour &&
@@ -708,6 +717,7 @@ class OsSettings {
     temperature,
     bankKeypad,
     clockStyle,
+    clockFormat,
     clockSource,
     clockZone,
     clockHour,

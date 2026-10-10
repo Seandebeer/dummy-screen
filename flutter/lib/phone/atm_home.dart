@@ -54,7 +54,10 @@ class _AtmScreenState extends State<AtmScreen> {
     _bankName = TextEditingController(text: current.os.bankName);
     _userName = TextEditingController(text: current.os.bankHolder);
     _time = TextEditingController(
-      text: atmClock(osNow(current.os)),
+      text: formatOsClock(
+        osNow(current.os),
+        hour24: current.os.clockFormat == '24',
+      ),
     );
     _temperature = TextEditingController(text: '${current.os.temperature}');
     _balance = TextEditingController(text: '${current.os.bankBalance}');
@@ -942,14 +945,11 @@ class _AtmScreenState extends State<AtmScreen> {
   }
 
   void _applyTime(String value) {
-    final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value.trim());
-    if (match == null) return;
-    final hour = int.parse(match.group(1)!);
-    final minute = int.parse(match.group(2)!);
-    if (hour > 23 || minute > 59) return;
+    final parsed = parseClockText(value);
+    if (parsed == null) return;
     widget.store.updateOs(
       widget.device.id,
-      (current) => pinClock(current, hour, minute),
+      (current) => pinClock(current, parsed.$1, parsed.$2),
     );
     setState(() {});
   }
@@ -1672,7 +1672,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final month = _months[now.month - 1];
-    final clock = atmClock(now);
+    final clock = formatOsClock(now, hour24: os.clockFormat == '24');
     return Column(
       children: [
         Row(
@@ -1720,9 +1720,6 @@ class _Header extends StatelessWidget {
     );
   }
 }
-
-String atmClock(DateTime time) =>
-    '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
 const _months = [
   'January',

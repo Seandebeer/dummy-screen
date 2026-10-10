@@ -619,10 +619,9 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
 
   Widget _menu(Color ink, OsSettings os) {
     final now = osNow(os);
-    final hour = now.hour.toString().padLeft(2, '0');
-    final minute = now.minute.toString().padLeft(2, '0');
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final label = '${days[now.weekday - 1]} $hour:$minute';
+    final label =
+        '${days[now.weekday - 1]} ${formatOsClock(now, hour24: os.clockFormat == '24')}';
     return Container(
       height: 32,
       color: const Color(0xCC1A1A1A),

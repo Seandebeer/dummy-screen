@@ -86,7 +86,10 @@ class _Ps5HomeState extends State<Ps5Home> {
                       padding: EdgeInsets.only(right: metrics.pad),
                       child: _Header(
                         tab: _tab,
-                        time: _clock(now),
+                        time: formatOsClock(
+                          now,
+                          hour24: widget.device.os.clockFormat == '24',
+                        ),
                         os: widget.device.os,
                         onTab: (index) => setState(() => _tab = index),
                         onShell: widget.onShell,
@@ -1763,9 +1766,3 @@ class _BackdropPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-String _clock(DateTime time) {
-  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-  final minute = time.minute.toString().padLeft(2, '0');
-  final suffix = time.hour >= 12 ? 'PM' : 'AM';
-  return '$hour:$minute $suffix';
-}

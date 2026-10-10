@@ -315,10 +315,7 @@ class _Taskbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
-    final minute = now.minute.toString().padLeft(2, '0');
-    final suffix = now.hour >= 12 ? 'PM' : 'AM';
-    final clock = '$hour:$minute $suffix';
+    final clock = formatOsClock(now, hour24: os.clockFormat == '24');
     final date = '${now.month}/${now.day}/${now.year}';
     return DecoratedBox(
       key: const Key('win-taskbar'),

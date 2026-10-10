@@ -34,6 +34,40 @@ String formatClock(DateTime time) {
   return '$hour:$minute';
 }
 
+/// Device clock text. Twenty-four hour is `HH:mm`. Twelve hour is `h:mm AM`.
+String formatOsClock(DateTime time, {required bool hour24}) {
+  final minute = time.minute.toString().padLeft(2, '0');
+  if (hour24) {
+    return '${time.hour.toString().padLeft(2, '0')}:$minute';
+  }
+  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+  final suffix = time.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $suffix';
+}
+
+/// Reads `9:41`, `9:41 AM`, `9:41pm`, or `21:15`. Null when it is not a time.
+(int, int)? parseClockText(String raw) {
+  final match = RegExp(
+    r'^(\d{1,2})\s*:\s*(\d{2})\s*(AM|PM)?$',
+  ).firstMatch(raw.trim().toUpperCase());
+  if (match == null) return null;
+  var hour = int.parse(match.group(1)!);
+  final minute = int.parse(match.group(2)!);
+  if (minute > 59) return null;
+  final suffix = match.group(3);
+  if (suffix == null) {
+    if (hour > 23) return null;
+    return (hour, minute);
+  }
+  if (hour < 1 || hour > 12) return null;
+  if (suffix == 'AM') {
+    if (hour == 12) hour = 0;
+  } else if (hour != 12) {
+    hour += 12;
+  }
+  return (hour, minute);
+}
+
 String formatDay(DateTime time) =>
     '${_weekdays[time.weekday - 1]}, ${_months[time.month - 1]} ${time.day}';
 

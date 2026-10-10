@@ -296,7 +296,7 @@ void main() {
     expect(find.text('Seleccione su transacción'), findsOneWidget);
     expect(find.text('Harbor Trust'), findsOneWidget);
     expect(find.textContaining('Mara Quinn'), findsOneWidget);
-    expect(find.textContaining('21:15'), findsOneWidget);
+    expect(find.textContaining('9:15 PM'), findsOneWidget);
     expect(find.text('27°C'), findsOneWidget);
     expect(
       find.descendant(
