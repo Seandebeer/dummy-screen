@@ -290,7 +290,7 @@ List<(String, String, IconData)> deskApps(OsSettings os) {
   for (final id in homePageOne()) {
     final prop = propAppById(id);
     if (prop != null) {
-      out.add((id, appLabel(prop, branded: os.branded), prop.icon));
+      out.add((id, appLabel(prop, branded: os.branded), brandedGlyph(prop, branded: os.branded).$1));
     }
   }
   for (final entry in _toolIcons.entries) {
@@ -669,7 +669,11 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
                                 os,
                                 item.$1,
                                 item.$2,
-                                Icon(item.$3, color: ink, size: 32),
+                                Icon(
+                                  item.$3,
+                                  color: os.branded ? (brandMark(item.$1)?.$1 ?? ink) : ink,
+                                  size: 32,
+                                ),
                               ),
                           ],
                         ),
@@ -714,7 +718,7 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
     final docked = [
       for (final id in kDockIds)
         if (propAppById(id) case final prop?)
-          (id, appLabel(prop, branded: os.branded), prop.icon),
+          (id, appLabel(prop, branded: os.branded), brandedGlyph(prop, branded: os.branded).$1),
       for (final item in widget.apps)
         if (item.$1 == 'settings') item,
     ];

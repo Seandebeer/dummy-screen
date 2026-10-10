@@ -75,7 +75,8 @@ const kPageSize = 20;
 List<String> homePageOne() => kHomeOrder.take(kPageSize).toList();
 
 /// Real product names used only while App Branding is set to Branded.
-/// Icons stay simple glyphs so the prop never ships another company's artwork.
+/// Branded mode uses the product colour and a matching glyph. Generic mode
+/// keeps the prop's own icons. Logo files from those products are not shipped.
 const kBrandNames = <String, String>{
   'phone': 'Phone',
   'messages': 'Messages',
@@ -121,6 +122,41 @@ const kBrandNames = <String, String>{
 String appLabel(PropApp app, {required bool branded}) {
   if (!branded) return app.label;
   return kBrandNames[app.id] ?? app.label;
+}
+
+/// Product colour and glyph used when App Branding is Branded.
+const kBrandMarks = <String, (Color, IconData)>{
+  'facepage': (Color(0xFF1877F2), Icons.facebook),
+  'photogram': (Color(0xFFE1306C), Icons.photo_camera),
+  'vidtube': (Color(0xFFFF0000), Icons.smart_display),
+  'quicktok': (Color(0xFF111111), Icons.music_note),
+  'browser': (Color(0xFF0A84FF), Icons.explore),
+  'webdeck': (Color(0xFF4285F4), Icons.language),
+  'videocall': (Color(0xFF34C759), Icons.video_call),
+  'maps': (Color(0xFF34A853), Icons.map),
+  'appstore': (Color(0xFF0A84FF), Icons.shopping_bag),
+  'email': (Color(0xFFEA4335), Icons.mail),
+  'messages': (Color(0xFF34C759), Icons.chat_bubble),
+  'music': (Color(0xFFFC3C44), Icons.music_note),
+  'property': (Color(0xFF006AFF), Icons.home),
+  'news': (Color(0xFFDC4A38), Icons.newspaper),
+  'ping': (Color(0xFF0084FF), Icons.messenger),
+  'buzz': (Color(0xFF111111), Icons.tag),
+  'visage': (Color(0xFF2D8CFF), Icons.videocam),
+  'flixiq': (Color(0xFFE50914), Icons.movie),
+  'waveform': (Color(0xFF1DB954), Icons.audiotrack),
+  'findit': (Color(0xFFFF9900), Icons.shopping_cart),
+  'zippyride': (Color(0xFF111111), Icons.local_taxi),
+};
+
+(Color, IconData)? brandMark(String id) => kBrandMarks[id];
+
+(IconData, Color) brandedGlyph(PropApp app, {required bool branded}) {
+  if (branded) {
+    final mark = brandMark(app.id);
+    if (mark != null) return (mark.$2, mark.$1);
+  }
+  return (app.icon, app.color);
 }
 
 PropApp? propAppById(String id) {

@@ -22,6 +22,7 @@ import '../phone/smart_home.dart';
 import '../theme.dart';
 import '../vfx/catalog.dart';
 import '../vfx/mark_glyph.dart';
+import '../widgets/prompt.dart';
 import '../widgets/three_finger.dart';
 
 class OsPage extends StatefulWidget {
@@ -675,6 +676,7 @@ class _OsPageState extends State<OsPage> {
     final scale = (config['scale'] as num?)?.toDouble() ?? 1;
     final thick = (config['thickness'] as num?)?.toDouble() ?? 1;
     final fade = (config['opacity'] as num?)?.toDouble() ?? 1;
+    final ink = parseHex(config['markColor'] as String?, Colors.white);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -689,7 +691,7 @@ class _OsPageState extends State<OsPage> {
                     opacity: fade.clamp(0.15, 1),
                     child: MarkGlyph(
                       kind: item.kind,
-                      color: Colors.white,
+                      color: ink,
                       scale: 1.1 * scale,
                       thickness: 0.6 * thick,
                       rotation: item.rot,
@@ -705,12 +707,25 @@ class _OsPageState extends State<OsPage> {
     );
   }
 
+  void _writeScreen(StageStore store, Map<String, dynamic> patch) {
+    store.setScreenConfig({...store.screenConfig, ...patch});
+  }
+
+  List<StageMark> _marksFor(StageStore store, String style) {
+    final raw = store.screenConfig['layouts'];
+    if (raw is Map && raw[style] is List) {
+      return [
+        for (final item in jsonList(raw[style]))
+          if (item is Map) StageMark.fromJson(jsonMap(item)),
+      ];
+    }
+    return defaultLayoutFor(style);
+  }
+
   Widget _trackingBar(StageStore store) {
     final selected = store.screenConfig['marksId'] as String? ?? 'cross';
     final addKind = store.screenConfig['addKind'] as String? ?? 'cross';
-    void write(Map<String, dynamic> patch) {
-      store.setScreenConfig({...store.screenConfig, ...patch});
-    }
+    final point = isPointStyle(selected);
     return Align(
       alignment: Alignment.bottomCenter,
       child: Material(
@@ -721,9 +736,22 @@ class _OsPageState extends State<OsPage> {
           child: Row(
             children: [
               PopupMenuButton<String>(
+                tooltip: 'Colour',
+                icon: const Icon(Icons.palette_outlined, color: Colors.white),
+                onSelected: (hex) => _writeScreen(store, {'markColor': hex}),
+                itemBuilder: (context) => [
+                  for (final color in kVfxPalette)
+                    PopupMenuItem(
+                      value: '#${(color.hex.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
+                      child: Text(color.name),
+                    ),
+                  const PopupMenuItem(value: '#FFFFFF', child: Text('White')),
+                ],
+              ),
+              PopupMenuButton<String>(
                 tooltip: 'New marker type',
                 icon: const Icon(Icons.my_location, color: Colors.white),
-                onSelected: (id) => write({'addKind': id}),
+                onSelected: (id) => _writeScreen(store, {'addKind': id, 'marksId': id}),
                 itemBuilder: (context) => [
                   for (final kind in kMarkerKinds)
                     PopupMenuItem(
@@ -736,7 +764,7 @@ class _OsPageState extends State<OsPage> {
                 key: const Key('os-track-menu'),
                 tooltip: 'Tracking marks',
                 icon: const Icon(Icons.category_outlined, color: Colors.white),
-                onSelected: (id) => write({'marksId': id}),
+                onSelected: (id) => _writeScreen(store, {'marksId': id}),
                 itemBuilder: (context) => [
                   for (final style in kTrackingStyles)
                     PopupMenuItem(
@@ -747,19 +775,131 @@ class _OsPageState extends State<OsPage> {
                 ],
               ),
               IconButton(
+                tooltip: 'Size & thickness',
+                onPressed: () => _markSizeSheet(store),
+                icon: const Icon(Icons.tune, color: Colors.white),
+              ),
+              if (point)
+                IconButton(
+                  tooltip: 'Rotate all markers 45°',
+                  onPressed: () {
+                    final next = [
+                      for (final mark in _marksFor(store, selected))
+                        mark.copyWith(rot: (mark.rot + 45) % 360),
+                    ];
+                    final layouts = Map<String, dynamic>.from(
+                      store.screenConfig['layouts'] as Map? ?? {},
+                    );
+                    layouts[selected] = [for (final mark in next) mark.toJson()];
+                    _writeScreen(store, {'layouts': layouts});
+                  },
+                  icon: const Icon(Icons.rotate_right, color: Colors.white),
+                ),
+              IconButton(
+                tooltip: 'Save screen',
+                onPressed: () => _saveTracking(store, selected),
+                icon: const Icon(Icons.save_outlined, color: Colors.white),
+              ),
+              IconButton(
                 tooltip: 'Reset tracking marks',
                 onPressed: () {
                   final layouts = Map<String, dynamic>.from(
                     store.screenConfig['layouts'] as Map? ?? {},
                   );
                   layouts.remove(selected);
-                  write({'layouts': layouts, 'scale': 1, 'thickness': 1, 'opacity': 1});
+                  _writeScreen(store, {
+                    'layouts': layouts,
+                    'scale': 1,
+                    'thickness': 1,
+                    'opacity': 1,
+                  });
                 },
                 icon: const Icon(Icons.restart_alt, color: Colors.white),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _markSizeSheet(StageStore store) async {
+    var scale = (store.screenConfig['scale'] as num?)?.toDouble() ?? 1;
+    var thick = (store.screenConfig['thickness'] as num?)?.toDouble() ?? 1;
+    var fade = (store.screenConfig['opacity'] as num?)?.toDouble() ?? 1;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheet) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('SIZE  ${scale.toStringAsFixed(2)}×', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Slider(
+                    value: scale.clamp(0.5, 3),
+                    min: 0.5,
+                    max: 3,
+                    onChanged: (value) {
+                      setSheet(() => scale = value);
+                      _writeScreen(store, {'scale': value, 'thickness': thick, 'opacity': fade});
+                    },
+                  ),
+                  Text('THICKNESS  ${thick.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Slider(
+                    value: thick.clamp(0.4, 3),
+                    min: 0.4,
+                    max: 3,
+                    onChanged: (value) {
+                      setSheet(() => thick = value);
+                      _writeScreen(store, {'scale': scale, 'thickness': value, 'opacity': fade});
+                    },
+                  ),
+                  Text('OPACITY  ${fade.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Slider(
+                    value: fade.clamp(0.15, 1),
+                    min: 0.15,
+                    max: 1,
+                    onChanged: (value) {
+                      setSheet(() => fade = value);
+                      _writeScreen(store, {'scale': scale, 'thickness': thick, 'opacity': value});
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _saveTracking(StageStore store, String marksId) async {
+    final name = await promptText(
+      context,
+      title: 'Save screen',
+      initial: marksId,
+      confirm: 'Save',
+    );
+    if (name == null || name.trim().isEmpty || !mounted) return;
+    final device = store.deviceById(store.boundDeviceId);
+    store.upsertSaved(
+      SavedLayout(
+        id: 's-${DateTime.now().microsecondsSinceEpoch}',
+        name: name.trim(),
+        skin: device?.skin ?? 'modern',
+        clockOffsetMinutes: 0,
+        notes: '',
+        vfxColor: store.vfxColor,
+        vfxMarks: const [],
+        uiMarkers: const [],
+        kind: 'screen',
+        deviceId: store.boundDeviceId ?? '',
+        payload: Map<String, dynamic>.from(store.screenConfig),
       ),
     );
   }

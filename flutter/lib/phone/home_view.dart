@@ -269,33 +269,9 @@ class _HomePagesState extends State<_HomePages> {
   }
 }
 
-const _brandArt = <String, (Color, IconData)>{
-  'facepage': (Color(0xFF1877F2), Icons.facebook),
-  'photogram': (Color(0xFFE1306C), Icons.photo_camera),
-  'vidtube': (Color(0xFFFF0000), Icons.smart_display),
-  'quicktok': (Color(0xFF111111), Icons.music_note),
-  'browser': (Color(0xFF0A84FF), Icons.explore),
-  'webdeck': (Color(0xFF4285F4), Icons.language),
-  'videocall': (Color(0xFF34C759), Icons.video_call),
-  'maps': (Color(0xFF34A853), Icons.map),
-  'appstore': (Color(0xFF0A84FF), Icons.shopping_bag),
-  'email': (Color(0xFFEA4335), Icons.mail),
-  'messages': (Color(0xFF34C759), Icons.chat_bubble),
-  'music': (Color(0xFFFC3C44), Icons.music_note),
-  'property': (Color(0xFF006AFF), Icons.home),
-  'news': (Color(0xFFDC4A38), Icons.newspaper),
-  'ping': (Color(0xFF0084FF), Icons.messenger),
-  'buzz': (Color(0xFF111111), Icons.tag),
-  'visage': (Color(0xFF2D8CFF), Icons.videocam),
-  'flixiq': (Color(0xFFE50914), Icons.movie),
-  'waveform': (Color(0xFF1DB954), Icons.audiotrack),
-  'findit': (Color(0xFFFF9900), Icons.shopping_cart),
-  'zippyride': (Color(0xFF111111), Icons.local_taxi),
-};
-
 Widget _glyph(PropApp app, {required bool branded}) {
   if (branded) {
-    final art = _brandArt[app.id];
+    final art = brandMark(app.id);
     if (art != null) {
       return Icon(art.$2, color: Colors.white, size: 32);
     }
@@ -348,7 +324,7 @@ class _IconApp extends StatelessWidget {
             width: modern ? 68 : 60,
             height: modern ? 68 : 60,
             decoration: BoxDecoration(
-              color: branded ? (_brandArt[app.id]?.$1 ?? app.color) : app.color,
+              color: branded ? (brandMark(app.id)?.$1 ?? app.color) : app.color,
               borderRadius: BorderRadius.circular(
                 round ? 20 : (glossy ? 10 : 12),
               ),

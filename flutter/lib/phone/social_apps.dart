@@ -40,6 +40,30 @@ String fmtCount(num value) {
   return number.round().toString();
 }
 
+/// Text that becomes a field while an OS app is in edit mode.
+Widget osField({
+  required bool editing,
+  required String value,
+  required ValueChanged<String> onChanged,
+  TextStyle? style,
+  int lines = 1,
+  TextAlign textAlign = TextAlign.start,
+}) {
+  if (!editing) return Text(value, style: style, textAlign: textAlign);
+  return TextFormField(
+    initialValue: value,
+    style: style,
+    maxLines: lines,
+    textAlign: textAlign,
+    decoration: const InputDecoration(
+      isDense: true,
+      contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      border: OutlineInputBorder(),
+    ),
+    onChanged: onChanged,
+  );
+}
+
 class HueAvatar extends StatelessWidget {
   const HueAvatar({super.key, required this.name, required this.hue, this.size = 36});
 
@@ -472,6 +496,7 @@ class _LumeAppState extends State<LumeApp> {
   int _following = 312;
   String _tab = 'home';
   bool _ready = false;
+  bool _editing = false;
   late List<Map<String, dynamic>> _posts;
 
   @override
@@ -490,6 +515,20 @@ class _LumeAppState extends State<LumeApp> {
     _posts = topUpFeed(saved['posts'], lumePosts());
   }
 
+  void _keep() {
+    StoreScope.of(context).setPage('photogram', {
+      'name': _name,
+      'profile': {
+        'name': _profile,
+        'handle': _handle,
+        'bio': _bio,
+        'followers': _followers,
+        'following': _following,
+      },
+      'posts': _posts,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_ready) return const SizedBox.shrink();
@@ -502,8 +541,22 @@ class _LumeAppState extends State<LumeApp> {
             padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
             child: Row(
               children: [
-                Text(_name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic)),
-                const Spacer(),
+                Expanded(
+                  child: osField(
+                    editing: _editing,
+                    value: _name,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic),
+                    onChanged: (value) {
+                      _name = value;
+                      _keep();
+                    },
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.black : Colors.black54, size: 18),
+                ),
                 IconButton(
                   tooltip: 'Save',
                   onPressed: () => savePhonePage(
@@ -593,7 +646,15 @@ class _LumeAppState extends State<LumeApp> {
         ListTile(
           dense: true,
           leading: HueAvatar(name: '${post['author']}', hue: Color(post['hue'] as int? ?? 0xFF833AB4), size: 30),
-          title: Text('${post['author']}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          title: osField(
+            editing: _editing,
+            value: '${post['author']}',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            onChanged: (value) {
+              post['author'] = value;
+              _keep();
+            },
+          ),
         ),
         AspectRatio(aspectRatio: 1, child: NetPhoto(url: '${post['image']}')),
         Row(
@@ -622,12 +683,36 @@ class _LumeAppState extends State<LumeApp> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${post['likes']} likes', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text.rich(TextSpan(children: [
-                TextSpan(text: '${post['author']} ', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                TextSpan(text: '${post['caption']}', style: const TextStyle(fontSize: 13)),
-              ])),
-              Text('View all ${post['comments']} comments', style: const TextStyle(fontSize: 12, color: Colors.black45)),
+              osField(
+                editing: _editing,
+                value: '${post['likes']} likes',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                onChanged: (value) {
+                  final likes = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (likes != null) post['likes'] = likes;
+                  _keep();
+                },
+              ),
+              osField(
+                editing: _editing,
+                value: '${post['caption']}',
+                style: const TextStyle(fontSize: 13),
+                lines: 3,
+                onChanged: (value) {
+                  post['caption'] = value;
+                  _keep();
+                },
+              ),
+              osField(
+                editing: _editing,
+                value: 'View all ${post['comments']} comments',
+                style: const TextStyle(fontSize: 12, color: Colors.black45),
+                onChanged: (value) {
+                  final comments = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (comments != null) post['comments'] = comments;
+                  _keep();
+                },
+              ),
             ],
           ),
         ),
@@ -648,16 +733,33 @@ class _LumeAppState extends State<LumeApp> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _stat('${_posts.length}', 'Posts'),
-                  _stat(fmtCount(_followers), 'Followers'),
-                  _stat(fmtCount(_following), 'Following'),
+                  _countStat(_followers, 'Followers', (value) => _followers = value),
+                  _countStat(_following, 'Following', (value) => _following = value),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        Text(_profile, style: const TextStyle(fontWeight: FontWeight.w700)),
-        Text(_bio, style: const TextStyle(fontSize: 13)),
+        osField(
+          editing: _editing,
+          value: _profile,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+          onChanged: (value) {
+            _profile = value;
+            _keep();
+          },
+        ),
+        osField(
+          editing: _editing,
+          value: _bio,
+          style: const TextStyle(fontSize: 13),
+          lines: 3,
+          onChanged: (value) {
+            _bio = value;
+            _keep();
+          },
+        ),
         const SizedBox(height: 12),
         GridView.count(
           shrinkWrap: true,
@@ -675,6 +777,25 @@ class _LumeAppState extends State<LumeApp> {
     return Column(
       children: [
         Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text(label, style: const TextStyle(fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _countStat(int value, String label, ValueChanged<int> onChanged) {
+    return Column(
+      children: [
+        osField(
+          editing: _editing,
+          value: fmtCount(value),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+          onChanged: (next) {
+            final parsed = int.tryParse(next.replaceAll(RegExp(r'[^0-9]'), ''));
+            if (parsed != null) onChanged(parsed);
+            _keep();
+          },
+        ),
         Text(label, style: const TextStyle(fontSize: 11)),
       ],
     );
@@ -704,6 +825,7 @@ class _StreamlyAppState extends State<StreamlyApp> {
   String _chip = 'All';
   String? _watchId;
   bool _ready = false;
+  bool _editing = false;
   late List<Map<String, dynamic>> _videos;
   final Map<String, bool> _subs = {};
 
@@ -715,6 +837,10 @@ class _StreamlyAppState extends State<StreamlyApp> {
     final saved = _savedPage(context, 'vidtube');
     _name = saved['name'] as String? ?? _name;
     _videos = topUpFeed(saved['videos'], streamlyVideos());
+  }
+
+  void _keep() {
+    StoreScope.of(context).setPage('vidtube', {'name': _name, 'videos': _videos});
   }
 
   @override
@@ -745,8 +871,35 @@ class _StreamlyAppState extends State<StreamlyApp> {
                     child: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
                   ),
                   const SizedBox(width: 6),
-                  Text(_name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                  Expanded(
+                    child: osField(
+                      editing: _editing,
+                      value: _name,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                      onChanged: (value) {
+                        _name = value;
+                        _keep();
+                      },
+                    ),
+                  ),
                 ],
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.black : Colors.black54, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Save',
+                  onPressed: () => savePhonePage(
+                    context,
+                    app: 'vidtube',
+                    category: 'Socials',
+                    initial: '$_name page',
+                    data: {'name': _name, 'videos': _videos},
+                  ),
+                  icon: const Icon(Icons.save_outlined, size: 18),
+                ),
               ],
             ),
           ),
@@ -812,7 +965,15 @@ class _StreamlyAppState extends State<StreamlyApp> {
                   child: Container(
                     color: const Color(0xBF000000),
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    child: Text('${video['duration']}', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                    child: osField(
+                      editing: _editing,
+                      value: '${video['duration']}',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                      onChanged: (value) {
+                        video['duration'] = value;
+                        _keep();
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -820,8 +981,31 @@ class _StreamlyAppState extends State<StreamlyApp> {
           ),
           ListTile(
             leading: HueAvatar(name: '${video['channel']}', hue: Color(video['chHue'] as int? ?? 0xFF1877F2), size: 34),
-            title: Text('${video['title']}', maxLines: 2, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-            subtitle: Text('${video['channel']} · ${fmtCount(video['views'] as num)} views · ${video['age']}', style: const TextStyle(fontSize: 11)),
+            title: osField(
+              editing: _editing,
+              value: '${video['title']}',
+              lines: 2,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              onChanged: (value) {
+                video['title'] = value;
+                _keep();
+              },
+            ),
+            subtitle: osField(
+              editing: _editing,
+              value: '${video['channel']} · ${fmtCount(video['views'] as num)} views · ${video['age']}',
+              style: const TextStyle(fontSize: 11),
+              onChanged: (value) {
+                final parts = value.split('·');
+                if (parts.isNotEmpty) video['channel'] = parts.first.trim();
+                if (parts.length > 1) {
+                  final views = int.tryParse(parts[1].replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (views != null) video['views'] = views;
+                }
+                if (parts.length > 2) video['age'] = parts[2].trim();
+                _keep();
+              },
+            ),
           ),
         ],
       ),
@@ -839,15 +1023,47 @@ class _StreamlyAppState extends State<StreamlyApp> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${video['title']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              osField(
+                editing: _editing,
+                value: '${video['title']}',
+                lines: 2,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                onChanged: (value) {
+                  video['title'] = value;
+                  _keep();
+                },
+              ),
               const SizedBox(height: 4),
-              Text('${fmtCount(video['views'] as num)} views · ${video['age']}', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              osField(
+                editing: _editing,
+                value: '${fmtCount(video['views'] as num)} views · ${video['age']}',
+                style: const TextStyle(color: Colors.black54, fontSize: 12),
+                onChanged: (value) {
+                  final parts = value.split('·');
+                  if (parts.isNotEmpty) {
+                    final views = int.tryParse(parts.first.replaceAll(RegExp(r'[^0-9]'), ''));
+                    if (views != null) video['views'] = views;
+                  }
+                  if (parts.length > 1) video['age'] = parts[1].trim();
+                  _keep();
+                },
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [
                   HueAvatar(name: channel, hue: Color(video['chHue'] as int? ?? 0xFF1877F2)),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(channel, style: const TextStyle(fontWeight: FontWeight.w600))),
+                  Expanded(
+                    child: osField(
+                      editing: _editing,
+                      value: channel,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      onChanged: (value) {
+                        video['channel'] = value;
+                        _keep();
+                      },
+                    ),
+                  ),
                   FilledButton(
                     style: FilledButton.styleFrom(backgroundColor: subbed ? const Color(0xFFE5E5E5) : Colors.black, foregroundColor: subbed ? Colors.black : Colors.white),
                     onPressed: () => setState(() => _subs[channel] = !subbed),
@@ -892,6 +1108,10 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
   String _feed = 'foryou';
   String _tab = 'home';
   bool _ready = false;
+  bool _editing = false;
+  String _handle = '@alex.carter';
+  int _followers = 2431;
+  int _likes = 89500;
   final List<String> _following = ['dan.m', 'sara.lane'];
   late List<Map<String, dynamic>> _posts;
 
@@ -902,6 +1122,18 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
     _ready = true;
     final saved = _savedPage(context, 'quicktok');
     _posts = topUpFeed(saved['posts'], flickdeckPosts());
+    _handle = saved['handle'] as String? ?? _handle;
+    _followers = (saved['followers'] as num?)?.toInt() ?? _followers;
+    _likes = (saved['likes'] as num?)?.toInt() ?? _likes;
+  }
+
+  void _keep() {
+    StoreScope.of(context).setPage('quicktok', {
+      'posts': _posts,
+      'handle': _handle,
+      'followers': _followers,
+      'likes': _likes,
+    });
   }
 
   @override
@@ -922,11 +1154,40 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
             )
           else
             _me(),
+          Positioned(
+            top: 8,
+            right: 4,
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Edit',
+                  onPressed: () => setState(() => _editing = !_editing),
+                  icon: Icon(Icons.edit, color: _editing ? Colors.white : Colors.white70, size: 18),
+                ),
+                IconButton(
+                  tooltip: 'Save',
+                  onPressed: () => savePhonePage(
+                    context,
+                    app: 'quicktok',
+                    category: 'Socials',
+                    initial: 'Flickdeck page',
+                    data: {
+                      'posts': _posts,
+                      'handle': _handle,
+                      'followers': _followers,
+                      'likes': _likes,
+                    },
+                  ),
+                  icon: const Icon(Icons.save_outlined, color: Colors.white70, size: 18),
+                ),
+              ],
+            ),
+          ),
           if (_tab == 'home')
             Positioned(
               top: 8,
               left: 0,
-              right: 0,
+              right: 80,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -974,11 +1235,36 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('@${post['author']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              osField(
+                editing: _editing,
+                value: '@${post['author']}',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                onChanged: (value) {
+                  post['author'] = value.replaceFirst(RegExp(r'^@'), '');
+                  _keep();
+                },
+              ),
               const SizedBox(height: 4),
-              Text('${post['caption']}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+              osField(
+                editing: _editing,
+                value: '${post['caption']}',
+                lines: 3,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                onChanged: (value) {
+                  post['caption'] = value;
+                  _keep();
+                },
+              ),
               const SizedBox(height: 6),
-              Text('♪ ${post['music']}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              osField(
+                editing: _editing,
+                value: '${post['music']}',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                onChanged: (value) {
+                  post['music'] = value;
+                  _keep();
+                },
+              ),
             ],
           ),
         ),
@@ -989,18 +1275,25 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
             children: [
               HueAvatar(name: '${post['author']}', hue: const Color(0xFF25F4EE), size: 40),
               const SizedBox(height: 12),
-              _side(liked ? Icons.favorite : Icons.favorite_border, fmtCount(post['likes'] as num), () {
+              _side(liked ? Icons.favorite : Icons.favorite_border, '${post['likes']}', () {
                 setState(() {
                   post['liked'] = !liked;
                   post['likes'] = (post['likes'] as int) + (liked ? -1 : 1);
+                  _keep();
                 });
-              }),
-              _side(Icons.chat_bubble, fmtCount(post['comments'] as num), () {
-                setState(() => post['comments'] = (post['comments'] as int) + 1);
-              }),
-              _side(Icons.share, fmtCount(post['shares'] as num), () {
-                setState(() => post['shares'] = (post['shares'] as int) + 1);
-              }),
+              }, field: 'likes', post: post),
+              _side(Icons.chat_bubble, '${post['comments']}', () {
+                setState(() {
+                  post['comments'] = (post['comments'] as int) + 1;
+                  _keep();
+                });
+              }, field: 'comments', post: post),
+              _side(Icons.share, '${post['shares']}', () {
+                setState(() {
+                  post['shares'] = (post['shares'] as int) + 1;
+                  _keep();
+                });
+              }, field: 'shares', post: post),
             ],
           ),
         ),
@@ -1008,15 +1301,28 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
     );
   }
 
-  Widget _side(IconData icon, String label, VoidCallback onTap) {
+  Widget _side(IconData icon, String label, VoidCallback onTap, {required String field, required Map<String, dynamic> post}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-        onTap: onTap,
+        onTap: _editing ? null : onTap,
         child: Column(
           children: [
             Icon(icon, color: Colors.white, size: 28),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+            SizedBox(
+              width: 52,
+              child: osField(
+                editing: _editing,
+                value: _editing ? label : fmtCount(int.tryParse(label) ?? 0),
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                textAlign: TextAlign.center,
+                onChanged: (value) {
+                  final parsed = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                  if (parsed != null) post[field] = parsed;
+                  _keep();
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -1055,13 +1361,32 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
       children: [
         const Center(child: HueAvatar(name: 'Alex Carter', hue: Color(0xFF25F4EE), size: 84)),
         const SizedBox(height: 8),
-        const Center(child: Text('@alex.carter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+        Center(
+          child: osField(
+            editing: _editing,
+            value: _handle,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            textAlign: TextAlign.center,
+            onChanged: (value) {
+              _handle = value;
+              _keep();
+            },
+          ),
+        ),
         const SizedBox(height: 12),
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _ProfileStat('2431', 'Followers'),
-            _ProfileStat('89.5K', 'Likes'),
+            _ProfileStat(_editing ? '$_followers' : fmtCount(_followers), 'Followers', editing: _editing, onChanged: (value) {
+              final parsed = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+              if (parsed != null) _followers = parsed;
+              _keep();
+            }),
+            _ProfileStat(_editing ? '$_likes' : fmtCount(_likes), 'Likes', editing: _editing, onChanged: (value) {
+              final parsed = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+              if (parsed != null) _likes = parsed;
+              _keep();
+            }),
           ],
         ),
         const SizedBox(height: 16),
@@ -1079,17 +1404,25 @@ class _FlickdeckAppState extends State<FlickdeckApp> {
 }
 
 class _ProfileStat extends StatelessWidget {
-  const _ProfileStat(this.value, this.label);
+  const _ProfileStat(this.value, this.label, {this.editing = false, this.onChanged});
 
   final String value;
   final String label;
+  final bool editing;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        osField(
+          editing: editing,
+          value: value,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+          onChanged: onChanged ?? (_) {},
+        ),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
       ],
     );
   }

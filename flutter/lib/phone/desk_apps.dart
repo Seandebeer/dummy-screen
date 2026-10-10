@@ -531,7 +531,7 @@ class _RealtyAppState extends State<RealtyApp> {
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Text('FIND THE ONE', style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 1.4)),
+            child: Text('FIND THE ONE', style: TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 1.4)),
           ),
           for (final listing in _listings)
             InkWell(
@@ -547,7 +547,19 @@ class _RealtyAppState extends State<RealtyApp> {
                       children: [
                         _listingField(listing, 'price', const TextStyle(color: Color(0xFF32D74B), fontSize: 18, fontWeight: FontWeight.w700)),
                         _listingField(listing, 'address', const TextStyle(color: Colors.white70, fontSize: 13)),
-                        Text('${listing['beds']} bed · ${listing['baths']} bath · ${listing['size']}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                        if (!_editing)
+                          Text(
+                            '${listing['beds']} bed · ${listing['baths']} bath · ${listing['size']}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(child: _listingField(listing, 'beds', const TextStyle(color: Colors.white70, fontSize: 12))),
+                              Expanded(child: _listingField(listing, 'baths', const TextStyle(color: Colors.white70, fontSize: 12))),
+                              Expanded(child: _listingField(listing, 'size', const TextStyle(color: Colors.white70, fontSize: 12))),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -580,12 +592,14 @@ class _RealtyAppState extends State<RealtyApp> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${listing['price']}', style: const TextStyle(color: Color(0xFF32D74B), fontSize: 22, fontWeight: FontWeight.w700)),
-                      Text('${listing['address']}', style: const TextStyle(color: Colors.white60)),
+                      _listingField(listing, 'price', const TextStyle(color: Color(0xFF32D74B), fontSize: 22, fontWeight: FontWeight.w700)),
+                      _listingField(listing, 'address', const TextStyle(color: Colors.white70)),
                       const SizedBox(height: 12),
-                      Text('${listing['beds']} bed   ${listing['baths']} bath   ${listing['size']}', style: const TextStyle(color: Colors.white70)),
+                      _listingField(listing, 'beds', const TextStyle(color: Colors.white70)),
+                      _listingField(listing, 'baths', const TextStyle(color: Colors.white70)),
+                      _listingField(listing, 'size', const TextStyle(color: Colors.white70)),
                       const SizedBox(height: 12),
-                      Text('${listing['blurb']}', style: const TextStyle(color: Colors.white, height: 1.4)),
+                      _listingField(listing, 'blurb', const TextStyle(color: Colors.white, height: 1.4), lines: 5),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
