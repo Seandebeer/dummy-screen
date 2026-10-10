@@ -18,7 +18,9 @@ class ClockSettings extends StatefulWidget {
 class _ClockSettingsState extends State<ClockSettings> {
   bool _open = false;
   bool _editing = false;
+  bool _alive = true;
   late final TextEditingController _time;
+  late final FocusNode _focus;
 
   OsSettings get os => widget.device.os;
 
@@ -28,6 +30,11 @@ class _ClockSettingsState extends State<ClockSettings> {
   void initState() {
     super.initState();
     _time = TextEditingController(text: _shown);
+    _focus = FocusNode();
+    _focus.addListener(() {
+      if (!_alive || !mounted || _focus.hasFocus || !_editing) return;
+      _commit(_time.text);
+    });
   }
 
   @override
@@ -38,6 +45,8 @@ class _ClockSettingsState extends State<ClockSettings> {
 
   @override
   void dispose() {
+    _alive = false;
+    _focus.dispose();
     _time.dispose();
     super.dispose();
   }
@@ -181,6 +190,7 @@ class _ClockSettingsState extends State<ClockSettings> {
           const SizedBox(height: 4),
           TextField(
             key: const Key('clock-time-field'),
+            focusNode: _focus,
             controller: _time,
             style: const TextStyle(color: Colors.white, fontSize: 16),
             cursorColor: Colors.white,
@@ -197,7 +207,6 @@ class _ClockSettingsState extends State<ClockSettings> {
                 borderSide: BorderSide.none,
               ),
             ),
-            onTap: () => _editing = true,
             onChanged: (value) {
               if (value != _shown) _editing = true;
             },
