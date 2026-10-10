@@ -53,18 +53,30 @@ Widget osField({
   int lines = 1,
   TextAlign textAlign = TextAlign.start,
 }) {
-  if (!editing) return Text(value, style: style, textAlign: textAlign);
-  return TextFormField(
+  if (!editing) return Text(value, style: style, textAlign: textAlign, maxLines: lines);
+  final ink = style?.color ?? const Color(0xFF111111);
+  final onDark = ink.computeLuminance() > 0.55;
+  final field = TextFormField(
     initialValue: value,
     style: style,
     maxLines: lines,
     textAlign: textAlign,
-    decoration: const InputDecoration(
+    cursorColor: ink,
+    decoration: InputDecoration(
       isDense: true,
-      contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      border: OutlineInputBorder(),
+      filled: true,
+      fillColor: onDark ? const Color(0xE6111111) : Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      border: const OutlineInputBorder(),
     ),
     onChanged: onChanged,
+  );
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.maxWidth.isFinite) return field;
+      final guess = (value.length * 8.0 + 28).clamp(56.0, 240.0);
+      return SizedBox(width: guess, child: field);
+    },
   );
 }
 
@@ -357,12 +369,11 @@ class _GrapevineAppState extends State<GrapevineApp> {
   }
 
   Widget _editText(String value, ValueChanged<String> onChanged, TextStyle style, {int lines = 1}) {
-    if (!_editing) return Text(value, style: style);
-    return TextFormField(
-      initialValue: value,
+    return osField(
+      editing: _editing,
+      value: value,
       style: style,
-      maxLines: lines,
-      decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+      lines: lines,
       onChanged: (next) {
         onChanged(next);
         _keep();
