@@ -501,7 +501,7 @@ class _MarkersPageState extends State<MarkersPage> {
                       child: Text(
                         'Tap to add numbers · hold to clear · drag to rearrange',
                         style: TextStyle(
-                          color: light ? Colors.black38 : Colors.white38,
+                          color: light ? Colors.black87 : Colors.white70,
                           fontSize: 9,
                         ),
                       ),
@@ -582,12 +582,21 @@ class _MarkersPageState extends State<MarkersPage> {
         alignment: Alignment.center,
         children: [
           Icon(Icons.restart_alt, size: wide ? 28 : 16, color: Colors.white),
-          Text(
-            mark,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: wide ? 11 : 8,
-              fontWeight: FontWeight.w800,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.white, width: 1),
+            ),
+            child: Text(
+              mark,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: wide ? 11 : 9,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
             ),
           ),
         ],
