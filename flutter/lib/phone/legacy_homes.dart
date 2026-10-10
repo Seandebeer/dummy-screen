@@ -825,7 +825,7 @@ class _LiveTile extends StatelessWidget {
         width: width,
         height: height,
         color: color,
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        padding: body != null || scenic ? EdgeInsets.zero : const EdgeInsets.fromLTRB(10, 8, 10, 8),
         child: body ??
             (scenic
                 ? Stack(
@@ -833,7 +833,10 @@ class _LiveTile extends StatelessWidget {
                       const Positioned.fill(child: _Scenic()),
                       Align(
                         alignment: Alignment.bottomLeft,
-                        child: Text(label ?? app.label, style: const TextStyle(color: Colors.white, fontSize: 15)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Text(label ?? app.label, style: const TextStyle(color: Colors.white, fontSize: 15)),
+                        ),
                       ),
                     ],
                   )
@@ -1399,15 +1402,15 @@ class _TodayCard extends StatelessWidget {
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Today', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  Text('Today', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16)),
                   SizedBox(height: 6),
                   Row(
                     children: [
-                      Text('15:00', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text('15:00', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
                       SizedBox(width: 8),
                       SizedBox(width: 3, height: 18, child: ColoredBox(color: Color(0xFF1E88E5))),
                       SizedBox(width: 8),
-                      Expanded(child: Text('Progress meeting', overflow: TextOverflow.ellipsis)),
+                      Expanded(child: Text('Progress meeting', style: TextStyle(color: Colors.black87), overflow: TextOverflow.ellipsis)),
                     ],
                   ),
                 ],
