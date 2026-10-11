@@ -1,11 +1,11 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import 'clock_settings.dart';
 import 'extra_settings.dart';
 import 'mac_desk.dart';
 import 'settings_kit.dart';
@@ -76,6 +76,7 @@ class ComputerSettings extends StatefulWidget {
 class _ComputerSettingsState extends State<ComputerSettings> {
   bool _uploading = false;
   bool _langOpen = false;
+  String? _page;
 
   PropDevice get device => widget.device;
   OsSettings get os => device.os;
@@ -151,13 +152,67 @@ class _ComputerSettingsState extends State<ComputerSettings> {
     final copy = copyFor(os.language);
     final hasImage = os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty;
     final shown = MacLayout.status(os).toSet();
-    final clock = propNow(device.clockOffsetMinutes);
+    final bar = switch (shell) {
+      'windows' => 'Taskbar',
+      'linux' => 'Top bar',
+      _ => 'Menu bar',
+    };
     return SettingsPage(
       listKey: const Key('desk-settings-list'),
-      title: copy.settings,
+      title: switch (_page) {
+        'display' => 'Display',
+        'bar' => bar,
+        'layout' => 'Layout',
+        'apps' => 'Apps',
+        'language' => copy.language,
+        _ => copy.settings,
+      },
+      onBack: _page == null ? null : () => setState(() => _page = null),
       rtl: languageByCode(os.language).rtl,
       onReset: () => widget.store.factoryResetDevice(device.id),
       children: [
+        if (_page == null)
+          SettingsGroup(
+            children: [
+              SettingsCategory(
+                categoryKey: const Key('desk-cat-display'),
+                icon: Icons.desktop_windows_outlined,
+                title: 'Display',
+                detail: 'Interface, theme, and wallpaper',
+                onOpen: () => setState(() => _page = 'display'),
+              ),
+              SettingsCategory(
+                categoryKey: const Key('desk-cat-bar'),
+                icon: Icons.view_headline,
+                title: bar,
+                detail: 'Clock, battery, and what the bar shows',
+                onOpen: () => setState(() => _page = 'bar'),
+              ),
+              if (_arranges)
+                SettingsCategory(
+                  categoryKey: const Key('desk-cat-layout'),
+                  icon: Icons.grid_view,
+                  title: 'Layout',
+                  detail: 'Dock and desktop icons',
+                  onOpen: () => setState(() => _page = 'layout'),
+                ),
+              SettingsCategory(
+                categoryKey: const Key('desk-cat-apps'),
+                icon: Icons.apps,
+                title: 'Apps',
+                detail: 'Branding and custom icons',
+                onOpen: () => setState(() => _page = 'apps'),
+              ),
+              SettingsCategory(
+                categoryKey: const Key('desk-cat-language'),
+                icon: Icons.language,
+                title: copy.language,
+                detail: languageByCode(os.language).native,
+                onOpen: () => setState(() => _page = 'language'),
+              ),
+            ],
+          ),
+        if (_page == 'display')
         SettingsSection(
           title: 'Interface',
           child: Column(
@@ -181,12 +236,9 @@ class _ComputerSettingsState extends State<ComputerSettings> {
             ],
           ),
         ),
+        if (_page == 'bar')
         SettingsSection(
-          title: switch (shell) {
-            'windows' => 'Taskbar',
-            'linux' => 'Top bar',
-            _ => 'Menu bar',
-          },
+          title: bar,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -257,35 +309,21 @@ class _ComputerSettingsState extends State<ComputerSettings> {
                       current.copyWith(battery: value.round().clamp(0, 100)),
                 ),
               ),
+              ClockSettings(store: widget.store, device: device),
               SettingsField(
                 fieldKey: const Key('desk-status-network'),
                 label: 'Network name',
                 value: os.networkName,
                 onChanged: _rename,
               ),
-              const SizedBox(height: 10),
-              SettingsStepRow(
-                name: 'Clock',
-                label: formatClock(clock),
-                minusKey: const Key('desk-clock-back'),
-                plusKey: const Key('desk-clock-forward'),
-                onMinus: () => widget.store.setClockOffset(
-                  device.id,
-                  device.clockOffsetMinutes - 60,
-                ),
-                onPlus: () => widget.store.setClockOffset(
-                  device.id,
-                  device.clockOffsetMinutes + 60,
-                ),
-              ),
               const SizedBox(height: 8),
               const SettingsHint(
-                'Wi-Fi, Bluetooth, the alarm, the battery, the network name, and the clock shown on this machine.',
+                'Wi-Fi, Bluetooth, the alarm, the battery, the network name, and the time shown on this machine.',
               ),
             ],
           ),
         ),
-        if (shell == 'macos')
+        if (_page == 'bar' && shell == 'macos')
           SettingsSection(
             title: 'Menu bar items',
             child: Column(
@@ -353,6 +391,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
               ],
             ),
           ),
+        if (_page == 'display')
         SettingsSection(
           title: copy.themes,
           child: SettingsThemeGrid(
@@ -371,6 +410,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
             ),
           ),
         ),
+        if (_page == 'display')
         SettingsSection(
           title: copy.background,
           child: Column(
@@ -402,7 +442,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
             ],
           ),
         ),
-        if (_arranges) ...[
+        if (_page == 'layout' && _arranges) ...[
           SettingsSection(
             title: 'Dock',
             child: Column(
@@ -432,6 +472,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
             ),
           ),
         ],
+        if (_page == 'apps')
         SettingsSection(
           title: 'App branding',
           child: Column(
@@ -467,6 +508,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
             ],
           ),
         ),
+        if (_page == 'apps')
         SettingsSection(
           title: 'Custom apps',
           child: Column(
@@ -480,6 +522,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
             ],
           ),
         ),
+        if (_page == 'language')
         SettingsSection(
           title: copy.language,
           child: Column(

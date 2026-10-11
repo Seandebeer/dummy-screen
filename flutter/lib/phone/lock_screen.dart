@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
+import 'clock_face.dart';
 
 class LockView extends StatefulWidget {
   const LockView({
     super.key,
     required this.device,
-    required this.timeLabel,
     required this.dateLabel,
     required this.onUnlock,
     required this.onSetPasscode,
@@ -18,7 +18,6 @@ class LockView extends StatefulWidget {
   });
 
   final PropDevice device;
-  final String timeLabel;
   final String dateLabel;
   final VoidCallback onUnlock;
   final ValueChanged<String> onSetPasscode;
@@ -216,14 +215,11 @@ class _LockViewState extends State<LockView> {
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _reveal = true),
         child: Center(
-          child: Text(
-            widget.timeLabel,
-            style: TextStyle(
-              color: _ink,
-              fontSize: 86,
-              fontWeight: FontWeight.w200,
-              letterSpacing: -2,
-            ),
+          child: ClockReadout(
+            os: widget.device.os,
+            color: _ink,
+            fontSize: 86,
+            fontWeight: FontWeight.w200,
           ),
         ),
       );
@@ -233,14 +229,11 @@ class _LockViewState extends State<LockView> {
         Column(
       children: [
         SizedBox(height: compact ? 12 : 28),
-        Text(
-          widget.timeLabel,
-          style: TextStyle(
-            color: _ink,
-            fontSize: compact ? 48 : 76,
-            fontWeight: FontWeight.w200,
-            letterSpacing: -1,
-          ),
+        ClockReadout(
+          os: widget.device.os,
+          color: _ink,
+          fontSize: compact ? 48 : 76,
+          fontWeight: FontWeight.w200,
         ),
         Text(
           widget.dateLabel,

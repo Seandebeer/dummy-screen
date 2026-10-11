@@ -40,7 +40,7 @@ class _Ps5HomeState extends State<Ps5Home> {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(widget.device.clockOffsetMinutes);
+    final now = osNow(widget.device.os);
     final featured = widget.device.os.steamTitle.trim().isEmpty
         ? 'Night Run'
         : widget.device.os.steamTitle.trim();
@@ -86,7 +86,10 @@ class _Ps5HomeState extends State<Ps5Home> {
                       padding: EdgeInsets.only(right: metrics.pad),
                       child: _Header(
                         tab: _tab,
-                        time: _clock(now),
+                        time: formatOsClock(
+                          now,
+                          hour24: widget.device.os.clockFormat == '24',
+                        ),
                         os: widget.device.os,
                         onTab: (index) => setState(() => _tab = index),
                         onShell: widget.onShell,
@@ -223,7 +226,7 @@ class _Header extends StatelessWidget {
           ),
           SizedBox(width: metrics.gap),
           Icon(Icons.crop_square, color: Colors.white, size: metrics.fs(16)),
-          if (ConsoleLayout.shows(os, 'clock')) ...[
+          if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
             SizedBox(width: metrics.gap),
             Text(
               time,
@@ -1763,9 +1766,3 @@ class _BackdropPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-String _clock(DateTime time) {
-  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-  final minute = time.minute.toString().padLeft(2, '0');
-  final suffix = time.hour >= 12 ? 'PM' : 'AM';
-  return '$hour:$minute $suffix';
-}

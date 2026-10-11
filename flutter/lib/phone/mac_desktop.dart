@@ -278,7 +278,7 @@ class _MacDesktopState extends State<MacDesktop> {
 
   Widget _scene(PropDevice live) {
     final os = live.os;
-    final now = propNow(live.clockOffsetMinutes);
+    final now = osNow(live.os);
     return Material(
       type: MaterialType.transparency,
       child: Stack(
@@ -591,9 +591,7 @@ class _MacDesktopState extends State<MacDesktop> {
   String _look(OsSettings os, String token, String fallback) =>
       os.macStatusStyle[token] ?? fallback;
 
-  String _clockFace(DateTime now, String look) {
-    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
-    final minute = now.minute.toString().padLeft(2, '0');
+  String _clockFace(DateTime now, String look, {required bool hour24}) {
     final day = const [
       'Mon',
       'Tue',
@@ -617,7 +615,7 @@ class _MacDesktopState extends State<MacDesktop> {
       'Nov',
       'Dec',
     ][now.month - 1];
-    final time = '$hour:$minute ${now.hour < 12 ? 'AM' : 'PM'}';
+    final time = formatOsClock(now, hour24: hour24);
     final date = '$day $month ${now.day}';
     return switch (look) {
       'date' => date,
@@ -693,9 +691,9 @@ class _MacDesktopState extends State<MacDesktop> {
         ),
         gap,
       ],
-      if (shown.contains('clock')) ...[
+      if (shown.contains('clock') && os.showClock) ...[
         Text(
-          _clockFace(now, _look(os, 'clock', 'time')),
+          _clockFace(now, _look(os, 'clock', 'time'), hour24: os.clockFormat == '24'),
           key: const Key('mac-menu-clock'),
           style: itemStyle.copyWith(fontSize: 12),
         ),

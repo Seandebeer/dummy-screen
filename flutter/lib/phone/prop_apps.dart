@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../format.dart';
+import '../models.dart';
 import '../theme.dart';
 
 class MailApp extends StatelessWidget {
@@ -36,13 +37,13 @@ class MailApp extends StatelessWidget {
 }
 
 class CalendarApp extends StatelessWidget {
-  const CalendarApp({super.key, required this.offsetMinutes});
+  const CalendarApp({super.key, required this.os});
 
-  final int offsetMinutes;
+  final OsSettings os;
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(offsetMinutes);
+    final now = osNow(os);
     final first = DateTime(now.year, now.month, 1);
     final days = DateTime(now.year, now.month + 1, 0).day;
     final pad = first.weekday % 7;

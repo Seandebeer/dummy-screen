@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+import 'clock_settings.dart';
+import 'settings_kit.dart';
 
 const kRingtones = [
   'Reflection',
@@ -41,80 +43,78 @@ class ExtraSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      type: MaterialType.transparency,
-      child: _block(
-        'Network name',
-        Column(
-          children: [
-            TextFormField(
-              key: const Key('network-name'),
-              initialValue: os.networkName,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: 'Network name',
-                labelStyle: TextStyle(color: Colors.white70),
+    return Column(
+      children: [
+        SettingsSection(
+          title: 'Connection',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SettingsField(
+                fieldKey: const Key('network-name'),
+                label: 'Network name',
+                value: os.networkName,
+                onChanged: (value) =>
+                    _update((current) => current.copyWith(networkName: value.trim())),
               ),
-              onFieldSubmitted: (value) =>
-                  _update((current) => current.copyWith(networkName: value.trim())),
-            ),
-            if (cellular) ...[
-              const SizedBox(height: 8),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Mobile network', style: TextStyle(color: Colors.white)),
+              if (cellular) ...[
+                const SizedBox(height: 12),
+                const Text('Mobile network'),
+                const SizedBox(height: 8),
+                SettingsOptions(
+                  prefix: 'cellular',
+                  options: [for (final radio in kCellularRadios) (radio, radio)],
+                  selected: os.cellular,
+                  onSelect: (value) =>
+                      _update((current) => current.copyWith(cellular: value)),
+                ),
+              ],
+              SettingsToggle(
+                label: 'Wi-Fi',
+                value: os.wifi,
+                onChanged: (value) => _update((current) => current.copyWith(wifi: value)),
               ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final radio in kCellularRadios)
-                    ChoiceChip(
-                      key: Key('cellular-$radio'),
-                      label: Text(radio),
-                      labelStyle: TextStyle(
-                        color: os.cellular == radio ? Colors.black : Colors.white,
-                      ),
-                      selectedColor: Colors.white,
-                      backgroundColor: const Color(0xFF2C2C2E),
-                      selected: os.cellular == radio,
-                      onSelected: (_) =>
-                          _update((current) => current.copyWith(cellular: radio)),
-                    ),
-                ],
+              _slider('Wi-Fi signal', os.wifiBars.toDouble(), 3, (value) {
+                _update((current) => current.copyWith(wifiBars: value.round()));
+              }),
+              if (cellular)
+                _slider('Mobile signal', os.signal.toDouble(), 4, (value) {
+                  _update((current) => current.copyWith(signal: value.round()));
+                }),
+            ],
+          ),
+        ),
+        SettingsSection(
+          title: 'Battery',
+          child: Column(
+            children: [
+              _slider('Battery', os.battery.toDouble(), 100, (value) {
+                _update((current) => current.copyWith(battery: value.round()));
+              }),
+              ClockSettings(store: store, device: device),
+            ],
+          ),
+        ),
+        SettingsSection(
+          title: 'Icons',
+          child: Column(
+            children: [
+              SettingsToggle(
+                label: 'Bluetooth',
+                value: os.bluetooth,
+                onChanged: (value) =>
+                    _update((current) => current.copyWith(bluetooth: value)),
+              ),
+              SettingsToggle(
+                label: 'Alarm icon',
+                value: os.showAlarm,
+                onChanged: (value) =>
+                    _update((current) => current.copyWith(showAlarm: value)),
               ),
             ],
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Wi-Fi'),
-              value: os.wifi,
-              onChanged: (value) => _update((current) => current.copyWith(wifi: value)),
-            ),
-            _slider('Wi-Fi signal', os.wifiBars.toDouble(), 3, (value) {
-              _update((current) => current.copyWith(wifiBars: value.round()));
-            }),
-            _slider('Mobile signal', os.signal.toDouble(), 4, (value) {
-              _update((current) => current.copyWith(signal: value.round()));
-            }),
-            _slider('Battery', os.battery.toDouble(), 100, (value) {
-              _update((current) => current.copyWith(battery: value.round()));
-            }),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Bluetooth'),
-              value: os.bluetooth,
-              onChanged: (value) => _update((current) => current.copyWith(bluetooth: value)),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Alarm icon'),
-              value: os.showAlarm,
-              onChanged: (value) => _update((current) => current.copyWith(showAlarm: value)),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -122,28 +122,9 @@ class ExtraSettings extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('$label  ${value.round()}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text('$label  ${value.round()}', style: const TextStyle(color: kSettingsHint, fontSize: 13)),
         Slider(value: value.clamp(0, max), max: max, onChanged: onChanged),
       ],
-    );
-  }
-
-  Widget _block(String title, Widget child) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8, top: 8),
-            child: Text(
-              title.toUpperCase(),
-              style: const TextStyle(color: Colors.white54, fontSize: 11, letterSpacing: 0.8),
-            ),
-          ),
-          child,
-        ],
-      ),
     );
   }
 }
@@ -166,9 +147,8 @@ class SoundSettings extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Mute'),
+        SettingsToggle(
+          label: 'Mute',
           value: os.soundsMuted,
           onChanged: (value) => _update((current) => current.copyWith(soundsMuted: value)),
         ),
@@ -225,7 +205,7 @@ class SoundSettings extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
           DropdownButton<String>(
             value: toneValue,
             dropdownColor: const Color(0xFF1C1C1E),
@@ -280,37 +260,19 @@ class CallerDetails extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'How the caller photo appears on an incoming call.',
-          style: TextStyle(color: Colors.white, fontSize: 12),
-        ),
+        const SettingsHint('How the caller photo appears on an incoming call.'),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('Round avatar'),
-              labelStyle: TextStyle(color: os.callerPhoto != 'full' ? Colors.black : Colors.white),
-              selectedColor: Colors.white,
-              backgroundColor: const Color(0xFF2C2C2E),
-              selected: os.callerPhoto != 'full',
-              onSelected: (_) => store.updateOs(
-                device.id,
-                (current) => current.copyWith(callerPhoto: 'circle'),
-              ),
-            ),
-            ChoiceChip(
-              label: const Text('Full screen'),
-              labelStyle: TextStyle(color: os.callerPhoto == 'full' ? Colors.black : Colors.white),
-              selectedColor: Colors.white,
-              backgroundColor: const Color(0xFF2C2C2E),
-              selected: os.callerPhoto == 'full',
-              onSelected: (_) => store.updateOs(
-                device.id,
-                (current) => current.copyWith(callerPhoto: 'full'),
-              ),
-            ),
+        SettingsOptions(
+          prefix: 'caller-photo',
+          options: const [
+            ('circle', 'Round avatar'),
+            ('full', 'Full screen'),
           ],
+          selected: os.callerPhoto == 'full' ? 'full' : 'circle',
+          onSelect: (value) => store.updateOs(
+            device.id,
+            (current) => current.copyWith(callerPhoto: value),
+          ),
         ),
       ],
     );

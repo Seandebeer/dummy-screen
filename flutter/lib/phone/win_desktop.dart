@@ -105,7 +105,7 @@ class _WinDesktopState extends State<WinDesktop> {
   }
 
   Widget _scene(PropDevice live) {
-    final now = propNow(live.clockOffsetMinutes);
+    final now = osNow(live.os);
     final bloom = !live.os.isLight &&
         live.os.backgroundPreset == 'default' &&
         live.os.backgroundType != 'image';
@@ -315,10 +315,7 @@ class _Taskbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
-    final minute = now.minute.toString().padLeft(2, '0');
-    final suffix = now.hour >= 12 ? 'PM' : 'AM';
-    final clock = '$hour:$minute $suffix';
+    final clock = formatOsClock(now, hour24: os.clockFormat == '24');
     final date = '${now.month}/${now.day}/${now.year}';
     return DecoratedBox(
       key: const Key('win-taskbar'),
@@ -408,7 +405,8 @@ class _Taskbar extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(clock, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, height: 1.1)),
+                      if (os.showClock)
+                        Text(clock, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, height: 1.1)),
                       Text(date, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, height: 1.1)),
                     ],
                   ),

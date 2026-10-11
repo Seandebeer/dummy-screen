@@ -130,12 +130,11 @@ void main() {
     await tester.tap(find.byKey(const Key('mac-dock-settings')));
     await tester.pump();
     expect(find.text('Settings'), findsWidgets);
-    expect(find.text('INTERFACE'), findsOneWidget);
-    expect(find.text('MENU BAR'), findsOneWidget);
-    expect(find.text('STATUS BAR'), findsNothing);
-    expect(find.text('Battery'), findsOneWidget);
-    expect(find.text('Clock'), findsWidgets);
-    expect(find.text('Mac'), findsOneWidget);
+    expect(find.text('Display'), findsOneWidget);
+    expect(find.text('Menu bar'), findsOneWidget);
+    expect(find.text('Status bar'), findsNothing);
+    expect(find.text('Layout'), findsOneWidget);
+    expect(find.text('Battery'), findsNothing);
     expect(find.text('Ring Duration'), findsNothing);
     expect(find.text('Contacts Dial Codes'), findsNothing);
 
@@ -160,6 +159,9 @@ void main() {
       await tester.pump();
     }
 
+    await tester.tap(find.byKey(const Key('desk-cat-display')));
+    await tester.pump();
+    expect(find.text('Mac'), findsOneWidget);
     await show(const Key('desk-theme-midnight'));
     await tester.tap(find.byKey(const Key('desk-theme-midnight')));
     await tester.pump();
@@ -169,7 +171,12 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('mac-wall-dune')), findsOneWidget);
 
-    await toTop();
+    await tester.tap(find.byKey(const Key('settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('desk-cat-bar')));
+    await tester.pump();
+    expect(find.text('Battery'), findsOneWidget);
+    expect(find.text('Time'), findsWidgets);
     await show(const Key('desk-status-wifi'));
     await tester.tap(find.byKey(const Key('desk-status-wifi')));
     await tester.pump();
@@ -196,19 +203,27 @@ void main() {
     await tester.pump();
     expect(find.text('Northline'), findsWidgets);
 
+    await show(const Key('clock-section'));
+    await tester.tap(find.byKey(const Key('clock-section')));
+    await tester.pump();
     final beforeClock = tester
         .widget<Text>(find.byKey(const Key('mac-menu-clock')))
         .data;
-    await show(const Key('desk-clock-forward'));
-    await tester.tap(find.byKey(const Key('desk-clock-forward')));
+    await show(const Key('clock-time-field'));
+    await tester.enterText(find.byKey(const Key('clock-time-field')), '3:05 AM');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('mac-menu-clock'))).data,
+      contains('3:05'),
+    );
     expect(
       tester.widget<Text>(find.byKey(const Key('mac-menu-clock'))).data,
       isNot(beforeClock),
     );
 
     await show(const Key('desk-show-search'));
-    expect(find.text('MENU BAR ITEMS'), findsOneWidget);
+    expect(find.text('Menu bar items'), findsOneWidget);
     await tester.tap(find.byKey(const Key('desk-show-search')));
     await tester.pump();
     expect(find.byKey(const Key('mac-menu-search')), findsNothing);
@@ -224,6 +239,10 @@ void main() {
       isNot(contains(':')),
     );
 
+    await tester.tap(find.byKey(const Key('settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('desk-cat-layout')));
+    await tester.pump();
     await show(const Key('desk-dock-right-word'));
     final excelBefore = tester.getCenter(find.byKey(const Key('mac-dock-excel')));
     final wordBefore = tester.getCenter(find.byKey(const Key('mac-dock-word')));
@@ -253,12 +272,18 @@ void main() {
       lessThan(documents.dx - 40),
     );
 
+    await tester.tap(find.byKey(const Key('settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('desk-cat-apps')));
+    await tester.pump();
     await tester.dragUntilVisible(
       find.text('Add to library'),
       find.byKey(const Key('desk-settings-list')),
       const Offset(0, -80),
     );
     expect(find.text('Add to library'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('settings-back')));
+    await tester.pump();
     await tester.dragUntilVisible(
       find.byKey(const Key('factory-reset')),
       find.byKey(const Key('desk-settings-list')),

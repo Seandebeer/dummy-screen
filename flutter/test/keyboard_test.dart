@@ -16,7 +16,6 @@ void main() {
         debugShowCheckedModeBanner: false,
         home: PhoneShell(
           device: device,
-          timeLabel: '9:41',
           onHome: () {},
           body: MessagesApp(
             store: store,
@@ -57,7 +56,6 @@ void main() {
           debugShowCheckedModeBanner: false,
           home: PhoneShell(
             device: device,
-            timeLabel: '9:41',
             keyboardRoute: route,
             onHome: () {},
             body: body,

@@ -141,7 +141,7 @@ class _OsAppViewState extends State<OsAppView> {
       case 'mail':
         return InboxApp(extra: _mail, chrome: chromeFor(device.skin));
       case 'calendar':
-        return CalendarApp(offsetMinutes: device.clockOffsetMinutes);
+        return CalendarApp(os: device.os);
       case 'maps':
         return const MapsApp();
       case 'music':

@@ -160,9 +160,9 @@ const osSkins = <OsSkin>[
     id: 'android',
     era: 'modern',
     name: 'Current Android',
-    desc: 'Material You - circular icons, tinted dock, light status bar.',
+    desc: 'Ribbon wallpaper, weather and Start, search, and a three-button bar.',
     preset: 'droid',
-    preview: [Color(0xFF101418), Color(0xFF14202A), Color(0xFF0A0E12)],
+    preview: [Color(0xFFC8C4C0), Color(0xFFE6D5C4), Color(0xFF3C3840)],
   ),
 ];
 

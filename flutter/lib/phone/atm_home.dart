@@ -54,7 +54,10 @@ class _AtmScreenState extends State<AtmScreen> {
     _bankName = TextEditingController(text: current.os.bankName);
     _userName = TextEditingController(text: current.os.bankHolder);
     _time = TextEditingController(
-      text: atmClock(propNow(current.clockOffsetMinutes)),
+      text: formatOsClock(
+        osNow(current.os),
+        hour24: current.os.clockFormat == '24',
+      ),
     );
     _temperature = TextEditingController(text: '${current.os.temperature}');
     _balance = TextEditingController(text: '${current.os.bankBalance}');
@@ -265,7 +268,7 @@ class _AtmScreenState extends State<AtmScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final now = propNow(_live.clockOffsetMinutes);
+    final now = osNow(_live.os);
     final image = os.backgroundType == 'image'
         ? imageProviderForPath(os.backgroundUrl)
         : null;
@@ -306,6 +309,7 @@ class _AtmScreenState extends State<AtmScreen> {
                 child: Column(
                   children: [
                     _Header(
+                      os: os,
                       name: os.bankName,
                       now: now,
                       temperature: os.temperature,
@@ -941,16 +945,11 @@ class _AtmScreenState extends State<AtmScreen> {
   }
 
   void _applyTime(String value) {
-    final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value.trim());
-    if (match == null) return;
-    final hour = int.parse(match.group(1)!);
-    final minute = int.parse(match.group(2)!);
-    if (hour > 23 || minute > 59) return;
-    final shown = propNow(_live.clockOffsetMinutes);
-    final delta = (hour * 60 + minute) - (shown.hour * 60 + shown.minute);
-    widget.store.setClockOffset(
+    final parsed = parseClockText(value);
+    if (parsed == null) return;
+    widget.store.updateOs(
       widget.device.id,
-      _live.clockOffsetMinutes + delta,
+      (current) => pinClock(current, parsed.$1, parsed.$2),
     );
     setState(() {});
   }
@@ -1655,6 +1654,7 @@ class _Minor extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   const _Header({
+    required this.os,
     required this.name,
     required this.now,
     required this.temperature,
@@ -1662,6 +1662,7 @@ class _Header extends StatelessWidget {
     required this.skin,
   });
 
+  final OsSettings os;
   final String name;
   final DateTime now;
   final int temperature;
@@ -1671,7 +1672,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final month = _months[now.month - 1];
-    final clock = atmClock(now);
+    final clock = formatOsClock(now, hour24: os.clockFormat == '24');
     return Column(
       children: [
         Row(
@@ -1699,7 +1700,7 @@ class _Header extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              '$month ${now.day}, $clock',
+              os.showClock ? '$month ${now.day}, $clock' : '$month ${now.day}',
               style: TextStyle(color: skin.muted, fontSize: 12 * scale),
             ),
             SizedBox(width: 10 * scale),
@@ -1719,9 +1720,6 @@ class _Header extends StatelessWidget {
     );
   }
 }
-
-String atmClock(DateTime time) =>
-    '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
 const _months = [
   'January',
