@@ -291,7 +291,6 @@ class _StatusBar extends StatelessWidget {
       fontSize: size,
       fontWeight: weight,
       digitalKey: const Key('status-clock'),
-      header: true,
     );
   }
 
@@ -1308,7 +1307,6 @@ class _AlarmOverlay extends StatelessWidget {
               color: kMuted,
               fontSize: 28,
               fontWeight: FontWeight.w400,
-              header: true,
             ),
             const SizedBox(height: 28),
             FilledButton(

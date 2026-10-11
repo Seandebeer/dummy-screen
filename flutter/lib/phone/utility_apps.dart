@@ -32,7 +32,6 @@ class ClockApp extends StatelessWidget {
             color: Colors.white,
             fontSize: 72,
             fontWeight: FontWeight.w200,
-            faceSize: 160,
           ),
           Text(formatDay(now), style: const TextStyle(color: kMuted, fontSize: 16)),
           const SizedBox(height: 28),

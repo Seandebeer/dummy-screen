@@ -34,6 +34,7 @@ class _SettingsAppState extends State<SettingsApp> {
   bool _lockUploading = false;
   bool _uploadError = false;
   bool _lockUploadError = false;
+  String? _page;
 
   @override
   void dispose() {
@@ -134,11 +135,76 @@ class _SettingsAppState extends State<SettingsApp> {
 
     return SettingsPage(
       listKey: const Key('os-settings-list'),
-      title: copy.settings,
+      title: switch (_page) {
+        'display' => 'Display',
+        'status' => 'Status',
+        'lock' => 'Lock',
+        'calls' => 'Calls',
+        'sound' => 'Sound',
+        'apps' => 'Apps',
+        'language' => copy.language,
+        _ => copy.settings,
+      },
+      onBack: _page == null ? null : () => setState(() => _page = null),
       rtl: languageByCode(os.language).rtl,
       onReset: () => widget.store.factoryResetDevice(device.id),
       children: [
-        if (tablet)
+        if (_page == null)
+          SettingsGroup(
+            children: [
+              SettingsCategory(
+                categoryKey: const Key('settings-cat-display'),
+                icon: Icons.phone_iphone,
+                title: 'Display',
+                detail: 'Interface, theme, wallpaper, rotation',
+                onOpen: () => setState(() => _page = 'display'),
+              ),
+              SettingsCategory(
+                categoryKey: const Key('settings-cat-status'),
+                icon: Icons.signal_cellular_alt,
+                title: 'Status',
+                detail: 'Network, battery, and time',
+                onOpen: () => setState(() => _page = 'status'),
+              ),
+              SettingsCategory(
+                categoryKey: const Key('settings-cat-lock'),
+                icon: Icons.lock_outline,
+                title: 'Lock',
+                detail: 'Wallpaper and unlock method',
+                onOpen: () => setState(() => _page = 'lock'),
+              ),
+              if (phone)
+                SettingsCategory(
+                  categoryKey: const Key('settings-cat-calls'),
+                  icon: Icons.phone_outlined,
+                  title: 'Calls',
+                  detail: 'Dialing, ringing, and the caller',
+                  onOpen: () => setState(() => _page = 'calls'),
+                ),
+              SettingsCategory(
+                categoryKey: const Key('settings-cat-sound'),
+                icon: Icons.volume_up_outlined,
+                title: 'Sound',
+                detail: 'Ringtone, alerts, and alarm',
+                onOpen: () => setState(() => _page = 'sound'),
+              ),
+              SettingsCategory(
+                categoryKey: const Key('settings-cat-apps'),
+                icon: Icons.apps,
+                title: 'Apps',
+                detail: 'Branding and custom icons',
+                onOpen: () => setState(() => _page = 'apps'),
+              ),
+              SettingsCategory(
+                categoryKey: const Key('settings-cat-language'),
+                icon: Icons.language,
+                title: copy.language,
+                detail: languageByCode(os.language).native,
+                onOpen: () => setState(() => _page = 'language'),
+              ),
+            ],
+          ),
+        if (_page == 'display' && tablet)
           SettingsSection(
             title: 'Interface',
             child: SettingsTile(
@@ -150,7 +216,7 @@ class _SettingsAppState extends State<SettingsApp> {
               onTap: () {},
             ),
           ),
-        if (phone)
+        if (_page == 'display' && phone)
           SettingsSection(
           title: 'Interface',
           child: Column(
@@ -186,20 +252,19 @@ class _SettingsAppState extends State<SettingsApp> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'LEGACY',
+                              'Legacy',
                               style: TextStyle(
                                 color: light ? Colors.black87 : Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const Spacer(),
                             Text(
-                              'Interfaces',
+                              'Older phones',
                               style: TextStyle(
-                                color: light ? Colors.black45 : Colors.white60,
-                                fontSize: 12,
+                                color: light ? Colors.black45 : kSettingsHint,
+                                fontSize: 13,
                               ),
                             ),
                           ],
@@ -228,7 +293,9 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        ExtraSettings(store: widget.store, device: device, cellular: phone),
+        if (_page == 'status')
+          ExtraSettings(store: widget.store, device: device, cellular: phone),
+        if (_page == 'display')
         SettingsSection(
           title: copy.themes,
           child: SettingsThemeGrid(
@@ -246,7 +313,8 @@ class _SettingsAppState extends State<SettingsApp> {
             ),
           ),
         ),
-        CollapsibleSection(
+        if (_page == 'display')
+        SettingsSection(
           title: copy.background,
           child: Column(
             children: [
@@ -286,8 +354,9 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        CollapsibleSection(
-          title: 'Lock Screen',
+        if (_page == 'lock')
+        SettingsSection(
+          title: 'Lock screen',
           child: Column(
             children: [
               SettingsPresetGrid(
@@ -326,9 +395,9 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        CollapsibleSection(
-          title: 'Lock Screen Method',
-          sectionKey: const Key('lock-methods'),
+        if (_page == 'lock')
+        SettingsSection(
+          title: 'Unlock',
           child: Column(
             children: [
               for (final method in lockMethods)
@@ -359,8 +428,8 @@ class _SettingsAppState extends State<SettingsApp> {
                                     ? '$defaultLabel by default'
                                     : method.hint,
                                 style: const TextStyle(
-                                  color: Color(0x59FFFFFF),
-                                  fontSize: 10,
+                                  color: kSettingsHint,
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
@@ -390,7 +459,7 @@ class _SettingsAppState extends State<SettingsApp> {
                       },
                       child: const Text(
                         'Reset Passcode',
-                        style: TextStyle(color: kAlert, fontSize: 12),
+                        style: TextStyle(color: kAlert, fontSize: 15),
                       ),
                     )
                   else if (os.lockType == 'pattern')
@@ -404,7 +473,7 @@ class _SettingsAppState extends State<SettingsApp> {
                       },
                       child: const Text(
                         'Reset Pattern',
-                        style: TextStyle(color: kAlert, fontSize: 12),
+                        style: TextStyle(color: kAlert, fontSize: 15),
                       ),
                     ),
                   const Spacer(),
@@ -413,8 +482,7 @@ class _SettingsAppState extends State<SettingsApp> {
                       'SET ON NEXT LOCK',
                       style: TextStyle(
                         color: Color(0xFFFF9F0A),
-                        fontSize: 10,
-                        letterSpacing: 0.6,
+                        fontSize: 13,
                       ),
                     ),
                 ],
@@ -422,7 +490,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        if (phone)
+        if (_page == 'calls' && phone)
         SettingsSection(
           title: copy.dialCodes,
           child: Column(
@@ -504,7 +572,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        if (phone)
+        if (_page == 'calls' && phone)
         SettingsSection(
           title: copy.answerCalls,
           child: Column(
@@ -544,9 +612,9 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        if (phone)
+        if (_page == 'calls' && phone)
         SettingsSection(
-          title: 'Ring Duration',
+          title: 'Ring duration',
           child: Column(
             children: [
               SettingsStepRow(
@@ -573,9 +641,9 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
+        if (_page == 'display')
         SettingsSection(
           title: 'Auto rotate',
-          plain: true,
           child: SettingsToggle(
             key: const Key('os-auto-rotate'),
             label: 'Turn screen with device',
@@ -587,17 +655,18 @@ class _SettingsAppState extends State<SettingsApp> {
             ),
           ),
         ),
-        _language(copy),
-        CollapsibleSection(
-          title: 'Sounds',
-          sectionKey: const Key('sound-settings'),
-          child: SoundSettings(store: widget.store, device: device),
-        ),
-        if (phone)
+        if (_page == 'language') _language(copy),
+        if (_page == 'sound')
           SettingsSection(
-            title: 'Caller details',
+            title: 'Sounds',
+            child: SoundSettings(store: widget.store, device: device),
+          ),
+        if (_page == 'calls' && phone)
+          SettingsSection(
+            title: 'Caller',
             child: CallerDetails(store: widget.store, device: device),
           ),
+        if (_page == 'apps')
         SettingsSection(
           title: 'App branding',
           child: Column(
@@ -605,32 +674,30 @@ class _SettingsAppState extends State<SettingsApp> {
             children: [
               const Text(
                 'Generic keeps the fictional names and icons. Branded uses the real product names and artwork.',
-                style: TextStyle(color: Colors.white, fontSize: 12),
+                style: TextStyle(color: kSettingsHint, fontSize: 13),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
+              Row(
                 children: [
-                  ChoiceChip(
-                    label: const Text('Generic'),
-                    labelStyle: TextStyle(color: !os.branded ? Colors.black : Colors.white),
-                    selectedColor: Colors.white,
-                    backgroundColor: const Color(0xFF2C2C2E),
-                    selected: !os.branded,
-                    onSelected: (_) => widget.store.updateOs(
-                      device.id,
-                      (current) => current.copyWith(branded: false),
+                  Expanded(
+                    child: SettingsChoice(
+                      label: 'Generic',
+                      active: !os.branded,
+                      onTap: () => widget.store.updateOs(
+                        device.id,
+                        (current) => current.copyWith(branded: false),
+                      ),
                     ),
                   ),
-                  ChoiceChip(
-                    label: const Text('Branded'),
-                    labelStyle: TextStyle(color: os.branded ? Colors.black : Colors.white),
-                    selectedColor: Colors.white,
-                    backgroundColor: const Color(0xFF2C2C2E),
-                    selected: os.branded,
-                    onSelected: (_) => widget.store.updateOs(
-                      device.id,
-                      (current) => current.copyWith(branded: true),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SettingsChoice(
+                      label: 'Branded',
+                      active: os.branded,
+                      onTap: () => widget.store.updateOs(
+                        device.id,
+                        (current) => current.copyWith(branded: true),
+                      ),
                     ),
                   ),
                 ],
@@ -638,6 +705,7 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
+        if (_page == 'apps')
         SettingsSection(
           title: 'Custom apps',
           child: CustomIconMaker(store: widget.store, device: device),

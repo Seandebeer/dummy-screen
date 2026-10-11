@@ -237,10 +237,10 @@ class OsSettings {
   /// A single `-` means every status item was hidden.
   final List<String> consoleStatus;
 
-  /// `digital` or `analog`.
+  /// Kept so older saves still load. The clock is always digital.
   final String clockStyle;
 
-  /// `12` prints h:mm AM/PM. `24` prints HH:mm. Analog faces ignore this.
+  /// `12` prints h:mm. `24` prints HH:mm. Neither form shows AM or PM.
   final String clockFormat;
 
   /// `local`, `zone`, or `set`. A stopped clock always shows [clockHour]

@@ -1349,7 +1349,6 @@ class _DeskClock extends StatelessWidget {
                     color: _ink,
                     fontSize: 64,
                     fontWeight: FontWeight.w200,
-                    faceSize: 120,
                   ),
                 ),
                 Text(

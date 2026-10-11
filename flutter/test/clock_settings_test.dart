@@ -1,6 +1,5 @@
 import 'package:dummy_phone/format.dart';
 import 'package:dummy_phone/models.dart';
-import 'package:dummy_phone/phone/clock_face.dart';
 import 'package:dummy_phone/phone/home_view.dart';
 import 'package:dummy_phone/phone/lock_screen.dart';
 import 'package:dummy_phone/phone/phone_shell.dart';
@@ -62,9 +61,9 @@ void main() {
     expect(parseClockText('3:05'), (3, 5));
     expect(parseClockText('25:00'), isNull);
     expect(parseClockText('noon'), isNull);
-    expect(formatOsClock(DateTime(2026, 10, 10, 3, 5), hour24: false), '3:05 AM');
+    expect(formatOsClock(DateTime(2026, 10, 10, 3, 5), hour24: false), '3:05');
     expect(formatOsClock(DateTime(2026, 10, 10, 15, 5), hour24: true), '15:05');
-    expect(formatOsClock(DateTime(2026, 10, 10, 0, 7), hour24: false), '12:07 AM');
+    expect(formatOsClock(DateTime(2026, 10, 10, 0, 7), hour24: false), '12:07');
   });
 
   testWidgets('time settings sit collapsed under the battery slider', (tester) async {
@@ -91,16 +90,20 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('Time'), findsNothing);
+    await tester.tap(find.byKey(const Key('settings-cat-status')));
+    await tester.pump();
+    expect(find.text('Time'), findsOneWidget);
     expect(find.byKey(const Key('clock-style-digital')), findsNothing);
-    final battery = tester.getTopLeft(find.textContaining('Battery'));
+    expect(find.byKey(const Key('clock-style-analog')), findsNothing);
+    final battery = tester.getTopLeft(find.text('Battery  80'));
     final time = tester.getTopLeft(find.byKey(const Key('clock-section')));
     expect(time.dy, greaterThan(battery.dy));
 
     await tester.tap(find.byKey(const Key('clock-section')));
     await tester.pump();
-    expect(find.byKey(const Key('clock-style-digital')), findsOneWidget);
-    expect(find.byKey(const Key('clock-style-analog')), findsOneWidget);
+    expect(find.byKey(const Key('clock-style-digital')), findsNothing);
+    expect(find.byKey(const Key('clock-style-analog')), findsNothing);
     expect(find.byKey(const Key('clock-source-local')), findsOneWidget);
     expect(find.byKey(const Key('clock-source-zone')), findsOneWidget);
     expect(find.byKey(const Key('clock-source-set')), findsOneWidget);
@@ -110,10 +113,6 @@ void main() {
     expect(find.byKey(const Key('clock-hour-up')), findsNothing);
     expect(tester.widget<Switch>(find.byKey(const Key('clock-running'))).value, isFalse);
     expect(tester.widget<Switch>(find.byKey(const Key('clock-show'))).value, isTrue);
-
-    await tester.tap(find.byKey(const Key('clock-style-analog')));
-    await tester.pump();
-    expect(store.deviceById(device.id)!.os.clockStyle, 'analog');
 
     await tester.tap(find.byKey(const Key('clock-show')));
     await tester.pump();
@@ -126,7 +125,7 @@ void main() {
     expect(typed.clockHour, 15);
     expect(typed.clockMinute, 20);
     expect(typed.clockSource, 'set');
-    expect(find.text('3:20 PM'), findsWidgets);
+    expect(find.text('3:20'), findsWidgets);
 
     await tester.enterText(find.byKey(const Key('clock-time-field')), 'nope');
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -167,21 +166,19 @@ void main() {
     }
 
     await pump(device.os);
-    expect(find.text('3:05 AM'), findsOneWidget);
+    expect(find.text('3:05'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
-    expect(find.text('3:05 AM'), findsOneWidget);
+    expect(find.text('3:05'), findsOneWidget);
 
     await pump(device.os.copyWith(clockFormat: '24'));
     expect(find.text('03:05'), findsOneWidget);
-    expect(find.text('3:05 AM'), findsNothing);
+    expect(find.text('3:05'), findsNothing);
 
     await pump(device.os.copyWith(showClock: false));
-    expect(find.text('3:05 AM'), findsNothing);
-    expect(find.byType(ClockFace), findsNothing);
+    expect(find.text('3:05'), findsNothing);
 
     await pump(device.os.copyWith(clockStyle: 'analog'));
-    expect(find.byType(ClockFace), findsNothing);
-    expect(find.text('3:05 AM'), findsOneWidget);
+    expect(find.text('3:05'), findsOneWidget);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -195,8 +192,7 @@ void main() {
         ),
       ),
     );
-    expect(find.byType(ClockFace), findsOneWidget);
-    expect(find.text('3:05'), findsNothing);
+    expect(find.text('3:05'), findsOneWidget);
   });
 
   testWidgets('current Android uses the ribbon home', (tester) async {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../format.dart';
 import '../models.dart';
 import '../store.dart';
+import 'settings_kit.dart';
 
 /// Collapsed time controls. Starts closed, and sits under a battery slider.
 class ClockSettings extends StatefulWidget {
@@ -91,15 +92,11 @@ class _ClockSettingsState extends State<ClockSettings> {
               children: [
                 const Expanded(
                   child: Text(
-                    'TIME',
-                    style: TextStyle(
-                      color: Color(0xB3FFFFFF),
-                      fontSize: 11,
-                      letterSpacing: 1.1,
-                    ),
+                    'Time',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
-                Text(shown, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(shown, style: const TextStyle(color: kSettingsHint, fontSize: 15)),
                 const SizedBox(width: 6),
                 Icon(
                   _open ? Icons.expand_less : Icons.expand_more,
@@ -112,45 +109,21 @@ class _ClockSettingsState extends State<ClockSettings> {
         ),
         if (_open) ...[
           const Text(
-            'Type the exact time. A stopped clock stays there and does not run.',
-            style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 11),
+            'Type 9:41 or 21:15. A stopped clock stays there and does not run.',
+            style: TextStyle(color: kSettingsHint, fontSize: 13),
           ),
+          const SizedBox(height: 12),
+          const Text('Time source', style: TextStyle(fontSize: 15)),
           const SizedBox(height: 8),
-          const Text('Screen clock', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          const Text(
-            'Analog replaces the clock on the screen. The header stays digital.',
-            style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 11),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _chip('Digital', 'digital', os.clockStyle, 'clock-style-digital', (value) {
-                _save((current) => current.copyWith(clockStyle: value));
-              }),
-              _chip('Analog', 'analog', os.clockStyle, 'clock-style-analog', (value) {
-                _save((current) => current.copyWith(clockStyle: value));
-              }),
+          SettingsOptions(
+            prefix: 'clock-source',
+            options: const [
+              ('local', 'Local time'),
+              ('zone', 'Timezone'),
+              ('set', 'Set time'),
             ],
-          ),
-          const SizedBox(height: 10),
-          const Text('Time source', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _chip('Local time', 'local', os.clockSource, 'clock-source-local', (value) {
-                _save((current) => chooseClockSource(current, value));
-              }),
-              _chip('Timezone', 'zone', os.clockSource, 'clock-source-zone', (value) {
-                _save((current) => chooseClockSource(current, value));
-              }),
-              _chip('Set time', 'set', os.clockSource, 'clock-source-set', (value) {
-                _save((current) => chooseClockSource(current, value));
-              }),
-            ],
+            selected: os.clockSource,
+            onSelect: (value) => _save((current) => chooseClockSource(current, value)),
           ),
           if (os.clockSource == 'zone') ...[
             const SizedBox(height: 8),
@@ -170,29 +143,26 @@ class _ClockSettingsState extends State<ClockSettings> {
               },
             ),
           ],
-          const SizedBox(height: 10),
-          const Text('Clock format', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _chip('AM/PM', '12', os.clockFormat, 'clock-format-12', (value) {
-                _save((current) => current.copyWith(clockFormat: value));
-              }),
-              _chip('24-hour', '24', os.clockFormat, 'clock-format-24', (value) {
-                _save((current) => current.copyWith(clockFormat: value));
-              }),
+          const SizedBox(height: 12),
+          const Text('Clock format', style: TextStyle(fontSize: 15)),
+          const SizedBox(height: 8),
+          SettingsOptions(
+            prefix: 'clock-format',
+            options: const [
+              ('12', '12-hour'),
+              ('24', '24-hour'),
             ],
+            selected: os.clockFormat,
+            onSelect: (value) => _save((current) => current.copyWith(clockFormat: value)),
           ),
-          const SizedBox(height: 10),
-          const Text('Exact time', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          const SizedBox(height: 12),
+          const Text('Exact time', style: TextStyle(fontSize: 15)),
           const SizedBox(height: 4),
           TextField(
             key: const Key('clock-time-field'),
             focusNode: _focus,
             controller: _time,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
             cursorColor: Colors.white,
             keyboardType: TextInputType.datetime,
             textInputAction: TextInputAction.done,
@@ -200,7 +170,7 @@ class _ClockSettingsState extends State<ClockSettings> {
               isDense: true,
               filled: true,
               fillColor: const Color(0xFF2C2C2E),
-              hintText: os.clockFormat == '24' ? '21:15' : '9:41 AM',
+              hintText: os.clockFormat == '24' ? '21:15' : '9:41',
               hintStyle: const TextStyle(color: Colors.white38),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -249,7 +219,7 @@ class _ClockSettingsState extends State<ClockSettings> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label),
-                  Text(hint, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                  Text(hint, style: const TextStyle(color: kSettingsHint, fontSize: 13)),
                 ],
               ),
             ),
@@ -260,23 +230,4 @@ class _ClockSettingsState extends State<ClockSettings> {
     );
   }
 
-  Widget _chip(
-    String label,
-    String value,
-    String selected,
-    String keyName,
-    ValueChanged<String> onSelected,
-  ) {
-    final on = selected == value;
-    return ChoiceChip(
-      key: Key(keyName),
-      label: Text(label),
-      labelStyle: TextStyle(color: on ? Colors.black : Colors.white),
-      selectedColor: Colors.white,
-      backgroundColor: const Color(0xFF2C2C2E),
-      surfaceTintColor: Colors.transparent,
-      selected: on,
-      onSelected: (_) => onSelected(value),
-    );
-  }
 }

@@ -84,11 +84,13 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('home-settings')));
     await tester.pump();
+    await tester.tap(find.byKey(const Key('settings-cat-display')));
+    await tester.pump();
 
     expect(find.text('Current OS'), findsOneWidget);
     expect(find.text('Current Android'), findsOneWidget);
     expect(find.text('Graphite'), findsOneWidget);
-    expect(find.text('LEGACY'), findsOneWidget);
+    expect(find.text('Legacy'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('skin-android')));
     await tester.pump();
@@ -96,18 +98,11 @@ void main() {
     expect(store.deviceById('d-hero')!.os.backgroundPreset, 'droid');
     expect(find.text('Current OS'), findsOneWidget);
     expect(find.text('Current Android'), findsOneWidget);
-    expect(find.text('LEGACY'), findsOneWidget);
+    expect(find.text('Legacy'), findsOneWidget);
 
-    for (
-      var i = 0;
-      i < 12 && find.byKey(const Key('os-build-footer')).evaluate().isEmpty;
-      i++
-    ) {
-      final origin = tester.getTopLeft(find.byKey(const Key('os-settings-list')));
-      await tester.dragFrom(origin + const Offset(30, 120), const Offset(0, -450));
-      await tester.pump();
-    }
-    expect(find.text('DUMMY SCREEN · PROP BUILD 1.0'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('settings-back')));
+    await tester.pump();
+    expect(find.byKey(const Key('os-build-footer')), findsOneWidget);
     expect(find.text('Factory Reset'), findsOneWidget);
   });
 }

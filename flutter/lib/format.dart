@@ -34,15 +34,11 @@ String formatClock(DateTime time) {
   return '$hour:$minute';
 }
 
-/// Device clock text. Twenty-four hour is `HH:mm`. Twelve hour is `h:mm AM`.
+/// Device clock text. Twenty-four hour is `HH:mm`. Twelve hour is `h:mm`.
 String formatOsClock(DateTime time, {required bool hour24}) {
+  if (!hour24) return formatClock(time);
   final minute = time.minute.toString().padLeft(2, '0');
-  if (hour24) {
-    return '${time.hour.toString().padLeft(2, '0')}:$minute';
-  }
-  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-  final suffix = time.hour >= 12 ? 'PM' : 'AM';
-  return '$hour:$minute $suffix';
+  return '${time.hour.toString().padLeft(2, '0')}:$minute';
 }
 
 /// Reads `9:41`, `9:41 AM`, `9:41pm`, or `21:15`. Null when it is not a time.

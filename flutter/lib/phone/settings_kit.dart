@@ -21,6 +21,7 @@ class SettingsPage extends StatefulWidget {
     required this.title,
     required this.children,
     required this.onReset,
+    this.onBack,
     this.rtl = false,
   });
 
@@ -28,6 +29,7 @@ class SettingsPage extends StatefulWidget {
   final String title;
   final List<Widget> children;
   final VoidCallback onReset;
+  final VoidCallback? onBack;
   final bool rtl;
 
   @override
@@ -44,44 +46,64 @@ class _SettingsPageState extends State<SettingsPage> {
       textDirection: widget.rtl ? TextDirection.rtl : TextDirection.ltr,
       child: ColoredBox(
         color: kSettingsPage,
-        child: DefaultTextStyle(
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+        child: Material(
+          type: MaterialType.transparency,
+          child: DefaultTextStyle(
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+          ),
           child: Stack(
             children: [
-              ListView(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(widget.onBack == null ? 20 : 8, 14, 20, 4),
+                    child: Row(
+                      children: [
+                        if (widget.onBack != null)
+                          IconButton(
+                            key: const Key('settings-back'),
+                            onPressed: widget.onBack,
+                            icon: const Icon(Icons.arrow_back, size: 20),
+                          ),
+                        Expanded(
+                          child: Text(
+                            widget.title,
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
                 key: widget.listKey,
                 padding: const EdgeInsets.only(bottom: 28),
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
-                    child: Text(
-                      widget.title,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
                   ...widget.children,
-                  SettingsSection(title: 'Reset', child: _reset()),
+                  if (widget.onBack == null)
+                    SettingsSection(title: 'Reset', child: _reset()),
                   const Padding(
                     padding: EdgeInsets.only(top: 22),
                     child: Text(
-                      'DUMMY SCREEN · PROP BUILD 1.0',
+                      'Dummy Screen',
                       key: Key('os-build-footer'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0x40FFFFFF),
-                        fontSize: 10,
-                        letterSpacing: 1.4,
-                      ),
+                      style: TextStyle(color: Color(0x40FFFFFF), fontSize: 13),
                     ),
+                  ),
+                ],
+              ),
                   ),
                 ],
               ),
               if (_confirm) _sheet(),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -106,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         const Text(
           "Erase all changes on this device - pages, apps, settings and configurations. Pages saved to this character's device are removed from it; items saved to General stay in Saved.",
-          style: TextStyle(color: kSettingsLabel, fontSize: 12, height: 1.4),
+          style: TextStyle(color: kSettingsLabel, fontSize: 13, height: 1.4),
         ),
         const SizedBox(height: 12),
         Row(
@@ -160,8 +182,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       'This removes every change on this device - pages, apps, settings and configurations. General saved items are kept. This cannot be undone.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Color(0x8CFFFFFF),
-                        fontSize: 12,
+                        color: kSettingsHint,
+                        fontSize: 13,
                         height: 1.4,
                       ),
                     ),
@@ -198,34 +220,117 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+/// A single card of tappable categories.
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: kSettingsCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kSettingsEdge),
+        ),
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              children[i],
+              if (i != children.length - 1)
+                const Divider(height: 1, thickness: 1, indent: 58, color: kSettingsEdge),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One row in a [SettingsGroup]. Opens a category of controls.
+class SettingsCategory extends StatelessWidget {
+  const SettingsCategory({
+    super.key,
+    required this.categoryKey,
+    required this.icon,
+    required this.title,
+    required this.detail,
+    required this.onOpen,
+  });
+
+  final Key categoryKey;
+  final IconData icon;
+  final String title;
+  final String detail;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: categoryKey,
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0x14FFFFFF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 18, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(detail, style: const TextStyle(color: kSettingsHint, fontSize: 13)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 20, color: kSettingsHint),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// One titled card in the settings scroll.
 class SettingsSection extends StatelessWidget {
   const SettingsSection({
     super.key,
     required this.title,
     required this.child,
-    this.plain = false,
   });
 
   final String title;
   final Widget child;
-  final bool plain;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
-              plain ? title : title.toUpperCase(),
+              title,
               style: const TextStyle(
                 color: kSettingsHint,
-                fontSize: 11,
-                letterSpacing: 1.1,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -294,11 +399,11 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.title.toUpperCase(),
+                        widget.title,
                         style: const TextStyle(
                           color: kSettingsHint,
-                          fontSize: 11,
-                          letterSpacing: 1.1,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -333,7 +438,7 @@ class SettingsHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(color: kSettingsHint, fontSize: 11),
+      style: const TextStyle(color: kSettingsHint, fontSize: 13),
     );
   }
 }
@@ -491,7 +596,8 @@ class _OptionPill extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
               color: active ? kAccent : const Color(0x99FFFFFF),
             ),
           ),
@@ -587,7 +693,7 @@ class _ThemeButton extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 13,
                 color: active ? kAccent : const Color(0x99FFFFFF),
               ),
             ),
@@ -692,7 +798,7 @@ class SettingsUploadRow extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.upload, size: 14),
-            label: const Text('Upload Image', style: TextStyle(fontSize: 12)),
+            label: const Text('Upload Image'),
           ),
         ),
         if (showRemove) ...[
@@ -890,14 +996,11 @@ class SettingsTile extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                     ),
                     Text(
                       desc,
-                      style: const TextStyle(
-                        color: Color(0x80FFFFFF),
-                        fontSize: 11,
-                      ),
+                      style: const TextStyle(color: kSettingsHint, fontSize: 13),
                     ),
                   ],
                 ),

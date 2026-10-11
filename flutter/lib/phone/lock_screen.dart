@@ -220,7 +220,6 @@ class _LockViewState extends State<LockView> {
             color: _ink,
             fontSize: 86,
             fontWeight: FontWeight.w200,
-            faceSize: 160,
           ),
         ),
       );
@@ -235,7 +234,6 @@ class _LockViewState extends State<LockView> {
           color: _ink,
           fontSize: compact ? 48 : 76,
           fontWeight: FontWeight.w200,
-          faceSize: compact ? 72 : 140,
         ),
         Text(
           widget.dateLabel,
