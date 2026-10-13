@@ -1465,7 +1465,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                   TextField(
                     controller: _name,
                     decoration: deckField(palette, 'Name'),
-                    onSubmitted: (value) => store.setOperator(name: value),
+                    onChanged: (value) => store.setOperator(name: value),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -1476,7 +1476,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                   TextField(
                     controller: _title,
                     decoration: deckField(palette, 'e.g. Prop Master'),
-                    onSubmitted: (value) => store.setOperator(title: value),
+                    onChanged: (value) => store.setOperator(title: value),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(

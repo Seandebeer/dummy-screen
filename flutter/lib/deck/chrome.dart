@@ -197,6 +197,9 @@ class CollapsibleCard extends StatefulWidget {
     this.iconColor = kSignal,
     this.badge,
     this.initiallyOpen = false,
+    this.open,
+    this.onOpenChanged,
+    this.fill = false,
   });
 
   final DeckPalette palette;
@@ -207,16 +210,49 @@ class CollapsibleCard extends StatefulWidget {
   final Widget? badge;
   final bool initiallyOpen;
 
+  /// When set, the parent owns whether this strip is open.
+  final bool? open;
+  final ValueChanged<bool>? onOpenChanged;
+
+  /// The open body fills the height given by the parent.
+  final bool fill;
+
   @override
   State<CollapsibleCard> createState() => _CollapsibleCardState();
 }
 
 class _CollapsibleCardState extends State<CollapsibleCard> {
-  late bool _open = widget.initiallyOpen;
+  late bool _open = widget.open ?? widget.initiallyOpen;
+
+  @override
+  void didUpdateWidget(CollapsibleCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.open != null) _open = widget.open!;
+  }
+
+  void _toggle() {
+    final next = !_open;
+    if (widget.onOpenChanged != null) {
+      widget.onOpenChanged!(next);
+      return;
+    }
+    setState(() => _open = next);
+  }
 
   @override
   Widget build(BuildContext context) {
     final palette = widget.palette;
+    final body = widget.fill
+        ? Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: widget.child,
+            ),
+          )
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: widget.child,
+          );
     return Container(
       decoration: BoxDecoration(
         color: palette.surface.withValues(alpha: 0.85),
@@ -226,7 +262,7 @@ class _CollapsibleCardState extends State<CollapsibleCard> {
       child: Column(
         children: [
           InkWell(
-            onTap: () => setState(() => _open = !_open),
+            onTap: _toggle,
             borderRadius: BorderRadius.circular(20),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -256,11 +292,7 @@ class _CollapsibleCardState extends State<CollapsibleCard> {
               ),
             ),
           ),
-          if (_open)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: widget.child,
-            ),
+          if (_open) body,
         ],
       ),
     );

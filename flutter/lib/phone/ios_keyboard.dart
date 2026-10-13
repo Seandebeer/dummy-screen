@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// The prop's own keyboard, laid out like the iPhone keyboard and pinned to
 /// the device that opened it. Fields stay read-only so a system keyboard
@@ -188,6 +189,42 @@ class _BoardState extends State<_Board> {
   bool _shift = false;
   bool _symbols = false;
   bool _emoji = false;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_hardware);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_hardware);
+    super.dispose();
+  }
+
+  /// A laptop or desktop keyboard types into the same field as the on-screen keys.
+  bool _hardware(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return false;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.backspace) {
+      _type('⌫');
+      return true;
+    }
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+      widget.onDone();
+      return true;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      widget.onHide();
+      return true;
+    }
+    final char = event.character;
+    if (char == null || char.isEmpty) return false;
+    if (char.codeUnitAt(0) < 32) return false;
+    _insert(char);
+    if (_shift) setState(() => _shift = false);
+    return true;
+  }
 
   void _insert(String value) {
     final text = widget.controller.text;

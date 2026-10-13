@@ -5,21 +5,31 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import 'catalog.dart';
+import 'home_drag.dart';
 
 /// Current Android home, matched to the ribbon reference: weather and Start,
 /// a search bar, one row of four icons, then the dock.
 class AndroidHome extends StatelessWidget {
-  const AndroidHome({super.key, required this.os, required this.onOpen});
+  const AndroidHome({
+    super.key,
+    required this.os,
+    required this.onOpen,
+    this.onOrder,
+    this.onHide,
+  });
 
   final OsSettings os;
   final void Function(String id) onOpen;
+  final ValueChanged<List<String>>? onOrder;
+  final ValueChanged<String>? onHide;
 
   @override
   Widget build(BuildContext context) {
+    final hidden = os.homeHidden.toSet();
     final rest = [
       for (final id in (os.homeOrder.isEmpty ? kHomeOrder : os.homeOrder))
         if (propAppById(id) case final app?)
-          if (!_pageOne.contains(id) && !_dock.contains(id)) app,
+          if (!_pageOne.contains(id) && !_dock.contains(id) && !hidden.contains('dock:$id')) app,
     ];
     final pages = <List<PropApp>>[];
     for (var i = 0; i < rest.length; i += 16) {
@@ -36,11 +46,26 @@ class AndroidHome extends StatelessWidget {
             key: const Key('android-home'),
             scrollBehavior: const _Scroll(),
             children: [
-              SizedBox(width: width, child: _FirstPage(onOpen: onOpen, pages: count)),
+              SizedBox(
+                width: width,
+                child: _FirstPage(
+                  onOpen: onOpen,
+                  pages: count,
+                  hidden: hidden,
+                  onHide: onHide,
+                ),
+              ),
               for (var i = 0; i < pages.length; i++)
                 SizedBox(
                   width: width,
-                  child: _MorePage(apps: pages[i], page: i + 1, pages: count, onOpen: onOpen),
+                  child: _MorePage(
+                    apps: pages[i],
+                    page: i + 1,
+                    pages: count,
+                    onOpen: onOpen,
+                    order: os.homeOrder.isEmpty ? [...kHomeOrder] : [...os.homeOrder],
+                    onOrder: onOrder,
+                  ),
                 ),
             ],
           );
@@ -66,10 +91,17 @@ class _Scroll extends MaterialScrollBehavior {
 }
 
 class _FirstPage extends StatelessWidget {
-  const _FirstPage({required this.onOpen, required this.pages});
+  const _FirstPage({
+    required this.onOpen,
+    required this.pages,
+    required this.hidden,
+    this.onHide,
+  });
 
   final void Function(String id) onOpen;
   final int pages;
+  final Set<String> hidden;
+  final ValueChanged<String>? onHide;
 
   @override
   Widget build(BuildContext context) {
@@ -80,47 +112,83 @@ class _FirstPage extends StatelessWidget {
           const Spacer(),
           Row(
             children: [
-              Expanded(
-                flex: 11,
-                child: _Weather(onTap: () => onOpen('skycast')),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 10,
-                child: _Start(onTap: () => onOpen('appstore')),
-              ),
+              if (!hidden.contains('widget:weather'))
+                Expanded(
+                  flex: 11,
+                  child: StageDrag(
+                    onTap: () => onOpen('skycast'),
+                    onRemove: onHide == null ? null : () => onHide!('widget:weather'),
+                    child: _Weather(onTap: () => onOpen('skycast')),
+                  ),
+                ),
+              if (!hidden.contains('widget:weather') && !hidden.contains('widget:start'))
+                const SizedBox(width: 10),
+              if (!hidden.contains('widget:start'))
+                Expanded(
+                  flex: 10,
+                  child: StageDrag(
+                    onTap: () => onOpen('appstore'),
+                    onRemove: onHide == null ? null : () => onHide!('widget:start'),
+                    child: _Start(onTap: () => onOpen('appstore')),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 14),
-          _Search(onTap: () => onOpen('browser')),
+          if (!hidden.contains('widget:search'))
+            StageDrag(
+              onTap: () => onOpen('browser'),
+              onRemove: onHide == null ? null : () => onHide!('widget:search'),
+              child: _Search(onTap: () => onOpen('browser')),
+            ),
           const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _Launch(
-                label: 'Store',
-                onTap: () => onOpen('appstore'),
-                mark: const _Bag(),
-                buttonKey: const Key('android-store'),
-              ),
-              _Launch(
-                label: 'Gallery',
-                onTap: () => onOpen('photos'),
-                mark: const _Flower(),
-                buttonKey: const Key('android-gallery'),
-              ),
-              _Launch(
-                label: 'Play',
-                onTap: () => onOpen('appstore'),
-                mark: const _PlayMark(),
-                buttonKey: const Key('android-play'),
-              ),
-              _Launch(
-                label: 'Google',
-                onTap: () => onOpen('browser'),
-                mark: const _DotFolder(),
-                buttonKey: const Key('android-google'),
-              ),
+              if (!hidden.contains('launch:store'))
+                StageDrag(
+                  onTap: () {},
+                  onRemove: onHide == null ? null : () => onHide!('launch:store'),
+                  child: _Launch(
+                    label: 'Store',
+                    onTap: () => onOpen('appstore'),
+                    mark: const _Bag(),
+                    buttonKey: const Key('android-store'),
+                  ),
+                ),
+              if (!hidden.contains('launch:gallery'))
+                StageDrag(
+                  onTap: () {},
+                  onRemove: onHide == null ? null : () => onHide!('launch:gallery'),
+                  child: _Launch(
+                    label: 'Gallery',
+                    onTap: () => onOpen('photos'),
+                    mark: const _Flower(),
+                    buttonKey: const Key('android-gallery'),
+                  ),
+                ),
+              if (!hidden.contains('launch:play'))
+                StageDrag(
+                  onTap: () {},
+                  onRemove: onHide == null ? null : () => onHide!('launch:play'),
+                  child: _Launch(
+                    label: 'Play',
+                    onTap: () => onOpen('appstore'),
+                    mark: const _PlayMark(),
+                    buttonKey: const Key('android-play'),
+                  ),
+                ),
+              if (!hidden.contains('launch:google'))
+                StageDrag(
+                  onTap: () {},
+                  onRemove: onHide == null ? null : () => onHide!('launch:google'),
+                  child: _Launch(
+                    label: 'Google',
+                    onTap: () => onOpen('browser'),
+                    mark: const _DotFolder(),
+                    buttonKey: const Key('android-google'),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 10),
@@ -139,12 +207,16 @@ class _MorePage extends StatelessWidget {
     required this.page,
     required this.pages,
     required this.onOpen,
+    required this.order,
+    this.onOrder,
   });
 
   final List<PropApp> apps;
   final int page;
   final int pages;
   final void Function(String id) onOpen;
+  final List<String> order;
+  final ValueChanged<List<String>>? onOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -160,11 +232,20 @@ class _MorePage extends StatelessWidget {
               for (final app in apps)
                 SizedBox(
                   width: 76,
-                  child: _Launch(
-                    label: app.label,
-                    onTap: () => onOpen(app.id),
-                    buttonKey: Key('home-${app.id}'),
-                    mark: _PlainIcon(color: app.color, icon: app.icon),
+                  child: StageDrag(
+                    onTap: () {},
+                    onRemove: onOrder == null
+                        ? null
+                        : () {
+                            final next = [...order]..remove(app.id);
+                            onOrder!(next);
+                          },
+                    child: _Launch(
+                      label: app.label,
+                      onTap: () => onOpen(app.id),
+                      buttonKey: Key('home-${app.id}'),
+                      mark: _PlainIcon(color: app.color, icon: app.icon),
+                    ),
                   ),
                 ),
             ],
@@ -186,33 +267,55 @@ class _DockRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final home = context.findAncestorWidgetOfExactType<AndroidHome>();
     final open = home?.onOpen ?? (_) {};
+    final hidden = home?.os.homeHidden.toSet() ?? const <String>{};
+    final hide = home?.onHide;
+    Widget dock(String id, Widget button) {
+      if (hidden.contains('dock:$id')) return const SizedBox.shrink();
+      return StageDrag(
+        onTap: () {},
+        onRemove: hide == null ? null : () => hide('dock:$id'),
+        child: button,
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _DockButton(
-            buttonKey: const Key('dock-phone'),
-            onTap: () => open('phone'),
-            child: const _CircleMark(color: Color(0xFF34C759), icon: Icons.phone),
-          ),
-          _DockButton(
-            buttonKey: const Key('dock-messages'),
-            onTap: () => open('messages'),
-            child: const _Squircle(
-              color: Colors.white,
-              child: Icon(Icons.chat_bubble, color: Color(0xFF5B7CFA), size: 26),
+          dock(
+            'phone',
+            _DockButton(
+              buttonKey: const Key('dock-phone'),
+              onTap: () => open('phone'),
+              child: const _CircleMark(color: Color(0xFF34C759), icon: Icons.phone),
             ),
           ),
-          _DockButton(
-            buttonKey: const Key('dock-browser'),
-            onTap: () => open('browser'),
-            child: const _BrowserMark(),
+          dock(
+            'messages',
+            _DockButton(
+              buttonKey: const Key('dock-messages'),
+              onTap: () => open('messages'),
+              child: const _Squircle(
+                color: Colors.white,
+                child: Icon(Icons.chat_bubble, color: Color(0xFF5B7CFA), size: 26),
+              ),
+            ),
           ),
-          _DockButton(
-            buttonKey: const Key('dock-camera'),
-            onTap: () => open('camera'),
-            child: const _CameraMark(),
+          dock(
+            'browser',
+            _DockButton(
+              buttonKey: const Key('dock-browser'),
+              onTap: () => open('browser'),
+              child: const _BrowserMark(),
+            ),
+          ),
+          dock(
+            'camera',
+            _DockButton(
+              buttonKey: const Key('dock-camera'),
+              onTap: () => open('camera'),
+              child: const _CameraMark(),
+            ),
           ),
         ],
       ),

@@ -1506,7 +1506,7 @@ class _SteamPaneState extends State<_SteamPane> {
                 hintText: 'Game title',
                 hintStyle: TextStyle(color: Colors.white38),
               ),
-              onSubmitted: (value) => widget.store.updateOs(
+              onChanged: (value) => widget.store.updateOs(
                 widget.device.id,
                 (os) => os.copyWith(steamTitle: value.trim()),
               ),

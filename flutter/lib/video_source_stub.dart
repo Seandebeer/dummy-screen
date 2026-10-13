@@ -29,7 +29,15 @@ String _blobUrl(List<int> bytes, String type) {
 
 Future<void> deleteVideoFile(String? path) async {}
 
-VideoPlayerController? playerForPath(String path) => null;
+VideoPlayerController? playerForPath(String path) {
+  if (path.isEmpty) return null;
+  if (path.startsWith('blob:') ||
+      path.startsWith('http://') ||
+      path.startsWith('https://')) {
+    return VideoPlayerController.networkUrl(Uri.parse(path));
+  }
+  return null;
+}
 
 VideoPlayerController playerForClip(VideoClip clip) {
   final url = clip.url;

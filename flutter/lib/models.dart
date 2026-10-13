@@ -124,6 +124,10 @@ class OsSettings {
     this.clockRunning = false,
     this.showClock = true,
     this.clockAnchorMillis = 0,
+    this.dateYear = 0,
+    this.dateMonth = 0,
+    this.dateDay = 0,
+    this.homeHidden = const [],
   });
 
   final String theme;
@@ -263,7 +267,17 @@ class OsSettings {
   /// Real millis when a set clock was started. Zero until it runs.
   final int clockAnchorMillis;
 
+  /// Pinned calendar date. Zero follows the clock's own calendar day.
+  final int dateYear;
+  final int dateMonth;
+  final int dateDay;
+
+  /// Icons and widgets dragged off the device. `dock:id` or `widget:id`.
+  final List<String> homeHidden;
+
   bool get isLight => theme == 'light';
+
+  bool get hasDeviceDate => dateYear > 0 && dateMonth > 0 && dateDay > 0;
 
   int get ringDelaySeconds {
     if (ringDelay < 1) return 1;
@@ -342,6 +356,10 @@ class OsSettings {
     bool? clockRunning,
     bool? showClock,
     int? clockAnchorMillis,
+    int? dateYear,
+    int? dateMonth,
+    int? dateDay,
+    List<String>? homeHidden,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -413,6 +431,10 @@ class OsSettings {
     clockRunning: clockRunning ?? this.clockRunning,
     showClock: showClock ?? this.showClock,
     clockAnchorMillis: clockAnchorMillis ?? this.clockAnchorMillis,
+    dateYear: dateYear ?? this.dateYear,
+    dateMonth: dateMonth ?? this.dateMonth,
+    dateDay: dateDay ?? this.dateDay,
+    homeHidden: homeHidden ?? this.homeHidden,
   );
 
   Map<String, dynamic> toJson() => {
@@ -486,6 +508,10 @@ class OsSettings {
     'clockRunning': clockRunning,
     'showClock': showClock,
     'clockAnchorMillis': clockAnchorMillis,
+    'dateYear': dateYear,
+    'dateMonth': dateMonth,
+    'dateDay': dateDay,
+    'homeHidden': homeHidden,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -581,6 +607,12 @@ class OsSettings {
       clockRunning: json['clockRunning'] as bool? ?? false,
       showClock: json['showClock'] as bool? ?? true,
       clockAnchorMillis: (json['clockAnchorMillis'] as num?)?.toInt() ?? 0,
+      dateYear: ((json['dateYear'] as num?)?.toInt() ?? 0).clamp(0, 2099),
+      dateMonth: ((json['dateMonth'] as num?)?.toInt() ?? 0).clamp(0, 12),
+      dateDay: ((json['dateDay'] as num?)?.toInt() ?? 0).clamp(0, 31),
+      homeHidden: [
+        for (final item in jsonList(json['homeHidden'])) item.toString(),
+      ].where((id) => id.isNotEmpty).toList(),
     );
   }
 
@@ -656,7 +688,11 @@ class OsSettings {
         clockMinute == other.clockMinute &&
         clockRunning == other.clockRunning &&
         showClock == other.showClock &&
-        clockAnchorMillis == other.clockAnchorMillis;
+        clockAnchorMillis == other.clockAnchorMillis &&
+        dateYear == other.dateYear &&
+        dateMonth == other.dateMonth &&
+        dateDay == other.dateDay &&
+        _sameOrder(homeHidden, other.homeHidden);
   }
 
   @override
@@ -725,6 +761,10 @@ class OsSettings {
     clockRunning,
     showClock,
     clockAnchorMillis,
+    dateYear,
+    dateMonth,
+    dateDay,
+    Object.hashAll(homeHidden),
     Object.hashAll(bankNotes),
     Object.hashAll([
       for (final key in (panelNames.keys.toList()..sort()))
@@ -1365,6 +1405,7 @@ class PropPhoto {
     required this.color,
     required this.createdAt,
     this.image = '',
+    this.kind = 'photo',
   });
 
   final String id;
@@ -1374,11 +1415,17 @@ class PropPhoto {
   /// File path or data URL of the captured frame. Empty keeps the colour tile.
   final String image;
 
+  /// `photo` or `video`.
+  final String kind;
+
+  bool get isVideo => kind == 'video';
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'color': color,
     'createdAt': createdAt,
     'image': image,
+    'kind': kind,
   };
 
   factory PropPhoto.fromJson(Map<String, dynamic> json) => PropPhoto(
@@ -1386,6 +1433,7 @@ class PropPhoto {
     color: (json['color'] as num?)?.toInt() ?? 0xFF318DF6,
     createdAt: (json['createdAt'] as num?)?.toInt() ?? 0,
     image: json['image'] as String? ?? '',
+    kind: json['kind'] == 'video' ? 'video' : 'photo',
   );
 }
 
@@ -1403,6 +1451,7 @@ const kContacts = <ContactCard>[
   ContactCard('David Park', '026 555 0123'),
   ContactCard('Nora Vega', '034 555 0156'),
   ContactCard('Sam Ryder', '049 555 0119'),
+  ContactCard('Sean de Beer', '026 555 0108'),
 ];
 
 const kSampleClipUrl =

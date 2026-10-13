@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../image_file.dart';
@@ -5,6 +6,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../video_source.dart';
 import '../vfx/catalog.dart';
 import '../vfx/mark_glyph.dart';
 import 'app_catalog.dart';
@@ -66,6 +68,19 @@ class _OsAppViewState extends State<OsAppView> {
   StageStore get store => widget.store;
   PropDevice get device => widget.device;
 
+  Future<void> _uploadRoll(bool video) async {
+    final file = await FilePicker.pickFile(
+      type: video ? FileType.video : FileType.image,
+      dialogTitle: video ? 'Add video' : 'Add photo',
+    );
+    if (file == null || !mounted) return;
+    final path = video ? await persistPickedVideo(file) : await persistPickedImage(file);
+    if (path == null || path.isEmpty || !mounted) return;
+    final color = _shutterColors[_shutter % _shutterColors.length];
+    store.addPhoto(device.id, color, image: path, kind: video ? 'video' : 'photo');
+    setState(() => _shutter += 1);
+  }
+
   List<Map<String, dynamic>> get _mail {
     final raw = store.pages['mail-${device.id}'];
     if (raw is! Map) return const [];
@@ -124,6 +139,7 @@ class _OsAppViewState extends State<OsAppView> {
       case 'camera':
         return CameraApp(
           photos: store.photos[device.id] ?? const [],
+          onUpload: _uploadRoll,
           onShutter: (bytes) async {
             final color = _shutterColors[_shutter % _shutterColors.length];
             var image = '';
@@ -136,10 +152,17 @@ class _OsAppViewState extends State<OsAppView> {
           },
         );
       case 'photos':
-        return PhotosApp(photos: store.photos[device.id] ?? const []);
+        return PhotosApp(
+          photos: store.photos[device.id] ?? const [],
+          onUpload: _uploadRoll,
+        );
       case 'email':
       case 'mail':
-        return InboxApp(extra: _mail, chrome: chromeFor(device.skin));
+        return InboxApp(
+          extra: _mail,
+          chrome: chromeFor(device.skin),
+          contacts: contactsFor(device.os),
+        );
       case 'calendar':
         return CalendarApp(os: device.os);
       case 'maps':
@@ -167,7 +190,10 @@ class _OsAppViewState extends State<OsAppView> {
       case 'appstore':
         return LibraryApp(store: store, device: device);
       case 'videocall':
-        return VidcallApp(contacts: contactsFor(device.os));
+        return VidcallApp(
+          contacts: contactsFor(device.os),
+          ringSeconds: device.os.ringDelaySeconds,
+        );
       default:
         final feed = kFeeds[id];
         if (feed != null) {

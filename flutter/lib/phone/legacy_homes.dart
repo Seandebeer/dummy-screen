@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'catalog.dart';
 import '../models.dart';
+import 'home_drag.dart';
 
 /// The seven legacy phone homes. Modern and Current Android stay on [PhoneHome].
 bool isLegacySkin(String skin) {
@@ -50,24 +51,28 @@ class LegacyHome extends StatelessWidget {
     required this.os,
     required this.onOpen,
     this.light = false,
+    this.onOrder,
+    this.onHide,
   });
 
   final String skin;
   final OsSettings os;
   final void Function(String id) onOpen;
   final bool light;
+  final ValueChanged<List<String>>? onOrder;
+  final ValueChanged<String>? onHide;
 
   @override
   Widget build(BuildContext context) {
     final id = _canonical(skin);
     final home = switch (id) {
-      'ios6' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.six),
-      'ios7' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.seven),
+      'ios6' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.six, onOrder: onOrder),
+      'ios7' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.seven, onOrder: onOrder),
       'winphone' => _WindowsHome(os: os, onOpen: onOpen),
       'holo' => _HoloHome(os: os, onOpen: onOpen),
       'webos' => _WebOsHome(os: os, onOpen: onOpen),
       'belle' => _BelleHome(os: os, onOpen: onOpen),
-      _ => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.original),
+      _ => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.original, onOrder: onOrder),
     };
     return KeyedSubtree(key: Key('legacy-$id'), child: home);
   }
@@ -101,11 +106,17 @@ class _HomeScroll extends MaterialScrollBehavior {
 enum _IosKind { original, six, seven }
 
 class _IosShelfHome extends StatelessWidget {
-  const _IosShelfHome({required this.os, required this.onOpen, required this.kind});
+  const _IosShelfHome({
+    required this.os,
+    required this.onOpen,
+    required this.kind,
+    this.onOrder,
+  });
 
   final OsSettings os;
   final void Function(String id) onOpen;
   final _IosKind kind;
+  final ValueChanged<List<String>>? onOrder;
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +155,13 @@ class _IosShelfHome extends StatelessWidget {
                     labelColor: label,
                     onOpen: onOpen,
                     searchMark: kind != _IosKind.original,
+                    onRemove: onOrder == null
+                        ? null
+                        : (id) {
+                            final layout = os.homeOrder.isEmpty ? [...kHomeOrder] : [...os.homeOrder];
+                            layout.remove(id);
+                            onOrder!(layout);
+                          },
                   );
                 },
               ),
@@ -369,6 +387,7 @@ class _PagedGrid extends StatefulWidget {
     required this.onOpen,
     this.top = 8,
     this.searchMark = false,
+    this.onRemove,
   });
 
   final List<List<PropApp>> pages;
@@ -381,6 +400,7 @@ class _PagedGrid extends StatefulWidget {
   final void Function(String id) onOpen;
   final double top;
   final bool searchMark;
+  final ValueChanged<String>? onRemove;
 
   @override
   State<_PagedGrid> createState() => _PagedGridState();
@@ -420,6 +440,7 @@ class _PagedGridState extends State<_PagedGrid> {
                       radius: widget.radius,
                       labelColor: widget.labelColor,
                       onOpen: widget.onOpen,
+                      onRemove: widget.onRemove,
                     ),
                   ),
                 ),
@@ -464,6 +485,7 @@ class _FixedGrid extends StatelessWidget {
     required this.radius,
     required this.labelColor,
     required this.onOpen,
+    this.onRemove,
   });
 
   final List<PropApp> apps;
@@ -474,6 +496,7 @@ class _FixedGrid extends StatelessWidget {
   final double radius;
   final Color labelColor;
   final void Function(String id) onOpen;
+  final ValueChanged<String>? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -490,15 +513,21 @@ class _FixedGrid extends StatelessWidget {
                   SizedBox(
                     width: cellWidth,
                     height: cellHeight,
-                    child: _AppButton(
-                      key: Key('home-${apps[row * columns + column].id}'),
-                      app: apps[row * columns + column],
-                      size: cellWidth * 0.72,
-                      radius: radius,
-                      gloss: gloss,
-                      label: apps[row * columns + column].label,
-                      labelColor: labelColor,
-                      onTap: () => onOpen(apps[row * columns + column].id),
+                    child: StageDrag(
+                      onTap: () {},
+                      onRemove: onRemove == null
+                          ? null
+                          : () => onRemove!(apps[row * columns + column].id),
+                      child: _AppButton(
+                        key: Key('home-${apps[row * columns + column].id}'),
+                        app: apps[row * columns + column],
+                        size: cellWidth * 0.72,
+                        radius: radius,
+                        gloss: gloss,
+                        label: apps[row * columns + column].label,
+                        labelColor: labelColor,
+                        onTap: () => onOpen(apps[row * columns + column].id),
+                      ),
                     ),
                   )
                 else

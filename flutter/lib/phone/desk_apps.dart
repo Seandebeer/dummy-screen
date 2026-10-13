@@ -734,10 +734,16 @@ const kQuickSites = [
 ];
 
 class InboxApp extends StatefulWidget {
-  const InboxApp({super.key, this.extra = const [], this.chrome = SkinChrome.modern});
+  const InboxApp({
+    super.key,
+    this.extra = const [],
+    this.chrome = SkinChrome.modern,
+    this.contacts = kContacts,
+  });
 
   final List<Map<String, dynamic>> extra;
   final SkinChrome chrome;
+  final List<ContactCard> contacts;
 
   @override
   State<InboxApp> createState() => _InboxAppState();
@@ -795,6 +801,42 @@ class _InboxAppState extends State<InboxApp> {
       _composing = false;
       _replyTo = null;
     });
+  }
+
+  void _deleteEmail(Object? id) {
+    hideIosKeyboard(context);
+    setState(() {
+      _emails.removeWhere((email) => email['id'] == id);
+      if (_openId == id) _openId = null;
+    });
+  }
+
+  Future<void> _pickContact() async {
+    final picked = await showModalBottomSheet<ContactCard>(
+      context: context,
+      backgroundColor: const Color(0xFFF2F2F7),
+      builder: (context) => SafeArea(
+        child: ListView(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Text(
+                'Contacts',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black),
+              ),
+            ),
+            for (final contact in widget.contacts)
+              ListTile(
+                title: Text(contact.name, style: const TextStyle(color: Colors.black)),
+                subtitle: Text(contact.number, style: const TextStyle(color: Color(0xFF8E8E93))),
+                onTap: () => Navigator.pop(context, contact),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _to.text = picked.name);
   }
 
   void _sendCompose() {
@@ -912,7 +954,21 @@ class _InboxAppState extends State<InboxApp> {
             child: ListView(
               children: [
                 for (final email in visible)
-                  Material(
+                  Dismissible(
+                    key: ValueKey('mail-${email['id']}'),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (_) => _deleteEmail(email['id']),
+                    background: const ColoredBox(
+                      color: Color(0xFFFF3B30),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: EdgeInsets.only(right: 16),
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    child: Material(
                     color: Colors.white,
                     child: ListTile(
                       onTap: () {
@@ -950,6 +1006,7 @@ class _InboxAppState extends State<InboxApp> {
                       ),
                     ),
                   ),
+                  ),
               ],
             ),
           ),
@@ -974,6 +1031,12 @@ class _InboxAppState extends State<InboxApp> {
                 icon: const Icon(Icons.chevron_left, color: Color(0xFF0A84FF), size: 28),
               ),
               const Text('Inbox', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 17)),
+              const Spacer(),
+              IconButton(
+                key: const Key('mail-delete'),
+                onPressed: () => _deleteEmail(email['id']),
+                icon: const Icon(Icons.delete_outline, color: Color(0xFFFF3B30)),
+              ),
             ],
           ),
           Expanded(
@@ -1059,7 +1122,7 @@ class _InboxAppState extends State<InboxApp> {
               ),
             ],
           ),
-          _composeField('To', _to),
+          _composeField('To', _to, contacts: true),
           _composeField('Subject', _subject),
           Expanded(
             child: TextField(
@@ -1087,7 +1150,7 @@ class _InboxAppState extends State<InboxApp> {
     );
   }
 
-  Widget _composeField(String label, TextEditingController controller) {
+  Widget _composeField(String label, TextEditingController controller, {bool contacts = false}) {
     return DecoratedBox(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE5E5EA))),
@@ -1118,6 +1181,12 @@ class _InboxAppState extends State<InboxApp> {
               ),
             ),
           ),
+          if (contacts)
+            TextButton(
+              key: const Key('mail-contacts'),
+              onPressed: _pickContact,
+              child: const Text('Contacts', style: TextStyle(color: Color(0xFF0A84FF))),
+            ),
         ],
       ),
     );
@@ -1672,9 +1741,12 @@ class _WebdeckAppState extends State<WebdeckApp> {
 }
 
 class VidcallApp extends StatefulWidget {
-  const VidcallApp({super.key, required this.contacts});
+  const VidcallApp({super.key, required this.contacts, this.ringSeconds = 4});
 
   final List<ContactCard> contacts;
+
+  /// How long the other side rings before the video connects.
+  final int ringSeconds;
 
   @override
   State<VidcallApp> createState() => _VidcallAppState();
@@ -1683,41 +1755,81 @@ class VidcallApp extends StatefulWidget {
 class _VidcallAppState extends State<VidcallApp> {
   final LiveLens _lens = LiveLens();
   ContactCard? _picked;
+  bool _ringing = false;
   bool _inCall = false;
   bool _muted = false;
   int _secs = 0;
   Timer? _timer;
+  Timer? _ring;
 
   @override
   void dispose() {
     _timer?.cancel();
+    _ring?.cancel();
     _lens.close();
     super.dispose();
   }
 
   void _start(ContactCard contact) {
+    _timer?.cancel();
+    _ring?.cancel();
     setState(() {
       _picked = contact;
-      _inCall = true;
+      _ringing = true;
+      _inCall = false;
       _secs = 0;
     });
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _secs += 1);
-    });
-    _lens.open(video: true, audio: false, front: true).then((_) {
-      if (mounted) setState(() {});
+    final wait = widget.ringSeconds < 1 ? 1 : widget.ringSeconds;
+    _ring = Timer(Duration(seconds: wait), () {
+      if (!mounted || !_ringing) return;
+      setState(() {
+        _ringing = false;
+        _inCall = true;
+      });
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() => _secs += 1);
+      });
+      _lens.open(video: true, audio: false, front: true).then((_) {
+        if (mounted) setState(() {});
+      });
     });
   }
 
   void _hangUp() {
     _timer?.cancel();
+    _ring?.cancel();
     _lens.close();
-    setState(() => _inCall = false);
+    setState(() {
+      _ringing = false;
+      _inCall = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_ringing && _picked != null) {
+      return ColoredBox(
+        color: const Color(0xFF101014),
+        child: Column(
+          children: [
+            const Spacer(),
+            Text(
+              _picked!.name,
+              style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            const Text('Calling', style: TextStyle(color: Colors.white70)),
+            const Spacer(),
+            IconButton.filled(
+              style: IconButton.styleFrom(backgroundColor: const Color(0xFFFF453A)),
+              onPressed: _hangUp,
+              icon: const Icon(Icons.call_end),
+            ),
+            const SizedBox(height: 36),
+          ],
+        ),
+      );
+    }
     if (_inCall && _picked != null) {
       final minutes = (_secs ~/ 60).toString().padLeft(2, '0');
       final seconds = (_secs % 60).toString().padLeft(2, '0');

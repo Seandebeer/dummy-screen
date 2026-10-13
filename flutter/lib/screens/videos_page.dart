@@ -42,6 +42,7 @@ class _VideosPageState extends State<VideosPage> {
     final clips = [...store.clips]..sort((a, b) => a.order.compareTo(b.order));
     if (_playIndex != null && _playIndex! < clips.length) {
       return _Player(
+        palette: palette,
         clips: clips,
         index: _playIndex!,
         onIndex: (value) => setState(() => _playIndex = value),
@@ -50,69 +51,67 @@ class _VideosPageState extends State<VideosPage> {
     }
     return GridFill(
       palette: palette,
-      child: ColoredBox(
-        color: const Color(0xFF0B0B0F),
-        child: ListView(
-          padding: const EdgeInsets.all(12),
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Videos',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        '${clips.length} of 5 slots · max 10 min each',
-                        style: const TextStyle(color: Colors.white38, fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: clips.isEmpty ? null : () => setState(() => _playIndex = 0),
-                  icon: const Icon(Icons.play_arrow, size: 14),
-                  label: const Text('Play queue'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _UploadPanel(
-              wide: MediaQuery.sizeOf(context).width >= 768,
-              enabled: clips.length < 5,
-              onPressed: _import,
-            ),
-            if (clips.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
+      child: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          Row(
+            children: [
+              Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.movie_outlined, color: Colors.white38, size: 28),
-                    SizedBox(height: 8),
                     Text(
-                      'No videos yet - add up to five to build the queue',
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                      'Videos',
+                      style: TextStyle(
+                        color: palette.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${clips.length} of 5 slots · max 10 min each',
+                      style: TextStyle(color: palette.muted, fontSize: 10),
                     ),
                   ],
                 ),
-              )
-            else
-              for (var i = 0; i < clips.length; i++)
-                _row(store, clips, i),
-          ],
-        ),
+              ),
+              OutlinedButton.icon(
+                onPressed: clips.isEmpty ? null : () => setState(() => _playIndex = 0),
+                icon: Icon(Icons.play_arrow, size: 14, color: palette.ink),
+                label: Text('Play queue', style: TextStyle(color: palette.ink)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _UploadPanel(
+            palette: palette,
+            wide: MediaQuery.sizeOf(context).width >= 768,
+            enabled: clips.length < 5,
+            onPressed: _import,
+          ),
+          if (clips.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 40),
+              child: Column(
+                children: [
+                  Icon(Icons.movie_outlined, color: palette.muted, size: 28),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No videos yet - add up to five to build the queue',
+                    style: TextStyle(color: palette.muted, fontSize: 11),
+                  ),
+                ],
+              ),
+            )
+          else
+            for (var i = 0; i < clips.length; i++)
+              _row(store, palette, clips, i),
+        ],
       ),
     );
   }
 
-  Widget _row(StageStore store, List<VideoClip> clips, int index) {
+  Widget _row(StageStore store, DeckPalette palette, List<VideoClip> clips, int index) {
     final clip = clips[index];
     final trimmed = clip.trimStartMs > 100 ||
         (clip.trimEndMs > 0 && clip.durationMs > 0 && clip.trimEndMs < clip.durationMs - 100);
@@ -120,9 +119,9 @@ class _VideosPageState extends State<VideosPage> {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: palette.surface.withValues(alpha: palette.light ? 0.72 : 0.85),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: palette.line),
       ),
       child: Row(
         children: [
@@ -136,7 +135,7 @@ class _VideosPageState extends State<VideosPage> {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.movie_outlined, color: Colors.white30, size: 16),
+              child: Icon(Icons.movie_outlined, color: palette.muted, size: 16),
             ),
           ),
           const SizedBox(width: 10),
@@ -146,18 +145,18 @@ class _VideosPageState extends State<VideosPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(clip.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  Text(clip.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: palette.ink, fontSize: 12)),
                   const SizedBox(height: 2),
                   Wrap(
                     spacing: 6,
                     children: [
-                      Text('${index + 1} in queue', style: const TextStyle(color: Colors.white38, fontSize: 9)),
+                      Text('${index + 1} in queue', style: TextStyle(color: palette.muted, fontSize: 9)),
                       if (trimmed)
                         const Text('trimmed', style: TextStyle(color: kAccent, fontSize: 9)),
                       if (clip.loop)
                         const Text('loop', style: TextStyle(color: kSignal, fontSize: 9)),
                       if (clip.aspect != 'fit')
-                        Text(clip.aspect, style: const TextStyle(color: Colors.white54, fontSize: 9)),
+                        Text(clip.aspect, style: TextStyle(color: palette.muted, fontSize: 9)),
                     ],
                   ),
                 ],
@@ -168,11 +167,11 @@ class _VideosPageState extends State<VideosPage> {
             children: [
               IconButton(
                 onPressed: index == 0 ? null : () => store.moveClip(index, index - 1),
-                icon: const Icon(Icons.arrow_upward, size: 14, color: Colors.white54),
+                icon: Icon(Icons.arrow_upward, size: 14, color: palette.muted),
               ),
               IconButton(
                 onPressed: index == clips.length - 1 ? null : () => store.moveClip(index, index + 1),
-                icon: const Icon(Icons.arrow_downward, size: 14, color: Colors.white54),
+                icon: Icon(Icons.arrow_downward, size: 14, color: palette.muted),
               ),
             ],
           ),
@@ -181,7 +180,7 @@ class _VideosPageState extends State<VideosPage> {
               await deleteVideoFile(clip.path);
               store.removeClip(clip.id);
             },
-            icon: const Icon(Icons.delete_outline, size: 16, color: Colors.white54),
+            icon: Icon(Icons.delete_outline, size: 16, color: palette.muted),
           ),
         ],
       ),
@@ -217,12 +216,14 @@ class _VideosPageState extends State<VideosPage> {
 
 class _Player extends StatefulWidget {
   const _Player({
+    required this.palette,
     required this.clips,
     required this.index,
     required this.onIndex,
     required this.onExit,
   });
 
+  final DeckPalette palette;
   final List<VideoClip> clips;
   final int index;
   final ValueChanged<int> onIndex;
@@ -372,7 +373,7 @@ class _PlayerState extends State<_Player> {
     return ThreeFingerToggle(
       onToggle: () => setState(() => _locked = !_locked),
       child: ColoredBox(
-        color: Colors.black,
+        color: widget.palette.background,
         child: Stack(
           children: [
             Positioned.fill(
@@ -806,11 +807,13 @@ class _Handle extends StatelessWidget {
 
 class _UploadPanel extends StatelessWidget {
   const _UploadPanel({
+    required this.palette,
     required this.wide,
     required this.enabled,
     required this.onPressed,
   });
 
+  final DeckPalette palette;
   final bool wide;
   final bool enabled;
   final VoidCallback onPressed;
@@ -827,20 +830,20 @@ class _UploadPanel extends StatelessWidget {
     return SizedBox(
       height: 160,
       child: Material(
-        color: const Color(0xFF16161C),
+        color: palette.surface,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           key: const Key('playback-upload'),
           borderRadius: BorderRadius.circular(18),
           onTap: enabled ? onPressed : null,
-          child: const Column(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.upload_file, color: Colors.white70, size: 36),
-              SizedBox(height: 10),
+              Icon(Icons.upload_file, color: palette.ink.withValues(alpha: 0.8), size: 36),
+              const SizedBox(height: 10),
               Text(
                 'Add video from this device',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(color: palette.ink, fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),

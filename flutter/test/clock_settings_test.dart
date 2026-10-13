@@ -9,6 +9,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('a pinned device date replaces the calendar day', () {
+    final pinned = osNow(
+      const OsSettings(dateYear: 1999, dateMonth: 7, dateDay: 4, clockHour: 9, clockMinute: 41),
+    );
+    expect(pinned.year, 1999);
+    expect(pinned.month, 7);
+    expect(pinned.day, 4);
+    expect(formatOsClock(pinned, hour24: false), '9:41');
+    expect(formatDay(pinned), 'Sunday, July 4');
+    expect(parseDateText('2026-10-13'), (2026, 10, 13));
+    expect(parseDateText('nope'), isNull);
+  });
+
   test('a stopped clock stays on the set time', () {
     const os = OsSettings(clockHour: 3, clockMinute: 5);
     expect(os.clockRunning, isFalse);

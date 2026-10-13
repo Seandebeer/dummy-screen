@@ -62,6 +62,13 @@ class _ControlPageState extends State<ControlPage> {
   bool _broadcast = false;
   int _lockClicks = 0;
   DateTime? _lockAt;
+  String? _open;
+
+  double _stripHeight(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height;
+    if (height < 700) return 460;
+    return height * 0.62;
+  }
 
   @override
   void initState() {
@@ -192,11 +199,18 @@ class _ControlPageState extends State<ControlPage> {
                       store.setDeckBroadcast(value);
                     },
                   ),
-                  const SizedBox(height: 20),
-                  CollapsibleCard(
+                  if (_open == null || _open == 'contact') ...[
+                  SizedBox(height: _open == 'contact' ? 12 : 20),
+                  SizedBox(
+                    height: _open == 'contact' ? _stripHeight(context) : null,
+                    child: CollapsibleCard(
                     palette: palette,
                     icon: Icons.person_outline,
                     title: 'Contact',
+                    open: _open == 'contact',
+                    fill: _open == 'contact',
+                    onOpenChanged: (open) =>
+                        setState(() => _open = open ? 'contact' : null),
                     child: _ContactCard(
                       palette: palette,
                       name: _name,
@@ -220,11 +234,20 @@ class _ControlPageState extends State<ControlPage> {
                       os: target?.os ?? const OsSettings(),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  CollapsibleCard(
+                  ),
+                  ],
+                  if (_open == null || _open == 'call') ...[
+                  SizedBox(height: _open == 'call' ? 12 : 20),
+                  SizedBox(
+                    height: _open == 'call' ? _stripHeight(context) : null,
+                    child: CollapsibleCard(
                     palette: palette,
                     icon: Icons.phone_callback,
                     title: 'Call',
+                    open: _open == 'call',
+                    fill: _open == 'call',
+                    onOpenChanged: (open) =>
+                        setState(() => _open = open ? 'call' : null),
                     child: _CallBody(
                       palette: palette,
                       channel: channel,
@@ -261,11 +284,20 @@ class _ControlPageState extends State<ControlPage> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  CollapsibleCard(
+                  ),
+                  ],
+                  if (_open == null || _open == 'video') ...[
+                  SizedBox(height: _open == 'video' ? 12 : 20),
+                  SizedBox(
+                    height: _open == 'video' ? _stripHeight(context) : null,
+                    child: CollapsibleCard(
                     palette: palette,
                     icon: Icons.videocam_outlined,
                     title: 'Video call',
+                    open: _open == 'video',
+                    fill: _open == 'video',
+                    onOpenChanged: (open) =>
+                        setState(() => _open = open ? 'video' : null),
                     child: _VideoCallBody(
                       palette: palette,
                       enabled: channel != null && _name.text.trim().isNotEmpty,
@@ -330,11 +362,20 @@ class _ControlPageState extends State<ControlPage> {
                       live: call != null,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  CollapsibleCard(
+                  ),
+                  ],
+                  if (_open == null || _open == 'message') ...[
+                  SizedBox(height: _open == 'message' ? 12 : 20),
+                  SizedBox(
+                    height: _open == 'message' ? _stripHeight(context) : null,
+                    child: CollapsibleCard(
                     palette: palette,
                     icon: Icons.chat_bubble_outline,
                     title: 'Message',
+                    open: _open == 'message',
+                    fill: _open == 'message',
+                    onOpenChanged: (open) =>
+                        setState(() => _open = open ? 'message' : null),
                     child: _MessageBody(
                       palette: palette,
                       messages: messages,
@@ -421,11 +462,20 @@ class _ControlPageState extends State<ControlPage> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  CollapsibleCard(
+                  ),
+                  ],
+                  if (_open == null || _open == 'notification') ...[
+                  SizedBox(height: _open == 'notification' ? 12 : 20),
+                  SizedBox(
+                    height: _open == 'notification' ? _stripHeight(context) : null,
+                    child: CollapsibleCard(
                     palette: palette,
                     icon: Icons.notifications_none,
                     title: 'Notification',
+                    open: _open == 'notification',
+                    fill: _open == 'notification',
+                    onOpenChanged: (open) =>
+                        setState(() => _open = open ? 'notification' : null),
                     child: _NotifBody(
                       palette: palette,
                       screen: _notifScreen,
@@ -475,12 +525,21 @@ class _ControlPageState extends State<ControlPage> {
                       onRemove: (index) => setState(() => _notes.removeAt(index)),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  CollapsibleCard(
+                  ),
+                  ],
+                  if (_open == null || _open == 'alarm') ...[
+                  SizedBox(height: _open == 'alarm' ? 12 : 20),
+                  SizedBox(
+                    height: _open == 'alarm' ? _stripHeight(context) : null,
+                    child: CollapsibleCard(
                     palette: palette,
                     icon: Icons.alarm,
                     iconColor: kAccent,
                     title: 'Alarm',
+                    open: _open == 'alarm',
+                    fill: _open == 'alarm',
+                    onOpenChanged: (open) =>
+                        setState(() => _open = open ? 'alarm' : null),
                     badge: alarm
                         ? const Text(
                             'RINGING',
@@ -506,11 +565,20 @@ class _ControlPageState extends State<ControlPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  CollapsibleCard(
+                  ),
+                  ],
+                  if (_open == null || _open == 'email') ...[
+                  SizedBox(height: _open == 'email' ? 12 : 20),
+                  SizedBox(
+                    height: _open == 'email' ? _stripHeight(context) : null,
+                    child: CollapsibleCard(
                     palette: palette,
                     icon: Icons.mail_outline,
                     title: 'Email',
+                    open: _open == 'email',
+                    fill: _open == 'email',
+                    onOpenChanged: (open) =>
+                        setState(() => _open = open ? 'email' : null),
                     child: _EmailBody(
                       palette: palette,
                       enabled: channel != null,
@@ -531,6 +599,8 @@ class _ControlPageState extends State<ControlPage> {
                       },
                     ),
                   ),
+                  ),
+                  ],
                   if (channel != null) ...[
                     const SizedBox(height: 20),
                     _LockPad(

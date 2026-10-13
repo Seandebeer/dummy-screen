@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../format.dart';
 import '../image_file.dart';
@@ -10,6 +11,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../video_source.dart';
 import 'clock_face.dart';
 import 'ios_keyboard.dart';
 
@@ -388,10 +390,18 @@ class _CalculatorAppState extends State<CalculatorApp> {
 }
 
 class CameraApp extends StatefulWidget {
-  const CameraApp({super.key, required this.photos, required this.onShutter});
+  const CameraApp({
+    super.key,
+    required this.photos,
+    required this.onShutter,
+    this.onUpload,
+  });
 
   final List<PropPhoto> photos;
   final void Function(Uint8List? bytes) onShutter;
+
+  /// Adds a photo or video chosen from this device to the camera roll.
+  final void Function(bool video)? onUpload;
 
   @override
   State<CameraApp> createState() => _CameraAppState();
@@ -401,8 +411,11 @@ class _CameraAppState extends State<CameraApp> {
   final LiveLens _lensDevice = LiveLens();
   String _mode = 'camera';
   String _lens = 'photo';
+  double _zoom = 1;
   bool _flash = false;
   bool _front = false;
+
+  static const _zooms = <double>[0.5, 1, 2, 3];
 
   @override
   void initState() {
@@ -446,6 +459,7 @@ class _CameraAppState extends State<CameraApp> {
       return PhotosApp(
         photos: widget.photos,
         onBack: () => _show('camera'),
+        onUpload: widget.onUpload,
       );
     }
     if (_mode == 'clips') {
@@ -455,7 +469,12 @@ class _CameraAppState extends State<CameraApp> {
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Colors.black),
-        LensView(lens: _lensDevice, mirror: _front),
+        ClipRect(
+          child: Transform.scale(
+            scale: _zoom,
+            child: LensView(lens: _lensDevice, mirror: _front),
+          ),
+        ),
         if (_lensDevice.denied)
           const Center(
             child: Padding(
@@ -519,6 +538,20 @@ class _CameraAppState extends State<CameraApp> {
         Positioned(
           left: 0,
           right: 0,
+          bottom: 132,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final zoom in _zooms) ...[
+                _zoomChip(zoom),
+                if (zoom != _zooms.last) const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
           bottom: 96,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -536,6 +569,32 @@ class _CameraAppState extends State<CameraApp> {
           child: Center(child: _shutter()),
         ),
       ],
+    );
+  }
+
+  Widget _zoomChip(double zoom) {
+    final selected = _zoom == zoom;
+    final label = zoom == zoom.roundToDouble() ? '${zoom.toInt()}x' : '${zoom}x';
+    return GestureDetector(
+      key: Key('camera-zoom-$label'),
+      onTap: () => setState(() => _zoom = zoom),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : const Color(0x66000000),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.black : Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -718,10 +777,39 @@ class _ClipsGallery extends StatelessWidget {
 }
 
 class PhotosApp extends StatelessWidget {
-  const PhotosApp({super.key, required this.photos, this.onBack});
+  const PhotosApp({super.key, required this.photos, this.onBack, this.onUpload});
 
   final List<PropPhoto> photos;
   final VoidCallback? onBack;
+  final void Function(bool video)? onUpload;
+
+  Future<void> _pick(BuildContext context) async {
+    final upload = onUpload;
+    if (upload == null) return;
+    final video = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_outlined, color: Colors.white),
+              title: const Text('Photo', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context, false),
+            ),
+            ListTile(
+              leading: const Icon(Icons.movie_outlined, color: Colors.white),
+              title: const Text('Video', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context, true),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (video == null) return;
+    upload(video);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -738,42 +826,114 @@ class PhotosApp extends StatelessWidget {
             mainAxisSpacing: 4,
             crossAxisSpacing: 4,
             children: [
-              for (final photo in photos.reversed) _PhotoTile(photo: photo),
+              for (final photo in photos.reversed)
+                _PhotoTile(
+                  photo: photo,
+                  onTap: photo.isVideo ? () => _play(context, photo) : null,
+                ),
             ],
           );
-    if (onBack == null) return grid;
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: onBack,
-            icon: const Icon(Icons.chevron_left, color: kAccent),
-            label: const Text('Camera', style: TextStyle(color: kAccent)),
-          ),
+        Row(
+          children: [
+            if (onBack != null)
+              TextButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.chevron_left, color: kAccent),
+                label: const Text('Camera', style: TextStyle(color: kAccent)),
+              )
+            else
+              const SizedBox(width: 8),
+            const Spacer(),
+            if (onUpload != null)
+              TextButton.icon(
+                key: const Key('roll-upload'),
+                onPressed: () => _pick(context),
+                icon: const Icon(Icons.add, color: kAccent, size: 18),
+                label: const Text('Add', style: TextStyle(color: kAccent)),
+              ),
+          ],
         ),
         Expanded(child: grid),
       ],
     );
   }
+
+  Future<void> _play(BuildContext context, PropPhoto photo) async {
+    final controller = playerForPath(photo.image);
+    if (controller == null || !context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _RollPlayer(controller: controller),
+    );
+  }
 }
 
-class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.photo});
+class _RollPlayer extends StatefulWidget {
+  const _RollPlayer({required this.controller});
 
-  final PropPhoto photo;
+  final VideoPlayerController controller;
+
+  @override
+  State<_RollPlayer> createState() => _RollPlayerState();
+}
+
+class _RollPlayerState extends State<_RollPlayer> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.initialize().then((_) {
+      if (!mounted) return;
+      widget.controller.play();
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = imageProviderForPath(photo.image);
-    return DecoratedBox(
+    final ready = widget.controller.value.isInitialized;
+    return Dialog(
+      backgroundColor: Colors.black,
+      child: AspectRatio(
+        aspectRatio: ready ? widget.controller.value.aspectRatio : 16 / 9,
+        child: ready
+            ? VideoPlayer(widget.controller)
+            : const Center(child: Icon(Icons.movie_outlined, color: Colors.white54)),
+      ),
+    );
+  }
+}
+
+class _PhotoTile extends StatelessWidget {
+  const _PhotoTile({required this.photo, this.onTap});
+
+  final PropPhoto photo;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = photo.isVideo ? null : imageProviderForPath(photo.image);
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
       decoration: BoxDecoration(
         color: Color(photo.color),
         image: provider == null
             ? null
             : DecorationImage(image: provider, fit: BoxFit.cover),
       ),
-      child: Align(
+      child: Stack(
+        children: [
+          if (photo.isVideo)
+            const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 28)),
+          Align(
         alignment: Alignment.bottomLeft,
         child: Padding(
           padding: const EdgeInsets.all(6),
@@ -782,6 +942,9 @@ class _PhotoTile extends StatelessWidget {
             style: const TextStyle(fontSize: 10, color: Colors.white),
           ),
         ),
+      ),
+        ],
+      ),
       ),
     );
   }
