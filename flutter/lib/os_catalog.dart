@@ -453,6 +453,7 @@ const _contactTables = <String, List<(String, String)>>{
     ('David Park', '555 0123'),
     ('Nora Vega', '555 0156'),
     ('Sam Ryder', '555 0119'),
+    ('Sean de Beer', '555 0108'),
   ],
   'es': [
     ('Alejandro García', '555 0142'),

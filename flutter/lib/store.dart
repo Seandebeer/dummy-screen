@@ -1122,12 +1122,18 @@ class StageStore extends ChangeNotifier {
     _touch(null, sync: false);
   }
 
-  void addPhoto(String deviceId, int color, {String image = ''}) {
+  void addPhoto(
+    String deviceId,
+    int color, {
+    String image = '',
+    String kind = 'photo',
+  }) {
     final photo = PropPhoto(
       id: _nid('ph'),
       color: color,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       image: image,
+      kind: kind == 'video' ? 'video' : 'photo',
     );
     photos = {
       ...photos,

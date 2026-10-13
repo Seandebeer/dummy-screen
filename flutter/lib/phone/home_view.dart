@@ -7,6 +7,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import 'android_home.dart';
 import 'catalog.dart';
+import 'home_drag.dart';
 import 'legacy_homes.dart';
 
 class PhoneHome extends StatelessWidget {
@@ -17,6 +18,8 @@ class PhoneHome extends StatelessWidget {
     required this.os,
     this.light = false,
     this.wide = false,
+    this.onOrder,
+    this.onHide,
   });
 
   final String skin;
@@ -24,6 +27,12 @@ class PhoneHome extends StatelessWidget {
   final OsSettings os;
   final bool light;
   final bool wide;
+
+  /// New home-grid order after a snapped drop.
+  final ValueChanged<List<String>>? onOrder;
+
+  /// `dock:id` or `widget:id` dragged off the device onto the stage.
+  final ValueChanged<String>? onHide;
 
   PropApp? _resolve(String id) {
     final app = propAppById(id);
@@ -45,10 +54,22 @@ class PhoneHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLegacySkin(skin)) {
-      return LegacyHome(skin: skin, os: os, light: light, onOpen: onOpen);
+      return LegacyHome(
+        skin: skin,
+        os: os,
+        light: light,
+        onOpen: onOpen,
+        onOrder: onOrder,
+        onHide: onHide,
+      );
     }
     if (skin == 'android') {
-      return AndroidHome(os: os, onOpen: onOpen);
+      return AndroidHome(
+        os: os,
+        onOpen: onOpen,
+        onOrder: onOrder,
+        onHide: onHide,
+      );
     }
     final chrome = chromeFor(skin);
     final ink = light ? const Color(0xD9000000) : Colors.white;
@@ -78,7 +99,11 @@ class PhoneHome extends StatelessWidget {
       for (final id in layout)
         if (_resolve(id) case final app? when !kDockIds.contains(id)) app,
     ];
-    final dock = [for (final id in kDockIds) propAppById(id)!];
+    final hidden = os.homeHidden.toSet();
+    final dock = [
+      for (final id in kDockIds)
+        if (!hidden.contains('dock:$id')) ?propAppById(id),
+    ];
     final cellW = modern ? 84.0 : 76.0;
     final cellH = modern ? 104.0 : 92.0;
     return Column(
@@ -94,6 +119,7 @@ class PhoneHome extends StatelessWidget {
             branded: os.branded,
             modern: modern,
             onOpen: onOpen,
+            onOrder: onOrder,
           ),
         ),
         Padding(
@@ -128,8 +154,7 @@ class PhoneHome extends StatelessWidget {
                         for (final app in dock)
                           SizedBox(
                             width: cellW,
-                            child: _IconApp(
-                              key: Key('dock-${app.id}'),
+                            child: _DockIcon(
                               app: app,
                               glossy: chrome == SkinChrome.classic,
                               round: chrome == SkinChrome.android,
@@ -137,6 +162,7 @@ class PhoneHome extends StatelessWidget {
                               branded: os.branded,
                               modern: modern,
                               onTap: () => onOpen(app.id),
+                              onHide: onHide == null ? null : () => onHide!('dock:${app.id}'),
                             ),
                           ),
                       ],
@@ -183,6 +209,7 @@ class _HomePages extends StatefulWidget {
     required this.branded,
     this.modern = false,
     required this.onOpen,
+    this.onOrder,
   });
 
   final List<PropApp> apps;
@@ -194,6 +221,7 @@ class _HomePages extends StatefulWidget {
   final bool branded;
   final bool modern;
   final void Function(String id) onOpen;
+  final ValueChanged<List<String>>? onOrder;
 
   @override
   State<_HomePages> createState() => _HomePagesState();
@@ -201,12 +229,128 @@ class _HomePages extends StatefulWidget {
 
 class _HomePagesState extends State<_HomePages> {
   final _controller = PageController();
+  final _gridKey = GlobalKey();
   int _page = 0;
+  String? _dragId;
+  Offset? _finger;
+  int? _slot;
+  bool _off = false;
+  OverlayEntry? _ghost;
+  int _columns = 1;
+  int _rows = 1;
+  int _pageSize = 1;
 
   @override
   void dispose() {
+    _ghost?.remove();
     _controller.dispose();
     super.dispose();
+  }
+
+  List<String> get _ids => [for (final app in widget.apps) app.id];
+
+  void _beginDrag(PropApp app, LongPressStartDetails details) {
+    setState(() {
+      _dragId = app.id;
+      _finger = details.globalPosition;
+      _slot = widget.apps.indexWhere((item) => item.id == app.id);
+      _off = false;
+    });
+    _syncGhost();
+  }
+
+  void _moveDrag(LongPressMoveUpdateDetails details) {
+    final home = context.findRenderObject() as RenderBox?;
+    final grid = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    final off = home == null ? false : droppedOffDevice(home, details.globalPosition);
+    int? slot;
+    if (!off && grid != null) {
+      final local = gridSlot(
+        grid,
+        details.globalPosition,
+        columns: _columns,
+        rows: _rows,
+        cellWidth: widget.cellWidth,
+        cellHeight: widget.cellHeight,
+        gap: 10,
+      );
+      if (local != null) {
+        slot = _page * _pageSize + local;
+        if (slot > widget.apps.length) slot = widget.apps.length;
+      }
+    }
+    setState(() {
+      _finger = details.globalPosition;
+      _off = off;
+      if (slot != null) _slot = slot;
+    });
+    _syncGhost();
+  }
+
+  void _endDrag() {
+    final id = _dragId;
+    final order = widget.onOrder;
+    if (id != null && order != null) {
+      final index = _off ? null : _slot;
+      order(movedOrder(_ids, id, remove: _off, index: index));
+    }
+    _ghost?.remove();
+    _ghost = null;
+    setState(() {
+      _dragId = null;
+      _finger = null;
+      _slot = null;
+      _off = false;
+    });
+  }
+
+  void _syncGhost() {
+    if (_dragId == null || _finger == null) return;
+    _ghost?.remove();
+    final finger = _finger!;
+    final off = _off;
+    final app = widget.apps.where((item) => item.id == _dragId).firstOrNull;
+    if (app == null) return;
+    _ghost = OverlayEntry(
+      builder: (context) => Positioned(
+        left: finger.dx - widget.cellWidth / 2,
+        top: finger.dy - 36,
+        width: widget.cellWidth,
+        child: IgnorePointer(
+          child: Opacity(
+            opacity: 0.92,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _IconApp(
+                  app: app,
+                  glossy: widget.glossy,
+                  round: widget.round,
+                  labelColor: widget.labelColor,
+                  branded: widget.branded,
+                  modern: widget.modern,
+                  onTap: () {},
+                ),
+                if (off)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xE6FF453A),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Remove',
+                      style: TextStyle(color: Colors.white, fontSize: 11),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_ghost!);
   }
 
   @override
@@ -220,6 +364,9 @@ class _HomePagesState extends State<_HomePages> {
         final columns = _spanCount(gridWidth, widget.cellWidth);
         final rows = _spanCount(gridHeight, widget.cellHeight + 10);
         final pageSize = columns * rows;
+        _columns = columns;
+        _rows = rows;
+        _pageSize = pageSize;
         final pages = <List<PropApp>>[];
         for (var i = 0; i < widget.apps.length; i += pageSize) {
           final end = i + pageSize > widget.apps.length ? widget.apps.length : i + pageSize;
@@ -234,12 +381,15 @@ class _HomePagesState extends State<_HomePages> {
             if (_controller.hasClients) _controller.jumpToPage(shown);
           });
         }
-        return Column(
+        return Stack(
+          children: [
+            Column(
           children: [
             Expanded(
               child: PageView(
                 controller: _controller,
                 scrollBehavior: const _HomeScroll(),
+                physics: _dragId != null ? const NeverScrollableScrollPhysics() : null,
                 onPageChanged: (index) => setState(() => _page = index),
                 children: [
                   for (final page in pages)
@@ -248,6 +398,7 @@ class _HomePagesState extends State<_HomePages> {
                       child: Align(
                         alignment: Alignment.topCenter,
                         child: _IconGrid(
+                          key: page == pages[shown] ? _gridKey : null,
                           apps: page,
                           columns: columns,
                           cellWidth: widget.cellWidth,
@@ -258,6 +409,11 @@ class _HomePagesState extends State<_HomePages> {
                           branded: widget.branded,
                           modern: widget.modern,
                           onOpen: widget.onOpen,
+                          draggingId: _dragId,
+                          highlight: _slot == null ? null : _slot! - _page * _pageSize,
+                          onHoldStart: _beginDrag,
+                          onHoldMove: _moveDrag,
+                          onHoldEnd: _endDrag,
                         ),
                       ),
                     ),
@@ -313,6 +469,8 @@ class _HomePagesState extends State<_HomePages> {
                       : const SizedBox.shrink(),
             ),
           ],
+            ),
+          ],
         );
       },
     );
@@ -321,6 +479,7 @@ class _HomePagesState extends State<_HomePages> {
 
 class _IconGrid extends StatelessWidget {
   const _IconGrid({
+    super.key,
     required this.apps,
     required this.columns,
     required this.cellWidth,
@@ -331,6 +490,11 @@ class _IconGrid extends StatelessWidget {
     required this.branded,
     required this.modern,
     required this.onOpen,
+    this.draggingId,
+    this.highlight,
+    this.onHoldStart,
+    this.onHoldMove,
+    this.onHoldEnd,
   });
 
   final List<PropApp> apps;
@@ -343,11 +507,16 @@ class _IconGrid extends StatelessWidget {
   final bool branded;
   final bool modern;
   final void Function(String id) onOpen;
+  final String? draggingId;
+  final int? highlight;
+  final void Function(PropApp app, LongPressStartDetails details)? onHoldStart;
+  final void Function(LongPressMoveUpdateDetails details)? onHoldMove;
+  final VoidCallback? onHoldEnd;
 
   @override
   Widget build(BuildContext context) {
     final rows = (apps.length / columns).ceil();
-    return Column(
+    final grid = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var row = 0; row < rows; row++)
@@ -369,12 +538,38 @@ class _IconGrid extends StatelessWidget {
                         labelColor: labelColor,
                         branded: branded,
                         modern: modern,
+                        dimmed: draggingId == apps[row * columns + column].id,
                         onTap: () => onOpen(apps[row * columns + column].id),
+                        onHoldStart: onHoldStart == null
+                            ? null
+                            : (details) => onHoldStart!(apps[row * columns + column], details),
+                        onHoldMove: onHoldMove,
+                        onHoldEnd: onHoldEnd,
                       ),
                     ),
               ],
             ),
           ),
+      ],
+    );
+    if (draggingId == null) return grid;
+    return Stack(
+      children: [
+        grid,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: SnapGridPainter(
+                columns: columns,
+                rows: rows < 1 ? 1 : rows,
+                cellWidth: cellWidth,
+                cellHeight: cellHeight,
+                gap: 10,
+                slot: highlight,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -414,6 +609,10 @@ class _IconApp extends StatelessWidget {
     this.labelColor = Colors.white,
     this.branded = false,
     this.modern = false,
+    this.dimmed = false,
+    this.onHoldStart,
+    this.onHoldMove,
+    this.onHoldEnd,
   });
 
   final PropApp app;
@@ -423,12 +622,22 @@ class _IconApp extends StatelessWidget {
   final Color labelColor;
   final bool branded;
   final bool modern;
+  final bool dimmed;
+  final GestureLongPressStartCallback? onHoldStart;
+  final GestureLongPressMoveUpdateCallback? onHoldMove;
+  final VoidCallback? onHoldEnd;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
+      onLongPressStart: onHoldStart,
+      onLongPressMoveUpdate: onHoldMove,
+      onLongPressEnd: onHoldEnd == null ? null : (_) => onHoldEnd!(),
+      onLongPressCancel: onHoldEnd,
+      child: Opacity(
+        opacity: dimmed ? 0.25 : 1,
+        child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
@@ -457,7 +666,115 @@ class _IconApp extends StatelessWidget {
             style: TextStyle(fontSize: 11, color: labelColor),
           ),
         ],
+        ),
       ),
+    );
+  }
+}
+
+class _DockIcon extends StatefulWidget {
+  const _DockIcon({
+    required this.app,
+    required this.onTap,
+    required this.glossy,
+    required this.round,
+    required this.labelColor,
+    required this.branded,
+    required this.modern,
+    this.onHide,
+  });
+
+  final PropApp app;
+  final VoidCallback onTap;
+  final bool glossy;
+  final bool round;
+  final Color labelColor;
+  final bool branded;
+  final bool modern;
+  final VoidCallback? onHide;
+
+  @override
+  State<_DockIcon> createState() => _DockIconState();
+}
+
+class _DockIconState extends State<_DockIcon> {
+  bool _off = false;
+  OverlayEntry? _ghost;
+
+  @override
+  void dispose() {
+    _ghost?.remove();
+    super.dispose();
+  }
+
+  RenderBox? get _phone {
+    RenderBox? found;
+    context.visitAncestorElements((element) {
+      final object = element.renderObject;
+      if (object is RenderBox && object.hasSize && object.size.shortestSide > 180) {
+        found = object;
+        return false;
+      }
+      return true;
+    });
+    return found;
+  }
+
+  void _move(LongPressMoveUpdateDetails details) {
+    final phone = _phone;
+    final off = phone != null && droppedOffDevice(phone, details.globalPosition);
+    setState(() => _off = off);
+    _ghost?.remove();
+    _ghost = OverlayEntry(
+      builder: (context) => Positioned(
+        left: details.globalPosition.dx - 34,
+        top: details.globalPosition.dy - 34,
+        width: 76,
+        child: IgnorePointer(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _IconApp(
+                app: widget.app,
+                glossy: widget.glossy,
+                round: widget.round,
+                labelColor: widget.labelColor,
+                branded: widget.branded,
+                modern: widget.modern,
+                onTap: () {},
+              ),
+              if (off)
+                const Text('Remove', style: TextStyle(color: Colors.white, fontSize: 11)),
+            ],
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_ghost!);
+  }
+
+  void _end() {
+    if (_off) widget.onHide?.call();
+    _ghost?.remove();
+    _ghost = null;
+    setState(() => _off = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _IconApp(
+      key: Key('dock-${widget.app.id}'),
+      app: widget.app,
+      glossy: widget.glossy,
+      round: widget.round,
+      labelColor: widget.labelColor,
+      branded: widget.branded,
+      modern: widget.modern,
+      dimmed: _off,
+      onTap: widget.onTap,
+      onHoldStart: widget.onHide == null ? null : (_) {},
+      onHoldMove: widget.onHide == null ? null : _move,
+      onHoldEnd: widget.onHide == null ? null : _end,
     );
   }
 }

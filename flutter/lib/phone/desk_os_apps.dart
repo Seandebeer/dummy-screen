@@ -189,7 +189,10 @@ class DeskAppView extends StatelessWidget {
             ('Recent', 'Elena Frost, Production Desk'),
             ('Camera', 'The computer lens feeds the call'),
           ],
-          child: VidcallApp(contacts: contactsFor(live.os)),
+          child: VidcallApp(
+            contacts: contactsFor(live.os),
+            ringSeconds: live.os.ringDelaySeconds,
+          ),
         );
     }
     final feed = kFeeds[appId];
@@ -1028,6 +1031,16 @@ class _DeskMailState extends State<_DeskMail> {
                 _Head(
                   title: '${open['subject']}',
                   detail: '${open['from']} · ${open['time']}',
+                  trailing: IconButton(
+                    key: const Key('desk-mail-delete'),
+                    tooltip: 'Delete',
+                    onPressed: () => setState(() {
+                      _mail.removeAt(index);
+                      if (_open >= _mail.length) _open = _mail.length - 1;
+                      if (_open < 0) _open = 0;
+                    }),
+                    icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFFF3B30)),
+                  ),
                 ),
                 Expanded(
                   child: ListView(

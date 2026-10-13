@@ -117,7 +117,10 @@ DateTime _zoneWall(String id, [DateTime? from]) {
 
 /// The time this device shows. A stopped clock stays on the stored hour and
 /// minute and does not advance, even when the source is local or a zone.
-DateTime osNow(OsSettings os) {
+/// A pinned device date replaces the calendar day everywhere this is used.
+DateTime osNow(OsSettings os) => _pinDate(_wallNow(os), os);
+
+DateTime _wallNow(OsSettings os) {
   final real = DateTime.now();
   if (!os.clockRunning) {
     return DateTime(real.year, real.month, real.day, os.clockHour, os.clockMinute);
@@ -132,6 +135,41 @@ DateTime osNow(OsSettings os) {
   final elapsed = real.difference(DateTime.fromMillisecondsSinceEpoch(anchor));
   if (elapsed.isNegative) return origin;
   return origin.add(elapsed);
+}
+
+DateTime _pinDate(DateTime time, OsSettings os) {
+  if (!os.hasDeviceDate) return time;
+  final last = DateTime(os.dateYear, os.dateMonth + 1, 0).day;
+  final day = os.dateDay > last ? last : os.dateDay;
+  return DateTime(
+    os.dateYear,
+    os.dateMonth,
+    day,
+    time.hour,
+    time.minute,
+    time.second,
+    time.millisecond,
+  );
+}
+
+/// `yyyy-mm-dd`. Empty or incomplete text is not a date.
+(int, int, int)? parseDateText(String raw) {
+  final match = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})$').firstMatch(raw.trim());
+  if (match == null) return null;
+  final year = int.parse(match.group(1)!);
+  final month = int.parse(match.group(2)!);
+  final day = int.parse(match.group(3)!);
+  if (year < 1970 || year > 2099 || month < 1 || month > 12) return null;
+  final last = DateTime(year, month + 1, 0).day;
+  if (day < 1 || day > last) return null;
+  return (year, month, day);
+}
+
+String formatDateField(OsSettings os) {
+  if (!os.hasDeviceDate) return '';
+  final month = os.dateMonth.toString().padLeft(2, '0');
+  final day = os.dateDay.toString().padLeft(2, '0');
+  return '${os.dateYear}-$month-$day';
 }
 
 OsSettings stopClock(OsSettings os) {

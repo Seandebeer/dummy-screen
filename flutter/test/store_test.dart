@@ -115,6 +115,23 @@ void main() {
     expect(store.callFor('d-hero')!.status, 'active');
   });
 
+  test('an outgoing video call uses the same ring duration', () async {
+    final store = StageStore.demo();
+    store.updateOs('d-hero', (os) => os.copyWith(ringDelay: 1));
+    store.startCall(
+      deviceId: 'd-hero',
+      contactName: 'Sean de Beer',
+      contactNumber: '026 555 0108',
+      direction: 'outgoing',
+      kind: 'video',
+    );
+    final call = store.callFor('d-hero')!;
+    expect(call.kind, 'video');
+    expect(call.status, 'ringing');
+    await Future<void>.delayed(const Duration(seconds: 1));
+    expect(store.callFor('d-hero')!.status, 'active');
+  });
+
   test('factory reset keeps general saved layouts', () {
     final store = StageStore.demo();
     store.setSkin('d-hero', 'android');

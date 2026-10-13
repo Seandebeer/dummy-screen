@@ -996,6 +996,14 @@ class _OsPageState extends State<OsPage> {
         wide: wide,
         light: device.os.isLight,
         onOpen: _open,
+        onOrder: (order) => store.updateOs(
+          device.id,
+          (current) => current.copyWith(homeOrder: order),
+        ),
+        onHide: (id) => store.updateOs(device.id, (current) {
+          if (current.homeHidden.contains(id)) return current;
+          return current.copyWith(homeHidden: [...current.homeHidden, id]);
+        }),
       );
     }
     return OsAppView(
@@ -1200,7 +1208,7 @@ class _AtmSettings extends StatelessWidget {
         TextFormField(
           initialValue: os.bankName,
           decoration: const InputDecoration(labelText: 'Bank name'),
-          onFieldSubmitted: (value) => store.updateOs(
+          onChanged: (value) => store.updateOs(
             device.id,
             (current) => current.copyWith(bankName: value.trim()),
           ),
@@ -1208,7 +1216,7 @@ class _AtmSettings extends StatelessWidget {
         TextFormField(
           initialValue: os.bankHolder,
           decoration: const InputDecoration(labelText: 'Account holder'),
-          onFieldSubmitted: (value) => store.updateOs(
+          onChanged: (value) => store.updateOs(
             device.id,
             (current) => current.copyWith(bankHolder: value.trim()),
           ),
@@ -1217,10 +1225,14 @@ class _AtmSettings extends StatelessWidget {
           initialValue: '${os.bankBalance}',
           decoration: const InputDecoration(labelText: 'Balance'),
           keyboardType: TextInputType.number,
-          onFieldSubmitted: (value) => store.updateOs(
-            device.id,
-            (current) => current.copyWith(bankBalance: int.tryParse(value) ?? current.bankBalance),
-          ),
+          onChanged: (value) {
+            final parsed = int.tryParse(value.trim());
+            if (parsed == null) return;
+            store.updateOs(
+              device.id,
+              (current) => current.copyWith(bankBalance: parsed),
+            );
+          },
         ),
       ],
     );
@@ -1249,7 +1261,7 @@ class _PanelSettings extends StatelessWidget {
           TextFormField(
             initialValue: homePanelName(os, id),
             decoration: InputDecoration(labelText: kHomePanelDefaults[id] ?? id),
-            onFieldSubmitted: (value) {
+            onChanged: (value) {
               final names = {...os.panelNames, id: value.trim()};
               store.updateOs(device.id, (current) => current.copyWith(panelNames: names));
             },

@@ -120,6 +120,26 @@ class _VfxPageState extends State<VfxPage> {
     _persist();
   }
 
+  void _cycleBackground(int step) {
+    if (_locked || _dragId != null || step == 0) return;
+    final index = kVfxPalette.indexWhere((color) => color.id == _colorId);
+    final start = index < 0 ? 0 : index;
+    final next = (start + step) % kVfxPalette.length;
+    final wrapped = next < 0 ? next + kVfxPalette.length : next;
+    setState(() {
+      _colorId = kVfxPalette[wrapped].id;
+      _bgColor = null;
+      _bgImage = null;
+    });
+    _persist();
+  }
+
+  void _swipeBackground(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity.abs() < 180) return;
+    _cycleBackground(velocity < 0 ? 1 : -1);
+  }
+
   void _lock() {
     setState(() {
       _locked = true;
@@ -176,15 +196,19 @@ class _VfxPageState extends State<VfxPage> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: ColoredBox(
-                  color: _stage,
-                  child: image == null
-                      ? null
-                      : DecoratedBox(
-                          decoration: BoxDecoration(
-                            image: DecorationImage(image: image, fit: BoxFit.cover),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragEnd: _locked ? null : _swipeBackground,
+                  child: ColoredBox(
+                    color: _stage,
+                    child: image == null
+                        ? null
+                        : DecoratedBox(
+                            decoration: BoxDecoration(
+                              image: DecorationImage(image: image, fit: BoxFit.cover),
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
               _overlayLayer(),
@@ -197,6 +221,13 @@ class _VfxPageState extends State<VfxPage> {
                     thickness: _thickness,
                   ),
                 ),
+              if (!_locked && !point)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragEnd: _swipeBackground,
+                  ),
+                ),
               if (point)
                 Positioned.fill(
                   child: LayoutBuilder(
@@ -206,6 +237,7 @@ class _VfxPageState extends State<VfxPage> {
                           Positioned.fill(
                             child: GestureDetector(
                               behavior: HitTestBehavior.translucent,
+                              onHorizontalDragEnd: _locked ? null : _swipeBackground,
                               onTapUp: _locked
                                   ? null
                                   : (details) {

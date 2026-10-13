@@ -19,9 +19,12 @@ class ClockSettings extends StatefulWidget {
 class _ClockSettingsState extends State<ClockSettings> {
   bool _open = false;
   bool _editing = false;
+  bool _editingDate = false;
   bool _alive = true;
   late final TextEditingController _time;
+  late final TextEditingController _date;
   late final FocusNode _focus;
+  late final FocusNode _dateFocus;
 
   OsSettings get os => widget.device.os;
 
@@ -31,10 +34,16 @@ class _ClockSettingsState extends State<ClockSettings> {
   void initState() {
     super.initState();
     _time = TextEditingController(text: _shown);
+    _date = TextEditingController(text: formatDateField(os));
     _focus = FocusNode();
+    _dateFocus = FocusNode();
     _focus.addListener(() {
       if (!_alive || !mounted || _focus.hasFocus || !_editing) return;
       _commit(_time.text);
+    });
+    _dateFocus.addListener(() {
+      if (!_alive || !mounted || _dateFocus.hasFocus || !_editingDate) return;
+      _commitDate(_date.text);
     });
   }
 
@@ -48,17 +57,28 @@ class _ClockSettingsState extends State<ClockSettings> {
   void dispose() {
     _alive = false;
     _focus.dispose();
+    _dateFocus.dispose();
     _time.dispose();
+    _date.dispose();
     super.dispose();
   }
 
   void _syncField() {
-    if (_editing) return;
-    final next = _shown;
-    if (_time.text == next) return;
+    if (!_editing) {
+      final next = _shown;
+      if (_time.text != next) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _editing || _time.text == _shown) return;
+          _time.text = _shown;
+        });
+      }
+    }
+    if (_editingDate) return;
+    final date = formatDateField(os);
+    if (_date.text == date) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _editing || _time.text == _shown) return;
-      _time.text = _shown;
+      if (!mounted || _editingDate || _date.text == formatDateField(os)) return;
+      _date.text = formatDateField(os);
     });
   }
 
@@ -75,6 +95,57 @@ class _ClockSettingsState extends State<ClockSettings> {
     }
     _save((current) => pinClock(current, parsed.$1, parsed.$2));
     _syncField();
+  }
+
+  void _liveTime(String raw) {
+    _editing = true;
+    final parsed = parseClockText(raw);
+    if (parsed == null) return;
+    _save((current) => pinClock(current, parsed.$1, parsed.$2));
+  }
+
+  void _liveDate(String raw) {
+    _editingDate = true;
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      _save(
+        (current) => current.copyWith(dateYear: 0, dateMonth: 0, dateDay: 0),
+      );
+      return;
+    }
+    final parsed = parseDateText(trimmed);
+    if (parsed == null) return;
+    _save(
+      (current) => current.copyWith(
+        dateYear: parsed.$1,
+        dateMonth: parsed.$2,
+        dateDay: parsed.$3,
+      ),
+    );
+  }
+
+  void _commitDate(String raw) {
+    _editingDate = false;
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      _save(
+        (current) => current.copyWith(dateYear: 0, dateMonth: 0, dateDay: 0),
+      );
+      _date.text = '';
+      return;
+    }
+    final parsed = parseDateText(trimmed);
+    if (parsed == null) {
+      _date.text = formatDateField(os);
+      return;
+    }
+    _save(
+      (current) => current.copyWith(
+        dateYear: parsed.$1,
+        dateMonth: parsed.$2,
+        dateDay: parsed.$3,
+      ),
+    );
   }
 
   @override
@@ -177,10 +248,38 @@ class _ClockSettingsState extends State<ClockSettings> {
                 borderSide: BorderSide.none,
               ),
             ),
-            onChanged: (value) {
-              if (value != _shown) _editing = true;
-            },
+            onChanged: _liveTime,
             onSubmitted: _commit,
+          ),
+          const SizedBox(height: 12),
+          const Text('Device date', style: TextStyle(fontSize: 15)),
+          const SizedBox(height: 4),
+          const Text(
+            'Type a date as 2026-10-13. Leave it empty to follow today.',
+            style: TextStyle(color: kSettingsHint, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            key: const Key('device-date-field'),
+            focusNode: _dateFocus,
+            controller: _date,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: Colors.white,
+            keyboardType: TextInputType.datetime,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: const Color(0xFF2C2C2E),
+              hintText: '2026-10-13',
+              hintStyle: const TextStyle(color: Colors.white38),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: _liveDate,
+            onSubmitted: _commitDate,
           ),
           _toggle(
             'Run clock',

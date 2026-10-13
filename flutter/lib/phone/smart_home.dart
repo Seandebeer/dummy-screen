@@ -655,8 +655,7 @@ class _HomePanelState extends State<HomePanel> {
               vertical: 10,
             ),
           ),
-          onSubmitted: (_) => _flushNames(),
-          onEditingComplete: _flushNames,
+          onChanged: (_) => _flushNames(),
         ),
       ),
     );

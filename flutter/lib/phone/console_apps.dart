@@ -321,7 +321,7 @@ class ConsoleSettings extends StatelessWidget {
                 hintText: 'Player name',
                 isDense: true,
               ),
-              onFieldSubmitted: (value) => store.setOperator(name: value),
+              onChanged: (value) => store.setOperator(name: value),
             ),
             _switch('Search', shown.contains('search'), 'console-show-search', (
               value,
