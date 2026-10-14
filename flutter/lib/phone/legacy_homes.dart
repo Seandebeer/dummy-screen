@@ -449,7 +449,8 @@ class _PagedGridState extends State<_PagedGrid> {
               for (final page in widget.pages)
                 Padding(
                   padding: EdgeInsets.fromLTRB(widget.horizontal, widget.top, widget.horizontal, widget.bottom),
-                  child: Align(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
                     alignment: Alignment.topCenter,
                     child: _FixedGrid(
                       apps: page,
@@ -1043,28 +1044,46 @@ class _HoloHome extends StatelessWidget {
           const Positioned(right: 24, top: 120, child: _Bokeh(90, Color(0x44E1BEE7))),
           const Positioned(left: -10, top: 280, child: _Bokeh(120, Color(0x33FFFFFF))),
           const Positioned(right: 40, bottom: 160, child: _Bokeh(70, Color(0x449C27B0))),
-          Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Column(
             children: [
-              const SizedBox(height: 6),
-              const _HoloSearch(),
-              const SizedBox(height: 28),
-              const _AnalogClock(),
-              const SizedBox(height: 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  for (final app in rowA) _roundApp(app),
-                ],
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 6),
+                        const _HoloSearch(),
+                        const SizedBox(height: 28),
+                        const _AnalogClock(),
+                        const SizedBox(height: 28),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            for (final app in rowA) _roundApp(app),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (final app in rowB)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14),
+                                child: _roundApp(app),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (final app in rowB)
-                    Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: _roundApp(app)),
-                ],
-              ),
-              const Spacer(),
               const Divider(color: Color(0x88FFFFFF), height: 1, thickness: 1, indent: 12, endIndent: 12),
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
@@ -1080,6 +1099,8 @@ class _HoloHome extends StatelessWidget {
                 ),
               ),
             ],
+              );
+            },
           ),
         ],
       ),

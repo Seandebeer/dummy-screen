@@ -127,6 +127,33 @@ class StageMark {
   );
 }
 
+const _markSep = '\u001f';
+
+String encodeStageMark(StageMark mark) =>
+    '${mark.id}$_markSep${mark.kind}$_markSep${mark.x}$_markSep${mark.y}$_markSep${mark.rot}';
+
+StageMark? decodeStageMark(String raw) {
+  final parts = raw.split(_markSep);
+  if (parts.length < 5) return null;
+  final x = double.tryParse(parts[2]);
+  final y = double.tryParse(parts[3]);
+  if (x == null || y == null) return null;
+  return StageMark(
+    id: parts[0].isEmpty ? 'mark' : parts[0],
+    kind: parts[1].isEmpty ? 'cross' : parts[1],
+    x: x,
+    y: y,
+    rot: int.tryParse(parts[4]) ?? 0,
+  );
+}
+
+List<String> encodeStageMarks(List<StageMark> marks) =>
+    [for (final mark in marks) encodeStageMark(mark)];
+
+List<StageMark> decodeStageMarks(List<String> raw) => [
+  for (final item in raw) ?decodeStageMark(item),
+];
+
 bool isPointStyle(String id) =>
     kTrackingStyles.any((style) => style.id == id && style.point);
 

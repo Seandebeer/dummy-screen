@@ -8,6 +8,7 @@ import '../models.dart';
 import '../store.dart';
 import 'clock_settings.dart';
 import 'settings_kit.dart';
+import 'tone_preview.dart';
 
 const kRingtones = [
   'Reflection',
@@ -206,7 +207,16 @@ class SoundSettings extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-          DropdownButton<String>(
+          Row(
+            children: [
+              IconButton(
+                key: Key('sound-play-${label.toLowerCase().split(' ').first}'),
+                tooltip: 'Play',
+                onPressed: () => previewTone(name: toneValue, custom: custom),
+                icon: const Icon(Icons.play_arrow),
+              ),
+              Expanded(
+                child: DropdownButton<String>(
             value: toneValue,
             dropdownColor: const Color(0xFF1C1C1E),
             style: const TextStyle(color: Colors.white),
@@ -219,6 +229,9 @@ class SoundSettings extends StatelessWidget {
             onChanged: (value) {
               if (value != null) onTone(value);
             },
+          ),
+              ),
+            ],
           ),
           DropdownButton<String>(
             value: vibrateValue,

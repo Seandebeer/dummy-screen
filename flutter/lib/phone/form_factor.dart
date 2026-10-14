@@ -11,6 +11,7 @@ import '../screens/vfx_page.dart';
 import '../store.dart';
 import 'atm_home.dart';
 import 'cctv_wall.dart';
+import 'flight_board.dart';
 import 'console_apps.dart';
 import 'game_catalog.dart';
 import 'catalog.dart';
@@ -73,6 +74,7 @@ DeviceMetrics metricsFor(String kind, {bool landscape = false}) {
       return const DeviceMetrics(16 / 10, 'laptop');
     case 'tv':
     case 'console':
+    case 'flight':
       return const DeviceMetrics(16 / 9, 'tv');
     case 'cctv':
       return const DeviceMetrics(16 / 9, 'monitor');
@@ -91,6 +93,7 @@ const kSandboxKinds = [
   ('tablet', 'Tablet'),
   ('computer', 'Computer'),
   ('tv', 'Smart TV'),
+  ('flight', 'Flight Info'),
   ('console', 'Game console'),
   ('atm', 'ATM'),
   ('cctv', 'CCTV'),
@@ -248,6 +251,7 @@ class _FormOsState extends State<FormOs> {
     final stage = _app == 'grey-track'
         ? const GreyTrackPage()
         : switch (device.kind) {
+      'flight' => FlightBoard(store: widget.store, device: device),
       'tv' => _TvOs(
         shell: os.shell.isEmpty ? 'aurora' : os.shell,
         onShell: _shell,

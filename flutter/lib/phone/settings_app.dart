@@ -647,20 +647,6 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        if (_page == 'display')
-        SettingsSection(
-          title: 'Auto rotate',
-          child: SettingsToggle(
-            key: const Key('os-auto-rotate'),
-            label: 'Turn screen with device',
-            hint: 'OS switches to landscape when the device is tilted on its side.',
-            value: os.autoRotate,
-            onChanged: (value) => widget.store.updateOs(
-              device.id,
-              (current) => current.copyWith(autoRotate: value),
-            ),
-          ),
-        ),
         if (_page == 'language') _language(copy),
         if (_page == 'sound')
           SettingsSection(

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app.dart';
+import '../store.dart';
 import '../deck/chrome.dart';
 import '../theme.dart';
 import 'control_page.dart';
@@ -43,11 +44,45 @@ class _ShellState extends State<Shell> {
   bool _hint = false;
   bool _wasFilming = false;
   Timer? _hintTimer;
+  StageStore? _store;
+  final _focus = FocusNode();
+  final Set<int> _pointers = {};
+  bool _armedUnlock = false;
+  bool _fired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_key);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _store = StoreScope.of(context);
+  }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_key);
     _hintTimer?.cancel();
+    _focus.dispose();
     super.dispose();
+  }
+
+  /// L unlocks even when a text field has focus, or when nothing does.
+  bool _key(KeyEvent event) {
+    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.keyL) return false;
+    final store = _store;
+    if (store == null || !store.filming) return false;
+    FocusManager.instance.primaryFocus?.unfocus();
+    store.setFilming(false);
+    return true;
+  }
+
+  void _pointerUp(PointerEvent event) {
+    _pointers.remove(event.pointer);
+    if (_pointers.isEmpty) _fired = false;
   }
 
   void _armHint() {
@@ -81,7 +116,9 @@ class _ShellState extends State<Shell> {
       _wasFilming = true;
       _hint = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _armHint();
+        if (!mounted) return;
+        _armHint();
+        _focus.requestFocus();
       });
     } else if (!store.filming && _wasFilming) {
       _wasFilming = false;
@@ -101,7 +138,20 @@ class _ShellState extends State<Shell> {
                 store.setFilming(false),
           },
           child: Focus(
+            focusNode: _focus,
             autofocus: true,
+            child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (event) {
+              if (_pointers.isEmpty) _armedUnlock = store.filming;
+              _pointers.add(event.pointer);
+              if (_armedUnlock && _pointers.length >= 3 && !_fired) {
+                _fired = true;
+                store.setFilming(false);
+              }
+            },
+            onPointerUp: _pointerUp,
+            onPointerCancel: _pointerUp,
             child: Stack(
               children: [
                 page,
@@ -119,6 +169,7 @@ class _ShellState extends State<Shell> {
                     ),
                   ),
               ],
+            ),
             ),
           ),
         ),

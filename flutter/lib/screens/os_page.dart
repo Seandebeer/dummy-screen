@@ -17,6 +17,7 @@ import '../phone/home_view.dart';
 import '../phone/lock_screen.dart';
 import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
+import '../phone/device_marks.dart';
 import '../phone/form_factor.dart';
 import 'home_page.dart';
 import '../os_catalog.dart';
@@ -29,7 +30,6 @@ import '../phone/settings_kit.dart';
 import '../phone/smart_home.dart';
 import '../theme.dart';
 import '../vfx/catalog.dart';
-import '../vfx/mark_glyph.dart';
 import '../widgets/prompt.dart';
 import '../widgets/three_finger.dart';
 
@@ -686,6 +686,111 @@ class _OsPageState extends State<OsPage> {
           device: live,
           bare: true,
         ),
+      'flight' => _DeviceMenu(
+          store: store,
+          device: live,
+          pages: [
+            _DevicePage(
+              id: 'board',
+              icon: Icons.flight_takeoff,
+              title: 'Board',
+              detail: 'Heading and the second board',
+              children: [
+                SettingsSection(
+                  title: 'Heading',
+                  child: SettingsOptions(
+                    prefix: 'flight-heading',
+                    options: const [
+                      ('departures', 'Departures'),
+                      ('arrivals', 'Arrivals'),
+                      ('none', 'No heading'),
+                    ],
+                    selected: live.os.flightHeading,
+                    onSelect: (value) {
+                      final columns = [
+                        for (var i = 0; i < 7; i++)
+                          i < live.os.flightColumns.length
+                              ? live.os.flightColumns[i]
+                              : kFlightColumns[i],
+                      ];
+                      final place = columns[1];
+                      if (place == 'DEPARTING TO' || place == 'ARRIVING FROM') {
+                        columns[1] = value == 'arrivals' ? 'ARRIVING FROM' : 'DEPARTING TO';
+                      }
+                      final title = switch (value) {
+                        'arrivals' => 'Arrivals',
+                        'none' => '',
+                        _ => 'Departures',
+                      };
+                      store.updateOs(
+                        live.id,
+                        (os) => os.copyWith(
+                          flightHeading: value,
+                          flightTitle: title,
+                          flightColumns: columns,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SettingsSection(
+                  title: 'Two boards',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      KeyedSubtree(
+                        key: const Key('flight-flip'),
+                        child: SettingsToggle(
+                          label: '2 board flip',
+                          hint: 'Switches between two sets of flights.',
+                          value: live.os.flightFlip,
+                          onChanged: (value) => store.updateOs(
+                            live.id,
+                            (os) => os.copyWith(flightFlip: value),
+                          ),
+                        ),
+                      ),
+                      if (live.os.flightFlip) ...[
+                        const SizedBox(height: 8),
+                        SettingsStepRow(
+                          name: 'Flip duration',
+                          label: '${live.os.flightFlipSeconds}s',
+                          minusKey: const Key('flight-flip-minus'),
+                          plusKey: const Key('flight-flip-plus'),
+                          onMinus: live.os.flightFlipSeconds <= 2
+                              ? null
+                              : () => store.updateOs(
+                                  live.id,
+                                  (os) => os.copyWith(flightFlipSeconds: os.flightFlipSeconds - 1),
+                                ),
+                          onPlus: live.os.flightFlipSeconds >= 120
+                              ? null
+                              : () => store.updateOs(
+                                  live.id,
+                                  (os) => os.copyWith(flightFlipSeconds: os.flightFlipSeconds + 1),
+                                ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            _DevicePage(
+              id: 'status',
+              icon: Icons.schedule,
+              title: 'Time',
+              detail: 'Current time, stopped, or running',
+              children: [
+                SettingsSection(
+                  title: 'Clock',
+                  child: ClockSettings(store: store, device: live),
+                ),
+              ],
+            ),
+            _languagePage(store, live),
+          ],
+        ),
       'tv' => _DeviceMenu(
           store: store,
           device: live,
@@ -861,45 +966,42 @@ class _OsPageState extends State<OsPage> {
     if (!kMarkerKinds.any((item) => item.id == style) && style != 'checkerboard' && style != 'dots') {
       return stage;
     }
-    final raw = config['layouts'];
-    List<StageMark> marks = defaultLayoutFor(style);
-    if (raw is Map && raw[style] is List) {
-      marks = [
-        for (final item in jsonList(raw[style]))
-          if (item is Map) StageMark.fromJson(jsonMap(item)),
-      ];
-    }
+    final marks = _deviceMarks(store, device, style);
     final scale = (config['scale'] as num?)?.toDouble() ?? 1;
     final thick = (config['thickness'] as num?)?.toDouble() ?? 1;
     final fade = _markOpacity(config['opacity']);
     final ink = parseHex(config['markColor'] as String?, Colors.white);
+    final addKind = config['addKind'] as String? ?? style;
     return Stack(
       fit: StackFit.expand,
       children: [
         stage,
-        IgnorePointer(
-          child: Stack(
-            children: [
-              for (final item in marks)
-                Align(
-                  alignment: Alignment(item.x / 50 - 1, item.y / 50 - 1),
-                  child: Opacity(
-                    opacity: fade.clamp(0.15, 1),
-                    child: MarkGlyph(
-                      kind: item.kind,
-                      color: ink,
-                      scale: 1.1 * scale,
-                      thickness: 0.6 * thick,
-                      rotation: item.rot,
-                      x: item.x,
-                      y: item.y,
-                    ),
-                  ),
-                ),
-            ],
+        DeviceMarks(
+          marks: marks,
+          editing: !store.filming,
+          scale: scale,
+          thickness: thick,
+          opacity: fade,
+          color: ink,
+          addKind: addKind,
+          onChange: (next) => store.updateOs(
+            device.id,
+            (os) => os.copyWith(trackOwned: true, trackMarks: encodeStageMarks(next)),
           ),
         ),
       ],
+    );
+  }
+
+  List<StageMark> _deviceMarks(StageStore store, PropDevice device, String style) {
+    if (device.os.trackOwned) return decodeStageMarks(device.os.trackMarks);
+    return _marksFor(store, style);
+  }
+
+  void _saveDeviceMarks(StageStore store, PropDevice device, List<StageMark> marks) {
+    store.updateOs(
+      device.id,
+      (os) => os.copyWith(trackOwned: true, trackMarks: encodeStageMarks(marks)),
     );
   }
 
@@ -959,7 +1061,11 @@ class _OsPageState extends State<OsPage> {
                 tooltip: 'Tracking marks',
                 icon: Icon(Icons.category_outlined, color: chrome.ink),
                 color: chrome.fill,
-                onSelected: (id) => _writeScreen(store, {'marksId': id}),
+                onSelected: (id) {
+                  _writeScreen(store, {'marksId': id});
+                  final bound = store.deviceById(store.boundDeviceId);
+                  if (bound != null) _saveDeviceMarks(store, bound, defaultLayoutFor(id));
+                },
                 itemBuilder: (context) => [
                   for (final style in kTrackingStyles)
                     PopupMenuItem(
@@ -983,6 +1089,23 @@ class _OsPageState extends State<OsPage> {
                 ],
               ),
               IconButton(
+                key: const Key('os-track-add'),
+                tooltip: 'Add marker',
+                onPressed: () {
+                  final bound = store.deviceById(store.boundDeviceId);
+                  if (bound == null) return;
+                  final marks = _deviceMarks(store, bound, selected);
+                  final mark = StageMark(
+                    id: 'm-${DateTime.now().microsecondsSinceEpoch}',
+                    kind: addKind,
+                    x: 50,
+                    y: marks.length.isEven ? 50 : 62.5,
+                  );
+                  _saveDeviceMarks(store, bound, [...marks, mark]);
+                },
+                icon: Icon(Icons.add_location_alt_outlined, color: chrome.ink),
+              ),
+              IconButton(
                 tooltip: 'Size & thickness',
                 onPressed: () => _markSizeSheet(store),
                 icon: Icon(Icons.tune, color: chrome.ink),
@@ -991,15 +1114,13 @@ class _OsPageState extends State<OsPage> {
                 IconButton(
                   tooltip: 'Rotate all markers 45°',
                   onPressed: () {
+                    final bound = store.deviceById(store.boundDeviceId);
+                    if (bound == null) return;
                     final next = [
-                      for (final mark in _marksFor(store, selected))
+                      for (final mark in _deviceMarks(store, bound, selected))
                         mark.copyWith(rot: (mark.rot + 45) % 360),
                     ];
-                    final layouts = Map<String, dynamic>.from(
-                      store.screenConfig['layouts'] as Map? ?? {},
-                    );
-                    layouts[selected] = [for (final mark in next) mark.toJson()];
-                    _writeScreen(store, {'layouts': layouts});
+                    _saveDeviceMarks(store, bound, next);
                   },
                   icon: Icon(Icons.rotate_right, color: chrome.ink),
                 ),
@@ -1021,6 +1142,13 @@ class _OsPageState extends State<OsPage> {
                     'thickness': 1,
                     'opacity': 1,
                   });
+                  final bound = store.deviceById(store.boundDeviceId);
+                  if (bound != null) {
+                    store.updateOs(
+                      bound.id,
+                      (os) => os.copyWith(trackOwned: false, trackMarks: const []),
+                    );
+                  }
                 },
                 icon: Icon(Icons.restart_alt, color: chrome.ink),
               ),
@@ -1365,6 +1493,7 @@ String _kindLabel(String kind) {
     'tablet' => 'Tablet',
     'computer' => 'Computer',
     'tv' => 'Smart TV',
+    'flight' => 'Flight Info',
     'console' => 'Game console',
     'atm' => 'ATM',
     'cctv' => 'CCTV',
