@@ -36,7 +36,7 @@ HomeGridMetrics fillHomeGrid(double width, double height) {
   final safeH = height.isFinite && height > 80 ? height : 480.0;
   final cellWidth = safeW / columns;
   final cellHeight = math.max(52.0, safeH / rows - gap);
-  final iconSize = math.min(cellWidth - 8, cellHeight - 18).clamp(48.0, 128.0);
+  final iconSize = math.min(cellWidth - 12, cellHeight - 24).clamp(44.0, 120.0);
   return HomeGridMetrics(
     columns: columns,
     rows: rows,
@@ -51,7 +51,7 @@ HomeGridMetrics fillHomeGrid(double width, double height) {
 HomeGridMetrics homeMetricsForFrame(
   double width,
   double height, {
-  double dockChrome = 38,
+  double dockChrome = 52,
 }) {
   const top = 22.0;
   const pagePad = 4.0;

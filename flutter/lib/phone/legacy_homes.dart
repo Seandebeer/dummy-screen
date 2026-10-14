@@ -529,7 +529,7 @@ class _FixedGrid extends StatelessWidget {
       children: [
         for (var row = 0; row < rows; row++)
           Padding(
-            padding: EdgeInsets.only(bottom: gap),
+            padding: EdgeInsets.only(bottom: row == rows - 1 ? 0 : gap),
             child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

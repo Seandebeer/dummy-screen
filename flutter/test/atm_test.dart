@@ -243,6 +243,8 @@ void main() {
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.bankNotes, [10, 20, 50]);
 
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-settings-back')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-cat-status')));
@@ -260,6 +262,8 @@ void main() {
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.temperature, 27);
 
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-settings-back')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-cat-display')));
@@ -273,6 +277,8 @@ void main() {
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.shell, 'gold');
 
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-settings-back')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-cat-language')));
@@ -283,6 +289,8 @@ void main() {
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.language, 'es');
 
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('atm-settings-back')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-cat-display')));
@@ -430,6 +438,8 @@ void main() {
     expect(find.text('⌫'), findsNothing);
 
     await tester.tap(find.byKey(const Key('atm-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-cat-display')));
     await tester.pump();
     expect(find.text('Number pad'), findsOneWidget);
     expect(find.text('External keypad'), findsOneWidget);

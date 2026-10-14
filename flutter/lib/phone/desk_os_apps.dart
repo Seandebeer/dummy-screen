@@ -1352,7 +1352,12 @@ class _DeskClock extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Column(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1397,6 +1402,10 @@ class _DeskClock extends StatelessWidget {
                   ],
                 ),
               ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),

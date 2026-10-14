@@ -502,7 +502,7 @@ class ConsoleAppStore extends StatefulWidget {
 
 class _ConsoleAppStoreState extends State<ConsoleAppStore> {
   final _query = TextEditingController();
-  final _open = <String>{'featured'};
+  final _open = <String>{'Featured'};
 
   @override
   void dispose() {

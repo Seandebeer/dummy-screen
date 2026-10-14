@@ -40,6 +40,21 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _armed = false;
   bool _confirm = false;
+  final _scroll = ScrollController();
+
+  @override
+  void didUpdateWidget(SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title && _scroll.hasClients) {
+      _scroll.jumpTo(0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   Expanded(
                     child: ListView(
                 key: widget.listKey,
+                controller: _scroll,
                 padding: const EdgeInsets.only(bottom: 28),
                 children: [
                   ...widget.children,

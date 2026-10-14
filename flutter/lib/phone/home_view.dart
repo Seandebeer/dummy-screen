@@ -134,7 +134,7 @@ class PhoneHome extends StatelessWidget {
         ),
         if (modern) const SizedBox(height: kHomeSearchLift),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
           child: Align(
             alignment: Alignment.center,
             child: ClipRRect(
@@ -158,7 +158,7 @@ class PhoneHome extends StatelessWidget {
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -547,7 +547,7 @@ class _IconGrid extends StatelessWidget {
       children: [
         for (var row = 0; row < rows; row++)
           Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: EdgeInsets.only(bottom: row == rows - 1 ? 0 : 10),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
