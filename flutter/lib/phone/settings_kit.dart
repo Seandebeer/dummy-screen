@@ -796,6 +796,7 @@ class SettingsUploadRow extends StatelessWidget {
     required this.onUpload,
     required this.onRemove,
     this.uploadKey,
+    this.removeKey,
   });
 
   final bool uploading;
@@ -803,6 +804,7 @@ class SettingsUploadRow extends StatelessWidget {
   final VoidCallback onUpload;
   final VoidCallback onRemove;
   final Key? uploadKey;
+  final Key? removeKey;
 
   @override
   Widget build(BuildContext context) {
@@ -829,6 +831,7 @@ class SettingsUploadRow extends StatelessWidget {
         if (showRemove) ...[
           const SizedBox(width: 8),
           TextButton.icon(
+            key: removeKey,
             onPressed: onRemove,
             icon: const Icon(Icons.delete_outline, size: 14),
             label: const Text('Remove'),

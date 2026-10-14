@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import '../video_source.dart';
+import 'settings_kit.dart';
 
 const kCctvMax = 16;
 
@@ -115,7 +117,9 @@ class _CctvBody extends StatefulWidget {
 class _CctvBodyState extends State<_CctvBody> {
   final _players = <int, VideoPlayerController>{};
   bool _playing = false;
-  DateTime? _startedAt;
+  Duration _offset = Duration.zero;
+  Duration _anchorOffset = Duration.zero;
+  DateTime? _anchor;
   Timer? _tick;
   int? _full;
 
@@ -175,23 +179,70 @@ class _CctvBodyState extends State<_CctvBody> {
     }
   }
 
+  Duration get _span {
+    var maxMs = 0;
+    for (final player in _players.values) {
+      if (!player.value.isInitialized) continue;
+      final ms = player.value.duration.inMilliseconds;
+      if (ms > maxMs) maxMs = ms;
+    }
+    if (maxMs < 1000) maxMs = 60000;
+    return Duration(milliseconds: maxMs);
+  }
+
+  Duration _clamped(VideoPlayerController player, Duration offset) {
+    if (!player.value.isInitialized) return Duration.zero;
+    final length = player.value.duration;
+    if (offset <= Duration.zero) return Duration.zero;
+    if (length <= Duration.zero || offset < length) return offset;
+    return length;
+  }
+
+  void _seekAll(Duration offset) {
+    for (final player in _players.values) {
+      if (player.value.isInitialized) player.seekTo(_clamped(player, offset));
+    }
+  }
+
   void _togglePlay() {
     setState(() => _playing = !_playing);
     _tick?.cancel();
     if (_playing) {
-      _startedAt = DateTime.now();
+      _anchor = DateTime.now();
+      _anchorOffset = _offset;
+      _seekAll(_offset);
       for (final player in _players.values) {
         if (player.value.isInitialized) player.play();
       }
-      _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
+      _tick = Timer.periodic(const Duration(milliseconds: 200), (_) {
+        if (!mounted || !_playing || _anchor == null) return;
+        final next = _anchorOffset + DateTime.now().difference(_anchor!);
+        setState(() {
+          if (next >= _span) {
+            _offset = Duration.zero;
+            _anchorOffset = Duration.zero;
+            _anchor = DateTime.now();
+            _seekAll(Duration.zero);
+          } else {
+            _offset = next;
+          }
+        });
       });
     } else {
-      _startedAt = null;
       for (final player in _players.values) {
         if (player.value.isInitialized) player.pause();
       }
     }
+  }
+
+  void _scrub(double fraction) {
+    final next = _span * fraction.clamp(0, 1);
+    setState(() {
+      _offset = next;
+      _anchorOffset = next;
+      _anchor = DateTime.now();
+    });
+    _seekAll(next);
   }
 
   DateTime _stamp() {
@@ -200,8 +251,7 @@ class _CctvBodyState extends State<_CctvBody> {
     final month = os.dateMonth > 0 ? os.dateMonth : now.month;
     final day = os.dateDay > 0 ? os.dateDay : now.day;
     final start = DateTime(year, month, day, os.cctvHour, os.cctvMinute, os.cctvSecond);
-    if (!_playing || _startedAt == null) return start;
-    return start.add(DateTime.now().difference(_startedAt!));
+    return start.add(_offset);
   }
 
   String _clock(DateTime time) {
@@ -354,16 +404,33 @@ class _CctvBodyState extends State<_CctvBody> {
   }
 
   Widget _bar() {
+    final span = _span.inMilliseconds;
+    final fraction = span == 0 ? 0.0 : (_offset.inMilliseconds / span).clamp(0.0, 1.0);
     return SizedBox(
-      height: 36,
+      height: 52,
       child: Row(
         children: [
           const SizedBox(width: 8),
           Text(
-            '${cctvSlots(os)} cameras',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            _clock(_stamp()),
+            key: const Key('cctv-timecode'),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
           ),
-          const Spacer(),
+          Expanded(
+            child: Slider(
+              key: const Key('cctv-scrub'),
+              value: fraction,
+              onChanged: _scrub,
+            ),
+          ),
+          Text(
+            '${cctvSlots(os)} cameras',
+            style: const TextStyle(color: Colors.white54, fontSize: 11),
+          ),
           TextButton.icon(
             key: const Key('cctv-play'),
             onPressed: _togglePlay,
@@ -391,75 +458,62 @@ class CctvSettingsBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Cameras  $count', style: const TextStyle(color: Colors.white)),
-        Slider(
-          key: const Key('cctv-count'),
-          value: count.toDouble(),
-          min: 1,
-          max: kCctvMax.toDouble(),
-          divisions: kCctvMax - 1,
-          label: '$count',
-          onChanged: (value) => store.updateOs(
-            device.id,
-            (current) => cctvWrite(current, count: value.round()),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text('Starting time', style: TextStyle(color: Colors.white70, fontSize: 13)),
-        Row(
-          children: [
-            _step('Hour', os.cctvHour, 23, const Key('cctv-hour'), (value) {
-              store.updateOs(device.id, (current) => current.copyWith(cctvHour: value));
-            }),
-            _step('Minute', os.cctvMinute, 59, const Key('cctv-minute'), (value) {
-              store.updateOs(device.id, (current) => current.copyWith(cctvMinute: value));
-            }),
-            _step('Second', os.cctvSecond, 59, const Key('cctv-second'), (value) {
-              store.updateOs(device.id, (current) => current.copyWith(cctvSecond: value));
-            }),
-          ],
-        ),
-        const SizedBox(height: 12),
-        for (var i = 0; i < count; i++) ...[
-          TextFormField(
-            key: Key('cctv-rename-$i'),
-            initialValue: cctvName(os, i),
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(labelText: 'Camera ${i + 1}'),
-            onChanged: (value) {
-              final names = _pad(os.cctvNames, count);
-              names[i] = value.trim();
-              store.updateOs(device.id, (current) => cctvWrite(current, names: names));
-            },
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              key: Key('cctv-settings-upload-$i'),
-              onPressed: () => _pick(i),
-              child: Text(
-                cctvMediaAt(os, i).isEmpty ? 'Upload picture or footage' : 'Replace picture or footage',
+        SettingsSection(
+          title: 'Cameras',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('$count', style: const TextStyle(fontWeight: FontWeight.w600)),
+              Slider(
+                key: const Key('cctv-count'),
+                value: count.toDouble(),
+                min: 1,
+                max: kCctvMax.toDouble(),
+                divisions: kCctvMax - 1,
+                label: '$count',
+                onChanged: (value) => store.updateOs(
+                  device.id,
+                  (current) => cctvWrite(current, count: value.round()),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
+        SettingsSection(
+          title: 'Start from',
+          child: _StartClock(store: store, device: device),
+        ),
+        SettingsSection(
+          title: 'Names and footage',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < count; i++) ...[
+                SettingsField(
+                  fieldKey: Key('cctv-rename-$i'),
+                  label: 'Camera ${i + 1}',
+                  value: cctvName(os, i),
+                  onChanged: (value) {
+                    final names = _pad(os.cctvNames, count);
+                    names[i] = value.trim();
+                    store.updateOs(device.id, (current) => cctvWrite(current, names: names));
+                  },
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    key: Key('cctv-settings-upload-$i'),
+                    onPressed: () => _pick(i),
+                    child: Text(
+                      cctvMediaAt(os, i).isEmpty ? 'Upload picture or footage' : 'Replace picture or footage',
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
-    );
-  }
-
-  Widget _step(String label, int value, int max, Key key, ValueChanged<int> onChanged) {
-    return Expanded(
-      child: Row(
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          IconButton(
-            key: key,
-            onPressed: () => onChanged(value <= 0 ? max : value - 1),
-            icon: const Icon(Icons.remove, color: Colors.white, size: 16),
-          ),
-          Text('$value', style: const TextStyle(color: Colors.white)),
-        ],
-      ),
     );
   }
 
@@ -479,5 +533,141 @@ class CctvSettingsBody extends StatelessWidget {
     media[index] = path;
     kinds[index] = video ? 'video' : 'image';
     store.updateOs(device.id, (current) => cctvWrite(current, media: media, kinds: kinds));
+  }
+}
+
+/// One bar of hour, minute, and second, with the colons already drawn.
+class _StartClock extends StatefulWidget {
+  const _StartClock({required this.store, required this.device});
+
+  final StageStore store;
+  final PropDevice device;
+
+  @override
+  State<_StartClock> createState() => _StartClockState();
+}
+
+class _StartClockState extends State<_StartClock> {
+  late final TextEditingController _hour;
+  late final TextEditingController _minute;
+  late final TextEditingController _second;
+  final _hourFocus = FocusNode();
+  final _minuteFocus = FocusNode();
+  final _secondFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    final os = widget.device.os;
+    _hour = TextEditingController(text: _two(os.cctvHour));
+    _minute = TextEditingController(text: _two(os.cctvMinute));
+    _second = TextEditingController(text: _two(os.cctvSecond));
+  }
+
+  @override
+  void didUpdateWidget(_StartClock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final os = widget.device.os;
+    _sync(_hour, _hourFocus, os.cctvHour);
+    _sync(_minute, _minuteFocus, os.cctvMinute);
+    _sync(_second, _secondFocus, os.cctvSecond);
+  }
+
+  @override
+  void dispose() {
+    _hour.dispose();
+    _minute.dispose();
+    _second.dispose();
+    _hourFocus.dispose();
+    _minuteFocus.dispose();
+    _secondFocus.dispose();
+    super.dispose();
+  }
+
+  void _sync(TextEditingController controller, FocusNode focus, int value) {
+    if (focus.hasFocus) return;
+    final text = _two(value);
+    if (controller.text != text) controller.text = text;
+  }
+
+  String _two(int value) => value.toString().padLeft(2, '0');
+
+  void _write() {
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => current.copyWith(
+        cctvHour: int.tryParse(_hour.text)?.clamp(0, 23) ?? 0,
+        cctvMinute: int.tryParse(_minute.text)?.clamp(0, 59) ?? 0,
+        cctvSecond: int.tryParse(_second.text)?.clamp(0, 59) ?? 0,
+      ),
+    );
+  }
+
+  void _finish(TextEditingController controller, int max) {
+    final parsed = int.tryParse(controller.text) ?? 0;
+    final text = _two(parsed.clamp(0, max));
+    if (controller.text != text) {
+      controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+    _write();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x66000000),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x33FFFFFF)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            _cell(_hour, _hourFocus, 'cctv-hour', 23),
+            const Text(':', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            _cell(_minute, _minuteFocus, 'cctv-minute', 59),
+            const Text(':', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            _cell(_second, _secondFocus, 'cctv-second', 59),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cell(TextEditingController controller, FocusNode focus, String keyName, int max) {
+    return Expanded(
+      child: TextField(
+        key: Key(keyName),
+        controller: controller,
+        focusNode: focus,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        maxLength: 2,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          fontFeatures: [FontFeature.tabularFigures()],
+        ),
+        decoration: const InputDecoration(
+          counterText: '',
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(vertical: 8),
+        ),
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        onChanged: (value) {
+          if (value.length >= 2) {
+            _finish(controller, max);
+          } else {
+            _write();
+          }
+        },
+        onEditingComplete: () => _finish(controller, max),
+      ),
+    );
   }
 }

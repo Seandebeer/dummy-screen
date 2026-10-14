@@ -63,6 +63,13 @@ String homePanelName(OsSettings os, String id) {
   return custom;
 }
 
+/// Field label in panel settings. The field value stays the current name.
+String homePanelFieldLabel(String id) {
+  final index = _kHomeNameIds.indexOf(id);
+  if (index < 0) return 'Panel';
+  return 'Panel ${index + 1}';
+}
+
 /// Smart home control panel.
 ///
 /// [portrait] is the phone mounted as the screen. The wall panel is landscape.
@@ -301,13 +308,19 @@ class _HomePanelState extends State<HomePanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _faceTitle('Slate Board', square: true, compact: true),
+        _faceTitle('Smart home', square: true, compact: true),
         const SizedBox(height: 10),
-        _rectScenes(),
+        _circleScenes(),
         const SizedBox(height: 10),
-        _climate(wide: true),
+        Align(
+          child: SizedBox(
+            width: 168,
+            height: 168,
+            child: _climate(wide: false, radius: 999),
+          ),
+        ),
         const SizedBox(height: 10),
-        Expanded(child: _tileBlock(_tiles())),
+        Expanded(child: _circleGrid(_tiles(radius: 999))),
       ],
     );
   }
@@ -316,16 +329,16 @@ class _HomePanelState extends State<HomePanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _faceTitle('Slate Board', square: true, compact: false),
+        _faceTitle('Smart home', square: true, compact: false),
         const SizedBox(height: 12),
         Expanded(
           child: Row(
             children: [
-              SizedBox(width: 180, child: _rectScenes()),
+              Expanded(child: _circleScenes()),
               const SizedBox(width: 12),
-              Expanded(child: _climate(wide: false)),
+              Expanded(child: _roundClimate()),
               const SizedBox(width: 12),
-              Expanded(child: _tileBlock(_tiles())),
+              Expanded(child: _circleGrid(_tiles(radius: 999))),
             ],
           ),
         ),
@@ -336,7 +349,7 @@ class _HomePanelState extends State<HomePanel> {
   Widget _emberPhone() {
     return Column(
       children: [
-        _faceTitle('Ember Dial', square: false, compact: true),
+        _faceTitle('Smart home', square: false, compact: true),
         const SizedBox(height: 12),
         _roundScenes(),
         const SizedBox(height: 12),
@@ -351,7 +364,7 @@ class _HomePanelState extends State<HomePanel> {
     final tiles = _tiles();
     return Column(
       children: [
-        _faceTitle('Ember Dial', square: false, compact: false),
+        _faceTitle('Smart home', square: false, compact: false),
         const SizedBox(height: 12),
         _roundScenes(),
         const SizedBox(height: 12),
@@ -394,28 +407,78 @@ class _HomePanelState extends State<HomePanel> {
     );
   }
 
-  Widget _rectScenes() {
+  Widget _circleScenes() {
     const scenes = ['home', 'away', 'sleep', 'movie'];
-    return Column(
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10,
+      runSpacing: 10,
       children: [
         for (final id in scenes)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: GestureDetector(
-              key: Key('home-scene-$id'),
-              onTap: () => _apply(id),
-              child: Container(
-                width: double.infinity,
+          GestureDetector(
+            key: Key('home-scene-$id'),
+            onTap: () => _apply(id),
+            child: Container(
+              width: 76,
+              height: 76,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
                 color: _scene == id ? const Color(0xFF8FA4C4) : const Color(0xFF243044),
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                child: Text(
-                  _label(id),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                ),
+                border: Border.all(color: const Color(0xFF9BB0CC), width: 2),
+              ),
+              child: Text(
+                _label(id),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
               ),
             ),
           ),
       ],
+    );
+  }
+
+  Widget _circleGrid(List<Widget> tiles) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const cols = 2;
+        const gap = 14.0;
+        final size = ((constraints.maxWidth - gap * (cols - 1)) / cols).clamp(64.0, 148.0);
+        return SingleChildScrollView(
+          child: Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            alignment: WrapAlignment.center,
+            children: [
+              for (final tile in tiles) SizedBox(width: size, height: size, child: tile),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _roundClimate() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        final side = !width.isFinite
+            ? 168.0
+            : !height.isFinite
+            ? width.clamp(96.0, 220.0)
+            : (width < height ? width : height).clamp(96.0, 220.0);
+        return Center(
+          child: SizedBox(
+            width: side,
+            height: side,
+            child: _climate(wide: false, radius: 999),
+          ),
+        );
+      },
     );
   }
 
@@ -537,12 +600,12 @@ class _HomePanelState extends State<HomePanel> {
     );
   }
 
-  Widget _climate({required bool wide}) {
+  Widget _climate({required bool wide, double radius = 22}) {
     final figure = Text(
       '${_temp.toStringAsFixed(0)}°',
       style: TextStyle(
         color: Colors.white,
-        fontSize: wide ? 36 : 52,
+        fontSize: wide ? 36 : (radius > 40 ? 34 : 52),
         fontWeight: FontWeight.w700,
         height: 1,
         shadows: const [Shadow(color: Color(0xAA7EE0D2), blurRadius: 18)],
@@ -559,6 +622,7 @@ class _HomePanelState extends State<HomePanel> {
       const Key('home-temp-up'),
     );
     return _Glass(
+      radius: radius,
       tint: const Color(0xFF7EE0D2),
       lit: true,
       expand: true,
@@ -642,9 +706,11 @@ class _HomePanelState extends State<HomePanel> {
     );
   }
 
-  List<Widget> _tiles() => [for (final id in homePanelOrder(os)) _tileFor(id)];
+  List<Widget> _tiles({double radius = 22}) => [
+    for (final id in homePanelOrder(os)) _tileFor(id, radius: radius),
+  ];
 
-  Widget _tileFor(String id) {
+  Widget _tileFor(String id, {double radius = 22}) {
     return switch (id) {
       'lock' => _Tile(
         name: _label(id),
@@ -652,6 +718,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.lock_outline,
         on: _locked,
         tint: const Color(0xFF6FE3C2),
+        radius: radius,
         tileKey: const Key('home-lock'),
         onTap: () => setState(() => _locked = !_locked),
       ),
@@ -661,6 +728,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.garage_outlined,
         on: _garage,
         tint: const Color(0xFF79B4FF),
+        radius: radius,
         tileKey: const Key('home-garage'),
         onTap: () => setState(() => _garage = !_garage),
       ),
@@ -670,6 +738,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.music_note_outlined,
         on: _music,
         tint: const Color(0xFFD59BFF),
+        radius: radius,
         tileKey: const Key('home-music'),
         onTap: () => setState(() => _music = !_music),
       ),
@@ -679,6 +748,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.blinds,
         on: _blinds > 0.05,
         tint: const Color(0xFFE7C99A),
+        radius: radius,
         tileKey: const Key('home-blinds'),
         onTap: () => setState(() {
           _blinds = _blinds > 0.9 ? 0 : (_blinds + 0.3).clamp(0, 1);
@@ -690,6 +760,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.countertops_outlined,
         on: _oven,
         tint: const Color(0xFFFF8D72),
+        radius: radius,
         tileKey: const Key('home-oven'),
         onTap: () => setState(() => _oven = !_oven),
       ),
@@ -699,6 +770,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.videocam_outlined,
         on: _camera,
         tint: const Color(0xFF8EE7FF),
+        radius: radius,
         tileKey: const Key('home-camera'),
         onTap: () => setState(() => _camera = !_camera),
       ),
@@ -708,6 +780,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.settings_outlined,
         on: false,
         tint: const Color(0xFFB7C9FF),
+        radius: radius,
         tileKey: const Key('home-settings'),
         onTap: () => setState(() => _screen = 'settings'),
       ),
@@ -717,6 +790,7 @@ class _HomePanelState extends State<HomePanel> {
         icon: Icons.lightbulb_outline,
         on: _lights,
         tint: const Color(0xFFF6C15B),
+        radius: radius,
         tileKey: const Key('home-lights'),
         onTap: () => setState(() => _lights = !_lights),
       ),
@@ -888,7 +962,7 @@ class _HomePanelState extends State<HomePanel> {
           style: const TextStyle(color: Colors.white),
           cursorColor: Colors.white,
           decoration: InputDecoration(
-            labelText: kHomePanelDefaults[id],
+            labelText: homePanelFieldLabel(id),
             labelStyle: const TextStyle(color: Color(0xFFD5E4DE)),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
@@ -1055,6 +1129,7 @@ class _Tile extends StatelessWidget {
     required this.tint,
     required this.tileKey,
     required this.onTap,
+    this.radius = 22,
   });
 
   final String name;
@@ -1064,6 +1139,48 @@ class _Tile extends StatelessWidget {
   final Color tint;
   final Key tileKey;
   final VoidCallback onTap;
+  final double radius;
+
+  Widget _tileBody({required bool compact}) {
+    return Column(
+      mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: compact ? 36 : 32,
+          height: compact ? 36 : 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: tint.withValues(alpha: on ? 0.34 : 0.14),
+            border: Border.all(color: tint.withValues(alpha: on ? 0.85 : 0.35)),
+          ),
+          child: Icon(icon, color: on ? Colors.white : tint, size: compact ? 18 : 16),
+        ),
+        SizedBox(height: compact ? 4 : 6),
+        Text(
+          name,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: compact ? 12 : 13,
+          ),
+        ),
+        Text(
+          status,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: on ? tint : const Color(0xFFD5E4DE),
+            fontSize: compact ? 10 : 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1071,49 +1188,20 @@ class _Tile extends StatelessWidget {
       key: tileKey,
       onTap: onTap,
       child: _Glass(
+        radius: radius,
         tint: tint,
         lit: on,
         expand: true,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: tint.withValues(alpha: on ? 0.34 : 0.14),
-                border: Border.all(
-                  color: tint.withValues(alpha: on ? 0.85 : 0.35),
+        padding: EdgeInsets.symmetric(horizontal: radius > 40 ? 6 : 8, vertical: radius > 40 ? 4 : 8),
+        child: radius > 40
+            ? FittedBox(
+                fit: BoxFit.scaleDown,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 110),
+                  child: _tileBody(compact: true),
                 ),
-              ),
-              child: Icon(icon, color: on ? Colors.white : tint, size: 16),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              name,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-            Text(
-              status,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: on ? tint : const Color(0xFFD5E4DE),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+              )
+            : _tileBody(compact: false),
       ),
     );
   }

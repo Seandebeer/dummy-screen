@@ -1,10 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import '../theme.dart';
 import 'atm_chrome.dart';
 import 'clock_settings.dart';
 import 'language_settings.dart';
@@ -50,103 +52,124 @@ class _AtmOsSettingsState extends State<AtmOsSettings> {
           SettingsGroup(
             children: [
               _cat('display', Icons.account_balance_wallet, 'Display', 'Interface, keypad, and theme'),
-              _cat('status', Icons.schedule, 'Status', 'Clock, place, and temperature'),
+              _cat('status', Icons.schedule, 'Status', 'Clock, date, place, and temperature'),
               _cat('bank', Icons.account_balance, 'Bank', 'Name, balance, currency, and notes'),
               _cat('language', Icons.language, 'Language', languageByCode(os.language).native),
             ],
           ),
         if (_page == 'display') ...[
-          const _Label('Interface'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final face in const [
-                ('teller', 'Night Teller'),
-                ('vault', 'Vault Desk'),
-                ('kiosk', 'Kiosk Grid'),
-              ])
-                ChoiceChip(
-                  key: Key('os-atm-face-${face.$1}'),
-                  label: Text(face.$2),
-                  selected: atmFaceId(os) == face.$1,
-                  onSelected: (_) => _save((current) => current.copyWith(face: face.$1)),
-                ),
-            ],
-          ),
-          const _Label('Number pad'),
-          Wrap(
-            spacing: 8,
-            children: [
-              ChoiceChip(
-                key: const Key('os-atm-keypad-screen'),
-                label: const Text('On screen'),
-                selected: os.bankKeypad != 'external',
-                onSelected: (_) => _save((current) => current.copyWith(bankKeypad: 'screen')),
-              ),
-              ChoiceChip(
-                key: const Key('os-atm-keypad-external'),
-                label: const Text('External keypad'),
-                selected: os.bankKeypad == 'external',
-                onSelected: (_) => _save((current) => current.copyWith(bankKeypad: 'external')),
-              ),
-            ],
-          ),
-          const _Label('Theme'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final item in kAtmSkins)
-                ChoiceChip(
-                  key: Key('os-atm-skin-${item.id}'),
-                  label: Text(item.name),
-                  selected: os.shell == item.id || (os.shell.isEmpty && item.id == 'night'),
-                  onSelected: (_) => _save((current) => current.copyWith(shell: item.id)),
-                ),
-            ],
-          ),
-          const _Label('Background'),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 8,
+          SettingsSection(
+            title: 'Interface',
+            child: Column(
               children: [
-                TextButton(
-                  key: const Key('os-atm-upload-background'),
-                  onPressed: () async {
-                    final file = await FilePicker.pickFile(type: FileType.image);
-                    if (file == null) return;
-                    final path = await persistPickedImage(file);
-                    if (path == null) return;
-                    _save((current) => current.copyWith(backgroundType: 'image', backgroundUrl: path));
-                  },
-                  child: const Text('Upload background'),
-                ),
-                if (os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty)
-                  TextButton(
-                    key: const Key('os-atm-remove-background'),
-                    onPressed: () => _save(
-                      (current) => current.copyWith(backgroundType: 'preset', backgroundUrl: ''),
+                for (final face in const [
+                  ('teller', 'Night Teller', 'The original layout. This is the default.'),
+                  ('vault', 'Vault Desk', 'Large icons for each transaction.'),
+                  ('kiosk', 'Kiosk Grid', 'Square buttons in a grid.'),
+                ]) ...[
+                  SettingsTile(
+                    tileKey: Key('os-atm-face-${face.$1}'),
+                    name: face.$2,
+                    desc: face.$3,
+                    preview: [atmSkinFor(os.shell).major, atmSkinFor(os.shell).washB],
+                    active: atmFaceId(os) == face.$1,
+                    onTap: () => _save(
+                      (current) => current.copyWith(face: face.$1 == 'teller' ? '' : face.$1),
                     ),
-                    child: const Text('Remove background'),
                   ),
+                  const SizedBox(height: 8),
+                ],
               ],
             ),
           ),
-          const _Label('Panels'),
-          for (final id in atmPanels(os))
-            ListTile(
-              title: Text(id, style: const TextStyle(color: Colors.white)),
-              trailing: IconButton(
-                key: Key('os-atm-panel-down-$id'),
-                onPressed: () => _move(id, 1),
-                icon: const Icon(Icons.arrow_downward, color: Colors.white),
+          SettingsSection(
+            title: 'Number pad',
+            child: Row(
+              children: [
+                Expanded(
+                  child: SettingsChoice(
+                    key: const Key('os-atm-keypad-screen'),
+                    label: 'On screen',
+                    active: os.bankKeypad != 'external',
+                    onTap: () => _save((current) => current.copyWith(bankKeypad: 'screen')),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SettingsChoice(
+                    key: const Key('os-atm-keypad-external'),
+                    label: 'External keypad',
+                    active: os.bankKeypad == 'external',
+                    onTap: () => _save((current) => current.copyWith(bankKeypad: 'external')),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SettingsSection(
+            title: 'Theme',
+            child: Column(
+              children: [
+                for (final item in kAtmSkins) ...[
+                  SettingsTile(
+                    tileKey: Key('os-atm-skin-${item.id}'),
+                    name: item.name,
+                    desc: 'Colours for every ATM interface.',
+                    preview: [item.major, item.washA],
+                    active: os.shell == item.id || (os.shell.isEmpty && item.id == 'night'),
+                    onTap: () => _save((current) => current.copyWith(shell: item.id)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+          SettingsSection(
+            title: 'Background',
+            child: SettingsUploadRow(
+              uploading: false,
+              showRemove: os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty,
+              uploadKey: const Key('os-atm-upload-background'),
+              removeKey: const Key('os-atm-remove-background'),
+              onUpload: () async {
+                final file = await FilePicker.pickFile(type: FileType.image);
+                if (file == null) return;
+                final path = await persistPickedImage(file);
+                if (path == null) return;
+                _save((current) => current.copyWith(backgroundType: 'image', backgroundUrl: path));
+              },
+              onRemove: () => _save(
+                (current) => current.copyWith(backgroundType: 'preset', backgroundUrl: ''),
               ),
             ),
+          ),
         ],
         if (_page == 'status') ...[
           SettingsSection(title: 'Clock', child: ClockSettings(store: widget.store, device: device)),
+          SettingsSection(
+            title: 'Date',
+            child: SettingsField(
+              fieldKey: const Key('os-atm-date'),
+              label: 'Date',
+              value: formatDateField(os),
+              onChanged: (value) {
+                final trimmed = value.trim();
+                if (trimmed.isEmpty) {
+                  _save((current) => current.copyWith(dateYear: 0, dateMonth: 0, dateDay: 0));
+                  return;
+                }
+                final parsed = parseDateText(trimmed);
+                if (parsed == null) return;
+                _save(
+                  (current) => current.copyWith(
+                    dateYear: parsed.$1,
+                    dateMonth: parsed.$2,
+                    dateDay: parsed.$3,
+                  ),
+                );
+              },
+            ),
+          ),
           PlaceSettings(store: widget.store, device: device),
           SettingsField(
             fieldKey: const Key('os-atm-temperature'),
@@ -182,17 +205,29 @@ class _AtmOsSettingsState extends State<AtmOsSettings> {
               _save((current) => current.copyWith(bankBalance: parsed));
             },
           ),
-          const _Label('Currency'),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final currency in atmCurrencyChoices(os.bankCurrency))
-                ChoiceChip(
-                  label: Text(currency.code),
-                  selected: os.bankCurrency == currency.code,
-                  onSelected: (_) => _save((current) => current.copyWith(bankCurrency: currency.code)),
+          CollapsibleSection(
+            sectionKey: const Key('os-atm-currency'),
+            title: 'Currency · ${os.bankCurrency}',
+            child: SizedBox(
+              height: 220,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    for (final currency in atmCurrencyChoices(os.bankCurrency))
+                      ListTile(
+                        key: Key('os-atm-currency-${currency.code}'),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(currency.label, style: const TextStyle(color: Colors.white)),
+                        trailing: currency.code == os.bankCurrency
+                            ? const Icon(Icons.check, color: kAccent, size: 18)
+                            : null,
+                        onTap: () => _save((current) => current.copyWith(bankCurrency: currency.code)),
+                      ),
+                  ],
                 ),
-            ],
+              ),
+            ),
           ),
           SettingsField(
             fieldKey: const Key('os-atm-notes'),
@@ -224,28 +259,4 @@ class _AtmOsSettingsState extends State<AtmOsSettings> {
     );
   }
 
-  void _move(String id, int delta) {
-    final order = [...atmPanels(os)];
-    final index = order.indexOf(id);
-    final next = index + delta;
-    if (index < 0 || next < 0 || next >= order.length) return;
-    final held = order[index];
-    order[index] = order[next];
-    order[next] = held;
-    _save((current) => current.copyWith(homeOrder: order));
-  }
-}
-
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 14, bottom: 6),
-      child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-    );
-  }
 }

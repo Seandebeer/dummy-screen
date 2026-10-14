@@ -138,4 +138,65 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('slate board is circles titled smart home, with numbered panel fields', (
+    tester,
+  ) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+    final device = PropDevice(
+      id: 'home-slate',
+      name: 'Slate panel',
+      projectId: 'sandbox',
+      kind: 'smarthome',
+      os: const OsSettings(face: 'slate'),
+    );
+    store.upsertDevice(device);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: HomePanel(store: store, device: device),
+      ),
+    );
+    expect(find.text('Smart home'), findsOneWidget);
+    expect(find.text('Slate Board'), findsNothing);
+    expect(find.byKey(const Key('home-lights')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('home-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('home-cat-panels')));
+    await tester.pump();
+    expect(find.text('Panel 1'), findsOneWidget);
+    expect(find.text('Lights'), findsWidgets);
+    await tester.enterText(find.byKey(const Key('home-name-lights')), 'Lamps');
+    await tester.pump();
+    expect(store.deviceById('home-slate')!.os.panelNames['lights'], 'Lamps');
+  });
+
+  testWidgets('ember dial is titled smart home', (tester) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    final device = PropDevice(
+      id: 'home-ember',
+      name: 'Ember phone',
+      projectId: 'sandbox',
+      kind: 'homephone',
+      os: const OsSettings(face: 'ember'),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: HomePanel(store: store, device: device, portrait: true),
+      ),
+    );
+    expect(find.text('Smart home'), findsOneWidget);
+    expect(find.text('Ember Dial'), findsNothing);
+    expect(find.byKey(const Key('home-phone')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

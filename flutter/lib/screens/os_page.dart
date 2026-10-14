@@ -684,7 +684,7 @@ class _OsPageState extends State<OsPage> {
       'console' => ConsoleSettings(
           store: store,
           device: live,
-          onClose: () => setState(() => _sheet = null),
+          bare: true,
         ),
       'tv' => _DeviceMenu(
           store: store,
@@ -700,15 +700,21 @@ class _OsPageState extends State<OsPage> {
                   title: 'Interface',
                   child: Column(
                     children: [
-                      for (final shell in const [('aurora', 'Aurora'), ('slate', 'Slate'), ('neon', 'Neon')])
-                        ListTile(
-                          key: Key('shell-${shell.$1}'),
-                          title: Text(shell.$2, style: const TextStyle(color: Colors.white)),
-                          trailing: (live.os.shell.isEmpty ? 'aurora' : live.os.shell) == shell.$1
-                              ? const Icon(Icons.check, color: kSignal)
-                              : null,
+                      for (final shell in const [
+                        ('aurora', 'Aurora', 'Soft bands across the screen.', [Color(0xFF1B3A4B), Color(0xFF0E2430)]),
+                        ('slate', 'Slate', 'Flat grey panels.', [Color(0xFF3A4250), Color(0xFF1C222C)]),
+                        ('neon', 'Neon', 'Bright edge light.', [Color(0xFF123C34), Color(0xFF061814)]),
+                      ]) ...[
+                        SettingsTile(
+                          tileKey: Key('shell-${shell.$1}'),
+                          name: shell.$2,
+                          desc: shell.$3,
+                          preview: shell.$4,
+                          active: (live.os.shell.isEmpty ? 'aurora' : live.os.shell) == shell.$1,
                           onTap: () => store.updateOs(live.id, (os) => os.copyWith(shell: shell.$1)),
                         ),
+                        const SizedBox(height: 8),
+                      ],
                     ],
                   ),
                 ),
@@ -741,16 +747,6 @@ class _OsPageState extends State<OsPage> {
                 CctvSettingsBody(store: store, device: live),
               ],
             ),
-            _DevicePage(
-              id: 'status',
-              icon: Icons.schedule,
-              title: 'Status',
-              detail: 'Clock, place, and temperature',
-              children: [
-                SettingsSection(title: 'Clock', child: ClockSettings(store: store, device: live)),
-                PlaceSettings(store: store, device: live),
-              ],
-            ),
             _languagePage(store, live),
           ],
         ),
@@ -769,18 +765,35 @@ class _OsPageState extends State<OsPage> {
                   child: Column(
                     children: [
                       for (final face in const [
-                        ('glass', 'Harbor Glass'),
-                        ('slate', 'Slate Board'),
-                        ('ember', 'Ember Dial'),
-                      ])
-                        ListTile(
-                          key: Key('os-home-face-${face.$1}'),
-                          title: Text(face.$2, style: const TextStyle(color: Colors.white)),
-                          trailing: (live.os.face.isEmpty ? 'glass' : live.os.face) == face.$1
-                              ? const Icon(Icons.check, color: kSignal)
-                              : null,
+                        (
+                          'glass',
+                          'Harbor Glass',
+                          'Frosted panels over a harbour wash.',
+                          [Color(0xFF12343A), Color(0xFF071816)],
+                        ),
+                        (
+                          'slate',
+                          'Slate Board',
+                          'Circular controls on a slate field.',
+                          [Color(0xFF31445F), Color(0xFF1A2433)],
+                        ),
+                        (
+                          'ember',
+                          'Ember Dial',
+                          'Round dials on a warm field.',
+                          [Color(0xFF3A2418), Color(0xFF1A100C)],
+                        ),
+                      ]) ...[
+                        SettingsTile(
+                          tileKey: Key('os-home-face-${face.$1}'),
+                          name: face.$2,
+                          desc: face.$3,
+                          preview: face.$4,
+                          active: (live.os.face.isEmpty ? 'glass' : live.os.face) == face.$1,
                           onTap: () => store.updateOs(live.id, (os) => os.copyWith(face: face.$1)),
                         ),
+                        const SizedBox(height: 8),
+                      ],
                     ],
                   ),
                 ),
@@ -797,9 +810,10 @@ class _OsPageState extends State<OsPage> {
                   child: Column(
                     children: [
                       for (final id in homePanelOrder(live.os))
-                        TextFormField(
-                          initialValue: homePanelName(live.os, id),
-                          decoration: InputDecoration(labelText: kHomePanelDefaults[id] ?? id),
+                        SettingsField(
+                          fieldKey: Key('os-home-panel-$id'),
+                          label: homePanelFieldLabel(id),
+                          value: homePanelName(live.os, id),
                           onChanged: (value) {
                             final names = {...live.os.panelNames, id: value.trim()};
                             store.updateOs(live.id, (current) => current.copyWith(panelNames: names));
