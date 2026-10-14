@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
+import 'clock_settings.dart';
+import 'language_settings.dart';
+import 'place_settings.dart';
 
 const kHomePanelOrder = [
   'lights',
@@ -119,6 +122,12 @@ class _HomePanelState extends State<HomePanel> {
 
   OsSettings get os => _live.os;
 
+  String get _face => switch (os.face) {
+    'slate' => 'slate',
+    'ember' => 'ember',
+    _ => 'glass',
+  };
+
   String _label(String id) => homePanelName(os, id);
 
   void _save(OsSettings Function(OsSettings current) change) {
@@ -226,6 +235,10 @@ class _HomePanelState extends State<HomePanel> {
             ),
           ),
         CustomPaint(painter: _HarborWash(veil: image != null)),
+        if (_face == 'slate')
+          const Positioned.fill(child: ColoredBox(color: Color(0xD91A2433))),
+        if (_face == 'ember')
+          const Positioned.fill(child: ColoredBox(color: Color(0xD92A140C))),
         LayoutBuilder(
           builder: (context, constraints) {
             final portrait =
@@ -234,7 +247,11 @@ class _HomePanelState extends State<HomePanel> {
               padding: EdgeInsets.all(portrait ? 16 : 22),
               child: _screen == 'settings'
                   ? _settings()
-                  : (portrait ? _phone() : _wall()),
+                  : switch (_face) {
+                      'slate' => portrait ? _slatePhone() : _slateWall(),
+                      'ember' => portrait ? _emberPhone() : _emberWall(),
+                      _ => portrait ? _phone() : _wall(),
+                    },
             );
           },
         ),
@@ -276,6 +293,157 @@ class _HomePanelState extends State<HomePanel> {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _slatePhone() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _faceTitle('Slate Board', square: true, compact: true),
+        const SizedBox(height: 10),
+        _rectScenes(),
+        const SizedBox(height: 10),
+        _climate(wide: true),
+        const SizedBox(height: 10),
+        Expanded(child: _tileBlock(_tiles())),
+      ],
+    );
+  }
+
+  Widget _slateWall() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _faceTitle('Slate Board', square: true, compact: false),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Row(
+            children: [
+              SizedBox(width: 180, child: _rectScenes()),
+              const SizedBox(width: 12),
+              Expanded(child: _climate(wide: false)),
+              const SizedBox(width: 12),
+              Expanded(child: _tileBlock(_tiles())),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _emberPhone() {
+    return Column(
+      children: [
+        _faceTitle('Ember Dial', square: false, compact: true),
+        const SizedBox(height: 12),
+        _roundScenes(),
+        const SizedBox(height: 12),
+        _climate(wide: true),
+        const SizedBox(height: 12),
+        Expanded(child: _tileBlock(_tiles())),
+      ],
+    );
+  }
+
+  Widget _emberWall() {
+    final tiles = _tiles();
+    return Column(
+      children: [
+        _faceTitle('Ember Dial', square: false, compact: false),
+        const SizedBox(height: 12),
+        _roundScenes(),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: _tileBlock(tiles.sublist(0, 4))),
+              const SizedBox(width: 12),
+              Expanded(child: _climate(wide: false)),
+              const SizedBox(width: 12),
+              Expanded(child: _tileBlock(tiles.sublist(4))),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _faceTitle(String name, {required bool square, required bool compact}) {
+    return Container(
+      key: Key(compact ? 'home-phone' : 'home-wall'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: square ? const Color(0xFF31445F) : const Color(0xFF3A2418),
+        borderRadius: BorderRadius.circular(square ? 0 : 28),
+        border: Border.all(
+          color: square ? const Color(0xFF9BB0CC) : const Color(0xFFF0B27A),
+          width: 2,
+        ),
+      ),
+      child: Text(
+        name,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: square ? const Color(0xFFE7EEF8) : const Color(0xFFFFE6CC),
+          fontSize: compact ? 26 : 32,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _rectScenes() {
+    const scenes = ['home', 'away', 'sleep', 'movie'];
+    return Column(
+      children: [
+        for (final id in scenes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: GestureDetector(
+              key: Key('home-scene-$id'),
+              onTap: () => _apply(id),
+              child: Container(
+                width: double.infinity,
+                color: _scene == id ? const Color(0xFF8FA4C4) : const Color(0xFF243044),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                child: Text(
+                  _label(id),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _roundScenes() {
+    const scenes = ['home', 'away', 'sleep', 'movie'];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        for (final id in scenes)
+          GestureDetector(
+            key: Key('home-scene-$id'),
+            onTap: () => _apply(id),
+            child: Container(
+              width: 68,
+              height: 68,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _scene == id ? const Color(0xFFE07A3D) : const Color(0xFF2A211C),
+                border: Border.all(color: const Color(0xFFF0C9A0), width: 2),
+              ),
+              child: Text(
+                _label(id),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFFFF1E4), fontSize: 11, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -562,11 +730,13 @@ class _HomePanelState extends State<HomePanel> {
     return Column(
       children: [
         Text(
-          page == null
-              ? 'Settings'
-              : page == 'display'
-                  ? 'Display'
-                  : 'Panels',
+          switch (page) {
+            'display' => 'Display',
+            'panels' => 'Panels',
+            'status' => 'Status',
+            'language' => 'Language',
+            _ => 'Settings',
+          },
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
@@ -603,8 +773,40 @@ class _HomePanelState extends State<HomePanel> {
                     const Key('home-cat-panels'),
                     lit: true,
                   ),
+                  const SizedBox(height: 8),
+                  _settingsChip(
+                    'Status',
+                    () => setState(() => _settingsPage = 'status'),
+                    const Key('home-cat-status'),
+                    lit: true,
+                  ),
+                  const SizedBox(height: 8),
+                  _settingsChip(
+                    'Language',
+                    () => setState(() => _settingsPage = 'language'),
+                    const Key('home-cat-language'),
+                    lit: true,
+                  ),
                 ],
                 if (page == 'display') ...[
+                  const _SettingsLabel('Interface'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final face in const [
+                        ('glass', 'Harbor Glass'),
+                        ('slate', 'Slate Board'),
+                        ('ember', 'Ember Dial'),
+                      ])
+                        _settingsChip(
+                          face.$2,
+                          () => _save((current) => current.copyWith(face: face.$1)),
+                          Key('home-face-${face.$1}'),
+                          lit: _face == face.$1,
+                        ),
+                    ],
+                  ),
                   const _SettingsLabel('Background'),
                   Wrap(
                     spacing: 8,
@@ -653,6 +855,12 @@ class _HomePanelState extends State<HomePanel> {
                   const _SettingsLabel('Panel names'),
                   for (final id in _kHomeNameIds) _nameField(id),
                 ],
+                if (page == 'status') ...[
+                  ClockSettings(store: widget.store, device: _live),
+                  PlaceSettings(store: widget.store, device: _live),
+                ],
+                if (page == 'language')
+                  LanguageChoices(store: widget.store, device: _live, keyPrefix: 'home-language'),
               ],
             ),
           ),

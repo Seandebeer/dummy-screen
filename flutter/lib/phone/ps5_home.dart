@@ -2,12 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import 'console_apps.dart';
 import 'game_catalog.dart';
+import 'local_game.dart';
 
 /// PlayStation 5 Games home: icon strip, dark cards, and line-art background.
 class Ps5Home extends StatefulWidget {
@@ -31,16 +31,8 @@ class Ps5Home extends StatefulWidget {
 class _Ps5HomeState extends State<Ps5Home> {
   int _tab = 0;
 
-  static const _shells = [
-    ('xbox', 'Xbox Series'),
-    ('ps5', 'PlayStation 5'),
-    ('ps2', 'PlayStation 2'),
-    ('x360', 'Xbox 360'),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final now = osNow(widget.device.os);
     final featured = widget.device.os.steamTitle.trim().isEmpty
         ? 'Night Run'
         : widget.device.os.steamTitle.trim();
@@ -76,7 +68,7 @@ class _Ps5HomeState extends State<Ps5Home> {
                 padding: EdgeInsets.fromLTRB(
                   metrics.pad,
                   metrics.pad * 0.45,
-                  0,
+                  metrics.pad,
                   metrics.pad * 0.4,
                 ),
                 child: Column(
@@ -86,14 +78,8 @@ class _Ps5HomeState extends State<Ps5Home> {
                       padding: EdgeInsets.only(right: metrics.pad),
                       child: _Header(
                         tab: _tab,
-                        time: formatOsClock(
-                          now,
-                          hour24: widget.device.os.clockFormat == '24',
-                        ),
                         os: widget.device.os,
                         onTab: (index) => setState(() => _tab = index),
-                        onShell: widget.onShell,
-                        shells: _shells,
                       ),
                     ),
                     SizedBox(height: metrics.gap),
@@ -180,19 +166,13 @@ class _Scope extends InheritedWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.tab,
-    required this.time,
     required this.os,
     required this.onTab,
-    required this.onShell,
-    required this.shells,
   });
 
   final int tab;
-  final String time;
   final OsSettings os;
   final ValueChanged<int> onTab;
-  final ValueChanged<String> onShell;
-  final List<(String, String)> shells;
 
   @override
   Widget build(BuildContext context) {
@@ -205,39 +185,8 @@ class _Header extends StatelessWidget {
           SizedBox(width: metrics.gap + 4),
           _TabLabel(label: 'Media', selected: tab == 1, onTap: () => onTab(1)),
           const Spacer(),
-          if (ConsoleLayout.shows(os, 'search')) ...[
+          if (ConsoleLayout.shows(os, 'search'))
             Icon(Icons.search, color: Colors.white, size: metrics.fs(18)),
-            SizedBox(width: metrics.gap),
-          ],
-          PopupMenuButton<String>(
-            tooltip: 'Console',
-            padding: EdgeInsets.zero,
-            color: const Color(0xFF1C1C1E),
-            onSelected: onShell,
-            itemBuilder: (context) => [
-              for (final item in shells)
-                PopupMenuItem(value: item.$1, child: Text(item.$2)),
-            ],
-            child: Icon(
-              Icons.settings,
-              color: Colors.white,
-              size: metrics.fs(18),
-            ),
-          ),
-          SizedBox(width: metrics.gap),
-          Icon(Icons.crop_square, color: Colors.white, size: metrics.fs(16)),
-          if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
-            SizedBox(width: metrics.gap),
-            Text(
-              time,
-              key: const Key('ps5-clock'),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: metrics.fs(14),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -284,27 +233,15 @@ class _GameStrip extends StatefulWidget {
 }
 
 class _GameStripState extends State<_GameStrip> {
-  final _scroll = ScrollController(initialScrollOffset: 34);
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final metrics = _Scope.of(context);
     final label = metrics.fs(11).clamp(9.0, 13.0);
     final box = math.max(28.0, metrics.strip - label - 4);
-    return ClipRect(
-      child: Transform.translate(
-        offset: const Offset(-26, 0),
-        child: ListView(
-          controller: _scroll,
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.zero,
-          children: [
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.zero,
+      children: [
             _MarkTile(side: box * 0.92),
             SizedBox(width: metrics.gap * 0.6),
             Padding(
@@ -343,7 +280,7 @@ class _GameStripState extends State<_GameStrip> {
               art: _Art.night,
               side: box * 0.92,
               image: widget.cover,
-              onTap: () => widget.onOpen('steam'),
+              onTap: () => openDeviceGame(context, () => widget.onOpen('steam')),
             ),
             _CoverTile(
               art: _Art.harbor,
@@ -377,8 +314,6 @@ class _GameStripState extends State<_GameStrip> {
                 ),
               ),
           ],
-        ),
-      ),
     );
   }
 }
@@ -590,11 +525,9 @@ class _Cards extends StatelessWidget {
           child: _WishlistColumn(
             title: featured,
             image: cover,
-            onOpen: () => onOpen('steam'),
+            onOpen: () => openDeviceGame(context, () => onOpen('steam')),
           ),
         ),
-        SizedBox(width: gap),
-        const _ActivityPeek(),
       ],
     );
   }
@@ -1113,76 +1046,6 @@ class _Wishlist extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ActivityPeek extends StatelessWidget {
-  const _ActivityPeek();
-
-  @override
-  Widget build(BuildContext context) {
-    final metrics = _Scope.of(context);
-    final visible = (metrics.w * 0.072).clamp(52.0, 84.0);
-    return SizedBox(
-      width: visible,
-      child: ClipRect(
-        child: OverflowBox(
-          alignment: Alignment.centerLeft,
-          minWidth: visible + 78,
-          maxWidth: visible + 78,
-          child: SizedBox(width: visible + 78, child: const _Activity()),
-        ),
-      ),
-    );
-  }
-}
-
-class _Activity extends StatelessWidget {
-  const _Activity();
-
-  @override
-  Widget build(BuildContext context) {
-    final metrics = _Scope.of(context);
-    return _Panel(
-      onTap: null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Friend activity',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: metrics.fs(12),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          const CircleAvatar(
-            radius: 14,
-            backgroundColor: Color(0xFF8FD0C4),
-            child: Icon(Icons.person, color: Colors.white, size: 14),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Mara',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.white, fontSize: metrics.fs(12)),
-          ),
-          Text(
-            'playing now',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: const Color(0xFFC5C8D2),
-              fontSize: metrics.fs(10),
-            ),
-          ),
-        ],
       ),
     );
   }

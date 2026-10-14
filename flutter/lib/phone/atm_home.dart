@@ -10,6 +10,8 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'atm_chrome.dart';
+import 'clock_settings.dart';
+import 'place_settings.dart';
 
 /// Landscape ATM for an iPad mounted in a machine.
 ///
@@ -85,7 +87,13 @@ class _AtmScreenState extends State<AtmScreen> {
 
   OsSettings get os => _live.os;
 
-  AtmSkin get skin => atmSkinFor(os.shell);
+  AtmSkin get skin => atmFaceSkin(os);
+
+  double get _faceRadius => switch (os.face) {
+    'vault' => 28,
+    'kiosk' => 2,
+    _ => 14,
+  };
 
   String get _language => os.language;
 
@@ -377,6 +385,7 @@ class _AtmScreenState extends State<AtmScreen> {
         return _Menu(
           scale: scale,
           skin: skin,
+          face: atmFaceId(os),
           greeting: atmGreeting(_language, now.hour, os.bankHolder),
           select: _t('select'),
           panels: atmPanels(os),
@@ -728,6 +737,25 @@ class _AtmScreenState extends State<AtmScreen> {
               _chip('Language', false, () => setState(() => _settingsPage = 'language'), key: const Key('atm-cat-language')),
             ],
             if (_settingsPage == 'display') ...[
+            _section('Interface', scale),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final face in const [
+                  ('teller', 'Night Teller'),
+                  ('vault', 'Vault Desk'),
+                  ('kiosk', 'Kiosk Grid'),
+                ])
+                  _chip(
+                    face.$2,
+                    atmFaceId(os) == face.$1,
+                    () => _save((current) => current.copyWith(face: face.$1)),
+                    key: Key('atm-face-${face.$1}'),
+                  ),
+              ],
+            ),
             _section(_t('keypad'), scale),
             Wrap(
               alignment: WrapAlignment.center,
@@ -781,6 +809,9 @@ class _AtmScreenState extends State<AtmScreen> {
             ),
             ],
             if (_settingsPage == 'status') ...[
+            ClockSettings(store: widget.store, device: _live),
+            PlaceSettings(store: widget.store, device: _live),
+            SizedBox(height: 14 * scale),
             _nameField(
               scale,
               _t('time'),
@@ -915,6 +946,7 @@ class _AtmScreenState extends State<AtmScreen> {
           child: _Menu(
             scale: scale,
             skin: skin,
+            face: atmFaceId(os),
             greeting: atmGreeting(_language, now.hour, os.bankHolder),
             select: _t('select'),
             panels: atmPanels(os),
@@ -940,7 +972,7 @@ class _AtmScreenState extends State<AtmScreen> {
         child: Material(
           color: skin.keyFill,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(_faceRadius),
             side: BorderSide(color: skin.rule),
           ),
           clipBehavior: Clip.antiAlias,
@@ -1012,7 +1044,7 @@ class _AtmScreenState extends State<AtmScreen> {
             child: Material(
               color: skin.keyFill,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(_faceRadius),
                 side: BorderSide(color: skin.rule),
               ),
               clipBehavior: Clip.antiAlias,
@@ -1064,7 +1096,7 @@ class _AtmScreenState extends State<AtmScreen> {
         child: Material(
           color: skin.keyFill,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(_faceRadius),
             side: BorderSide(color: skin.rule),
           ),
           clipBehavior: Clip.antiAlias,
@@ -1077,7 +1109,7 @@ class _AtmScreenState extends State<AtmScreen> {
                 value: value,
                 menuMaxHeight: 320,
                 dropdownColor: skin.keyFill,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(_faceRadius),
                 iconEnabledColor: skin.keyInk,
                 style: TextStyle(
                   color: skin.keyInk,
@@ -1140,7 +1172,7 @@ class _AtmScreenState extends State<AtmScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? skin.primary : skin.keyFill,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(_faceRadius),
           border: Border.all(
             color: selected ? skin.primaryInk : skin.rule,
             width: selected ? 2 : 1,
@@ -1196,12 +1228,14 @@ class _AtmScreenState extends State<AtmScreen> {
             fontWeight: FontWeight.w800,
           ),
         ),
-        SizedBox(height: 6 * scale),
-        Text(
-          external ? _t('externalPin') : subtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: skin.muted, fontSize: 16 * scale),
-        ),
+        if ((external ? _t('externalPin') : subtitle).isNotEmpty) ...[
+          SizedBox(height: 6 * scale),
+          Text(
+            external ? _t('externalPin') : subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: skin.muted, fontSize: 16 * scale),
+          ),
+        ],
         SizedBox(height: 12 * scale),
         _dots(scale),
         if (!external) ...[
@@ -1399,7 +1433,7 @@ class _AtmScreenState extends State<AtmScreen> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: primary ? skin.primary : skin.keyFill,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(_faceRadius),
           ),
           child: Text(
             label,
@@ -1420,6 +1454,7 @@ class _Menu extends StatelessWidget {
   const _Menu({
     required this.scale,
     required this.skin,
+    required this.face,
     required this.greeting,
     required this.select,
     required this.panels,
@@ -1430,6 +1465,7 @@ class _Menu extends StatelessWidget {
 
   final double scale;
   final AtmSkin skin;
+  final String face;
   final String greeting;
   final String select;
   final List<String> panels;
@@ -1439,6 +1475,8 @@ class _Menu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (face == 'vault') return _vault();
+    if (face == 'kiosk') return _kiosk();
     final majors = panels.take(2).toList();
     final minors = panels.skip(2).toList();
     return Column(
@@ -1516,6 +1554,106 @@ class _Menu extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _banner(String text, {required BorderRadius radius}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 8 * scale, horizontal: 12),
+      decoration: BoxDecoration(color: skin.major, borderRadius: radius),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: skin.majorInk, fontSize: 22 * scale, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
+  Widget _vault() {
+    return Column(
+      children: [
+        _banner(greeting, radius: BorderRadius.circular(40)),
+        SizedBox(height: 6 * scale),
+        Text(select, style: TextStyle(color: skin.muted, fontSize: 13 * scale)),
+        SizedBox(height: 8 * scale),
+        Expanded(
+          child: Column(
+            children: [
+              for (final id in panels)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: GestureDetector(
+                      key: Key('atm-$id'),
+                      onTap: () => onOpen(id),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: selected == id ? skin.primary : skin.minor,
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(color: skin.rule),
+                        ),
+                        child: Center(
+                          child: Text(
+                            labelFor(id),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: selected == id ? skin.primaryInk : skin.minorInk,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _kiosk() {
+    return Column(
+      children: [
+        _banner(greeting, radius: BorderRadius.zero),
+        SizedBox(height: 8 * scale),
+        Expanded(
+          child: GridView.count(
+            crossAxisCount: 2,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 6,
+            crossAxisSpacing: 6,
+            childAspectRatio: 1.7,
+            children: [
+              for (final id in panels)
+                GestureDetector(
+                  key: Key('atm-$id'),
+                  onTap: () => onOpen(id),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: selected == id ? skin.primary : skin.major,
+                      border: Border.all(color: skin.rule, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        labelFor(id),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: selected == id ? skin.primaryInk : skin.majorInk,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],

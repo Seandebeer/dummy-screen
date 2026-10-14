@@ -19,6 +19,10 @@ import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
 import '../phone/form_factor.dart';
 import 'home_page.dart';
+import '../os_catalog.dart';
+import '../phone/atm_os_settings.dart';
+import '../phone/cctv_wall.dart';
+import '../phone/language_settings.dart';
 import '../phone/place_settings.dart';
 import '../phone/settings_app.dart';
 import '../phone/settings_kit.dart';
@@ -657,6 +661,22 @@ class _OsPageState extends State<OsPage> {
     );
   }
 
+  _DevicePage _languagePage(StageStore store, PropDevice live) {
+    return _DevicePage(
+      id: 'language',
+      icon: Icons.language,
+      title: 'Language',
+      detail: languageByCode(live.os.language).native,
+      children: [
+        LanguageChoices(
+          store: store,
+          device: live,
+          keyPrefix: 'device-language-${live.kind}',
+        ),
+      ],
+    );
+  }
+
   Widget _settingsFor(StageStore store, PropDevice device) {
     final live = store.deviceById(device.id) ?? device;
     final body = switch (live.kind) {
@@ -704,68 +724,10 @@ class _OsPageState extends State<OsPage> {
                 PlaceSettings(store: store, device: live),
               ],
             ),
+            _languagePage(store, live),
           ],
         ),
-      'atm' => _DeviceMenu(
-          store: store,
-          device: live,
-          pages: [
-            _DevicePage(
-              id: 'bank',
-              icon: Icons.account_balance,
-              title: 'Bank',
-              detail: 'Name, holder, and balance',
-              children: [
-                SettingsSection(
-                  title: 'Bank',
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        initialValue: live.os.bankName,
-                        decoration: const InputDecoration(labelText: 'Bank name'),
-                        onChanged: (value) => store.updateOs(
-                          live.id,
-                          (current) => current.copyWith(bankName: value.trim()),
-                        ),
-                      ),
-                      TextFormField(
-                        initialValue: live.os.bankHolder,
-                        decoration: const InputDecoration(labelText: 'Account holder'),
-                        onChanged: (value) => store.updateOs(
-                          live.id,
-                          (current) => current.copyWith(bankHolder: value.trim()),
-                        ),
-                      ),
-                      TextFormField(
-                        initialValue: '${live.os.bankBalance}',
-                        decoration: const InputDecoration(labelText: 'Balance'),
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          final parsed = int.tryParse(value.trim());
-                          if (parsed == null) return;
-                          store.updateOs(
-                            live.id,
-                            (current) => current.copyWith(bankBalance: parsed),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            _DevicePage(
-              id: 'status',
-              icon: Icons.schedule,
-              title: 'Status',
-              detail: 'Clock and weather',
-              children: [
-                SettingsSection(title: 'Clock', child: ClockSettings(store: store, device: live)),
-                PlaceSettings(store: store, device: live),
-              ],
-            ),
-          ],
-        ),
+      'atm' => AtmOsSettings(store: store, device: live),
       'cctv' => _DeviceMenu(
           store: store,
           device: live,
@@ -774,12 +736,9 @@ class _OsPageState extends State<OsPage> {
               id: 'display',
               icon: Icons.videocam_outlined,
               title: 'Display',
-              detail: 'Camera wall',
-              children: const [
-                SettingsSection(
-                  title: 'Layout',
-                  child: Text('This camera wall uses one fixed layout.'),
-                ),
+              detail: 'Cameras, names, and footage',
+              children: [
+                CctvSettingsBody(store: store, device: live),
               ],
             ),
             _DevicePage(
@@ -792,12 +751,41 @@ class _OsPageState extends State<OsPage> {
                 PlaceSettings(store: store, device: live),
               ],
             ),
+            _languagePage(store, live),
           ],
         ),
       'smarthome' || 'homephone' => _DeviceMenu(
           store: store,
           device: live,
           pages: [
+            _DevicePage(
+              id: 'display',
+              icon: Icons.dashboard_customize_outlined,
+              title: 'Display',
+              detail: 'Interface',
+              children: [
+                SettingsSection(
+                  title: 'Interface',
+                  child: Column(
+                    children: [
+                      for (final face in const [
+                        ('glass', 'Harbor Glass'),
+                        ('slate', 'Slate Board'),
+                        ('ember', 'Ember Dial'),
+                      ])
+                        ListTile(
+                          key: Key('os-home-face-${face.$1}'),
+                          title: Text(face.$2, style: const TextStyle(color: Colors.white)),
+                          trailing: (live.os.face.isEmpty ? 'glass' : live.os.face) == face.$1
+                              ? const Icon(Icons.check, color: kSignal)
+                              : null,
+                          onTap: () => store.updateOs(live.id, (os) => os.copyWith(face: face.$1)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             _DevicePage(
               id: 'panels',
               icon: Icons.dashboard_outlined,
@@ -832,6 +820,7 @@ class _OsPageState extends State<OsPage> {
                 PlaceSettings(store: store, device: live),
               ],
             ),
+            _languagePage(store, live),
           ],
         ),
       _ => SettingsApp(store: store, device: live),

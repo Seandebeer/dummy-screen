@@ -5,11 +5,13 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
-import 'clock_settings.dart';
+import 'app_catalog.dart';
+import 'catalog.dart';
 import 'extra_settings.dart';
 import 'game_catalog.dart';
+import 'language_settings.dart';
+import 'local_game.dart';
 import 'mac_desk.dart';
-import 'place_settings.dart';
 import 'settings_kit.dart';
 import 'wallpaper_art.dart';
 
@@ -166,6 +168,9 @@ class ConsoleSettings extends StatefulWidget {
 
 class _ConsoleSettingsState extends State<ConsoleSettings> {
   String? _page;
+  bool _appsOpen = false;
+  bool _gamesOpen = false;
+  String _localName = '';
 
   StageStore get store => widget.store;
   PropDevice get device => widget.device;
@@ -174,6 +179,15 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
 
   void _save(OsSettings Function(OsSettings current) change) {
     store.updateOs(device.id, change);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    LocalGameLink.read().then((link) {
+      if (!mounted) return;
+      setState(() => _localName = link?.name ?? '');
+    });
   }
 
   void _show(String token, bool value) {
@@ -196,8 +210,9 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
         title: switch (_page) {
           'look' => 'Display',
           'status' => 'Status',
-          'home' => 'Home',
           'icons' => 'Apps',
+          'games' => 'Games',
+          'language' => 'Language',
           _ => 'Settings',
         },
         onBack: _page == null ? null : () => setState(() => _page = null),
@@ -217,26 +232,52 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
                   categoryKey: const Key('console-settings-status'),
                   icon: Icons.tune,
                   title: 'Status',
-                  detail: 'Clock, battery, and player',
+                  detail: 'Player and scores',
                   onOpen: () => setState(() => _page = 'status'),
-                ),
-                SettingsCategory(
-                  categoryKey: const Key('console-settings-home'),
-                  icon: Icons.sports_esports,
-                  title: 'Home',
-                  detail: 'Pinned games',
-                  onOpen: () => setState(() => _page = 'home'),
                 ),
                 SettingsCategory(
                   categoryKey: const Key('console-settings-icons'),
                   icon: Icons.apps,
                   title: 'Apps',
-                  detail: 'Custom icons',
+                  detail: 'Custom icons and the app library',
                   onOpen: () => setState(() => _page = 'icons'),
+                ),
+                SettingsCategory(
+                  categoryKey: const Key('console-settings-games'),
+                  icon: Icons.sports_esports,
+                  title: 'Games',
+                  detail: 'Custom tiles and the games library',
+                  onOpen: () => setState(() => _page = 'games'),
+                ),
+                SettingsCategory(
+                  categoryKey: const Key('console-settings-language'),
+                  icon: Icons.language,
+                  title: 'Language',
+                  detail: languageByCode(os.language).native,
+                  onOpen: () => setState(() => _page = 'language'),
                 ),
               ],
             ),
           if (_page == 'look') ...[
+            const _Head('Interface'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final shell in const [
+                  ('xbox', 'Xbox Series'),
+                  ('ps5', 'PlayStation 5'),
+                  ('ps2', 'PlayStation 2'),
+                  ('x360', 'Xbox 360'),
+                ])
+                  ChoiceChip(
+                    key: Key('console-shell-${shell.$1}'),
+                    label: Text(shell.$2),
+                    selected: (os.shell.isEmpty ? 'xbox' : os.shell) == shell.$1,
+                    onSelected: (_) => _save((current) => current.copyWith(shell: shell.$1)),
+                  ),
+              ],
+            ),
             const _Head('Theme'),
             Wrap(
               spacing: 8,
@@ -318,58 +359,6 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
             ),
           ],
           if (_page == 'status') ...[
-            _switch('Clock', shown.contains('clock'), 'console-show-clock', (
-              value,
-            ) {
-              _show('clock', value);
-            }),
-            _switch(
-              'Battery',
-              shown.contains('battery'),
-              'console-show-battery',
-              (value) => _show('battery', value),
-            ),
-            Row(
-              children: [
-                Text(
-                  'Battery  ${os.battery}%',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const Spacer(),
-                IconButton(
-                  key: const Key('console-battery-down'),
-                  onPressed: os.battery <= 0
-                      ? null
-                      : () => _save(
-                          (current) => current.copyWith(
-                            battery: (current.battery - 10).clamp(0, 100),
-                          ),
-                        ),
-                  icon: const Icon(Icons.remove, color: Colors.white),
-                ),
-                IconButton(
-                  key: const Key('console-battery-up'),
-                  onPressed: os.battery >= 100
-                      ? null
-                      : () => _save(
-                          (current) => current.copyWith(
-                            battery: (current.battery + 10).clamp(0, 100),
-                          ),
-                        ),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                ),
-              ],
-            ),
-            Slider(
-              key: const Key('console-status-battery'),
-              value: os.battery.toDouble().clamp(0, 100),
-              max: 100,
-              onChanged: (value) => _save(
-                (current) =>
-                    current.copyWith(battery: value.round().clamp(0, 100)),
-              ),
-            ),
-            ClockSettings(store: store, device: device),
             _switch('Player', shown.contains('tag'), 'console-show-tag', (
               value,
             ) {
@@ -410,37 +399,6 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
             ) {
               _show('mail', value);
             }),
-            PlaceSettings(store: store, device: device),
-          ],
-          if (_page == 'home') ...[
-            const _Head('Pinned games'),
-            if (os.consolePins.isEmpty)
-              const Text(
-                'Pin a game from the Game Store and it lands on the home screen.',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
-              ),
-            for (final id in os.consolePins)
-              Row(
-                children: [
-                  Icon(
-                    macGlyph(id, os).icon,
-                    color: macGlyph(id, os).color,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      macGlyph(id, os).label,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  TextButton(
-                    key: Key('console-unpin-$id'),
-                    onPressed: () => _save((current) => ConsoleLayout.unpin(current, id)),
-                    child: const Text('Remove'),
-                  ),
-                ],
-              ),
           ],
           if (_page == 'icons') ...[
             const _Head('Custom icons'),
@@ -459,9 +417,114 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
                 child: CustomIconMaker(store: store, device: device),
               ),
             ),
+            const SizedBox(height: 12),
+            _fold(
+              'App Library',
+              const Key('console-app-library'),
+              _appsOpen,
+              () => setState(() => _appsOpen = !_appsOpen),
+              [
+                for (final app in kPropApps)
+                  Text(app.label, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                for (final section in mockCatalog) ...[
+                  Text(section.name, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  for (final app in section.apps)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Text(app.label, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    ),
+                ],
+              ],
+            ),
           ],
+          if (_page == 'games') ...[
+            const _Head('This computer'),
+            Text(
+              _localName.isEmpty
+                  ? 'Choose a game that is already on this computer. The tile starts it. Nothing is copied in.'
+                  : 'Linked on this computer: $_localName',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                key: const Key('console-local-game'),
+                onPressed: () async {
+                  final link = await LocalGameLink.pick();
+                  if (!mounted || link == null) return;
+                  setState(() => _localName = link.name);
+                },
+                child: const Text('Choose a game on this computer'),
+              ),
+            ),
+            const _Head('Custom tile'),
+            const Text(
+              'Same maker as the app library. The new tile shows up in the Game Store.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: CustomIconMaker(store: store, device: device),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _fold(
+              'Games library',
+              const Key('console-games-library'),
+              _gamesOpen,
+              () => setState(() => _gamesOpen = !_gamesOpen),
+              [
+                for (final game in mockGames)
+                  Text(game.title, style: const TextStyle(color: Colors.white, fontSize: 13)),
+              ],
+            ),
+          ],
+          if (_page == 'language')
+            LanguageChoices(
+              store: store,
+              device: device,
+              keyPrefix: 'console-language',
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _fold(
+    String title,
+    Key key,
+    bool open,
+    VoidCallback onTap,
+    List<Widget> children,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          key: key,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Icon(open ? Icons.expand_less : Icons.expand_more, color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
+                Text(open ? 'Hide' : 'Show', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+              ],
+            ),
+          ),
+        ),
+        if (open) ...children,
+      ],
     );
   }
 
