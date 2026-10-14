@@ -155,12 +155,14 @@ class ConsoleSettings extends StatefulWidget {
     super.key,
     required this.store,
     required this.device,
-    required this.onClose,
+    this.onClose,
+    this.bare = false,
   });
 
   final StageStore store;
   final PropDevice device;
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
+  final bool bare;
 
   @override
   State<ConsoleSettings> createState() => _ConsoleSettingsState();
@@ -168,13 +170,11 @@ class ConsoleSettings extends StatefulWidget {
 
 class _ConsoleSettingsState extends State<ConsoleSettings> {
   String? _page;
-  bool _appsOpen = false;
-  bool _gamesOpen = false;
   String _localName = '';
 
   StageStore get store => widget.store;
   PropDevice get device => widget.device;
-  VoidCallback get onClose => widget.onClose;
+  VoidCallback? get onClose => widget.onClose;
   OsSettings get os => device.os;
 
   void _save(OsSettings Function(OsSettings current) change) {
@@ -202,10 +202,7 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
   @override
   Widget build(BuildContext context) {
     final shown = ConsoleLayout.status(os).toSet();
-    return _Pane(
-      title: 'Settings',
-      onClose: onClose,
-      child: SettingsPage(
+    final page = SettingsPage(
         listKey: const Key('console-settings-list'),
         title: switch (_page) {
           'look' => 'Display',
@@ -259,288 +256,272 @@ class _ConsoleSettingsState extends State<ConsoleSettings> {
               ],
             ),
           if (_page == 'look') ...[
-            const _Head('Interface'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final shell in const [
-                  ('xbox', 'Xbox Series'),
-                  ('ps5', 'PlayStation 5'),
-                  ('ps2', 'PlayStation 2'),
-                  ('x360', 'Xbox 360'),
-                ])
-                  ChoiceChip(
-                    key: Key('console-shell-${shell.$1}'),
-                    label: Text(shell.$2),
-                    selected: (os.shell.isEmpty ? 'xbox' : os.shell) == shell.$1,
-                    onSelected: (_) => _save((current) => current.copyWith(shell: shell.$1)),
-                  ),
-              ],
+            SettingsSection(
+              title: 'Interface',
+              child: Column(
+                children: [
+                  for (final shell in const [
+                    (
+                      'xbox',
+                      'Xbox Series',
+                      'Green dashboard and a row of game tiles.',
+                      [Color(0xFF107C10), Color(0xFF0E1A10)],
+                    ),
+                    (
+                      'ps5',
+                      'PlayStation 5',
+                      'Wide cards across a dark control strip.',
+                      [Color(0xFF003791), Color(0xFF0A1628)],
+                    ),
+                    (
+                      'ps2',
+                      'PlayStation 2',
+                      'Memory-card browser and a blue menu.',
+                      [Color(0xFF1A3A8A), Color(0xFF070B18)],
+                    ),
+                    (
+                      'x360',
+                      'Xbox 360',
+                      'Blade menu and a row of game tiles.',
+                      [Color(0xFF5BA817), Color(0xFF10140C)],
+                    ),
+                  ]) ...[
+                    SettingsTile(
+                      tileKey: Key('console-shell-${shell.$1}'),
+                      name: shell.$2,
+                      desc: shell.$3,
+                      preview: shell.$4,
+                      active: (os.shell.isEmpty ? 'xbox' : os.shell) == shell.$1,
+                      onTap: () => _save((current) => current.copyWith(shell: shell.$1)),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ],
+              ),
             ),
-            const _Head('Theme'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final theme in osThemes)
-                  ChoiceChip(
-                    key: Key('console-theme-${theme.id}'),
-                    label: Text(theme.name),
-                    selected:
-                        os.backgroundPreset == theme.preset &&
-                        os.isLight == theme.light &&
-                        os.backgroundType != 'image',
-                    onSelected: (_) => _save(
+            SettingsSection(
+              title: 'Theme',
+              child: SettingsThemeGrid(
+                prefix: 'console',
+                selected: (theme) =>
+                    os.backgroundPreset == theme.preset &&
+                    os.isLight == theme.light &&
+                    os.backgroundType != 'image',
+                onSelect: (theme) => _save(
+                  (current) => current.copyWith(
+                    theme: theme.light ? 'light' : 'dark',
+                    backgroundType: 'preset',
+                    backgroundPreset: theme.preset,
+                    backgroundUrl: '',
+                  ),
+                ),
+              ),
+            ),
+            SettingsSection(
+              title: 'Background',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SettingsTile(
+                    tileKey: const Key('console-bg-shell'),
+                    name: 'Shell',
+                    desc: 'The artwork that ships with this console.',
+                    preview: const [Color(0xFF1A1D2E), Color(0xFF000000)],
+                    active: !ConsoleLayout.customWall(os),
+                    onTap: () => _save(
                       (current) => current.copyWith(
-                        theme: theme.light ? 'light' : 'dark',
+                        theme: 'dark',
                         backgroundType: 'preset',
-                        backgroundPreset: theme.preset,
+                        backgroundPreset: 'default',
                         backgroundUrl: '',
                       ),
                     ),
                   ),
-              ],
-            ),
-            const _Head('Background'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ChoiceChip(
-                  key: const Key('console-bg-shell'),
-                  label: const Text('Shell'),
-                  selected: !ConsoleLayout.customWall(os),
-                  onSelected: (_) => _save(
-                    (current) => current.copyWith(
-                      theme: 'dark',
-                      backgroundType: 'preset',
-                      backgroundPreset: 'default',
-                      backgroundUrl: '',
-                    ),
-                  ),
-                ),
-                for (final preset in bgPresets)
-                  if (preset.id != 'default')
-                    ChoiceChip(
-                      key: Key('console-bg-${preset.id}'),
-                      label: Text(preset.name),
-                      selected:
-                          os.backgroundType != 'image' &&
-                          os.backgroundPreset == preset.id,
-                      onSelected: (_) => _save(
-                        (current) => current.copyWith(
-                          backgroundType: 'preset',
-                          backgroundPreset: preset.id,
-                          backgroundUrl: '',
-                        ),
+                  const SizedBox(height: 8),
+                  SettingsPresetGrid(
+                    prefix: 'console',
+                    selected: os.backgroundType == 'image' || !ConsoleLayout.customWall(os)
+                        ? null
+                        : os.backgroundPreset,
+                    onSelect: (id) => _save(
+                      (current) => current.copyWith(
+                        backgroundType: 'preset',
+                        backgroundPreset: id,
+                        backgroundUrl: '',
                       ),
                     ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                key: const Key('console-bg-upload'),
-                onPressed: () async {
-                  final file = await FilePicker.pickFile(type: FileType.image);
-                  if (file == null) return;
-                  final path = await persistPickedImage(file);
-                  if (path == null) return;
-                  _save(
-                    (current) => current.copyWith(
-                      backgroundType: 'image',
-                      backgroundUrl: path,
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsUploadRow(
+                    uploadKey: const Key('console-bg-upload'),
+                    uploading: false,
+                    showRemove: os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty,
+                    onUpload: () async {
+                      final file = await FilePicker.pickFile(type: FileType.image);
+                      if (file == null) return;
+                      final path = await persistPickedImage(file);
+                      if (path == null) return;
+                      _save(
+                        (current) => current.copyWith(
+                          backgroundType: 'image',
+                          backgroundUrl: path,
+                        ),
+                      );
+                    },
+                    onRemove: () => _save(
+                      (current) => current.copyWith(
+                        backgroundType: 'preset',
+                        backgroundPreset: 'default',
+                        backgroundUrl: '',
+                      ),
                     ),
-                  );
-                },
-                child: const Text('Choose picture'),
-              ),
-            ),
-          ],
-          if (_page == 'status') ...[
-            _switch('Player', shown.contains('tag'), 'console-show-tag', (
-              value,
-            ) {
-              _show('tag', value);
-            }),
-            TextFormField(
-              key: const Key('console-status-tag'),
-              initialValue: store.operatorName,
-              style: const TextStyle(color: Color(0xFF1D1D1F)),
-              cursorColor: const Color(0xFF1D1D1F),
-              decoration: const InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                hintText: 'Player name',
-                isDense: true,
-              ),
-              onChanged: (value) => store.setOperator(name: value),
-            ),
-            _switch('Search', shown.contains('search'), 'console-show-search', (
-              value,
-            ) {
-              _show('search', value);
-            }),
-            _switch(
-              'Gamerscore',
-              shown.contains('score'),
-              'console-show-score',
-              (value) => _show('score', value),
-            ),
-            _switch(
-              'Trophies',
-              shown.contains('trophies'),
-              'console-show-trophies',
-              (value) => _show('trophies', value),
-            ),
-            _switch('Mail', shown.contains('mail'), 'console-show-mail', (
-              value,
-            ) {
-              _show('mail', value);
-            }),
-          ],
-          if (_page == 'icons') ...[
-            const _Head('Custom icons'),
-            const Text(
-              'Same icon maker as the phone. New icons show up in the Game Store.',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: CustomIconMaker(store: store, device: device),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _fold(
-              'App Library',
-              const Key('console-app-library'),
-              _appsOpen,
-              () => setState(() => _appsOpen = !_appsOpen),
-              [
-                for (final app in kPropApps)
-                  Text(app.label, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                for (final section in mockCatalog) ...[
-                  Text(section.name, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  for (final app in section.apps)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Text(app.label, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                    ),
+                  ),
                 ],
-              ],
+              ),
+            ),
+          ],
+          if (_page == 'status')
+            SettingsSection(
+              title: 'Status',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SettingsToggle(
+                    key: const Key('console-show-tag'),
+                    label: 'Player',
+                    value: shown.contains('tag'),
+                    onChanged: (value) => _show('tag', value),
+                  ),
+                  SettingsField(
+                    fieldKey: const Key('console-status-tag'),
+                    label: 'Player name',
+                    value: store.operatorName,
+                    onChanged: (value) => store.setOperator(name: value),
+                  ),
+                  SettingsToggle(
+                    key: const Key('console-show-search'),
+                    label: 'Search',
+                    value: shown.contains('search'),
+                    onChanged: (value) => _show('search', value),
+                  ),
+                  SettingsToggle(
+                    key: const Key('console-show-score'),
+                    label: 'Gamerscore',
+                    value: shown.contains('score'),
+                    onChanged: (value) => _show('score', value),
+                  ),
+                  SettingsToggle(
+                    key: const Key('console-show-trophies'),
+                    label: 'Trophies',
+                    value: shown.contains('trophies'),
+                    onChanged: (value) => _show('trophies', value),
+                  ),
+                  SettingsToggle(
+                    key: const Key('console-show-mail'),
+                    label: 'Mail',
+                    value: shown.contains('mail'),
+                    onChanged: (value) => _show('mail', value),
+                  ),
+                ],
+              ),
+            ),
+          if (_page == 'icons') ...[
+            SettingsSection(
+              title: 'Custom icons',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SettingsHint(
+                    'Same icon maker as the phone. New icons show up in the Game Store.',
+                  ),
+                  const SizedBox(height: 8),
+                  CustomIconMaker(store: store, device: device),
+                ],
+              ),
+            ),
+            CollapsibleSection(
+              title: 'App Library',
+              sectionKey: const Key('console-app-library'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final app in kPropApps) Text(app.label),
+                  for (final section in mockCatalog) ...[
+                    Text(section.name, style: const TextStyle(color: Color(0x99FFFFFF), fontSize: 12)),
+                    for (final app in section.apps)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Text(app.label),
+                      ),
+                  ],
+                ],
+              ),
             ),
           ],
           if (_page == 'games') ...[
-            const _Head('This computer'),
-            Text(
-              _localName.isEmpty
-                  ? 'Choose a game that is already on this computer. The tile starts it. Nothing is copied in.'
-                  : 'Linked on this computer: $_localName',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                key: const Key('console-local-game'),
-                onPressed: () async {
-                  final link = await LocalGameLink.pick();
-                  if (!mounted || link == null) return;
-                  setState(() => _localName = link.name);
-                },
-                child: const Text('Choose a game on this computer'),
+            SettingsSection(
+              title: 'This computer',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SettingsHint(
+                    _localName.isEmpty
+                        ? 'Choose a game that is already on this computer. The tile starts it. Nothing is copied in.'
+                        : 'Linked on this computer: $_localName',
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      key: const Key('console-local-game'),
+                      onPressed: () async {
+                        final link = await LocalGameLink.pick();
+                        if (!mounted || link == null) return;
+                        setState(() => _localName = link.name);
+                      },
+                      child: const Text('Choose a game on this computer'),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const _Head('Custom tile'),
-            const Text(
-              'Same maker as the app library. The new tile shows up in the Game Store.',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: CustomIconMaker(store: store, device: device),
+            SettingsSection(
+              title: 'Custom tile',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SettingsHint(
+                    'Same maker as the app library. The new tile shows up in the Game Store.',
+                  ),
+                  const SizedBox(height: 8),
+                  CustomIconMaker(store: store, device: device),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            _fold(
-              'Games library',
-              const Key('console-games-library'),
-              _gamesOpen,
-              () => setState(() => _gamesOpen = !_gamesOpen),
-              [
-                for (final game in mockGames)
-                  Text(game.title, style: const TextStyle(color: Colors.white, fontSize: 13)),
-              ],
+            CollapsibleSection(
+              title: 'Games library',
+              sectionKey: const Key('console-games-library'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final game in mockGames) Text(game.title),
+                ],
+              ),
             ),
           ],
           if (_page == 'language')
-            LanguageChoices(
-              store: store,
-              device: device,
-              keyPrefix: 'console-language',
+            SettingsSection(
+              title: 'Language',
+              child: LanguageChoices(
+                store: store,
+                device: device,
+                keyPrefix: 'console-language',
+              ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _fold(
-    String title,
-    Key key,
-    bool open,
-    VoidCallback onTap,
-    List<Widget> children,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InkWell(
-          key: key,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Icon(open ? Icons.expand_less : Icons.expand_more, color: Colors.white70, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                ),
-                Text(open ? 'Hide' : 'Show', style: const TextStyle(color: Colors.white54, fontSize: 13)),
-              ],
-            ),
-          ),
-        ),
-        if (open) ...children,
-      ],
-    );
-  }
-
-  Widget _switch(
-    String label,
-    bool value,
-    String keyName,
-    ValueChanged<bool> onChanged,
-  ) {
-    return SwitchListTile(
-      key: Key(keyName),
-      contentPadding: EdgeInsets.zero,
-      title: Text(label, style: const TextStyle(color: Colors.white)),
-      value: value,
-      onChanged: onChanged,
-    );
+      );
+    final close = onClose;
+    if (widget.bare || close == null) return page;
+    return _Pane(title: 'Settings', onClose: close, child: page);
   }
 }
 
@@ -868,23 +849,3 @@ class _PagerState extends State<_Pager> {
   }
 }
 
-class _Head extends StatelessWidget {
-  const _Head(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}

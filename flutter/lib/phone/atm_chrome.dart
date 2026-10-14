@@ -339,57 +339,10 @@ AtmSkin atmSkinFor(String id) {
   return kAtmSkins.first;
 }
 
-/// Vault Desk: burgundy field, gold type, pill controls.
-const kAtmVaultSkin = AtmSkin(
-  id: 'vault',
-  name: 'Vault Desk',
-  light: false,
-  washA: Color(0xFF4A1020),
-  washB: Color(0xFF2A0A14),
-  washC: Color(0xFF14060C),
-  major: Color(0xFFE7C36A),
-  majorInk: Color(0xFF2A1408),
-  minor: Color(0xFF3A1420),
-  minorInk: Color(0xFFF3E2B0),
-  title: Color(0xFFF6E7C0),
-  muted: Color(0xFFE0B8A4),
-  keyFill: Color(0xFF5A1830),
-  keyInk: Color(0xFFF6E7C0),
-  primary: Color(0xFFE7C36A),
-  primaryInk: Color(0xFF2A1408),
-  rule: Color(0x66E7C36A),
-);
+/// Every interface uses the chosen theme. Layout and button shape stay with the face.
+AtmSkin atmFaceSkin(OsSettings os) => atmSkinFor(os.shell);
 
-/// Kiosk Grid: ink squares, mint type, sharp corners.
-const kAtmKioskSkin = AtmSkin(
-  id: 'kiosk',
-  name: 'Kiosk Grid',
-  light: false,
-  washA: Color(0xFF071614),
-  washB: Color(0xFF0C2422),
-  washC: Color(0xFF04100E),
-  major: Color(0xFF123834),
-  majorInk: Color(0xFFD8FFF4),
-  minor: Color(0xFF0A1C1A),
-  minorInk: Color(0xFF9EE7D4),
-  title: Color(0xFFD8FFF4),
-  muted: Color(0xFF7EAEA4),
-  keyFill: Color(0xFF102826),
-  keyInk: Color(0xFFD8FFF4),
-  primary: Color(0xFF3EE0C0),
-  primaryInk: Color(0xFF04201A),
-  rule: Color(0x443EE0C0),
-);
-
-/// Night Teller keeps the colour skins. The other two bring their own.
-AtmSkin atmFaceSkin(OsSettings os) {
-  return switch (os.face) {
-    'vault' => kAtmVaultSkin,
-    'kiosk' => kAtmKioskSkin,
-    _ => atmSkinFor(os.shell),
-  };
-}
-
+/// An empty face is Night Teller.
 String atmFaceId(OsSettings os) => os.face.isEmpty ? 'teller' : os.face;
 
 const kAtmDefaultNotes = [20, 50, 100];

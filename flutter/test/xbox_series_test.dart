@@ -320,6 +320,8 @@ void main() {
     await tester.tap(find.byKey(const Key('console-settings-look')));
     await tester.pump();
 
+    await tester.ensureVisible(find.byKey(const Key('console-theme-midnight')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('console-theme-midnight')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('console-back')));
@@ -386,7 +388,23 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('console-settings-look')));
     await tester.pump();
-    expect(find.text('Choose picture'), findsOneWidget);
+    final settingsScroll = find.descendant(
+      of: find.byKey(const Key('console-settings-list')),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Scrollable && widget.physics is! NeverScrollableScrollPhysics,
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Upload Image'),
+      400,
+      scrollable: settingsScroll,
+    );
+    expect(find.text('Upload Image'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('console-shell-ps2')),
+      -400,
+      scrollable: settingsScroll,
+    );
     await tester.tap(find.byKey(const Key('console-shell-ps2')));
     await tester.pump();
 
@@ -408,6 +426,8 @@ void main() {
     await tester.tap(find.byKey(const Key('ps2-enter')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('console-settings-look')));
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('console-shell-x360')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('console-shell-x360')));
     await tester.pump();

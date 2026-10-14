@@ -40,11 +40,13 @@ class _AtmScreenState extends State<AtmScreen> {
   int _amount = 0;
   String? _layoutPick;
   String? _settingsPage;
+  bool _currenciesOpen = false;
   late final TextEditingController _bankName;
   late final TextEditingController _userName;
   late final TextEditingController _time;
   late final TextEditingController _temperature;
   late final TextEditingController _place;
+  late final TextEditingController _date;
   late final TextEditingController _balance;
   late final TextEditingController _notes;
   late final TextEditingController _customAmount;
@@ -65,6 +67,7 @@ class _AtmScreenState extends State<AtmScreen> {
     );
     _temperature = TextEditingController(text: '${current.os.temperature}');
     _place = TextEditingController(text: current.os.place);
+    _date = TextEditingController(text: formatDateField(current.os));
     _balance = TextEditingController(text: '${current.os.bankBalance}');
     _notes = TextEditingController(text: atmNotes(current.os).join(', '));
     _customAmount = TextEditingController();
@@ -79,6 +82,7 @@ class _AtmScreenState extends State<AtmScreen> {
     _time.dispose();
     _temperature.dispose();
     _place.dispose();
+    _date.dispose();
     _balance.dispose();
     _notes.dispose();
     _customAmount.dispose();
@@ -838,6 +842,16 @@ class _AtmScreenState extends State<AtmScreen> {
               keyboardType: TextInputType.number,
               suffix: '°C',
             ),
+            SizedBox(height: 14 * scale),
+            _nameField(
+              scale,
+              'Date',
+              _date,
+              _applyDate,
+              key: const Key('atm-date'),
+              keyboardType: TextInputType.datetime,
+              allowEmpty: true,
+            ),
             SizedBox(height: 18 * scale),
             Theme(
               data: ThemeData.dark(useMaterial3: true),
@@ -1034,6 +1048,23 @@ class _AtmScreenState extends State<AtmScreen> {
     setState(() {});
   }
 
+  void _applyDate(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      _save((current) => current.copyWith(dateYear: 0, dateMonth: 0, dateDay: 0));
+      return;
+    }
+    final parsed = parseDateText(trimmed);
+    if (parsed == null) return;
+    _save(
+      (current) => current.copyWith(
+        dateYear: parsed.$1,
+        dateMonth: parsed.$2,
+        dateDay: parsed.$3,
+      ),
+    );
+  }
+
   void _applyTemperature(String value) {
     final parsed = int.tryParse(value.trim());
     if (parsed == null || parsed < -99 || parsed > 99) return;
@@ -1056,6 +1087,7 @@ class _AtmScreenState extends State<AtmScreen> {
     required Key key,
     TextInputType? keyboardType,
     String? suffix,
+    bool allowEmpty = false,
   }) {
     return Column(
       children: [
@@ -1096,8 +1128,8 @@ class _AtmScreenState extends State<AtmScreen> {
                 ),
                 onChanged: (value) {
                   final name = value.trim();
-                  if (name.isEmpty) return;
-                  onName(name);
+                  if (name.isEmpty && !allowEmpty) return;
+                  onName(allowEmpty ? value : name);
                 },
               ),
             ),
@@ -1109,9 +1141,8 @@ class _AtmScreenState extends State<AtmScreen> {
 
   Widget _currencyMenu(double scale) {
     final choices = atmCurrencyChoices(os.bankCurrency);
-    final value = choices.any((item) => item.code == os.bankCurrency)
-        ? os.bankCurrency
-        : 'USD';
+    final current = choices.where((item) => item.code == os.bankCurrency);
+    final shown = current.isEmpty ? os.bankCurrency : current.first.label;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
@@ -1122,43 +1153,62 @@ class _AtmScreenState extends State<AtmScreen> {
             side: BorderSide(color: skin.rule),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
+          child: Column(
+            children: [
+              GestureDetector(
                 key: const Key('atm-currency'),
-                isExpanded: true,
-                value: value,
-                menuMaxHeight: 320,
-                dropdownColor: skin.keyFill,
-                borderRadius: BorderRadius.circular(_faceRadius),
-                iconEnabledColor: skin.keyInk,
-                style: TextStyle(
-                  color: skin.keyInk,
-                  fontSize: 15 * scale,
-                  fontWeight: FontWeight.w700,
-                ),
-                items: [
-                  for (final currency in choices)
-                    DropdownMenuItem(
-                      key: Key('atm-currency-${currency.code}'),
-                      value: currency.code,
-                      child: Text(
-                        currency.label,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: skin.keyInk,
-                          fontWeight: FontWeight.w700,
+                onTap: () => setState(() => _currenciesOpen = !_currenciesOpen),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          shown,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: skin.keyInk,
+                            fontSize: 15 * scale,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-                onChanged: (code) {
-                  if (code == null) return;
-                  _save((current) => current.copyWith(bankCurrency: code));
-                },
+                      Icon(
+                        _currenciesOpen ? Icons.expand_less : Icons.expand_more,
+                        color: skin.keyInk,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              if (_currenciesOpen)
+                SizedBox(
+                  height: 220,
+                  child: SingleChildScrollView(
+                    key: const Key('atm-currency-list'),
+                    child: Column(
+                      children: [
+                        for (final currency in choices)
+                          ListTile(
+                            key: Key('atm-currency-${currency.code}'),
+                            dense: true,
+                            title: Text(
+                              currency.label,
+                              style: TextStyle(color: skin.keyInk, fontWeight: FontWeight.w600),
+                            ),
+                            trailing: currency.code == os.bankCurrency
+                                ? Icon(Icons.check, color: skin.primary, size: 18)
+                                : null,
+                            onTap: () {
+                              _save((current) => current.copyWith(bankCurrency: currency.code));
+                              setState(() => _currenciesOpen = false);
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -1598,46 +1648,81 @@ class _Menu extends StatelessWidget {
   }
 
   Widget _vault() {
+    const cols = 4;
+    final rows = <List<String>>[];
+    for (var i = 0; i < panels.length; i += cols) {
+      rows.add(panels.sublist(i, math.min(i + cols, panels.length)));
+    }
     return Column(
       children: [
-        _banner(greeting, radius: BorderRadius.circular(40)),
+        _banner(greeting, radius: BorderRadius.circular(22)),
         SizedBox(height: 6 * scale),
         Text(select, style: TextStyle(color: skin.muted, fontSize: 13 * scale)),
         SizedBox(height: 8 * scale),
         Expanded(
           child: Column(
             children: [
-              for (final id in panels)
+              for (final row in rows)
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: GestureDetector(
-                      key: Key('atm-$id'),
-                      onTap: () => onOpen(id),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: selected == id ? skin.primary : skin.minor,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: skin.rule),
-                        ),
-                        child: Center(
-                          child: Text(
-                            labelFor(id),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: selected == id ? skin.primaryInk : skin.minorInk,
-                              fontWeight: FontWeight.w800,
-                            ),
+                  child: Row(
+                    children: [
+                      for (final id in row)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: _vaultIcon(id),
                           ),
                         ),
-                      ),
-                    ),
+                      for (var i = row.length; i < cols; i++)
+                        const Expanded(child: SizedBox()),
+                    ],
                   ),
                 ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _vaultIcon(String id) {
+    final on = selected == id;
+    return GestureDetector(
+      key: Key('atm-$id'),
+      onTap: () => onOpen(id),
+      child: Column(
+        children: [
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: on ? skin.primary : skin.minor,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: on ? skin.primaryInk : skin.rule, width: 2),
+                ),
+                child: Icon(
+                  _icon(id),
+                  color: on ? skin.primaryInk : skin.minorInk,
+                  size: 34,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 4 * scale),
+          Text(
+            labelFor(id),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: skin.title,
+              fontSize: 11 * scale,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

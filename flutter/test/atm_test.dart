@@ -232,6 +232,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-currency')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('atm-currency-UAH')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('atm-currency-UAH')));
     await tester.pumpAndSettle();
     expect(store.deviceById('atm-1')!.os.bankCurrency, 'UAH');
