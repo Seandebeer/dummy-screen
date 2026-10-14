@@ -10,6 +10,7 @@ import '../screens/videos_page.dart';
 import '../screens/vfx_page.dart';
 import '../store.dart';
 import 'atm_home.dart';
+import 'cctv_wall.dart';
 import 'console_apps.dart';
 import 'game_catalog.dart';
 import 'catalog.dart';
@@ -260,7 +261,7 @@ class _FormOsState extends State<FormOs> {
         onOpen: _open,
       ),
       'atm' => AtmScreen(store: widget.store, device: device),
-      'cctv' => const _CctvOs(),
+      'cctv' => CctvWall(store: widget.store, device: device),
       'smarthome' => HomePanel(store: widget.store, device: device),
       'homephone' => HomePanel(
         store: widget.store,
@@ -1551,142 +1552,6 @@ class _SteamPaneState extends State<_SteamPane> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _CctvOs extends StatefulWidget {
-  const _CctvOs();
-
-  @override
-  State<_CctvOs> createState() => _CctvOsState();
-}
-
-class _CctvOsState extends State<_CctvOs> {
-  final _names = ['Gate', 'Lobby', 'Loading bay', 'Stage'];
-  int? _full;
-  double _zoom = 1;
-  double _scrub = 0.7;
-  bool _rec = true;
-  final int _alert = 2;
-
-  @override
-  Widget build(BuildContext context) {
-    final now = TimeOfDay.now().format(context);
-    return ColoredBox(
-      color: const Color(0xFF050607),
-      child: _full != null
-          ? _camera(_full!, large: true)
-          : Column(
-              children: [
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    children: [
-                      for (var i = 0; i < _names.length; i++) _camera(i),
-                    ],
-                  ),
-                ),
-                _bar(now),
-              ],
-            ),
-    );
-  }
-
-  Widget _camera(int index, {bool large = false}) {
-    return GestureDetector(
-      onTap: () => setState(() => _full = large ? null : index),
-      child: Container(
-        margin: const EdgeInsets.all(4),
-        color: Color(0xFF101820 + index * 0x101008),
-        child: Stack(
-          children: [
-            Center(
-              child: Icon(
-                Icons.videocam,
-                color: Colors.white24,
-                size: large ? 72 : 36,
-              ),
-            ),
-            Positioned(
-              left: 8,
-              top: 8,
-              child: Text(
-                _names[index],
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            if (_rec)
-              const Positioned(
-                right: 8,
-                top: 8,
-                child: Text(
-                  'REC',
-                  style: TextStyle(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            if (index == _alert)
-              const Positioned(
-                left: 8,
-                bottom: 8,
-                child: Text(
-                  'MOTION',
-                  style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
-                ),
-              ),
-            if (large) ...[
-              Positioned(
-                right: 8,
-                bottom: 48,
-                child: Column(
-                  children: [
-                    IconButton(
-                      onPressed: () =>
-                          setState(() => _zoom = (_zoom + 0.25).clamp(1, 3)),
-                      icon: const Icon(Icons.zoom_in, color: Colors.white),
-                    ),
-                    Text(
-                      '${_zoom.toStringAsFixed(1)}×',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: 8,
-                right: 8,
-                bottom: 8,
-                child: _bar(TimeOfDay.now().format(context)),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _bar(String now) {
-    return Row(
-      children: [
-        Text(now, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-        Expanded(
-          child: Slider(
-            value: _scrub,
-            onChanged: (value) => setState(() => _scrub = value),
-          ),
-        ),
-        IconButton(
-          onPressed: () => setState(() => _rec = !_rec),
-          icon: Icon(
-            _rec ? Icons.fiber_manual_record : Icons.stop,
-            color: Colors.redAccent,
-            size: 16,
-          ),
-        ),
-      ],
     );
   }
 }

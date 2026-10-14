@@ -637,6 +637,7 @@ class _IconApp extends StatelessWidget {
     this.branded = false,
     this.modern = false,
     this.iconSize = 60,
+    this.showLabel = true,
     this.dimmed = false,
     this.onHoldStart,
     this.onHoldMove,
@@ -651,6 +652,7 @@ class _IconApp extends StatelessWidget {
   final bool branded;
   final bool modern;
   final double iconSize;
+  final bool showLabel;
   final bool dimmed;
   Color get _iconColor => branded ? (brandMark(app.id)?.$1 ?? app.color) : app.color;
 
@@ -710,13 +712,15 @@ class _IconApp extends StatelessWidget {
             ),
             child: _glyph(app, branded: branded, size: iconSize * 0.46),
           ),
-          const SizedBox(height: 4),
-          Text(
-            appLabel(app, branded: branded),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 11, color: labelColor),
-          ),
+          if (showLabel) ...[
+            const SizedBox(height: 4),
+            Text(
+              appLabel(app, branded: branded),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: labelColor),
+            ),
+          ],
         ],
         ),
       ),
@@ -796,6 +800,7 @@ class _DockIconState extends State<_DockIcon> {
                 branded: widget.branded,
                 modern: widget.modern,
                 iconSize: widget.iconSize,
+                showLabel: false,
                 onTap: () {},
               ),
               if (off)
@@ -826,6 +831,7 @@ class _DockIconState extends State<_DockIcon> {
       branded: widget.branded,
       modern: widget.modern,
       iconSize: widget.iconSize,
+      showLabel: false,
       dimmed: _off,
       onTap: widget.onTap,
       onHoldStart: widget.onHide == null ? null : (_) {},

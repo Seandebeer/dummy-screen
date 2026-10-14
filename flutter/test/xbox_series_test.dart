@@ -29,8 +29,9 @@ void main() {
     expect(find.text('Night Run'), findsOneWidget);
     expect(find.text('My games & apps'), findsOneWidget);
     expect(find.text('Game Pass'), findsOneWidget);
-    expect(find.text('Customize'), findsOneWidget);
-    expect(find.text('Search'), findsOneWidget);
+    expect(find.text('Customize'), findsNothing);
+    expect(find.byKey(const Key('xbox-battery')), findsNothing);
+    expect(find.byKey(const Key('xbox-clock')), findsNothing);
     expect(find.byKey(const Key('xbox-featured')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('xbox-tile-harbor')));
@@ -329,8 +330,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('console-settings-status')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('console-show-battery')));
-    await tester.pump();
+    expect(find.byKey(const Key('console-show-battery')), findsNothing);
+    expect(find.text('Location'), findsNothing);
     await tester.tap(find.byKey(const Key('console-back')));
     await tester.pump();
     expect(find.byKey(const Key('xbox-battery')), findsNothing);
@@ -367,9 +368,13 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pump();
-    await tester.tap(find.byTooltip('Customize'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('PlayStation 5').last);
+    await tester.tap(find.byKey(const Key('xbox-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-settings-look')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-shell-ps5')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-back')));
     await tester.pump();
     expect(find.byKey(const Key('ps5-home')), findsOneWidget);
     expect(find.byKey(const Key('ps5-settings')), findsOneWidget);
@@ -382,12 +387,10 @@ void main() {
     await tester.tap(find.byKey(const Key('console-settings-look')));
     await tester.pump();
     expect(find.text('Choose picture'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('console-shell-ps2')));
+    await tester.pump();
 
     await tester.tap(find.byKey(const Key('console-back')));
-    await tester.pump();
-    await tester.tap(find.byTooltip('Console'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('PlayStation 2').last);
     await tester.pump();
     expect(find.byKey(const Key('ps2-save-settings')), findsOneWidget);
     expect(find.byKey(const Key('ps2-save-appstore')), findsOneWidget);
@@ -400,9 +403,15 @@ void main() {
 
     await tester.tap(find.byKey(const Key('console-back')));
     await tester.pump();
-    await tester.tap(find.text('Options'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Xbox 360').last);
+    await tester.tap(find.byKey(const Key('ps2-save-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ps2-enter')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-settings-look')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-shell-x360')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('console-back')));
     await tester.pump();
     expect(find.byKey(const Key('xbox360-home')), findsOneWidget);
     expect(find.byKey(const Key('xbox360-settings')), findsOneWidget);

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import 'console_apps.dart';
+import 'local_game.dart';
 
 /// Xbox Series dashboard: green ribbon, a featured tile, and the home rows.
 class XboxSeriesHome extends StatelessWidget {
@@ -21,16 +21,8 @@ class XboxSeriesHome extends StatelessWidget {
   final ValueChanged<String> onOpen;
   final ValueChanged<String> onShell;
 
-  static const _shells = [
-    ('xbox', 'Xbox Series'),
-    ('ps5', 'PlayStation 5'),
-    ('ps2', 'PlayStation 2'),
-    ('x360', 'Xbox 360'),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final now = osNow(device.os);
     final featured = device.os.steamTitle.trim().isEmpty ? 'Night Run' : device.os.steamTitle.trim();
     final cover = imageProviderForPath(device.os.steamCover);
     final tag = store.operatorName.trim().isEmpty ? 'Player' : store.operatorName.trim();
@@ -50,14 +42,16 @@ class XboxSeriesHome extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final box = _fit(constraints.maxWidth, constraints.maxHeight);
+              final drop = (constraints.maxHeight * 0.14).clamp(28.0, 72.0);
+              final box = _fit(constraints.maxWidth, constraints.maxHeight - drop);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SizedBox(height: drop),
                   _Header(
                     tag: tag,
-                    time: formatOsClock(now, hour24: shown.clockFormat == '24'),
                     os: shown,
+                    onSettings: () => onOpen('settings'),
                   ),
                   SizedBox(height: box.gap),
                   SizedBox(
@@ -69,7 +63,7 @@ class XboxSeriesHome extends StatelessWidget {
                           title: featured,
                           side: box.featured,
                           image: cover,
-                          onTap: () => onOpen('steam'),
+                          onTap: () => openDeviceGame(context, () => onOpen('steam')),
                         ),
                         SizedBox(width: box.tileGap + 4),
                         _SquareTile(
@@ -153,54 +147,7 @@ class XboxSeriesHome extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SizedBox(height: box.gap * 0.7),
-                  Text(
-                    'Game Pass',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: box.featured < 120 ? 13 : 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final cap = box.small * 0.34;
-                        final visible = constraints.maxHeight < cap ? constraints.maxHeight : cap;
-                        if (visible < 8 || box.small < 8) return const SizedBox.shrink();
-                        return Align(
-                          alignment: Alignment.bottomLeft,
-                          child: SizedBox(
-                            height: visible,
-                            child: ClipRect(
-                              child: OverflowBox(
-                                alignment: Alignment.topLeft,
-                                minHeight: box.small,
-                                maxHeight: box.small,
-                                child: SizedBox(
-                                  height: box.small,
-                                  child: Row(
-                                    children: [
-                                      _SquareTile(side: box.small, scene: _Scene.night, onTap: () {}),
-                                      _SquareTile(side: box.small, scene: _Scene.signal, gap: box.tileGap, onTap: () {}),
-                                      _SquareTile(
-                                        side: box.small,
-                                        scene: _Scene.harbor,
-                                        gap: box.tileGap,
-                                        gamePass: true,
-                                        onTap: () {},
-                                      ),
-                                      _PassTile(side: box.small, gap: box.tileGap, onTap: () {}),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  const Spacer(),
                 ],
               );
             },
@@ -208,39 +155,9 @@ class XboxSeriesHome extends StatelessWidget {
         ),
         Positioned(
           left: 18,
-          right: 220,
-          bottom: 58,
+          right: 18,
+          bottom: 16,
           child: ConsolePinStrip(os: device.os, onOpen: onOpen),
-        ),
-        Positioned(
-          right: 16,
-          bottom: 18,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerRight,
-            child: Row(
-            children: [
-              GestureDetector(
-                key: const Key('xbox-settings'),
-                onTap: () => onOpen('settings'),
-                child: const _Pill(mark: _PillMark.guide, label: 'Settings'),
-              ),
-              const SizedBox(width: 8),
-              PopupMenuButton<String>(
-                tooltip: 'Customize',
-                onSelected: onShell,
-                color: const Color(0xFF1C1C1E),
-                itemBuilder: (context) => [
-                  for (final item in _shells)
-                    PopupMenuItem(value: item.$1, child: Text(item.$2)),
-                ],
-                child: const _Pill(mark: _PillMark.guide, label: 'Customize'),
-              ),
-              const SizedBox(width: 8),
-              const _Pill(mark: _PillMark.y, label: 'Search'),
-            ],
-            ),
-          ),
         ),
       ],
     );
@@ -297,48 +214,37 @@ _Box _fit(double width, double height) {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.tag, required this.time, required this.os});
+  const _Header({required this.tag, required this.os, required this.onSettings});
 
   final String tag;
-  final String time;
   final OsSettings os;
+  final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
     final initial = tag.isEmpty ? 'P' : tag.characters.first.toUpperCase();
-    final level = os.battery.clamp(0, 100);
-    final battery = level >= 90
-        ? Icons.battery_full
-        : level >= 60
-        ? Icons.battery_5_bar
-        : level >= 30
-        ? Icons.battery_3_bar
-        : Icons.battery_1_bar;
     return SizedBox(
       height: 32,
       child: Row(
         children: [
-          if (ConsoleLayout.shows(os, 'tag')) ...[
-            CircleAvatar(
-              radius: 13,
-              backgroundColor: const Color(0xFFD05A28),
-              child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+          GestureDetector(
+            key: const Key('xbox-settings'),
+            onTap: onSettings,
+            child: Row(
+              children: [
+                if (ConsoleLayout.shows(os, 'tag')) ...[
+                  CircleAvatar(
+                    radius: 13,
+                    backgroundColor: const Color(0xFFD05A28),
+                    child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(tag, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+                ] else
+                  const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 15)),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(tag, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-          ],
-          const Spacer(),
-          const Icon(Icons.notifications_off_outlined, color: Colors.white, size: 16),
-          if (ConsoleLayout.shows(os, 'battery')) ...[
-            const SizedBox(width: 12),
-            Icon(battery, color: Colors.white, size: 18, key: const Key('xbox-battery')),
-            const SizedBox(width: 4),
-            Text('$level%', style: const TextStyle(color: Colors.white, fontSize: 12)),
-          ],
-          if (ConsoleLayout.shows(os, 'clock') && os.showClock) ...[
-            const SizedBox(width: 8),
-            Text(time, key: const Key('xbox-clock'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-          ],
+          ),
         ],
       ),
     );
@@ -398,10 +304,9 @@ class _Featured extends StatelessWidget {
                     left: 10,
                     right: 8,
                     bottom: 8,
-                    child: Text(
-                      title,
+                    child: LocalGameName(
+                      fallback: title,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.white, fontSize: titleSize, fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -499,6 +404,16 @@ class _PassTile extends StatelessWidget {
                           Colors.black.withValues(alpha: 0.25),
                         ],
                       ),
+                    ),
+                  ),
+                  const Positioned(
+                    left: 4,
+                    right: 4,
+                    bottom: 4,
+                    child: Text(
+                      'Game Pass',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
                     ),
                   ),
                   Center(
@@ -670,52 +585,6 @@ class _PassBadge extends StatelessWidget {
       child: const Text(
         'GAME\nPASS',
         style: TextStyle(color: Colors.black, fontSize: 7, height: 1.0, fontWeight: FontWeight.w800),
-      ),
-    );
-  }
-}
-
-enum _PillMark { guide, y }
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.mark});
-
-  final String label;
-  final _PillMark mark;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xE6181A18),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 5, 12, 5),
-        child: Row(
-          children: [
-            if (mark == _PillMark.guide)
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.4),
-                ),
-              )
-            else
-              Container(
-                width: 16,
-                height: 16,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(color: Color(0xFFF6C445), shape: BoxShape.circle),
-                child: const Text('Y', style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w800)),
-              ),
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
-          ],
-        ),
       ),
     );
   }

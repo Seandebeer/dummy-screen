@@ -131,6 +131,14 @@ class OsSettings {
     this.dateMonth = 0,
     this.dateDay = 0,
     this.homeHidden = const [],
+    this.face = '',
+    this.cctvCount = 4,
+    this.cctvNames = const [],
+    this.cctvMedia = const [],
+    this.cctvKinds = const [],
+    this.cctvHour = 9,
+    this.cctvMinute = 41,
+    this.cctvSecond = 0,
   });
 
   final String theme;
@@ -285,6 +293,21 @@ class OsSettings {
   /// Icons and widgets dragged off the device. `dock:id` or `widget:id`.
   final List<String> homeHidden;
 
+  /// Named interface on an ATM or smart-home screen. Empty uses that
+  /// device's first interface.
+  final String face;
+
+  /// Camera squares on a CCTV wall, from 1 to 16.
+  final int cctvCount;
+  final List<String> cctvNames;
+  final List<String> cctvMedia;
+  final List<String> cctvKinds;
+
+  /// Clock the camera wall shows before playback starts it running.
+  final int cctvHour;
+  final int cctvMinute;
+  final int cctvSecond;
+
   bool get isLight => theme == 'light';
 
   String get placeLabel {
@@ -384,6 +407,14 @@ class OsSettings {
     int? dateMonth,
     int? dateDay,
     List<String>? homeHidden,
+    String? face,
+    int? cctvCount,
+    List<String>? cctvNames,
+    List<String>? cctvMedia,
+    List<String>? cctvKinds,
+    int? cctvHour,
+    int? cctvMinute,
+    int? cctvSecond,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -462,6 +493,14 @@ class OsSettings {
     dateMonth: dateMonth ?? this.dateMonth,
     dateDay: dateDay ?? this.dateDay,
     homeHidden: homeHidden ?? this.homeHidden,
+    face: face ?? this.face,
+    cctvCount: cctvCount ?? this.cctvCount,
+    cctvNames: cctvNames ?? this.cctvNames,
+    cctvMedia: cctvMedia ?? this.cctvMedia,
+    cctvKinds: cctvKinds ?? this.cctvKinds,
+    cctvHour: cctvHour ?? this.cctvHour,
+    cctvMinute: cctvMinute ?? this.cctvMinute,
+    cctvSecond: cctvSecond ?? this.cctvSecond,
   );
 
   Map<String, dynamic> toJson() => {
@@ -542,6 +581,14 @@ class OsSettings {
     'dateMonth': dateMonth,
     'dateDay': dateDay,
     'homeHidden': homeHidden,
+    'face': face,
+    'cctvCount': cctvCount,
+    'cctvNames': cctvNames,
+    'cctvMedia': cctvMedia,
+    'cctvKinds': cctvKinds,
+    'cctvHour': cctvHour,
+    'cctvMinute': cctvMinute,
+    'cctvSecond': cctvSecond,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -646,6 +693,14 @@ class OsSettings {
       homeHidden: [
         for (final item in jsonList(json['homeHidden'])) item.toString(),
       ].where((id) => id.isNotEmpty).toList(),
+      face: json['face'] as String? ?? '',
+      cctvCount: ((json['cctvCount'] as num?)?.toInt() ?? 4).clamp(1, 16),
+      cctvNames: _keptStrings(json['cctvNames']),
+      cctvMedia: _keptStrings(json['cctvMedia']),
+      cctvKinds: _keptStrings(json['cctvKinds']),
+      cctvHour: ((json['cctvHour'] as num?)?.toInt() ?? 9).clamp(0, 23),
+      cctvMinute: ((json['cctvMinute'] as num?)?.toInt() ?? 41).clamp(0, 59),
+      cctvSecond: ((json['cctvSecond'] as num?)?.toInt() ?? 0).clamp(0, 59),
     );
   }
 
@@ -728,7 +783,15 @@ class OsSettings {
         dateYear == other.dateYear &&
         dateMonth == other.dateMonth &&
         dateDay == other.dateDay &&
-        _sameOrder(homeHidden, other.homeHidden);
+        _sameOrder(homeHidden, other.homeHidden) &&
+        face == other.face &&
+        cctvCount == other.cctvCount &&
+        cctvHour == other.cctvHour &&
+        cctvMinute == other.cctvMinute &&
+        cctvSecond == other.cctvSecond &&
+        _sameOrder(cctvNames, other.cctvNames) &&
+        _sameOrder(cctvMedia, other.cctvMedia) &&
+        _sameOrder(cctvKinds, other.cctvKinds);
   }
 
   @override
@@ -804,6 +867,14 @@ class OsSettings {
     dateMonth,
     dateDay,
     Object.hashAll(homeHidden),
+    face,
+    cctvCount,
+    cctvHour,
+    cctvMinute,
+    cctvSecond,
+    Object.hashAll(cctvNames),
+    Object.hashAll(cctvMedia),
+    Object.hashAll(cctvKinds),
     Object.hashAll(bankNotes),
     Object.hashAll([
       for (final key in (panelNames.keys.toList()..sort()))
@@ -898,6 +969,10 @@ bool _sameGlyphs(List<CustomGlyph> a, List<CustomGlyph> b) {
   }
   return true;
 }
+
+List<String> _keptStrings(Object? raw) => [
+  for (final item in jsonList(raw)) item.toString(),
+];
 
 List<String> _idList(Object? raw) => [
   for (final item in jsonList(raw)) item.toString(),

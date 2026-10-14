@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import 'console_apps.dart';
+import 'local_game.dart';
 
 /// Xbox 360 dashboard: gray field, green tiles, and the home tabs.
 class Xbox360Home extends StatefulWidget {
@@ -25,13 +26,6 @@ class Xbox360Home extends StatefulWidget {
 
 class _Xbox360HomeState extends State<Xbox360Home> {
   int _tab = 0;
-
-  static const _shells = [
-    ('xbox', 'Xbox Series'),
-    ('ps5', 'PlayStation 5'),
-    ('ps2', 'PlayStation 2'),
-    ('x360', 'Xbox 360'),
-  ];
 
   static const _green = Color(0xFF0E9408);
   static const _gap = 5.0;
@@ -70,8 +64,6 @@ class _Xbox360HomeState extends State<Xbox360Home> {
                   tag: tag,
                   os: widget.device.os,
                   onOpen: widget.onOpen,
-                  onShell: widget.onShell,
-                  shells: _shells,
                 ),
                 const SizedBox(height: 8),
                 _Tabs(index: _tab, onSelect: (index) => setState(() => _tab = index)),
@@ -81,7 +73,7 @@ class _Xbox360HomeState extends State<Xbox360Home> {
                     box: box,
                     featured: featured,
                     onOpen: widget.onOpen,
-                    onSeries: () => widget.onShell('xbox'),
+                    onSeries: () => widget.onOpen('Harbor'),
                   )
                 else if (_tab == 1)
                   _MenuList(
@@ -99,28 +91,13 @@ class _Xbox360HomeState extends State<Xbox360Home> {
                     items: const [
                       ('Game Store', 'Game library'),
                       ('Settings', 'Wallpaper, theme, and icons'),
-                      ('Xbox Series', 'Open the Series shell'),
-                      ('PlayStation 5', 'Switch shell'),
-                      ('PlayStation 2', 'Switch shell'),
-                      ('Xbox 360', 'This dashboard'),
                     ],
                     onOpen: (label) {
                       if (label == 'Game Store') {
                         widget.onOpen('appstore');
                         return;
                       }
-                      if (label == 'Settings') {
-                        widget.onOpen('settings');
-                        return;
-                      }
-                      const shells = {
-                        'Xbox Series': 'xbox',
-                        'PlayStation 5': 'ps5',
-                        'PlayStation 2': 'ps2',
-                        'Xbox 360': 'x360',
-                      };
-                      final id = shells[label];
-                      if (id != null) widget.onShell(id);
+                      if (label == 'Settings') widget.onOpen('settings');
                     },
                   ),
                 const SizedBox(height: 12),
@@ -184,15 +161,11 @@ class _Status extends StatelessWidget {
     required this.tag,
     required this.os,
     required this.onOpen,
-    required this.onShell,
-    required this.shells,
   });
 
   final String tag;
   final OsSettings os;
   final ValueChanged<String> onOpen;
-  final ValueChanged<String> onShell;
-  final List<(String, String)> shells;
 
   @override
   Widget build(BuildContext context) {
@@ -209,15 +182,6 @@ class _Status extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             onPressed: () => onOpen('appstore'),
             icon: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 18),
-          ),
-          IconButton(
-            key: const Key('xbox360-settings'),
-            tooltip: 'Settings',
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            onPressed: () => onOpen('settings'),
-            icon: const Icon(Icons.tune, color: Colors.white, size: 18),
           ),
           const Spacer(),
           if (ConsoleLayout.shows(os, 'trophies')) ...[
@@ -242,17 +206,6 @@ class _Status extends StatelessWidget {
               backgroundColor: const Color(0xFF2A6A9A),
               child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
             ),
-          const SizedBox(width: 4),
-          PopupMenuButton<String>(
-            tooltip: 'Console',
-            padding: EdgeInsets.zero,
-            color: const Color(0xFF1C1C1E),
-            onSelected: onShell,
-            itemBuilder: (context) => [
-              for (final item in shells) PopupMenuItem(value: item.$1, child: Text(item.$2)),
-            ],
-            icon: const Icon(Icons.settings, color: Colors.white, size: 16),
-          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -275,6 +228,7 @@ class _Tabs extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 22),
             child: GestureDetector(
+              key: labels[i] == 'settings' ? const Key('xbox360-settings') : null,
               onTap: () => onSelect(i),
               child: Text(
                 labels[i],
@@ -332,7 +286,7 @@ class _HomeGrid extends StatelessWidget {
                   tileKey: const Key('xbox360-play'),
                   maxLines: 2,
                   icon: const _GoldMark(),
-                  onTap: () => onOpen('steam'),
+                  onTap: () => openDeviceGame(context, () => onOpen('steam')),
                             ),
                             SizedBox(height: gap),
                             _GreenTile(

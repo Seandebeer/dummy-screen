@@ -61,7 +61,14 @@ HomeGridMetrics homeMetricsForFrame(
     final dockH = dockChrome + icon;
     final gridH = height - dockH - kHomeSearchFoot - kHomeSearchLift - top - pagePad;
     metrics = fillHomeGrid(math.max(80, width - 16), math.max(160, gridH));
-    icon = metrics.iconSize;
+    icon = metrics.iconSize * 0.75;
   }
-  return metrics;
+  return HomeGridMetrics(
+    columns: metrics.columns,
+    rows: metrics.rows,
+    cellWidth: metrics.cellWidth,
+    cellHeight: metrics.cellHeight,
+    iconSize: metrics.iconSize * 0.75,
+    gap: metrics.gap,
+  );
 }

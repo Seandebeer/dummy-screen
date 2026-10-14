@@ -28,7 +28,7 @@ void main() {
 
     await pump('ios6');
     expect(find.byKey(const Key('legacy-ios6')), findsOneWidget);
-    expect(find.text('Mail'), findsWidgets);
+    expect(find.text('Calendar'), findsWidgets);
 
     await pump('ios7');
     expect(find.byKey(const Key('legacy-ios7')), findsOneWidget);

@@ -297,7 +297,6 @@ class _IosDock extends StatelessWidget {
             size: iconSize,
             radius: kind == _IosKind.seven ? 13 : 12,
             gloss: gloss,
-            label: app.label,
             labelColor: Colors.white,
             onTap: () => onOpen(app.id),
           ),
@@ -1092,18 +1091,18 @@ class _HoloHome extends StatelessWidget {
       key: Key(dock ? 'dock-${app.id}' : 'home-${app.id}'),
       onTap: () => onOpen(app.id),
       child: SizedBox(
-        width: 68,
+        width: dock ? 54 : 78,
         child: Column(
           children: [
             Container(
-              width: dock ? 40 : 52,
-              height: dock ? 40 : 52,
+              width: dock ? 50 : 65,
+              height: dock ? 50 : 65,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(dock ? 8 : 14),
+                borderRadius: BorderRadius.circular(dock ? 10 : 16),
                 color: app.color,
                 border: Border.all(color: Colors.white24),
               ),
-              child: Icon(app.icon, color: Colors.white, size: dock ? 22 : 26),
+              child: Icon(app.icon, color: Colors.white, size: dock ? 28 : 33),
             ),
             if (!dock)
               Text(app.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 11)),
@@ -1206,12 +1205,12 @@ class _DrawerButton extends StatelessWidget {
       key: const Key('holo-drawer'),
       onTap: onTap,
       child: SizedBox(
-        width: 52,
-        height: 52,
+        width: 65,
+        height: 65,
         child: Center(
           child: Container(
-            width: 28,
-            height: 28,
+            width: 35,
+            height: 35,
             decoration: const BoxDecoration(shape: BoxShape.circle),
             child: const CustomPaint(painter: _DotRingPainter(), child: SizedBox.expand()),
           ),
@@ -1377,7 +1376,7 @@ class _BelleHome extends StatelessWidget {
             crossAxisCount: 4,
             mainAxisSpacing: 8,
             crossAxisSpacing: 6,
-            childAspectRatio: 0.78,
+            childAspectRatio: 0.68,
             children: [
               for (final app in icons)
                 GestureDetector(
@@ -1386,13 +1385,13 @@ class _BelleHome extends StatelessWidget {
                   child: Column(
                     children: [
                       Container(
-                        width: 58,
-                        height: 44,
+                        width: 72,
+                        height: 55,
                         decoration: BoxDecoration(color: app.color, borderRadius: BorderRadius.circular(6)),
-                        child: Icon(app.icon, color: Colors.white, size: 24),
+                        child: Icon(app.icon, color: Colors.white, size: 30),
                       ),
                       Container(
-                        width: 62,
+                        width: 78,
                         margin: const EdgeInsets.only(top: 2),
                         color: const Color(0xE61A1A1A),
                         padding: const EdgeInsets.symmetric(vertical: 2),

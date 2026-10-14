@@ -7,6 +7,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'console_apps.dart';
+import 'local_game.dart';
 import 'wallpaper_art.dart';
 
 /// PlayStation 2 memory-card browser. The plate follows a saved wallpaper.
@@ -29,13 +30,6 @@ class Ps2Home extends StatefulWidget {
 }
 
 class _Ps2HomeState extends State<Ps2Home> {
-  static const _shells = [
-    ('xbox', 'Xbox Series'),
-    ('ps5', 'PlayStation 5'),
-    ('ps2', 'PlayStation 2'),
-    ('x360', 'Xbox 360'),
-  ];
-
   String _selected = 'steam';
 
   @override
@@ -106,15 +100,17 @@ class _Ps2HomeState extends State<Ps2Home> {
                   SizedBox(
                     height: prompts,
                     child: _Prompts(
-                      onEnter: () => widget.onOpen(
-                        current.id == 'steam' ||
-                                current.id == 'settings' ||
-                                current.id == 'appstore'
-                            ? current.id
-                            : current.title,
-                      ),
-                      onShell: widget.onShell,
-                      shells: _shells,
+                      onEnter: () {
+                        if (current.id == 'steam') {
+                          openDeviceGame(context, () => widget.onOpen('steam'));
+                          return;
+                        }
+                        widget.onOpen(
+                          current.id == 'settings' || current.id == 'appstore'
+                              ? current.id
+                              : current.title,
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -310,15 +306,9 @@ class _Grid extends StatelessWidget {
 }
 
 class _Prompts extends StatelessWidget {
-  const _Prompts({
-    required this.onEnter,
-    required this.onShell,
-    required this.shells,
-  });
+  const _Prompts({required this.onEnter});
 
   final VoidCallback onEnter;
-  final ValueChanged<String> onShell;
-  final List<(String, String)> shells;
 
   @override
   Widget build(BuildContext context) {
@@ -342,21 +332,11 @@ class _Prompts extends StatelessWidget {
             color: Color(0xFFF07A8A),
           ),
         ),
-        Expanded(
-          child: PopupMenuButton<String>(
-            tooltip: '',
-            padding: EdgeInsets.zero,
-            color: const Color(0xFF1C1C1E),
-            onSelected: onShell,
-            itemBuilder: (context) => [
-              for (final item in shells)
-                PopupMenuItem(value: item.$1, child: Text(item.$2)),
-            ],
-            child: const _Prompt(
-              mark: _Mark.triangle,
-              label: 'Options',
-              color: Color(0xFF8FDE6A),
-            ),
+        const Expanded(
+          child: _Prompt(
+            mark: _Mark.triangle,
+            label: 'Options',
+            color: Color(0xFF8FDE6A),
           ),
         ),
       ],

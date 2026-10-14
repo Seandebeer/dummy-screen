@@ -339,6 +339,59 @@ AtmSkin atmSkinFor(String id) {
   return kAtmSkins.first;
 }
 
+/// Vault Desk: burgundy field, gold type, pill controls.
+const kAtmVaultSkin = AtmSkin(
+  id: 'vault',
+  name: 'Vault Desk',
+  light: false,
+  washA: Color(0xFF4A1020),
+  washB: Color(0xFF2A0A14),
+  washC: Color(0xFF14060C),
+  major: Color(0xFFE7C36A),
+  majorInk: Color(0xFF2A1408),
+  minor: Color(0xFF3A1420),
+  minorInk: Color(0xFFF3E2B0),
+  title: Color(0xFFF6E7C0),
+  muted: Color(0xFFE0B8A4),
+  keyFill: Color(0xFF5A1830),
+  keyInk: Color(0xFFF6E7C0),
+  primary: Color(0xFFE7C36A),
+  primaryInk: Color(0xFF2A1408),
+  rule: Color(0x66E7C36A),
+);
+
+/// Kiosk Grid: ink squares, mint type, sharp corners.
+const kAtmKioskSkin = AtmSkin(
+  id: 'kiosk',
+  name: 'Kiosk Grid',
+  light: false,
+  washA: Color(0xFF071614),
+  washB: Color(0xFF0C2422),
+  washC: Color(0xFF04100E),
+  major: Color(0xFF123834),
+  majorInk: Color(0xFFD8FFF4),
+  minor: Color(0xFF0A1C1A),
+  minorInk: Color(0xFF9EE7D4),
+  title: Color(0xFFD8FFF4),
+  muted: Color(0xFF7EAEA4),
+  keyFill: Color(0xFF102826),
+  keyInk: Color(0xFFD8FFF4),
+  primary: Color(0xFF3EE0C0),
+  primaryInk: Color(0xFF04201A),
+  rule: Color(0x443EE0C0),
+);
+
+/// Night Teller keeps the colour skins. The other two bring their own.
+AtmSkin atmFaceSkin(OsSettings os) {
+  return switch (os.face) {
+    'vault' => kAtmVaultSkin,
+    'kiosk' => kAtmKioskSkin,
+    _ => atmSkinFor(os.shell),
+  };
+}
+
+String atmFaceId(OsSettings os) => os.face.isEmpty ? 'teller' : os.face;
+
 const kAtmDefaultNotes = [20, 50, 100];
 
 /// Note sizes saved on the machine, or the standard 20, 50, and 100.
@@ -414,7 +467,7 @@ String atmGreeting(String language, int hour, String name) {
 
 const _en = <String, String>{
   'enterPin': 'Enter PIN',
-  'pinHint': 'Any 5 digits unlock this machine.',
+  'pinHint': '',
   'externalPin': 'Use the keypad beside the screen.',
   'keypad': 'Number pad',
   'keypadScreen': 'On screen',
@@ -513,7 +566,7 @@ const _packs = <String, Map<String, String>>{
   'en': _en,
   'es': {
     'enterPin': 'Introduzca el PIN',
-    'pinHint': 'Cualquier número de 5 dígitos abre esta máquina.',
+    'pinHint': '',
     'morning': 'Buenos días, {name}',
     'afternoon': 'Buenas tardes, {name}',
     'evening': 'Buenas noches, {name}',
@@ -602,7 +655,7 @@ const _packs = <String, Map<String, String>>{
   },
   'fr': {
     'enterPin': 'Saisissez le PIN',
-    'pinHint': "N'importe quel code à 5 chiffres ouvre cette machine.",
+    'pinHint': '',
     'morning': 'Bonjour, {name}',
     'afternoon': 'Bon après-midi, {name}',
     'evening': 'Bonsoir, {name}',
@@ -656,7 +709,7 @@ const _packs = <String, Map<String, String>>{
   },
   'de': {
     'enterPin': 'PIN eingeben',
-    'pinHint': 'Jede 5-stellige Zahl öffnet diesen Automaten.',
+    'pinHint': '',
     'morning': 'Guten Morgen, {name}',
     'afternoon': 'Guten Tag, {name}',
     'evening': 'Guten Abend, {name}',
@@ -709,7 +762,7 @@ const _packs = <String, Map<String, String>>{
   },
   'ja': {
     'enterPin': '暗証番号を入力',
-    'pinHint': '5桁の数字で開きます。',
+    'pinHint': '',
     'morning': 'おはようございます、{name}',
     'afternoon': 'こんにちは、{name}',
     'evening': 'こんばんは、{name}',
@@ -762,7 +815,7 @@ const _packs = <String, Map<String, String>>{
   },
   'zh': {
     'enterPin': '请输入密码',
-    'pinHint': '任意 5 位数字即可解锁。',
+    'pinHint': '',
     'morning': '早上好，{name}',
     'afternoon': '下午好，{name}',
     'evening': '晚上好，{name}',
