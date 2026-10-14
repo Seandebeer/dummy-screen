@@ -8,6 +8,8 @@ import '../os_catalog.dart';
 import 'android_home.dart';
 import 'catalog.dart';
 import 'home_drag.dart';
+import 'home_metrics.dart';
+import 'icon_finish.dart';
 import 'legacy_homes.dart';
 
 class PhoneHome extends StatelessWidget {
@@ -104,15 +106,23 @@ class PhoneHome extends StatelessWidget {
       for (final id in kDockIds)
         if (!hidden.contains('dock:$id')) ?propAppById(id),
     ];
-    final cellW = modern ? 84.0 : 76.0;
-    final cellH = modern ? 104.0 : 92.0;
-    return Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final metrics = modern
+            ? homeMetricsForFrame(constraints.maxWidth, constraints.maxHeight)
+            : null;
+        final cellW = metrics?.cellWidth ?? 76.0;
+        final cellH = metrics?.cellHeight ?? 92.0;
+        final iconSize = metrics?.iconSize ?? 60.0;
+        return Column(
       children: [
         Expanded(
           child: _HomePages(
             apps: grid,
             cellWidth: cellW,
             cellHeight: cellH,
+            iconSize: iconSize,
+            lockGrid: modern,
             glossy: chrome == SkinChrome.classic,
             round: chrome == SkinChrome.android,
             labelColor: ink,
@@ -122,6 +132,7 @@ class PhoneHome extends StatelessWidget {
             onOrder: onOrder,
           ),
         ),
+        if (modern) const SizedBox(height: kHomeSearchLift),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Align(
@@ -161,6 +172,7 @@ class PhoneHome extends StatelessWidget {
                               labelColor: ink,
                               branded: os.branded,
                               modern: modern,
+                              iconSize: iconSize,
                               onTap: () => onOpen(app.id),
                               onHide: onHide == null ? null : () => onHide!('dock:${app.id}'),
                             ),
@@ -174,6 +186,8 @@ class PhoneHome extends StatelessWidget {
           ),
         ),
       ],
+        );
+      },
     );
   }
 }
@@ -203,6 +217,8 @@ class _HomePages extends StatefulWidget {
     required this.apps,
     required this.cellWidth,
     required this.cellHeight,
+    required this.iconSize,
+    this.lockGrid = false,
     required this.glossy,
     required this.round,
     required this.labelColor,
@@ -215,6 +231,8 @@ class _HomePages extends StatefulWidget {
   final List<PropApp> apps;
   final double cellWidth;
   final double cellHeight;
+  final double iconSize;
+  final bool lockGrid;
   final bool glossy;
   final bool round;
   final Color labelColor;
@@ -329,6 +347,7 @@ class _HomePagesState extends State<_HomePages> {
                   labelColor: widget.labelColor,
                   branded: widget.branded,
                   modern: widget.modern,
+                  iconSize: widget.iconSize,
                   onTap: () {},
                 ),
                 if (off)
@@ -361,8 +380,12 @@ class _HomePagesState extends State<_HomePages> {
         final top = widget.modern ? 22.0 : 4.0;
         final gridWidth = constraints.maxWidth - 16;
         final gridHeight = constraints.maxHeight - foot - top - 4;
-        final columns = _spanCount(gridWidth, widget.cellWidth);
-        final rows = _spanCount(gridHeight, widget.cellHeight + 10);
+        final columns = widget.lockGrid
+            ? kHomeIconColumns
+            : _spanCount(gridWidth, widget.cellWidth);
+        final rows = widget.lockGrid
+            ? kHomeIconRows
+            : _spanCount(gridHeight, widget.cellHeight + 10);
         final pageSize = columns * rows;
         _columns = columns;
         _rows = rows;
@@ -408,6 +431,7 @@ class _HomePagesState extends State<_HomePages> {
                           labelColor: widget.labelColor,
                           branded: widget.branded,
                           modern: widget.modern,
+                          iconSize: widget.iconSize,
                           onOpen: widget.onOpen,
                           draggingId: _dragId,
                           highlight: _slot == null ? null : _slot! - _page * _pageSize,
@@ -489,6 +513,7 @@ class _IconGrid extends StatelessWidget {
     required this.labelColor,
     required this.branded,
     required this.modern,
+    required this.iconSize,
     required this.onOpen,
     this.draggingId,
     this.highlight,
@@ -506,6 +531,7 @@ class _IconGrid extends StatelessWidget {
   final Color labelColor;
   final bool branded;
   final bool modern;
+  final double iconSize;
   final void Function(String id) onOpen;
   final String? draggingId;
   final int? highlight;
@@ -538,6 +564,7 @@ class _IconGrid extends StatelessWidget {
                         labelColor: labelColor,
                         branded: branded,
                         modern: modern,
+                        iconSize: iconSize,
                         dimmed: draggingId == apps[row * columns + column].id,
                         onTap: () => onOpen(apps[row * columns + column].id),
                         onHoldStart: onHoldStart == null
@@ -575,23 +602,23 @@ class _IconGrid extends StatelessWidget {
   }
 }
 
-Widget _glyph(PropApp app, {required bool branded}) {
+Widget _glyph(PropApp app, {required bool branded, double size = 30}) {
   if (branded) {
     final art = brandMark(app.id);
     if (art != null) {
-      return Icon(art.$2, color: Colors.white, size: 32);
+      return Icon(art.$2, color: Colors.white, size: size);
     }
   }
   final provider = app.image.isEmpty ? null : imageProviderForPath(app.image);
   if (provider == null) {
-    return Icon(app.icon, color: Colors.white, size: 30);
+    return Icon(app.icon, color: Colors.white, size: size);
   }
   return ClipRRect(
     borderRadius: BorderRadius.circular(8),
     child: Image(
       image: provider,
-      width: 40,
-      height: 40,
+      width: size,
+      height: size,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stack) =>
           Icon(app.icon, color: Colors.white, size: 22),
@@ -609,6 +636,7 @@ class _IconApp extends StatelessWidget {
     this.labelColor = Colors.white,
     this.branded = false,
     this.modern = false,
+    this.iconSize = 60,
     this.dimmed = false,
     this.onHoldStart,
     this.onHoldMove,
@@ -622,7 +650,10 @@ class _IconApp extends StatelessWidget {
   final Color labelColor;
   final bool branded;
   final bool modern;
+  final double iconSize;
   final bool dimmed;
+  Color get _iconColor => branded ? (brandMark(app.id)?.$1 ?? app.color) : app.color;
+
   final GestureLongPressStartCallback? onHoldStart;
   final GestureLongPressMoveUpdateCallback? onHoldMove;
   final VoidCallback? onHoldEnd;
@@ -641,12 +672,17 @@ class _IconApp extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: modern ? 68 : 60,
-            height: modern ? 68 : 60,
+            width: iconSize,
+            height: iconSize,
+            foregroundDecoration: modern && !glossy
+                ? edgeLightRim(radius: round ? 20 : 14)
+                : null,
             decoration: BoxDecoration(
-              color: branded ? (brandMark(app.id)?.$1 ?? app.color) : app.color,
+              color: modern && !glossy
+                  ? null
+                  : (branded ? (brandMark(app.id)?.$1 ?? app.color) : app.color),
               borderRadius: BorderRadius.circular(
-                round ? 20 : (glossy ? 10 : 12),
+                round ? 20 : (glossy ? 10 : (modern ? 14 : 12)),
               ),
               gradient: glossy
                   ? LinearGradient(
@@ -654,9 +690,25 @@ class _IconApp extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [Colors.white.withValues(alpha: 0.45), app.color],
                     )
+                  : modern
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color.lerp(_iconColor, Colors.white, 0.28)!,
+                            _iconColor,
+                            Color.lerp(_iconColor, Colors.black, 0.22)!,
+                          ],
+                          stops: const [0, 0.42, 1],
+                        )
+                      : null,
+              boxShadow: modern && !glossy
+                  ? const [
+                      BoxShadow(color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 3)),
+                    ]
                   : null,
             ),
-            child: _glyph(app, branded: branded),
+            child: _glyph(app, branded: branded, size: iconSize * 0.46),
           ),
           const SizedBox(height: 4),
           Text(
@@ -681,6 +733,7 @@ class _DockIcon extends StatefulWidget {
     required this.labelColor,
     required this.branded,
     required this.modern,
+    this.iconSize = 60,
     this.onHide,
   });
 
@@ -691,6 +744,7 @@ class _DockIcon extends StatefulWidget {
   final Color labelColor;
   final bool branded;
   final bool modern;
+  final double iconSize;
   final VoidCallback? onHide;
 
   @override
@@ -741,6 +795,7 @@ class _DockIconState extends State<_DockIcon> {
                 labelColor: widget.labelColor,
                 branded: widget.branded,
                 modern: widget.modern,
+                iconSize: widget.iconSize,
                 onTap: () {},
               ),
               if (off)
@@ -770,6 +825,7 @@ class _DockIconState extends State<_DockIcon> {
       labelColor: widget.labelColor,
       branded: widget.branded,
       modern: widget.modern,
+      iconSize: widget.iconSize,
       dimmed: _off,
       onTap: widget.onTap,
       onHoldStart: widget.onHide == null ? null : (_) {},

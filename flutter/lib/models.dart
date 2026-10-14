@@ -103,6 +103,9 @@ class OsSettings {
     this.bankBalance = 2480,
     this.bankCurrency = 'USD',
     this.temperature = 18,
+    this.place = 'Seoul',
+    this.weatherDegrees = 72,
+    this.weatherUnit = 'f',
     this.bankNotes = const [20, 50, 100],
     this.bankKeypad = 'screen',
     this.panelNames = const {},
@@ -198,6 +201,13 @@ class OsSettings {
   /// Prop temperature shown on the ATM header, in Celsius.
   final int temperature;
 
+  /// Place name shown wherever a location is printed. Blank falls back to Seoul.
+  final String place;
+
+  /// Weather temperature. [weatherUnit] is `f` or `c`. Fahrenheit is the default.
+  final int weatherDegrees;
+  final String weatherUnit;
+
   /// Note sizes this ATM can dispense, smallest first.
   final List<int> bankNotes;
 
@@ -277,6 +287,17 @@ class OsSettings {
 
   bool get isLight => theme == 'light';
 
+  String get placeLabel {
+    final name = place.trim();
+    return name.isEmpty ? 'Seoul' : name;
+  }
+
+  /// `72°F` or `22°C`, using the weather fields rather than the ATM temperature.
+  String get weatherReadout {
+    final unit = weatherUnit == 'c' ? 'C' : 'F';
+    return '$weatherDegrees°$unit';
+  }
+
   bool get hasDeviceDate => dateYear > 0 && dateMonth > 0 && dateDay > 0;
 
   int get ringDelaySeconds {
@@ -335,6 +356,9 @@ class OsSettings {
     int? bankBalance,
     String? bankCurrency,
     int? temperature,
+    String? place,
+    int? weatherDegrees,
+    String? weatherUnit,
     List<int>? bankNotes,
     String? bankKeypad,
     Map<String, String>? panelNames,
@@ -410,6 +434,9 @@ class OsSettings {
     bankBalance: bankBalance ?? this.bankBalance,
     bankCurrency: bankCurrency ?? this.bankCurrency,
     temperature: temperature ?? this.temperature,
+    place: place ?? this.place,
+    weatherDegrees: weatherDegrees ?? this.weatherDegrees,
+    weatherUnit: weatherUnit ?? this.weatherUnit,
     bankNotes: bankNotes ?? this.bankNotes,
     bankKeypad: bankKeypad ?? this.bankKeypad,
     panelNames: panelNames ?? this.panelNames,
@@ -487,6 +514,9 @@ class OsSettings {
     'bankBalance': bankBalance,
     'bankCurrency': bankCurrency,
     'temperature': temperature,
+    'place': place,
+    'weatherDegrees': weatherDegrees,
+    'weatherUnit': weatherUnit,
     'bankNotes': bankNotes,
     'bankKeypad': bankKeypad,
     'panelNames': panelNames,
@@ -584,6 +614,9 @@ class OsSettings {
       bankBalance: (json['bankBalance'] as num?)?.toInt() ?? 2480,
       bankCurrency: json['bankCurrency'] as String? ?? 'USD',
       temperature: _atmTemperature(json['temperature']),
+      place: json['place'] as String? ?? 'Seoul',
+      weatherDegrees: _weatherDegrees(json['weatherDegrees']),
+      weatherUnit: json['weatherUnit'] == 'c' ? 'c' : 'f',
       bankNotes: _atmNotes(json['bankNotes']),
       bankKeypad: json['bankKeypad'] == 'external' ? 'external' : 'screen',
       panelNames: _panelNames(json['panelNames']),
@@ -664,6 +697,9 @@ class OsSettings {
         bankBalance == other.bankBalance &&
         bankCurrency == other.bankCurrency &&
         temperature == other.temperature &&
+        place == other.place &&
+        weatherDegrees == other.weatherDegrees &&
+        weatherUnit == other.weatherUnit &&
         bankKeypad == other.bankKeypad &&
         _sameInts(bankNotes, other.bankNotes) &&
         _sameNames(panelNames, other.panelNames) &&
@@ -751,6 +787,9 @@ class OsSettings {
     Object.hashAll(people.map((person) => person.name)),
     Object.hashAll(glyphs.map((glyph) => glyph.id)),
     temperature,
+    place,
+    weatherDegrees,
+    weatherUnit,
     bankKeypad,
     clockStyle,
     clockFormat,
@@ -771,6 +810,13 @@ class OsSettings {
         '$key=${panelNames[key]}',
     ]),
   ]);
+}
+
+int _weatherDegrees(Object? raw) {
+  final value = (raw as num?)?.toInt() ?? 72;
+  if (value < -80) return -80;
+  if (value > 140) return 140;
+  return value;
 }
 
 int _atmTemperature(Object? raw) {

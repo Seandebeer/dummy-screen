@@ -97,7 +97,7 @@ class _Xbox360HomeState extends State<Xbox360Home> {
                   _MenuList(
                     width: box.row,
                     items: const [
-                      ('App Store', 'Phone app library'),
+                      ('Game Store', 'Game library'),
                       ('Settings', 'Wallpaper, theme, and icons'),
                       ('Xbox Series', 'Open the Series shell'),
                       ('PlayStation 5', 'Switch shell'),
@@ -105,7 +105,7 @@ class _Xbox360HomeState extends State<Xbox360Home> {
                       ('Xbox 360', 'This dashboard'),
                     ],
                     onOpen: (label) {
-                      if (label == 'App Store') {
+                      if (label == 'Game Store') {
                         widget.onOpen('appstore');
                         return;
                       }
@@ -203,7 +203,7 @@ class _Status extends StatelessWidget {
         children: [
           IconButton(
             key: const Key('xbox360-appstore'),
-            tooltip: 'App Store',
+            tooltip: 'Game Store',
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),

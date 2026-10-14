@@ -11,6 +11,7 @@ import '../screens/vfx_page.dart';
 import '../store.dart';
 import 'atm_home.dart';
 import 'console_apps.dart';
+import 'game_catalog.dart';
 import 'catalog.dart';
 import 'desk_os_apps.dart';
 import 'desk_settings.dart';
@@ -1328,13 +1329,8 @@ class _ConsoleOs extends StatelessWidget {
                     image: cover,
                     onTap: () => onOpen('steam'),
                   ),
-                  for (final title in [
-                    'Night Run',
-                    'Harbor',
-                    'Signal',
-                    'Relay',
-                  ])
-                    _GameTile(title: title, onTap: () => onOpen(title)),
+                  for (final game in mockGames.take(4))
+                    _GameTile(title: game.title, game: game, onTap: () => onOpen(game.id)),
                 ],
               ),
             ),
@@ -1372,38 +1368,44 @@ class _ConsoleOs extends StatelessWidget {
 }
 
 class _GameTile extends StatelessWidget {
-  const _GameTile({required this.title, required this.onTap, this.image});
+  const _GameTile({required this.title, required this.onTap, this.image, this.game});
 
   final String title;
   final VoidCallback onTap;
   final ImageProvider? image;
+  final MockGame? game;
 
   @override
   Widget build(BuildContext context) {
+    final cover = game ??
+        coverForLabel(
+          id: title,
+          title: title,
+          color: const Color(0xFF243044),
+        );
     return Padding(
       padding: const EdgeInsets.only(right: 12),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          width: 140,
-          decoration: BoxDecoration(
-            color: Colors.black26,
-            borderRadius: BorderRadius.circular(8),
-            image: image == null
-                ? null
-                : DecorationImage(image: image!, fit: BoxFit.cover),
-          ),
-          alignment: Alignment.bottomLeft,
-          padding: const EdgeInsets.all(8),
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
+      child: image == null
+          ? GameCover(game: cover, width: 120, height: 160, onTap: onTap)
+          : InkWell(
+              onTap: onTap,
+              child: Container(
+                width: 140,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  image: DecorationImage(image: image!, fit: BoxFit.cover),
+                ),
+                alignment: Alignment.bottomLeft,
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

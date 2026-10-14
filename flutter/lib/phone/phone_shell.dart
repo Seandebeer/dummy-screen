@@ -11,6 +11,7 @@ import 'ios_keyboard.dart';
 import '../os_catalog.dart';
 import '../theme.dart';
 import 'legacy_homes.dart';
+import 'wallpaper_art.dart';
 
 class PhoneShell extends StatelessWidget {
   const PhoneShell({
@@ -94,6 +95,10 @@ class PhoneShell extends StatelessWidget {
             data: IconThemeData(color: navInk),
             child: Stack(
             children: [
+              if (image == null)
+                Positioned.fill(
+                  child: WallpaperMotif(presetId: paper.presetId),
+                ),
               if (ribbon)
                 const Positioned.fill(
                   child: CustomPaint(painter: AndroidRibbonPainter()),
@@ -105,6 +110,7 @@ class PhoneShell extends StatelessWidget {
                     ink: statusInk,
                     os: device.os,
                     skin: skin,
+                    hideCornerClock: device.locked,
                     onTap: onStatusTap,
                   ),
                   Expanded(
@@ -186,6 +192,7 @@ class _StatusBar extends StatelessWidget {
     required this.ink,
     required this.os,
     required this.skin,
+    this.hideCornerClock = false,
     this.onTap,
   });
 
@@ -193,6 +200,7 @@ class _StatusBar extends StatelessWidget {
   final Color ink;
   final OsSettings os;
   final String skin;
+  final bool hideCornerClock;
   final VoidCallback? onTap;
 
   @override
@@ -353,16 +361,30 @@ class _StatusBar extends StatelessWidget {
     Widget sideLeft;
     Widget sideRight;
     final batteryIcon = Icon(Icons.battery_full, size: 18, color: ink);
+    final cornerClock = hideCornerClock &&
+        (skin == 'winphone' || skin == 'holo' || skin == 'belle');
     switch (era) {
       case _StatusEra.wp:
         sideLeft = const SizedBox.shrink();
-        sideRight = _time(ink, 14, FontWeight.w500);
+        sideRight = cornerClock ? const SizedBox.shrink() : _time(ink, 14, FontWeight.w500);
       case _StatusEra.holo:
         sideLeft = Icon(Icons.notifications_none, size: 16, color: ink);
-        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 6), _time(ink, 13, FontWeight.w500)]);
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [
+          signal,
+          const SizedBox(width: 6),
+          batteryIcon,
+          if (!cornerClock) const SizedBox(width: 6),
+          if (!cornerClock) _time(ink, 13, FontWeight.w500),
+        ]);
       case _StatusEra.belle:
         sideLeft = Text(carrier, style: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600));
-        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [signal, const SizedBox(width: 6), batteryIcon, const SizedBox(width: 8), _time(ink, 13, FontWeight.w700)]);
+        sideRight = Row(mainAxisSize: MainAxisSize.min, children: [
+          signal,
+          const SizedBox(width: 6),
+          batteryIcon,
+          if (!cornerClock) const SizedBox(width: 8),
+          if (!cornerClock) _time(ink, 13, FontWeight.w700),
+        ]);
       case _StatusEra.webos:
         sideLeft = Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

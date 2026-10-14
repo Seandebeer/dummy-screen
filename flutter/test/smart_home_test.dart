@@ -105,12 +105,18 @@ void main() {
 
       await tester.tap(find.byKey(const Key('home-settings')));
       await tester.pump();
+      await tester.tap(find.byKey(const Key('home-cat-display')));
+      await tester.pump();
       expect(find.text('Upload background'), findsOneWidget);
       await tester.tap(find.byKey(const Key('home-remove-background')));
       await tester.pump();
       expect(find.byKey(const Key('home-custom-background')), findsNothing);
       expect(store.deviceById('home-1')!.os.backgroundType, 'preset');
 
+      await tester.tap(find.byKey(const Key('home-settings-back')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('home-cat-panels')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('home-order-lights')));
       await tester.pump();
       await tester.tap(find.byKey(const Key('home-order-camera')));

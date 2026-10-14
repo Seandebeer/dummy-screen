@@ -477,20 +477,44 @@ class _PassTile extends StatelessWidget {
           onTap: onTap,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: ColoredBox(
-              color: const Color(0xFF107C10),
-              child: Center(
-                child: Text(
-                  'GAME\nPASS',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: size,
-                    height: 1.05,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF3DDC5A), Color(0xFF107C10), Color(0xFF063806)],
                 ),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.35),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.25),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: Text(
+                      'GAME\nPASS',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: size,
+                        height: 1.05,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -521,21 +545,47 @@ class _StoreTile extends StatelessWidget {
         width: side,
         height: side,
         child: Tooltip(
-          message: 'App Store',
+          message: 'Game Store',
           child: GestureDetector(
             key: tileKey,
             onTap: onTap,
-            child: ClipRRect(
+              child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: ColoredBox(
-                color: const Color(0xFFF4F6F1),
-                child: Center(
-                  child: Icon(
-                    Icons.shopping_bag_outlined,
-                    color: const Color(0xFF1A1A1A),
-                    size: side * 0.42,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF2E6BFF), Color(0xFF0B1B3A), Color(0xFF071018)],
+                      ),
+                    ),
                   ),
-                ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.45),
+                          Colors.white.withValues(alpha: 0),
+                          Colors.black.withValues(alpha: 0.35),
+                        ],
+                        stops: const [0, 0.28, 1],
+                      ),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
+                    ),
+                  ),
+                  Center(
+                    child: Icon(
+                      Icons.sports_esports,
+                      color: Colors.white,
+                      size: side * 0.42,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

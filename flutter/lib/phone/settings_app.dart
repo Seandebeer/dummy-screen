@@ -6,8 +6,11 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'app_catalog.dart';
+import 'catalog.dart';
 import 'extra_settings.dart';
 import 'ios_keyboard.dart';
+import 'place_settings.dart';
 import 'settings_kit.dart';
 
 /// OS Settings for a phone or a tablet, laid out like the Base44 Settings
@@ -30,6 +33,7 @@ class _SettingsAppState extends State<SettingsApp> {
   final _codeController = TextEditingController();
   bool _langOpen = false;
   bool _legacy = false;
+  bool _library = false;
   bool _uploading = false;
   bool _lockUploading = false;
   bool _uploadError = false;
@@ -293,8 +297,10 @@ class _SettingsAppState extends State<SettingsApp> {
             ],
           ),
         ),
-        if (_page == 'status')
+        if (_page == 'status') ...[
           ExtraSettings(store: widget.store, device: device, cellular: phone),
+          PlaceSettings(store: widget.store, device: device),
+        ],
         if (_page == 'display')
         SettingsSection(
           title: copy.themes,
@@ -709,6 +715,59 @@ class _SettingsAppState extends State<SettingsApp> {
         SettingsSection(
           title: 'Custom apps',
           child: CustomIconMaker(store: widget.store, device: device),
+        ),
+        if (_page == 'apps')
+        SettingsSection(
+          title: 'App Library',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InkWell(
+                key: const Key('settings-app-library'),
+                onTap: () => setState(() => _library = !_library),
+                child: Row(
+                  children: [
+                    Icon(
+                      _library ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: light ? Colors.black54 : Colors.white70,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'App Library',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Text(
+                      _library ? 'Hide' : 'Show',
+                      style: const TextStyle(color: kSettingsHint, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              if (_library) ...[
+                const SizedBox(height: 8),
+                for (final app in kPropApps)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(app.label, style: const TextStyle(fontSize: 13)),
+                  ),
+                for (final section in mockCatalog) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    section.name,
+                    style: const TextStyle(fontSize: 12, color: kSettingsHint),
+                  ),
+                  for (final app in section.apps)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2, left: 8),
+                      child: Text(app.label, style: const TextStyle(fontSize: 13)),
+                    ),
+                ],
+              ],
+            ],
+          ),
         ),
       ],
     );

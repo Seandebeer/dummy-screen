@@ -10,6 +10,7 @@ import '../store.dart';
 import 'catalog.dart';
 import 'desk_window.dart';
 import 'mac_desk.dart';
+import 'wallpaper_art.dart';
 
 /// Windows desktop: bloom wallpaper, left-hand icons, and a centered taskbar.
 class WinDesktop extends StatefulWidget {
@@ -130,7 +131,9 @@ class _WinDesktopState extends State<WinDesktop> {
                   ? null
                   : DecorationImage(image: image, fit: BoxFit.cover),
             ),
-            child: const SizedBox.expand(),
+            child: image == null
+                ? WallpaperMotif(presetId: paper.presetId)
+                : const SizedBox.expand(),
           ),
         Positioned.fill(
           child: GestureDetector(

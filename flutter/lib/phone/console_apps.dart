@@ -5,11 +5,13 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
-import 'app_catalog.dart';
-import 'catalog.dart';
 import 'clock_settings.dart';
 import 'extra_settings.dart';
+import 'game_catalog.dart';
 import 'mac_desk.dart';
+import 'place_settings.dart';
+import 'settings_kit.dart';
+import 'wallpaper_art.dart';
 
 /// Header tokens drawn on the console shells. Empty keeps this set.
 const kConsoleStatusDefault = [
@@ -58,9 +60,23 @@ class ConsoleLayout {
 
 /// Label for a launched app. Unknown ids keep the title the shell already uses.
 String consoleAppLabel(String id, OsSettings os) {
+  final game = gameById(id);
+  if (game != null) return game.title;
   final glyph = macGlyph(id, os);
   if (glyph.label == 'App') return id;
   return glyph.label;
+}
+
+MockGame pinCover(String id, OsSettings os) {
+  final game = gameById(id);
+  if (game != null) return game;
+  final glyph = macGlyph(id, os);
+  return coverForLabel(
+    id: id,
+    title: glyph.label == 'App' ? id : glyph.label,
+    color: glyph.color,
+    mark: glyph.icon,
+  );
 }
 
 /// Saved wallpaper, or the shell's own art when nothing has been chosen.
@@ -89,7 +105,9 @@ class ConsoleWallpaper extends StatelessWidget {
             ? null
             : DecorationImage(image: image, fit: BoxFit.cover),
       ),
-      child: const SizedBox.expand(),
+      child: image == null
+          ? WallpaperMotif(presetId: paper.presetId)
+          : const SizedBox.expand(),
     );
   }
 }
@@ -105,22 +123,21 @@ class ConsolePinStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (os.consolePins.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 36,
+      height: 96,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
           for (final id in os.consolePins)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: ActionChip(
+              child: KeyedSubtree(
                 key: Key('console-pin-$id'),
-                avatar: Icon(
-                  macGlyph(id, os).icon,
-                  size: 16,
-                  color: macGlyph(id, os).color,
+                child: GameCover(
+                  game: pinCover(id, os),
+                  width: 68,
+                  height: 90,
+                  onTap: () => onOpen(id),
                 ),
-                label: Text(macGlyph(id, os).label),
-                onPressed: () => onOpen(id),
               ),
             ),
         ],
@@ -129,8 +146,9 @@ class ConsolePinStrip extends StatelessWidget {
   }
 }
 
-/// Wallpaper, theme, header details, pinned apps, and custom icons.
-class ConsoleSettings extends StatelessWidget {
+/// Wallpaper, theme, header details, pinned games, and custom icons.
+/// Same category index the phone Settings app uses.
+class ConsoleSettings extends StatefulWidget {
   const ConsoleSettings({
     super.key,
     required this.store,
@@ -142,6 +160,16 @@ class ConsoleSettings extends StatelessWidget {
   final PropDevice device;
   final VoidCallback onClose;
 
+  @override
+  State<ConsoleSettings> createState() => _ConsoleSettingsState();
+}
+
+class _ConsoleSettingsState extends State<ConsoleSettings> {
+  String? _page;
+
+  StageStore get store => widget.store;
+  PropDevice get device => widget.device;
+  VoidCallback get onClose => widget.onClose;
   OsSettings get os => device.os;
 
   void _save(OsSettings Function(OsSettings current) change) {
@@ -163,15 +191,52 @@ class ConsoleSettings extends StatelessWidget {
     return _Pane(
       title: 'Settings',
       onClose: onClose,
-      child: _Pager(
-        pages: const [
-          ('look', 'Wallpaper'),
-          ('status', 'Status'),
-          ('home', 'Home'),
-          ('icons', 'Icons'),
-        ],
-        bodies: [
-          [
+      child: SettingsPage(
+        listKey: const Key('console-settings-list'),
+        title: switch (_page) {
+          'look' => 'Display',
+          'status' => 'Status',
+          'home' => 'Home',
+          'icons' => 'Apps',
+          _ => 'Settings',
+        },
+        onBack: _page == null ? null : () => setState(() => _page = null),
+        onReset: () => store.factoryResetDevice(device.id),
+        children: [
+          if (_page == null)
+            SettingsGroup(
+              children: [
+                SettingsCategory(
+                  categoryKey: const Key('console-settings-look'),
+                  icon: Icons.wallpaper,
+                  title: 'Display',
+                  detail: 'Theme and wallpaper',
+                  onOpen: () => setState(() => _page = 'look'),
+                ),
+                SettingsCategory(
+                  categoryKey: const Key('console-settings-status'),
+                  icon: Icons.tune,
+                  title: 'Status',
+                  detail: 'Clock, battery, and player',
+                  onOpen: () => setState(() => _page = 'status'),
+                ),
+                SettingsCategory(
+                  categoryKey: const Key('console-settings-home'),
+                  icon: Icons.sports_esports,
+                  title: 'Home',
+                  detail: 'Pinned games',
+                  onOpen: () => setState(() => _page = 'home'),
+                ),
+                SettingsCategory(
+                  categoryKey: const Key('console-settings-icons'),
+                  icon: Icons.apps,
+                  title: 'Apps',
+                  detail: 'Custom icons',
+                  onOpen: () => setState(() => _page = 'icons'),
+                ),
+              ],
+            ),
+          if (_page == 'look') ...[
             const _Head('Theme'),
             Wrap(
               spacing: 8,
@@ -252,7 +317,7 @@ class ConsoleSettings extends StatelessWidget {
               ),
             ),
           ],
-          [
+          if (_page == 'status') ...[
             _switch('Clock', shown.contains('clock'), 'console-show-clock', (
               value,
             ) {
@@ -345,12 +410,13 @@ class ConsoleSettings extends StatelessWidget {
             ) {
               _show('mail', value);
             }),
+            PlaceSettings(store: store, device: device),
           ],
-          [
-            const _Head('Pinned apps'),
+          if (_page == 'home') ...[
+            const _Head('Pinned games'),
             if (os.consolePins.isEmpty)
               const Text(
-                'Pin an app from the App Store and it lands on the home screen.',
+                'Pin a game from the Game Store and it lands on the home screen.',
                 style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
             for (final id in os.consolePins)
@@ -376,10 +442,10 @@ class ConsoleSettings extends StatelessWidget {
                 ],
               ),
           ],
-          [
+          if (_page == 'icons') ...[
             const _Head('Custom icons'),
             const Text(
-              'Same icon maker as the phone. New icons show up in the App Store.',
+              'Same icon maker as the phone. New icons show up in the Game Store.',
               style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 8),
@@ -436,6 +502,7 @@ class ConsoleAppStore extends StatefulWidget {
 
 class _ConsoleAppStoreState extends State<ConsoleAppStore> {
   final _query = TextEditingController();
+  final _open = <String>{'featured'};
 
   @override
   void dispose() {
@@ -449,50 +516,35 @@ class _ConsoleAppStoreState extends State<ConsoleAppStore> {
     final query = _query.text.trim().toLowerCase();
     final pins = os.consolePins.toSet();
     final favs = widget.store.appFavorites.toSet();
-    final sections = <({String name, List<(String, MacGlyph)> apps})>[
-      (
-        name: 'Favourites',
-        apps: [
-          for (final id in widget.store.appFavorites) (id, macGlyph(id, os)),
-        ],
-      ),
-      (
-        name: 'Custom',
-        apps: [
-          for (final glyph in os.glyphs)
-            (
-              glyph.id,
-              MacGlyph(
-                glyph.name,
-                Icons.apps,
-                const Color(0xFF3A3A3C),
-                image: glyph.image,
-              ),
-            ),
-        ],
-      ),
-      (
-        name: 'Functional',
-        apps: [
-          for (final app in kPropApps) (app.id, macGlyph(app.id, os)),
-        ],
-      ),
-      for (final section in mockCatalog)
-        (
-          name: section.name,
-          apps: [
-            for (final app in section.apps) (app.id, macGlyph(app.id, os)),
-          ],
-        ),
-    ];
+    final shelves = ['Featured', 'Favourites', 'Action', 'Adventure', 'Sports', 'Indie'];
+    List<MockGame> gamesFor(String shelf) {
+      final source = switch (shelf) {
+        'Featured' => mockGames.take(4).toList(),
+        'Favourites' => [for (final game in mockGames) if (favs.contains(game.id)) game],
+        _ => [for (final game in mockGames) if (game.shelf == shelf) game],
+      };
+      if (query.isEmpty) return source;
+      return [
+        for (final game in source)
+          if (game.title.toLowerCase().contains(query) || game.studio.toLowerCase().contains(query)) game,
+      ];
+    }
+
     return _Pane(
-      title: 'App Store',
+      title: 'Game Store',
       onClose: widget.onClose,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Text(
+              'Game Store',
+              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: TextField(
               key: const Key('console-store-search'),
               controller: _query,
@@ -501,7 +553,7 @@ class _ConsoleAppStoreState extends State<ConsoleAppStore> {
               cursorColor: Colors.white,
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Search apps',
+                hintText: 'Search games',
                 hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
                 prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 16),
                 filled: true,
@@ -518,27 +570,19 @@ class _ConsoleAppStoreState extends State<ConsoleAppStore> {
               key: const Key('console-store-scroll'),
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(4, 0, 4, 6),
-                  child: Text(
-                    'App Library',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                for (final section in sections)
-                  if (section.apps.isNotEmpty || section.name == 'Custom')
-                    _StoreSection(
-                      name: section.name,
-                      apps: [
-                        for (final app in section.apps)
-                          if (query.isEmpty ||
-                              app.$2.label.toLowerCase().contains(query))
-                            app,
-                      ],
+                for (final shelf in shelves)
+                  if (query.isEmpty || gamesFor(shelf).isNotEmpty)
+                    _GameShelf(
+                      name: shelf,
+                      games: gamesFor(shelf),
+                      expanded: query.isNotEmpty || _open.contains(shelf),
+                      onToggle: () => setState(() {
+                        if (_open.contains(shelf)) {
+                          _open.remove(shelf);
+                        } else {
+                          _open.add(shelf);
+                        }
+                      }),
                       favs: favs,
                       pins: pins,
                       onFav: widget.store.toggleAppFavorite,
@@ -557,10 +601,12 @@ class _ConsoleAppStoreState extends State<ConsoleAppStore> {
   }
 }
 
-class _StoreSection extends StatelessWidget {
-  const _StoreSection({
+class _GameShelf extends StatelessWidget {
+  const _GameShelf({
     required this.name,
-    required this.apps,
+    required this.games,
+    required this.expanded,
+    required this.onToggle,
     required this.favs,
     required this.pins,
     required this.onFav,
@@ -569,7 +615,9 @@ class _StoreSection extends StatelessWidget {
   });
 
   final String name;
-  final List<(String, MacGlyph)> apps;
+  final List<MockGame> games;
+  final bool expanded;
+  final VoidCallback onToggle;
   final Set<String> favs;
   final Set<String> pins;
   final ValueChanged<String> onFav;
@@ -581,59 +629,82 @@ class _StoreSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
-          child: Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+        InkWell(
+          onTap: onToggle,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+            child: Row(
+              children: [
+                Icon(
+                  expanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.white70,
+                  size: 18,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Text('${games.length}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+              ],
             ),
           ),
         ),
-        if (apps.isEmpty)
+        if (expanded && games.isEmpty)
           const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 6),
-            child: Text(
-              'Icons you create in Settings land here.',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
+            padding: EdgeInsets.only(left: 8, bottom: 6),
+            child: Text('No games here yet.', style: TextStyle(color: Colors.white38, fontSize: 11)),
+          ),
+        if (expanded)
+          for (final game in games)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    key: Key('console-store-fav-${game.id}'),
+                    onPressed: () => onFav(game.id),
+                    icon: Icon(
+                      favs.contains(game.id) ? Icons.star : Icons.star_border,
+                      color: const Color(0xFFFFD60A),
+                      size: 16,
+                    ),
+                  ),
+                  GameCover(
+                    game: game,
+                    width: 54,
+                    height: 72,
+                    onTap: () => onOpen(game.id),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          game.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
+                        Text(game.studio, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    key: Key('console-store-open-${game.id}'),
+                    onPressed: () => onOpen(game.id),
+                    child: const Text('Open'),
+                  ),
+                  TextButton(
+                    key: Key('console-store-home-${game.id}'),
+                    onPressed: pins.contains(game.id) ? null : () => onPin(game.id),
+                    child: Text(pins.contains(game.id) ? 'Pinned' : 'Home'),
+                  ),
+                ],
+              ),
             ),
-          ),
-        for (final app in apps)
-          Row(
-            children: [
-              IconButton(
-                key: Key('console-store-fav-${app.$1}'),
-                onPressed: () => onFav(app.$1),
-                icon: Icon(
-                  favs.contains(app.$1) ? Icons.star : Icons.star_border,
-                  color: const Color(0xFFFFD60A),
-                  size: 16,
-                ),
-              ),
-              Icon(app.$2.icon, color: app.$2.color, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  app.$2.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-              TextButton(
-                key: Key('console-store-open-${app.$1}'),
-                onPressed: () => onOpen(app.$1),
-                child: const Text('Open'),
-              ),
-              TextButton(
-                key: Key('console-store-home-${app.$1}'),
-                onPressed: pins.contains(app.$1) ? null : () => onPin(app.$1),
-                child: Text(pins.contains(app.$1) ? 'Pinned' : 'Home'),
-              ),
-            ],
-          ),
       ],
     );
   }

@@ -7,6 +7,7 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'console_apps.dart';
+import 'wallpaper_art.dart';
 
 /// PlayStation 2 memory-card browser. The plate follows a saved wallpaper.
 class Ps2Home extends StatefulWidget {
@@ -167,7 +168,9 @@ class _Plate extends StatelessWidget {
             ? null
             : DecorationImage(image: image, fit: BoxFit.cover),
       ),
-      child: const SizedBox.expand(),
+      child: image == null
+          ? WallpaperMotif(presetId: paper.presetId)
+          : const SizedBox.expand(),
     );
   }
 }
@@ -485,7 +488,7 @@ List<_Save?> _slots(String featured) {
     const _Save('scout', 'Scout', 'Cast', _Face.figure, Color(0xFF2C2C30)),
     const _Save(
       'appstore',
-      'App Store',
+      'Game Store',
       'Library',
       _Face.card,
       Color(0xFF0A84FF),

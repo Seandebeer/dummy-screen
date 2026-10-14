@@ -4,6 +4,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'catalog.dart';
+import 'home_metrics.dart';
+import 'icon_finish.dart';
 import '../models.dart';
 import 'home_drag.dart';
 
@@ -125,36 +127,37 @@ class _IosShelfHome extends StatelessWidget {
     final apps = _grid(os, dockIds.toSet());
     final gloss = kind != _IosKind.seven;
     final label = kind == _IosKind.original ? Colors.white : const Color(0xF2FFFFFF);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _iosPaper(kind),
-        Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final metrics = homeMetricsForFrame(constraints.maxWidth, constraints.maxHeight);
+        final pageSize = metrics.columns * metrics.rows;
+        final pages = <List<PropApp>>[];
+        for (var i = 0; i < apps.length; i += pageSize) {
+          final end = i + pageSize > apps.length ? apps.length : i + pageSize;
+          pages.add(apps.sublist(i, end));
+        }
+        if (pages.isEmpty) pages.add(const []);
+        return Stack(
+          fit: StackFit.expand,
           children: [
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final cellW = (constraints.maxWidth / 4).clamp(72.0, 88.0);
-                  const cellH = 96.0;
-                  final columns = 4;
-                  final rows = kind == _IosKind.original ? 4 : (constraints.maxHeight > 520 ? 5 : 4);
-                  final pageSize = columns * rows;
-                  final pages = <List<PropApp>>[];
-                  for (var i = 0; i < apps.length; i += pageSize) {
-                    final end = i + pageSize > apps.length ? apps.length : i + pageSize;
-                    pages.add(apps.sublist(i, end));
-                  }
-                  if (pages.isEmpty) pages.add(const []);
-                  return _PagedGrid(
+            _iosPaper(kind),
+            Column(
+              children: [
+                Expanded(
+                  child: _PagedGrid(
                     pages: pages,
-                    columns: columns,
-                    cellWidth: cellW,
-                    cellHeight: cellH,
+                    columns: metrics.columns,
+                    cellWidth: metrics.cellWidth,
+                    cellHeight: metrics.cellHeight,
+                    iconSize: metrics.iconSize,
+                    gap: metrics.gap,
                     gloss: gloss,
                     radius: kind == _IosKind.seven ? 14 : 12,
                     labelColor: label,
                     onOpen: onOpen,
-                    searchMark: kind != _IosKind.original,
+                    top: 22,
+                    bottom: 4,
+                    horizontal: 8,
                     onRemove: onOrder == null
                         ? null
                         : (id) {
@@ -162,14 +165,20 @@ class _IosShelfHome extends StatelessWidget {
                             layout.remove(id);
                             onOrder!(layout);
                           },
-                  );
-                },
-              ),
+                  ),
+                ),
+                const SizedBox(height: kHomeSearchFoot + kHomeSearchLift),
+                _IosDock(
+                  apps: dock,
+                  kind: kind,
+                  iconSize: metrics.iconSize,
+                  onOpen: onOpen,
+                ),
+              ],
             ),
-            _IosDock(apps: dock, kind: kind, onOpen: onOpen),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -263,11 +272,17 @@ class _StarPainter extends CustomPainter {
 }
 
 class _IosDock extends StatelessWidget {
-  const _IosDock({required this.apps, required this.kind, required this.onOpen});
+  const _IosDock({
+    required this.apps,
+    required this.kind,
+    required this.onOpen,
+    this.iconSize = 54,
+  });
 
   final List<PropApp> apps;
   final _IosKind kind;
   final void Function(String id) onOpen;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +294,7 @@ class _IosDock extends StatelessWidget {
           _AppButton(
             key: Key('dock-${app.id}'),
             app: app,
-            size: kind == _IosKind.original ? 58 : 54,
+            size: iconSize,
             radius: kind == _IosKind.seven ? 13 : 12,
             gloss: gloss,
             label: app.label,
@@ -381,12 +396,15 @@ class _PagedGrid extends StatefulWidget {
     required this.columns,
     required this.cellWidth,
     required this.cellHeight,
+    this.iconSize,
+    this.gap = 0,
     required this.gloss,
     required this.radius,
     required this.labelColor,
     required this.onOpen,
     this.top = 8,
-    this.searchMark = false,
+    this.bottom = 0,
+    this.horizontal = 6,
     this.onRemove,
   });
 
@@ -394,12 +412,15 @@ class _PagedGrid extends StatefulWidget {
   final int columns;
   final double cellWidth;
   final double cellHeight;
+  final double? iconSize;
+  final double gap;
   final bool gloss;
   final double radius;
   final Color labelColor;
   final void Function(String id) onOpen;
   final double top;
-  final bool searchMark;
+  final double bottom;
+  final double horizontal;
   final ValueChanged<String>? onRemove;
 
   @override
@@ -428,7 +449,7 @@ class _PagedGridState extends State<_PagedGrid> {
             children: [
               for (final page in widget.pages)
                 Padding(
-                  padding: EdgeInsets.fromLTRB(6, widget.top, 6, 0),
+                  padding: EdgeInsets.fromLTRB(widget.horizontal, widget.top, widget.horizontal, widget.bottom),
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: _FixedGrid(
@@ -436,6 +457,8 @@ class _PagedGridState extends State<_PagedGrid> {
                       columns: widget.columns,
                       cellWidth: widget.cellWidth,
                       cellHeight: widget.cellHeight,
+                      iconSize: widget.iconSize,
+                      gap: widget.gap,
                       gloss: widget.gloss,
                       radius: widget.radius,
                       labelColor: widget.labelColor,
@@ -447,16 +470,12 @@ class _PagedGridState extends State<_PagedGrid> {
             ],
           ),
         ),
-        if (widget.pages.length > 1 || widget.searchMark)
+        if (widget.pages.length > 1)
           Padding(
           padding: const EdgeInsets.only(bottom: 6, top: 2),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (widget.searchMark) ...[
-                Icon(Icons.search, size: 11, color: widget.labelColor.withValues(alpha: 0.8)),
-                const SizedBox(width: 6),
-              ],
               for (var i = 0; i < widget.pages.length; i++)
                 Container(
                   width: i == _page ? 7 : 6,
@@ -481,6 +500,8 @@ class _FixedGrid extends StatelessWidget {
     required this.columns,
     required this.cellWidth,
     required this.cellHeight,
+    this.iconSize,
+    this.gap = 0,
     required this.gloss,
     required this.radius,
     required this.labelColor,
@@ -492,6 +513,8 @@ class _FixedGrid extends StatelessWidget {
   final int columns;
   final double cellWidth;
   final double cellHeight;
+  final double? iconSize;
+  final double gap;
   final bool gloss;
   final double radius;
   final Color labelColor;
@@ -505,7 +528,9 @@ class _FixedGrid extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var row = 0; row < rows; row++)
-          Row(
+          Padding(
+            padding: EdgeInsets.only(bottom: gap),
+            child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               for (var column = 0; column < columns; column++)
@@ -521,7 +546,7 @@ class _FixedGrid extends StatelessWidget {
                       child: _AppButton(
                         key: Key('home-${apps[row * columns + column].id}'),
                         app: apps[row * columns + column],
-                        size: cellWidth * 0.72,
+                        size: iconSize ?? cellWidth * 0.72,
                         radius: radius,
                         gloss: gloss,
                         label: apps[row * columns + column].label,
@@ -533,6 +558,7 @@ class _FixedGrid extends StatelessWidget {
                 else
                   SizedBox(width: cellWidth, height: cellHeight),
             ],
+          ),
           ),
       ],
     );
@@ -597,6 +623,7 @@ class _GlossIcon extends StatelessWidget {
     return Container(
       width: size,
       height: size,
+      foregroundDecoration: gloss ? null : edgeLightRim(radius: radius),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
         boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 3, offset: Offset(0, 1))],

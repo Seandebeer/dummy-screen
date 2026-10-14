@@ -720,10 +720,15 @@ LinearGradient gradientFor(String presetId, {required bool light}) {
 }
 
 class PhoneWallpaper {
-  const PhoneWallpaper({required this.gradient, this.imagePath = ''});
+  const PhoneWallpaper({
+    required this.gradient,
+    this.imagePath = '',
+    this.presetId = 'default',
+  });
 
   final LinearGradient gradient;
   final String imagePath;
+  final String presetId;
 }
 
 PhoneWallpaper wallpaperFor(PropDevice device, {required bool locked}) {
@@ -735,6 +740,7 @@ PhoneWallpaper wallpaperFor(PropDevice device, {required bool locked}) {
       return PhoneWallpaper(
         gradient: gradientFor(os.lockBackgroundPreset, light: os.isLight),
         imagePath: os.lockBackgroundUrl,
+        presetId: os.lockBackgroundPreset,
       );
     }
     final customPreset = os.lockBackgroundPreset != 'default';
@@ -744,6 +750,7 @@ PhoneWallpaper wallpaperFor(PropDevice device, {required bool locked}) {
       return PhoneWallpaper(
         gradient: gradientFor(os.backgroundPreset, light: os.isLight),
         imagePath: os.backgroundUrl,
+        presetId: os.backgroundPreset,
       );
     }
     final presetId = customPreset
@@ -751,16 +758,19 @@ PhoneWallpaper wallpaperFor(PropDevice device, {required bool locked}) {
         : os.backgroundPreset;
     return PhoneWallpaper(
       gradient: gradientFor(presetId, light: os.isLight),
+      presetId: presetId,
     );
   }
   if (os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty) {
     return PhoneWallpaper(
       gradient: gradientFor(os.backgroundPreset, light: os.isLight),
       imagePath: os.backgroundUrl,
+      presetId: os.backgroundPreset,
     );
   }
   return PhoneWallpaper(
     gradient: gradientFor(os.backgroundPreset, light: os.isLight),
+    presetId: os.backgroundPreset,
   );
 }
 

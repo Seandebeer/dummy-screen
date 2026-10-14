@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../os_catalog.dart';
 import '../theme.dart';
+import 'wallpaper_art.dart';
 
 /// The pieces the Settings app is built from. A phone, a tablet, and a
 /// computer each list the settings that belong to that device, and all of
@@ -742,16 +743,24 @@ class SettingsPresetGrid extends StatelessWidget {
                     width: 2,
                   ),
                 ),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: preset.dark.length < 2
-                          ? [preset.dark.first, preset.dark.first]
-                          : preset.dark,
-                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: preset.dark.length < 2
+                                ? [preset.dark.first, preset.dark.first]
+                                : preset.dark,
+                          ),
+                        ),
+                      ),
+                      WallpaperMotif(presetId: preset.id),
+                    ],
                   ),
                 ),
               ),

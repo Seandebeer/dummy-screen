@@ -8,6 +8,7 @@ import '../store.dart';
 import 'clock_settings.dart';
 import 'extra_settings.dart';
 import 'mac_desk.dart';
+import 'place_settings.dart';
 import 'settings_kit.dart';
 
 /// The computer interfaces a prop machine runs.
@@ -323,6 +324,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
             ],
           ),
         ),
+        if (_page == 'bar') PlaceSettings(store: widget.store, device: device),
         if (_page == 'bar' && shell == 'macos')
           SettingsSection(
             title: 'Menu bar items',
