@@ -11,6 +11,7 @@ import '../store.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
 import 'mac_desk.dart';
+import 'wallpaper_art.dart';
 
 /// macOS desktop matched to the night-dune layout: a full-width menu bar,
 /// one moonlit dune, a compact file column, and a shelf dock.
@@ -386,7 +387,9 @@ class _MacDesktopState extends State<MacDesktop> {
             ? null
             : DecorationImage(image: image, fit: BoxFit.cover),
       ),
-      child: const SizedBox.expand(),
+      child: image == null
+          ? WallpaperMotif(presetId: os.backgroundPreset)
+          : const SizedBox.expand(),
     );
   }
 

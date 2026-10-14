@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../os_catalog.dart';
 import '../theme.dart';
+import 'wallpaper_art.dart';
 
 /// The pieces the Settings app is built from. A phone, a tablet, and a
 /// computer each list the settings that belong to that device, and all of
@@ -39,6 +40,21 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _armed = false;
   bool _confirm = false;
+  final _scroll = ScrollController();
+
+  @override
+  void didUpdateWidget(SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title && _scroll.hasClients) {
+      _scroll.jumpTo(0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   Expanded(
                     child: ListView(
                 key: widget.listKey,
+                controller: _scroll,
                 padding: const EdgeInsets.only(bottom: 28),
                 children: [
                   ...widget.children,
@@ -742,16 +759,24 @@ class SettingsPresetGrid extends StatelessWidget {
                     width: 2,
                   ),
                 ),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: preset.dark.length < 2
-                          ? [preset.dark.first, preset.dark.first]
-                          : preset.dark,
-                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: preset.dark.length < 2
+                                ? [preset.dark.first, preset.dark.first]
+                                : preset.dark,
+                          ),
+                        ),
+                      ),
+                      WallpaperMotif(presetId: preset.id),
+                    ],
                   ),
                 ),
               ),

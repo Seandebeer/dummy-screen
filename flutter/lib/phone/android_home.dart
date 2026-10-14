@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import 'catalog.dart';
 import 'home_drag.dart';
+import 'icon_finish.dart';
 
 /// Current Android home, matched to the ribbon reference: weather and Start,
 /// a search bar, one row of four icons, then the dock.
@@ -49,6 +50,7 @@ class AndroidHome extends StatelessWidget {
               SizedBox(
                 width: width,
                 child: _FirstPage(
+                  os: os,
                   onOpen: onOpen,
                   pages: count,
                   hidden: hidden,
@@ -92,12 +94,14 @@ class _Scroll extends MaterialScrollBehavior {
 
 class _FirstPage extends StatelessWidget {
   const _FirstPage({
+    required this.os,
     required this.onOpen,
     required this.pages,
     required this.hidden,
     this.onHide,
   });
 
+  final OsSettings os;
   final void Function(String id) onOpen;
   final int pages;
   final Set<String> hidden;
@@ -118,7 +122,7 @@ class _FirstPage extends StatelessWidget {
                   child: StageDrag(
                     onTap: () => onOpen('skycast'),
                     onRemove: onHide == null ? null : () => onHide!('widget:weather'),
-                    child: _Weather(onTap: () => onOpen('skycast')),
+                    child: _Weather(os: os, onTap: () => onOpen('skycast')),
                   ),
                 ),
               if (!hidden.contains('widget:weather') && !hidden.contains('widget:start'))
@@ -324,8 +328,9 @@ class _DockRow extends StatelessWidget {
 }
 
 class _Weather extends StatelessWidget {
-  const _Weather({required this.onTap});
+  const _Weather({required this.os, required this.onTap});
 
+  final OsSettings os;
   final VoidCallback onTap;
 
   @override
@@ -346,21 +351,21 @@ class _Weather extends StatelessWidget {
               colors: [Color(0xFF5EB0FF), Color(0xFF2F86F6)],
             ),
           ),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                _Sun(),
-                SizedBox(width: 8),
+                const _Sun(),
+                const SizedBox(width: 8),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '14°',
-                      style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w600, height: 1),
+                      os.weatherReadout,
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600, height: 1),
                     ),
-                    Text('Seoul', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    Text(os.placeLabel, style: const TextStyle(color: Colors.white, fontSize: 13)),
                   ],
                 ),
               ],
@@ -535,6 +540,7 @@ class _Bag extends StatelessWidget {
     return Container(
       width: 58,
       height: 58,
+      foregroundDecoration: edgeLightRim(radius: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
@@ -556,6 +562,7 @@ class _Flower extends StatelessWidget {
     return Container(
       width: 58,
       height: 58,
+      foregroundDecoration: edgeLightRim(radius: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
@@ -596,6 +603,7 @@ class _PlayMark extends StatelessWidget {
     return Container(
       width: 58,
       height: 58,
+      foregroundDecoration: edgeLightRim(radius: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -650,6 +658,7 @@ class _DotFolder extends StatelessWidget {
       width: 58,
       height: 58,
       padding: const EdgeInsets.all(8),
+      foregroundDecoration: edgeLightRim(radius: 16),
       decoration: BoxDecoration(
         color: const Color(0xFFF2F2F4),
         borderRadius: BorderRadius.circular(16),
@@ -681,6 +690,7 @@ class _PlainIcon extends StatelessWidget {
     return Container(
       width: 58,
       height: 58,
+      foregroundDecoration: edgeLightRim(radius: 16),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
       child: Icon(icon, color: Colors.white, size: 28),
     );
@@ -698,6 +708,7 @@ class _CircleMark extends StatelessWidget {
     return Container(
       width: 54,
       height: 54,
+      foregroundDecoration: edgeLightRim(circular: true),
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       child: Icon(icon, color: Colors.white, size: 28),
     );
@@ -715,6 +726,7 @@ class _Squircle extends StatelessWidget {
     return Container(
       width: 54,
       height: 54,
+      foregroundDecoration: edgeLightRim(radius: 16),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
       child: child,
     );
@@ -729,6 +741,7 @@ class _BrowserMark extends StatelessWidget {
     return Container(
       width: 54,
       height: 54,
+      foregroundDecoration: edgeLightRim(circular: true),
       decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
       child: const CustomPaint(painter: _RingPainter()),
     );
@@ -772,6 +785,7 @@ class _CameraMark extends StatelessWidget {
     return Container(
       width: 54,
       height: 54,
+      foregroundDecoration: edgeLightRim(radius: 16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Center(
         child: Container(

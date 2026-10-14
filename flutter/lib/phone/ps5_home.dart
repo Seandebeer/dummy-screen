@@ -7,7 +7,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import 'console_apps.dart';
-import 'mac_desk.dart';
+import 'game_catalog.dart';
 
 /// PlayStation 5 Games home: icon strip, dark cards, and line-art background.
 class Ps5Home extends StatefulWidget {
@@ -307,11 +307,24 @@ class _GameStripState extends State<_GameStrip> {
           children: [
             _MarkTile(side: box * 0.92),
             SizedBox(width: metrics.gap * 0.6),
-            _IconTile(
-              icon: Icons.shopping_bag_outlined,
-              side: box * 0.92,
-              tileKey: const Key('ps5-appstore'),
-              onTap: () => widget.onOpen('appstore'),
+            Padding(
+              padding: EdgeInsets.only(right: metrics.gap * 0.6),
+              child: GestureDetector(
+                key: const Key('ps5-appstore'),
+                onTap: () => widget.onOpen('appstore'),
+                child: GameCover(
+                  game: const MockGame(
+                    id: 'store',
+                    title: 'Store',
+                    studio: '',
+                    shelf: 'Store',
+                    colors: [Color(0xFF2E6BFF), Color(0xFF0B1B3A), Color(0xFF071018)],
+                    mark: Icons.sports_esports,
+                  ),
+                  width: box * 0.92,
+                  height: box * 0.92,
+                ),
+              ),
             ),
             _IconTile(
               icon: Icons.settings,
@@ -351,11 +364,17 @@ class _GameStripState extends State<_GameStrip> {
             _IconTile(icon: Icons.sports_esports, side: box * 0.92),
             _GridTile(side: box * 0.92),
             for (final id in widget.os.consolePins)
-              _IconTile(
-                icon: macGlyph(id, widget.os).icon,
-                side: box * 0.92,
-                tileKey: Key('console-pin-$id'),
-                onTap: () => widget.onOpen(id),
+              Padding(
+                padding: EdgeInsets.only(right: metrics.gap * 0.6),
+                child: KeyedSubtree(
+                  key: Key('console-pin-$id'),
+                  child: GameCover(
+                    game: pinCover(id, widget.os),
+                    width: box * 0.92,
+                    height: box * 0.92,
+                    onTap: () => widget.onOpen(id),
+                  ),
+                ),
               ),
           ],
         ),

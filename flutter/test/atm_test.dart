@@ -193,15 +193,15 @@ void main() {
 
     await tester.tap(find.byKey(const Key('atm-settings')));
     await tester.pump();
-    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Display'), findsOneWidget);
+    expect(find.text('Bank'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('atm-cat-bank')));
+    await tester.pump();
     expect(find.text('Bank name'), findsOneWidget);
     expect(find.text('User name'), findsOneWidget);
     expect(find.text('Account balance'), findsOneWidget);
-    expect(find.text('Time'), findsOneWidget);
-    expect(find.text('Temperature'), findsOneWidget);
     expect(find.text('Note sizes'), findsOneWidget);
     expect(find.text('Currency'), findsOneWidget);
-    expect(find.text('Language'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('atm-bank-name')),
@@ -221,24 +221,6 @@ void main() {
     );
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.bankBalance, 5000);
-
-    await tester.ensureVisible(find.byKey(const Key('atm-time')));
-    await tester.pump();
-    await tester.enterText(find.byKey(const Key('atm-time')), '21:15');
-    await tester.pump();
-    final shown = osNow(store.deviceById('atm-1')!.os);
-    expect(shown.hour, 21);
-    expect(shown.minute, 15);
-    await tester.enterText(find.byKey(const Key('atm-temperature')), '27');
-    await tester.pump();
-    expect(store.deviceById('atm-1')!.os.temperature, 27);
-    expect(find.byKey(const Key('atm-upload-background')), findsOneWidget);
-
-    await tester.ensureVisible(find.byKey(const Key('atm-skin-gold')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('atm-skin-gold')));
-    await tester.pump();
-    expect(store.deviceById('atm-1')!.os.shell, 'gold');
 
     expect(kAtmCurrencies.length, greaterThanOrEqualTo(150));
     expect(
@@ -261,12 +243,58 @@ void main() {
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.bankNotes, [10, 20, 50]);
 
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-cat-status')));
+    await tester.pump();
+    expect(find.text('Time'), findsOneWidget);
+    expect(find.text('Temperature'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('atm-time')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('atm-time')), '21:15');
+    await tester.pump();
+    final shown = osNow(store.deviceById('atm-1')!.os);
+    expect(shown.hour, 21);
+    expect(shown.minute, 15);
+    await tester.enterText(find.byKey(const Key('atm-temperature')), '27');
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.temperature, 27);
+
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-cat-display')));
+    await tester.pump();
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.byKey(const Key('atm-upload-background')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('atm-skin-gold')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-skin-gold')));
+    await tester.pump();
+    expect(store.deviceById('atm-1')!.os.shell, 'gold');
+
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-cat-language')));
+    await tester.pump();
     await tester.ensureVisible(find.byKey(const Key('atm-language-es')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-language-es')));
     await tester.pump();
     expect(store.deviceById('atm-1')!.os.language, 'es');
 
+    await tester.ensureVisible(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-settings-back')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-cat-display')));
+    await tester.pump();
     await tester.ensureVisible(find.byKey(const Key('atm-remove-background')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-remove-background')));
@@ -410,6 +438,8 @@ void main() {
     expect(find.text('⌫'), findsNothing);
 
     await tester.tap(find.byKey(const Key('atm-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('atm-cat-display')));
     await tester.pump();
     expect(find.text('Number pad'), findsOneWidget);
     expect(find.text('External keypad'), findsOneWidget);

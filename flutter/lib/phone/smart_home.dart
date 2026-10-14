@@ -93,6 +93,7 @@ class _HomePanelState extends State<HomePanel> {
   bool _camera = false;
   String _screen = 'home';
   String? _swap;
+  String? _settingsPage;
   late final Map<String, TextEditingController> _names;
 
   @override
@@ -557,69 +558,101 @@ class _HomePanelState extends State<HomePanel> {
   Widget _settings() {
     final hasImage =
         os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty;
+    final page = _settingsPage;
     return Column(
       children: [
-        const Text(
-          'Settings',
+        Text(
+          page == null
+              ? 'Settings'
+              : page == 'display'
+                  ? 'Display'
+                  : 'Panels',
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 28,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 12),
+        if (page != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _settingsChip(
+              'Back',
+              () => setState(() => _settingsPage = null),
+              const Key('home-settings-back'),
+            ),
+          ),
         Expanded(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SettingsLabel('Background'),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _settingsChip(
-                      'Upload background',
-                      _uploadBackground,
-                      const Key('home-upload-background'),
-                    ),
-                    if (hasImage)
+                if (page == null) ...[
+                  _settingsChip(
+                    'Display',
+                    () => setState(() => _settingsPage = 'display'),
+                    const Key('home-cat-display'),
+                    lit: true,
+                  ),
+                  const SizedBox(height: 8),
+                  _settingsChip(
+                    'Panels',
+                    () => setState(() => _settingsPage = 'panels'),
+                    const Key('home-cat-panels'),
+                    lit: true,
+                  ),
+                ],
+                if (page == 'display') ...[
+                  const _SettingsLabel('Background'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
                       _settingsChip(
-                        'Remove background',
-                        () => _save(
-                          (current) => current.copyWith(
-                            backgroundType: 'preset',
-                            backgroundUrl: '',
+                        'Upload background',
+                        _uploadBackground,
+                        const Key('home-upload-background'),
+                      ),
+                      if (hasImage)
+                        _settingsChip(
+                          'Remove background',
+                          () => _save(
+                            (current) => current.copyWith(
+                              backgroundType: 'preset',
+                              backgroundUrl: '',
+                            ),
                           ),
+                          const Key('home-remove-background'),
                         ),
-                        const Key('home-remove-background'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const _SettingsLabel('Rearrange'),
-                const Text(
-                  'Tap two panels to swap them.',
-                  style: TextStyle(color: Color(0xFFD5E4DE), fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final id in homePanelOrder(os))
-                      _settingsChip(
-                        _label(id),
-                        () => _swapPanels(id),
-                        Key('home-order-$id'),
-                        lit: _swap == id,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const _SettingsLabel('Panel names'),
-                for (final id in _kHomeNameIds) _nameField(id),
+                    ],
+                  ),
+                ],
+                if (page == 'panels') ...[
+                  const _SettingsLabel('Rearrange'),
+                  const Text(
+                    'Tap two panels to swap them.',
+                    style: TextStyle(color: Color(0xFFD5E4DE), fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final id in homePanelOrder(os))
+                        _settingsChip(
+                          _label(id),
+                          () => _swapPanels(id),
+                          Key('home-order-$id'),
+                          lit: _swap == id,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const _SettingsLabel('Panel names'),
+                  for (final id in _kHomeNameIds) _nameField(id),
+                ],
               ],
             ),
           ),

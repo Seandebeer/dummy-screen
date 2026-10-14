@@ -37,6 +37,7 @@ class _AtmScreenState extends State<AtmScreen> {
   String _action = '';
   int _amount = 0;
   String? _layoutPick;
+  String? _settingsPage;
   late final TextEditingController _bankName;
   late final TextEditingController _userName;
   late final TextEditingController _time;
@@ -117,6 +118,7 @@ class _AtmScreenState extends State<AtmScreen> {
       _message = '';
       if (step == 'pin') _pin = '';
       if (step == 'settings') _balance.text = '${os.bankBalance}';
+      if (step == 'menu') _settingsPage = null;
       if (step != 'layout') _layoutPick = null;
     });
     if (step == 'pin' && os.bankKeypad == 'external') _playExternalPin(0);
@@ -709,6 +711,23 @@ class _AtmScreenState extends State<AtmScreen> {
               ),
             ),
             SizedBox(height: 14 * scale),
+            if (_settingsPage != null)
+              _chip(
+                _t('back'),
+                false,
+                () => setState(() => _settingsPage = null),
+                key: const Key('atm-settings-back'),
+              ),
+            if (_settingsPage == null) ...[
+              _chip('Display', false, () => setState(() => _settingsPage = 'display'), key: const Key('atm-cat-display')),
+              SizedBox(height: 8 * scale),
+              _chip('Status', false, () => setState(() => _settingsPage = 'status'), key: const Key('atm-cat-status')),
+              SizedBox(height: 8 * scale),
+              _chip('Bank', false, () => setState(() => _settingsPage = 'bank'), key: const Key('atm-cat-bank')),
+              SizedBox(height: 8 * scale),
+              _chip('Language', false, () => setState(() => _settingsPage = 'language'), key: const Key('atm-cat-language')),
+            ],
+            if (_settingsPage == 'display') ...[
             _section(_t('keypad'), scale),
             Wrap(
               alignment: WrapAlignment.center,
@@ -733,7 +752,8 @@ class _AtmScreenState extends State<AtmScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 14 * scale),
+            ],
+            if (_settingsPage == 'bank') ...[
             _nameField(
               scale,
               _t('bankName'),
@@ -759,7 +779,8 @@ class _AtmScreenState extends State<AtmScreen> {
               keyboardType: TextInputType.number,
               suffix: os.bankCurrency,
             ),
-            SizedBox(height: 14 * scale),
+            ],
+            if (_settingsPage == 'status') ...[
             _nameField(
               scale,
               _t('time'),
@@ -778,7 +799,8 @@ class _AtmScreenState extends State<AtmScreen> {
               keyboardType: TextInputType.number,
               suffix: '°C',
             ),
-            SizedBox(height: 14 * scale),
+            ],
+            if (_settingsPage == 'display') ...[
             _section(_t('theme'), scale),
             Wrap(
               alignment: WrapAlignment.center,
@@ -795,7 +817,8 @@ class _AtmScreenState extends State<AtmScreen> {
                   ),
               ],
             ),
-            SizedBox(height: 14 * scale),
+            ],
+            if (_settingsPage == 'bank') ...[
             _section(_t('currency'), scale),
             _currencyMenu(scale),
             SizedBox(height: 14 * scale),
@@ -806,7 +829,8 @@ class _AtmScreenState extends State<AtmScreen> {
               _applyNotes,
               key: const Key('atm-notes'),
             ),
-            SizedBox(height: 14 * scale),
+            ],
+            if (_settingsPage == 'language') ...[
             _section(_t('language'), scale),
             SizedBox(
               height: 46,
@@ -829,7 +853,8 @@ class _AtmScreenState extends State<AtmScreen> {
                 ],
               ),
             ),
-            SizedBox(height: 14 * scale),
+            ],
+            if (_settingsPage == 'display') ...[
             _section(_t('background'), scale),
             Wrap(
               alignment: WrapAlignment.center,
@@ -864,6 +889,7 @@ class _AtmScreenState extends State<AtmScreen> {
               key: const Key('atm-edit-layout'),
               primary: true,
             ),
+            ],
             SizedBox(height: 12 * scale),
             _choice(
               _t('done'),

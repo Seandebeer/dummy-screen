@@ -19,7 +19,9 @@ import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
 import '../phone/form_factor.dart';
 import 'home_page.dart';
+import '../phone/place_settings.dart';
 import '../phone/settings_app.dart';
+import '../phone/settings_kit.dart';
 import '../phone/smart_home.dart';
 import '../theme.dart';
 import '../vfx/catalog.dart';
@@ -664,20 +666,174 @@ class _OsPageState extends State<OsPage> {
           device: live,
           onClose: () => setState(() => _sheet = null),
         ),
-      'tv' => _ShellSettings(
-          title: 'Smart TV',
-          shells: const [('aurora', 'Aurora'), ('slate', 'Slate'), ('neon', 'Neon')],
-          selected: live.os.shell.isEmpty ? 'aurora' : live.os.shell,
-          onSelect: (id) => store.updateOs(live.id, (os) => os.copyWith(shell: id)),
-          leading: ClockSettings(store: store, device: live),
+      'tv' => _DeviceMenu(
+          store: store,
+          device: live,
+          pages: [
+            _DevicePage(
+              id: 'display',
+              icon: Icons.tv,
+              title: 'Display',
+              detail: 'Interface',
+              children: [
+                SettingsSection(
+                  title: 'Interface',
+                  child: Column(
+                    children: [
+                      for (final shell in const [('aurora', 'Aurora'), ('slate', 'Slate'), ('neon', 'Neon')])
+                        ListTile(
+                          key: Key('shell-${shell.$1}'),
+                          title: Text(shell.$2, style: const TextStyle(color: Colors.white)),
+                          trailing: (live.os.shell.isEmpty ? 'aurora' : live.os.shell) == shell.$1
+                              ? const Icon(Icons.check, color: kSignal)
+                              : null,
+                          onTap: () => store.updateOs(live.id, (os) => os.copyWith(shell: shell.$1)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            _DevicePage(
+              id: 'status',
+              icon: Icons.schedule,
+              title: 'Status',
+              detail: 'Clock, place, and temperature',
+              children: [
+                SettingsSection(title: 'Clock', child: ClockSettings(store: store, device: live)),
+                PlaceSettings(store: store, device: live),
+              ],
+            ),
+          ],
         ),
-      'atm' => _AtmSettings(store: store, device: live),
-      'cctv' => _NoteSettings(
-          title: 'CCTV',
-          body: 'This camera wall uses one fixed layout.',
-          leading: ClockSettings(store: store, device: live),
+      'atm' => _DeviceMenu(
+          store: store,
+          device: live,
+          pages: [
+            _DevicePage(
+              id: 'bank',
+              icon: Icons.account_balance,
+              title: 'Bank',
+              detail: 'Name, holder, and balance',
+              children: [
+                SettingsSection(
+                  title: 'Bank',
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        initialValue: live.os.bankName,
+                        decoration: const InputDecoration(labelText: 'Bank name'),
+                        onChanged: (value) => store.updateOs(
+                          live.id,
+                          (current) => current.copyWith(bankName: value.trim()),
+                        ),
+                      ),
+                      TextFormField(
+                        initialValue: live.os.bankHolder,
+                        decoration: const InputDecoration(labelText: 'Account holder'),
+                        onChanged: (value) => store.updateOs(
+                          live.id,
+                          (current) => current.copyWith(bankHolder: value.trim()),
+                        ),
+                      ),
+                      TextFormField(
+                        initialValue: '${live.os.bankBalance}',
+                        decoration: const InputDecoration(labelText: 'Balance'),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          final parsed = int.tryParse(value.trim());
+                          if (parsed == null) return;
+                          store.updateOs(
+                            live.id,
+                            (current) => current.copyWith(bankBalance: parsed),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            _DevicePage(
+              id: 'status',
+              icon: Icons.schedule,
+              title: 'Status',
+              detail: 'Clock and weather',
+              children: [
+                SettingsSection(title: 'Clock', child: ClockSettings(store: store, device: live)),
+                PlaceSettings(store: store, device: live),
+              ],
+            ),
+          ],
         ),
-      'smarthome' || 'homephone' => _PanelSettings(store: store, device: live),
+      'cctv' => _DeviceMenu(
+          store: store,
+          device: live,
+          pages: [
+            _DevicePage(
+              id: 'display',
+              icon: Icons.videocam_outlined,
+              title: 'Display',
+              detail: 'Camera wall',
+              children: const [
+                SettingsSection(
+                  title: 'Layout',
+                  child: Text('This camera wall uses one fixed layout.'),
+                ),
+              ],
+            ),
+            _DevicePage(
+              id: 'status',
+              icon: Icons.schedule,
+              title: 'Status',
+              detail: 'Clock, place, and temperature',
+              children: [
+                SettingsSection(title: 'Clock', child: ClockSettings(store: store, device: live)),
+                PlaceSettings(store: store, device: live),
+              ],
+            ),
+          ],
+        ),
+      'smarthome' || 'homephone' => _DeviceMenu(
+          store: store,
+          device: live,
+          pages: [
+            _DevicePage(
+              id: 'panels',
+              icon: Icons.dashboard_outlined,
+              title: 'Panels',
+              detail: live.kind == 'homephone' ? 'Smart home phone labels' : 'Panel labels',
+              children: [
+                SettingsSection(
+                  title: 'Panels',
+                  child: Column(
+                    children: [
+                      for (final id in homePanelOrder(live.os))
+                        TextFormField(
+                          initialValue: homePanelName(live.os, id),
+                          decoration: InputDecoration(labelText: kHomePanelDefaults[id] ?? id),
+                          onChanged: (value) {
+                            final names = {...live.os.panelNames, id: value.trim()};
+                            store.updateOs(live.id, (current) => current.copyWith(panelNames: names));
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            _DevicePage(
+              id: 'status',
+              icon: Icons.schedule,
+              title: 'Status',
+              detail: 'Clock, place, and temperature',
+              children: [
+                SettingsSection(title: 'Clock', child: ClockSettings(store: store, device: live)),
+                PlaceSettings(store: store, device: live),
+              ],
+            ),
+          ],
+        ),
       _ => SettingsApp(store: store, device: live),
     };
     return Column(
@@ -1134,138 +1290,68 @@ class _AppCategoryState extends State<_AppCategory> {
   }
 }
 
-class _ShellSettings extends StatelessWidget {
-  const _ShellSettings({
+class _DevicePage {
+  const _DevicePage({
+    required this.id,
+    required this.icon,
     required this.title,
-    required this.shells,
-    required this.selected,
-    required this.onSelect,
-    this.leading,
+    required this.detail,
+    required this.children,
   });
 
+  final String id;
+  final IconData icon;
   final String title;
-  final List<(String, String)> shells;
-  final String selected;
-  final ValueChanged<String> onSelect;
-  final Widget? leading;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        ?leading,
-        const Text('Interface', style: TextStyle(color: kMuted)),
-        for (final shell in shells)
-          ListTile(
-            key: Key('shell-${shell.$1}'),
-            title: Text(shell.$2),
-            trailing: selected == shell.$1 ? const Icon(Icons.check, color: kSignal) : null,
-            onTap: () => onSelect(shell.$1),
-          ),
-      ],
-    );
-  }
+  final String detail;
+  final List<Widget> children;
 }
 
-class _NoteSettings extends StatelessWidget {
-  const _NoteSettings({required this.title, required this.body, this.leading});
-
-  final String title;
-  final String body;
-  final Widget? leading;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        ?leading,
-        Text(body, style: const TextStyle(color: kMuted)),
-      ],
-    );
-  }
-}
-
-class _AtmSettings extends StatelessWidget {
-  const _AtmSettings({required this.store, required this.device});
+/// Category index shared with the phone Settings app, filled with the
+/// controls that belong to this device.
+class _DeviceMenu extends StatefulWidget {
+  const _DeviceMenu({
+    required this.store,
+    required this.device,
+    required this.pages,
+  });
 
   final StageStore store;
   final PropDevice device;
+  final List<_DevicePage> pages;
 
   @override
-  Widget build(BuildContext context) {
-    final os = device.os;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('ATM', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-        ClockSettings(store: store, device: device),
-        TextFormField(
-          initialValue: os.bankName,
-          decoration: const InputDecoration(labelText: 'Bank name'),
-          onChanged: (value) => store.updateOs(
-            device.id,
-            (current) => current.copyWith(bankName: value.trim()),
-          ),
-        ),
-        TextFormField(
-          initialValue: os.bankHolder,
-          decoration: const InputDecoration(labelText: 'Account holder'),
-          onChanged: (value) => store.updateOs(
-            device.id,
-            (current) => current.copyWith(bankHolder: value.trim()),
-          ),
-        ),
-        TextFormField(
-          initialValue: '${os.bankBalance}',
-          decoration: const InputDecoration(labelText: 'Balance'),
-          keyboardType: TextInputType.number,
-          onChanged: (value) {
-            final parsed = int.tryParse(value.trim());
-            if (parsed == null) return;
-            store.updateOs(
-              device.id,
-              (current) => current.copyWith(bankBalance: parsed),
-            );
-          },
-        ),
-      ],
-    );
-  }
+  State<_DeviceMenu> createState() => _DeviceMenuState();
 }
 
-class _PanelSettings extends StatelessWidget {
-  const _PanelSettings({required this.store, required this.device});
-
-  final StageStore store;
-  final PropDevice device;
+class _DeviceMenuState extends State<_DeviceMenu> {
+  String? _page;
 
   @override
   Widget build(BuildContext context) {
-    final os = device.os;
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    final page = _page == null
+        ? null
+        : widget.pages.where((item) => item.id == _page).firstOrNull;
+    return SettingsPage(
+      listKey: Key('device-settings-${widget.device.kind}'),
+      title: page?.title ?? 'Settings',
+      onBack: _page == null ? null : () => setState(() => _page = null),
+      onReset: () => widget.store.factoryResetDevice(widget.device.id),
       children: [
-        Text(
-          device.kind == 'homephone' ? 'Smart home phone' : 'Smart home',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-        ),
-        ClockSettings(store: store, device: device),
-        const SizedBox(height: 8),
-        for (final id in homePanelOrder(os))
-          TextFormField(
-            initialValue: homePanelName(os, id),
-            decoration: InputDecoration(labelText: kHomePanelDefaults[id] ?? id),
-            onChanged: (value) {
-              final names = {...os.panelNames, id: value.trim()};
-              store.updateOs(device.id, (current) => current.copyWith(panelNames: names));
-            },
-          ),
+        if (page == null)
+          SettingsGroup(
+            children: [
+              for (final item in widget.pages)
+                SettingsCategory(
+                  categoryKey: Key('device-cat-${widget.device.kind}-${item.id}'),
+                  icon: item.icon,
+                  title: item.title,
+                  detail: item.detail,
+                  onOpen: () => setState(() => _page = item.id),
+                ),
+            ],
+          )
+        else
+          ...page.children,
       ],
     );
   }
