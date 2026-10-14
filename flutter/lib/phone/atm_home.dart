@@ -44,6 +44,7 @@ class _AtmScreenState extends State<AtmScreen> {
   late final TextEditingController _userName;
   late final TextEditingController _time;
   late final TextEditingController _temperature;
+  late final TextEditingController _place;
   late final TextEditingController _balance;
   late final TextEditingController _notes;
   late final TextEditingController _customAmount;
@@ -63,6 +64,7 @@ class _AtmScreenState extends State<AtmScreen> {
       ),
     );
     _temperature = TextEditingController(text: '${current.os.temperature}');
+    _place = TextEditingController(text: current.os.place);
     _balance = TextEditingController(text: '${current.os.bankBalance}');
     _notes = TextEditingController(text: atmNotes(current.os).join(', '));
     _customAmount = TextEditingController();
@@ -76,6 +78,7 @@ class _AtmScreenState extends State<AtmScreen> {
     _userName.dispose();
     _time.dispose();
     _temperature.dispose();
+    _place.dispose();
     _balance.dispose();
     _notes.dispose();
     _customAmount.dispose();
@@ -809,8 +812,13 @@ class _AtmScreenState extends State<AtmScreen> {
             ),
             ],
             if (_settingsPage == 'status') ...[
-            ClockSettings(store: widget.store, device: _live),
-            PlaceSettings(store: widget.store, device: _live),
+            _nameField(
+              scale,
+              'Place',
+              _place,
+              (value) => _save((current) => current.copyWith(place: value)),
+              key: const Key('atm-place'),
+            ),
             SizedBox(height: 14 * scale),
             _nameField(
               scale,
@@ -829,6 +837,20 @@ class _AtmScreenState extends State<AtmScreen> {
               key: const Key('atm-temperature'),
               keyboardType: TextInputType.number,
               suffix: '°C',
+            ),
+            SizedBox(height: 18 * scale),
+            Theme(
+              data: ThemeData.dark(useMaterial3: true),
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ClockSettings(store: widget.store, device: _live),
+                    PlaceSettings(store: widget.store, device: _live),
+                  ],
+                ),
+              ),
             ),
             ],
             if (_settingsPage == 'display') ...[
@@ -1620,36 +1642,52 @@ class _Menu extends StatelessWidget {
   }
 
   Widget _kiosk() {
+    final rows = <List<String>>[];
+    for (var i = 0; i < panels.length; i += 2) {
+      rows.add(panels.sublist(i, math.min(i + 2, panels.length)));
+    }
     return Column(
       children: [
         _banner(greeting, radius: BorderRadius.zero),
         SizedBox(height: 8 * scale),
         Expanded(
-          child: GridView.count(
-            crossAxisCount: 2,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 6,
-            crossAxisSpacing: 6,
-            childAspectRatio: 1.7,
+          child: Column(
             children: [
-              for (final id in panels)
-                GestureDetector(
-                  key: Key('atm-$id'),
-                  onTap: () => onOpen(id),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: selected == id ? skin.primary : skin.major,
-                      border: Border.all(color: skin.rule, width: 2),
-                    ),
-                    child: Center(
-                      child: Text(
-                        labelFor(id),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: selected == id ? skin.primaryInk : skin.majorInk,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+              for (final row in rows)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        for (final id in row)
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              child: GestureDetector(
+                                key: Key('atm-$id'),
+                                onTap: () => onOpen(id),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: selected == id ? skin.primary : skin.major,
+                                    border: Border.all(color: skin.rule, width: 2),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      labelFor(id),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: selected == id ? skin.primaryInk : skin.majorInk,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13 * scale,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (row.length == 1) const Expanded(child: SizedBox()),
+                      ],
                     ),
                   ),
                 ),

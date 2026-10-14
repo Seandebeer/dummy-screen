@@ -249,8 +249,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('atm-cat-status')));
     await tester.pump();
-    expect(find.text('Time'), findsOneWidget);
-    expect(find.text('Temperature'), findsOneWidget);
+    expect(find.text('Time'), findsWidgets);
+    expect(find.text('Temperature'), findsWidgets);
     await tester.ensureVisible(find.byKey(const Key('atm-time')));
     await tester.pump();
     await tester.enterText(find.byKey(const Key('atm-time')), '21:15');

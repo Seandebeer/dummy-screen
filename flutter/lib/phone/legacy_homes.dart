@@ -1091,7 +1091,7 @@ class _HoloHome extends StatelessWidget {
       key: Key(dock ? 'dock-${app.id}' : 'home-${app.id}'),
       onTap: () => onOpen(app.id),
       child: SizedBox(
-        width: 85,
+        width: dock ? 54 : 78,
         child: Column(
           children: [
             Container(

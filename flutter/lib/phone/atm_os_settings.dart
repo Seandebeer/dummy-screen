@@ -109,16 +109,29 @@ class _AtmOsSettingsState extends State<AtmOsSettings> {
           const _Label('Background'),
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton(
-              key: const Key('os-atm-upload-background'),
-              onPressed: () async {
-                final file = await FilePicker.pickFile(type: FileType.image);
-                if (file == null) return;
-                final path = await persistPickedImage(file);
-                if (path == null) return;
-                _save((current) => current.copyWith(backgroundType: 'image', backgroundUrl: path));
-              },
-              child: const Text('Upload background'),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                TextButton(
+                  key: const Key('os-atm-upload-background'),
+                  onPressed: () async {
+                    final file = await FilePicker.pickFile(type: FileType.image);
+                    if (file == null) return;
+                    final path = await persistPickedImage(file);
+                    if (path == null) return;
+                    _save((current) => current.copyWith(backgroundType: 'image', backgroundUrl: path));
+                  },
+                  child: const Text('Upload background'),
+                ),
+                if (os.backgroundType == 'image' && os.backgroundUrl.isNotEmpty)
+                  TextButton(
+                    key: const Key('os-atm-remove-background'),
+                    onPressed: () => _save(
+                      (current) => current.copyWith(backgroundType: 'preset', backgroundUrl: ''),
+                    ),
+                    child: const Text('Remove background'),
+                  ),
+              ],
             ),
           ),
           const _Label('Panels'),
