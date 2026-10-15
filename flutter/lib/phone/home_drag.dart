@@ -29,25 +29,12 @@ class _StageDragState extends State<StageDrag> {
     super.dispose();
   }
 
-  RenderBox? get _phone {
-    RenderBox? found;
-    context.visitAncestorElements((element) {
-      final object = element.renderObject;
-      if (object is RenderBox && object.hasSize && object.size.shortestSide > 180) {
-        found = object;
-        return false;
-      }
-      return true;
-    });
-    return found;
-  }
-
-  void _move(LongPressMoveUpdateDetails details) {
-    final phone = _phone;
-    final off = phone != null && droppedOffDevice(phone, details.globalPosition);
+  void _move(Offset global) {
+    final phone = enclosingDevice(context) ?? context.findRenderObject() as RenderBox?;
+    final off = phone != null && droppedOffDevice(phone, global);
     setState(() => _off = off);
     _ghost?.remove();
-    final finger = details.globalPosition;
+    final finger = global;
     _ghost = OverlayEntry(
       builder: (context) => Positioned(
         left: finger.dx - 28,
@@ -86,17 +73,38 @@ class _StageDragState extends State<StageDrag> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
-      onLongPressStart: widget.onRemove == null ? null : (_) {},
-      onLongPressMoveUpdate: widget.onRemove == null ? null : _move,
-      onLongPressEnd: widget.onRemove == null ? null : (_) => _end(),
-      onLongPressCancel: widget.onRemove == null ? null : _end,
+      onPanStart: widget.onRemove == null ? null : (details) => _move(details.globalPosition),
+      onPanUpdate: widget.onRemove == null ? null : (details) => _move(details.globalPosition),
+      onPanEnd: widget.onRemove == null ? null : (_) => _end(),
+      onPanCancel: widget.onRemove == null ? null : _end,
       child: Opacity(opacity: _off ? 0.35 : 1, child: widget.child),
     );
   }
 }
 
+/// The device frame: the largest box that still sits inside the stage.
+RenderBox? enclosingDevice(BuildContext context) {
+  final screen = MediaQuery.sizeOf(context);
+  RenderBox? best;
+  var bestArea = 0.0;
+  context.visitAncestorElements((element) {
+    final object = element.renderObject;
+    if (object is RenderBox && object.hasSize) {
+      final size = object.size;
+      final inside = size.width <= screen.width - 4 && size.height <= screen.height - 4;
+      final area = size.width * size.height;
+      if (inside && size.shortestSide > 160 && area > bestArea) {
+        best = object;
+        bestArea = area;
+      }
+    }
+    return true;
+  });
+  return best;
+}
+
 /// True when the pointer has left the device and is over the stage around it.
-bool droppedOffDevice(RenderBox box, Offset global, {double margin = 48}) {
+bool droppedOffDevice(RenderBox box, Offset global, {double margin = 28}) {
   if (!box.hasSize) return false;
   final local = box.globalToLocal(global);
   return local.dx < -margin ||
@@ -117,9 +125,16 @@ int? gridSlot(
 }) {
   if (!grid.hasSize || columns < 1 || rows < 1) return null;
   final local = grid.globalToLocal(global);
-  if (local.dx < 0 || local.dy < 0) return null;
-  final col = (local.dx / cellWidth).floor();
-  final row = (local.dy / (cellHeight + gap)).floor();
+  if (local.dx < 0 ||
+      local.dy < 0 ||
+      local.dx > grid.size.width + 4 ||
+      local.dy > grid.size.height + 4) {
+    return null;
+  }
+  final colStride = cellWidth > 0 ? cellWidth : grid.size.width / columns;
+  final rowStride = cellHeight + gap;
+  final col = (local.dx / colStride).floor();
+  final row = (local.dy / (rowStride <= 0 ? 1 : rowStride)).floor();
   if (col < 0 || row < 0 || col >= columns || row >= rows) return null;
   return row * columns + col;
 }
@@ -172,16 +187,24 @@ class SnapGridPainter extends CustomPainter {
       oldDelegate.rows != rows;
 }
 
+/// Drop [id] on [index]. An occupied cell swaps the two apps. A cell past the
+/// last app moves it to the end. [remove] takes it off the home screen.
 List<String> movedOrder(List<String> ids, String id, {required bool remove, int? index}) {
   final next = [...ids];
-  if (!next.contains(id)) return next;
+  final from = next.indexOf(id);
+  if (from < 0) return next;
   if (remove) {
-    next.remove(id);
+    next.removeAt(from);
     return next;
   }
-  if (index == null) return next;
-  next.remove(id);
-  final at = index < 0 ? 0 : (index > next.length ? next.length : index);
-  next.insert(at, id);
+  if (index == null || index == from || index < 0) return next;
+  if (index >= next.length) {
+    next.removeAt(from);
+    next.add(id);
+    return next;
+  }
+  final displaced = next[index];
+  next[index] = id;
+  next[from] = displaced;
   return next;
 }

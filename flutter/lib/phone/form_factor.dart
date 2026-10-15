@@ -12,6 +12,7 @@ import '../store.dart';
 import 'atm_home.dart';
 import 'cctv_wall.dart';
 import 'flight_board.dart';
+import 'tv_home.dart';
 import 'console_apps.dart';
 import 'game_catalog.dart';
 import 'catalog.dart';
@@ -253,6 +254,7 @@ class _FormOsState extends State<FormOs> {
         : switch (device.kind) {
       'flight' => FlightBoard(store: widget.store, device: device),
       'tv' => _TvOs(
+        os: os,
         shell: os.shell.isEmpty ? 'aurora' : os.shell,
         onShell: _shell,
         app: _app,
@@ -1072,115 +1074,23 @@ class _MarkerPainter extends CustomPainter {
 
 class _TvOs extends StatelessWidget {
   const _TvOs({
+    required this.os,
     required this.shell,
     required this.onShell,
     required this.app,
     required this.onOpen,
   });
 
+  final OsSettings os;
   final String shell;
   final ValueChanged<String> onShell;
   final String? app;
   final ValueChanged<String?> onOpen;
 
-  static const _shells = [
-    ('aurora', 'Aurora'),
-    ('slate', 'Slate'),
-    ('neon', 'Neon'),
-  ];
-  static const _apps = [
-    ('films', 'Films', Icons.movie),
-    ('shows', 'Shows', Icons.live_tv),
-    ('sport', 'Sport', Icons.sports_soccer),
-    ('news', 'News', Icons.newspaper),
-    ('music', 'Music', Icons.music_note),
-    ('kids', 'Kids', Icons.child_care),
-    ('photos', 'Photos', Icons.photo),
-    ('cast', 'Cast', Icons.cast),
-    ('store', 'Store', Icons.shop),
-    ('games', 'Games', Icons.sports_esports),
-    ('browser', 'Browser', Icons.language),
-    ('tracking', 'Tracking', Icons.center_focus_strong),
-    ('markers', 'Markers', Icons.grid_on),
-    ('video', 'Video', Icons.play_circle),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final bg = switch (shell) {
-      'slate' => const Color(0xFF12141A),
-      'neon' => const Color(0xFF140018),
-      _ => const Color(0xFF071426),
-    };
-    return ColoredBox(
-      color: bg,
-      child: app == null
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
-                  child: Row(
-                    children: [
-                      Text(
-                        _shells.firstWhere((item) => item.$1 == shell).$2,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      PopupMenuButton<String>(
-                        tooltip: 'TV system',
-                        icon: const Icon(Icons.settings, color: Colors.white),
-                        onSelected: onShell,
-                        itemBuilder: (context) => [
-                          for (final item in _shells)
-                            PopupMenuItem(value: item.$1, child: Text(item.$2)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: GridView.count(
-                    padding: const EdgeInsets.all(20),
-                    crossAxisCount: 7,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    children: [
-                      for (final item in _apps)
-                        InkWell(
-                          onTap: () => onOpen(item.$1),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(item.$3, color: Colors.white),
-                                const SizedBox(height: 6),
-                                Text(
-                                  item.$2,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          : _TvApp(id: app!, onBack: () => onOpen(null)),
-    );
+    if (app != null) return _TvApp(id: app!, onBack: () => onOpen(null));
+    return TvHome(os: os, shell: shell, onShell: onShell, onOpen: onOpen);
   }
 }
 
