@@ -515,30 +515,37 @@ class _ClipTrack extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        double at(double local) => width <= 0 ? 0 : (local / width).clamp(0.0, 1.0);
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (details) => onScrub(at(details.localPosition.dx)),
-          onHorizontalDragUpdate: (details) => onScrub(at(details.localPosition.dx)),
-          child: CustomPaint(
-            painter: _ClipPainter(playhead: playhead, loopIn: loopIn, loopOut: loopOut),
-            child: Stack(
-              children: [
-                _trimHandle(
-                  fraction: loopIn,
-                  width: width,
-                  at: at,
-                  onDrag: (next) => onTrim(next.clamp(0, loopOut - 0.02), loopOut),
+        return Builder(
+          builder: (trackContext) {
+            double atGlobal(Offset global) {
+              final box = trackContext.findRenderObject() as RenderBox?;
+              if (box == null || !box.hasSize || width <= 0) return 0;
+              return (box.globalToLocal(global).dx / width).clamp(0.0, 1.0);
+            }
+
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (details) => onScrub(atGlobal(details.globalPosition)),
+              onHorizontalDragUpdate: (details) => onScrub(atGlobal(details.globalPosition)),
+              child: CustomPaint(
+                painter: _ClipPainter(playhead: playhead, loopIn: loopIn, loopOut: loopOut),
+                child: Stack(
+                  children: [
+                    _trimHandle(
+                      fraction: loopIn,
+                      width: width,
+                      onDrag: (global) => onTrim(atGlobal(global).clamp(0, loopOut - 0.02), loopOut),
+                    ),
+                    _trimHandle(
+                      fraction: loopOut,
+                      width: width,
+                      onDrag: (global) => onTrim(loopIn, atGlobal(global).clamp(loopIn + 0.02, 1)),
+                    ),
+                  ],
                 ),
-                _trimHandle(
-                  fraction: loopOut,
-                  width: width,
-                  at: at,
-                  onDrag: (next) => onTrim(loopIn, next.clamp(loopIn + 0.02, 1)),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -547,8 +554,7 @@ class _ClipTrack extends StatelessWidget {
   Widget _trimHandle({
     required double fraction,
     required double width,
-    required double Function(double local) at,
-    required ValueChanged<double> onDrag,
+    required ValueChanged<Offset> onDrag,
   }) {
     final left = (width * fraction - 6).clamp(0.0, width <= 12 ? 0.0 : width - 12);
     return Positioned(
@@ -558,7 +564,7 @@ class _ClipTrack extends StatelessWidget {
       width: 12,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onHorizontalDragUpdate: (details) => onDrag(at(left + details.localPosition.dx)),
+        onHorizontalDragUpdate: (details) => onDrag(details.globalPosition),
         onHorizontalDragEnd: (_) => onTrimEnd(),
         child: const DecoratedBox(
           decoration: BoxDecoration(
