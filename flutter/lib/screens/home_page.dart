@@ -117,6 +117,19 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+/// Top-to-bottom light wash. Both stops keep [alpha] so the panel
+/// stays as see-through as the flat fill it replaces.
+LinearGradient _panelWash(DeckPalette palette, {required double alpha, required double lift}) {
+  return LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color.lerp(palette.surface, Colors.white, lift)!.withValues(alpha: alpha),
+      palette.surface.withValues(alpha: alpha),
+    ],
+  );
+}
+
 class _Header extends StatelessWidget {
   const _Header({required this.palette, required this.wide});
 
@@ -127,7 +140,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.92),
+        gradient: _panelWash(palette, alpha: 0.92, lift: palette.light ? 0.35 : 0.08),
         border: Border(bottom: BorderSide(color: palette.line)),
       ),
       child: Padding(
@@ -304,7 +317,7 @@ class _HomeSection extends StatelessWidget {
           ? const BoxConstraints(minHeight: 248)
           : null,
       decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.85),
+        gradient: _panelWash(palette, alpha: 0.85, lift: palette.light ? 0.18 : 0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: palette.line.withValues(alpha: 0.7)),
         boxShadow: const [

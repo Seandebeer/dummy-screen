@@ -235,9 +235,10 @@ class _OsPageState extends State<OsPage> {
                       final roomy = framed &&
                           constraints.maxWidth > 480 &&
                           constraints.maxHeight > 420;
+                      // Halfway between the old 12px edge and the roomier inset.
                       final inset = roomy
-                          ? const EdgeInsets.fromLTRB(72, 48, 72, 96)
-                          : (framed ? const EdgeInsets.all(28) : EdgeInsets.zero);
+                          ? const EdgeInsets.fromLTRB(42, 30, 42, 54)
+                          : (framed ? const EdgeInsets.all(20) : EdgeInsets.zero);
                       final maxW = constraints.maxWidth - inset.horizontal;
                       final maxH = constraints.maxHeight - inset.vertical;
                       final base = metricsForTurn(device.kind, turned: false);

@@ -279,9 +279,11 @@ class _NavRail extends StatelessWidget {
               width: 96,
               child: Column(
                 children: [
-                  const SizedBox(height: 10),
+                  // Wide home header is 113px. Center the 46px avatar in that
+                  // band, then start the dock icons beneath it.
+                  const SizedBox(height: 33.5),
                   const ProfileAvatar(size: 46),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 33.5),
                   Expanded(
                     child: ListView(
                       padding: EdgeInsets.zero,
