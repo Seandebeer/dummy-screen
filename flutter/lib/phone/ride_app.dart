@@ -74,18 +74,15 @@ class _RideAppState extends State<RideApp> {
         children: [
           Expanded(flex: 2, child: _Map(phase: _phase, brand: _brand)),
           Flexible(
-            flex: 3,
+            flex: 5,
             child: Material(
               color: Colors.white,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                child: switch (_phase) {
-                  _Phase.plan => _plan(ink),
-                  _Phase.driver => _driver(ink, onTrip: true),
-                  _Phase.trip => _driver(ink, onTrip: false),
-                  _Phase.receipt => _receipt(ink),
-                },
-              ),
+              child: switch (_phase) {
+                _Phase.plan => _plan(ink),
+                _Phase.driver => _scroll(_driver(ink, onTrip: true)),
+                _Phase.trip => _scroll(_driver(ink, onTrip: false)),
+                _Phase.receipt => _scroll(_receipt(ink)),
+              },
             ),
           ),
         ],
@@ -93,79 +90,93 @@ class _RideAppState extends State<RideApp> {
     );
   }
 
+  Widget _scroll(Widget child) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: child,
+    );
+  }
+
   Widget _plan(Color ink) {
     final ready = _destination.text.trim().isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          _brand,
-          style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 10),
-        _field(
-          key: const Key('ride-pickup'),
-          controller: _pickup,
-          hint: 'Pickup',
-          icon: Icons.trip_origin,
-        ),
-        const SizedBox(height: 8),
-        _field(
-          key: const Key('ride-destination'),
-          controller: _destination,
-          hint: 'Where to?',
-          icon: Icons.place,
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 32,
+        Expanded(
           child: ListView(
-            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             children: [
-              for (final place in _places)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ActionChip(
-                    label: Text(place),
-                    onPressed: () {
-                      _destination.text = place;
-                      setState(() {});
-                    },
+              Text(
+                _brand,
+                style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              _field(
+                key: const Key('ride-pickup'),
+                controller: _pickup,
+                hint: 'Pickup',
+                icon: Icons.trip_origin,
+              ),
+              const SizedBox(height: 8),
+              _field(
+                key: const Key('ride-destination'),
+                controller: _destination,
+                hint: 'Where to?',
+                icon: Icons.place,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 32,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    for (final place in _places)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          label: Text(place),
+                          onPressed: () {
+                            _destination.text = place;
+                            setState(() {});
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (var i = 0; i < _options.length; i++) _rideRow(i, ink),
+              InkWell(
+                key: const Key('ride-pay'),
+                onTap: () => setState(() => _pay = (_pay + 1) % _pays.length),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.credit_card, size: 18),
+                      const SizedBox(width: 8),
+                      Text(_pays[_pay], style: TextStyle(color: ink, fontWeight: FontWeight.w600)),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        for (var i = 0; i < _options.length; i++) _rideRow(i, ink),
-        const SizedBox(height: 8),
-        InkWell(
-          key: const Key('ride-pay'),
-          onTap: () => setState(() => _pay = (_pay + 1) % _pays.length),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                const Icon(Icons.credit_card, size: 18),
-                const SizedBox(width: 8),
-                Text(_pays[_pay], style: TextStyle(color: ink, fontWeight: FontWeight.w600)),
-              ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: FilledButton(
+            key: const Key('ride-request'),
+            style: FilledButton.styleFrom(
+              backgroundColor: ink,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(0xFFB9B9B9),
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
+            onPressed: ready ? _request : null,
+            child: Text('Request ${_rideName(_chosen)}'),
           ),
-        ),
-        const SizedBox(height: 8),
-        FilledButton(
-          key: const Key('ride-request'),
-          style: FilledButton.styleFrom(
-            backgroundColor: ink,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFFB9B9B9),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-          ),
-          onPressed: ready ? _request : null,
-          child: Text('Request ${_rideName(_chosen)}'),
         ),
       ],
     );
