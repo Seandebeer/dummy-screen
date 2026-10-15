@@ -16,6 +16,7 @@ import 'library_app.dart';
 import 'maps_app.dart';
 import 'phone_apps.dart';
 import 'prop_apps.dart';
+import 'ride_app.dart';
 import 'settings_app.dart';
 import 'social_apps.dart';
 import 'utility_apps.dart';
@@ -189,6 +190,8 @@ class _OsAppViewState extends State<OsAppView> {
         return const WebdeckApp();
       case 'appstore':
         return LibraryApp(store: store, device: device);
+      case 'zippyride':
+        return RideApp(branded: device.os.branded);
       case 'videocall':
         return VidcallApp(
           contacts: contactsFor(device.os),
@@ -234,6 +237,7 @@ const _workingApps = {
   'webdeck',
   'appstore',
   'videocall',
+  'zippyride',
 };
 
 /// Apps with a real prop screen. Catalog stand-ins and custom icons are not.

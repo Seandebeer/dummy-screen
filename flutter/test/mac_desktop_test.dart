@@ -26,7 +26,9 @@ void main() {
       ),
     );
     expect(find.byKey(const Key('mac-desktop')), findsOneWidget);
-    expect(find.text('Finder'), findsOneWidget);
+    expect(find.text('Files'), findsOneWidget);
+    expect(find.text('Finder'), findsNothing);
+    expect(find.byIcon(Icons.apple), findsNothing);
     expect(find.text('Untitled Folder'), findsOneWidget);
     expect(find.text('Documents'), findsNothing);
     expect(find.text('Insert card to begin.'), findsNothing);
@@ -34,7 +36,7 @@ void main() {
     final folder = tester.getCenter(
       find.byKey(const Key('mac-file-Untitled Folder')),
     );
-    final finder = tester.getCenter(find.text('Finder'));
+    final finder = tester.getCenter(find.text('Files'));
     expect(folder.dx, greaterThan(finder.dx));
 
     await tester.tap(find.byKey(const Key('mac-file-Untitled Folder')));
@@ -46,7 +48,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mac-dock-word')));
     await tester.pump();
-    expect(find.text('Word'), findsWidgets);
+    expect(find.text('Document'), findsWidgets);
+    expect(find.text('Word'), findsNothing);
     expect(
       find.text('Scene 47 — the call beats were trimmed.'),
       findsOneWidget,
@@ -93,9 +96,12 @@ void main() {
     await tester.pump();
     await tester.tap(find.byTooltip('System'));
     await tester.pumpAndSettle();
-    expect(find.text('Windows'), findsOneWidget);
-    expect(find.text('Mac'), findsOneWidget);
-    expect(find.text('Ubuntu'), findsOneWidget);
+    expect(find.text('Taskbar'), findsOneWidget);
+    expect(find.text('Menu'), findsOneWidget);
+    expect(find.text('Activities'), findsOneWidget);
+    expect(find.text('Windows'), findsNothing);
+    expect(find.text('Mac'), findsNothing);
+    expect(find.text('Ubuntu'), findsNothing);
     expect(find.text('Linux'), findsNothing);
     expect(find.text('Windows 95'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -161,7 +167,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('desk-cat-display')));
     await tester.pump();
-    expect(find.text('Mac'), findsOneWidget);
+    expect(find.text('Menu'), findsOneWidget);
+    expect(find.text('Mac'), findsNothing);
     await show(const Key('desk-theme-midnight'));
     await tester.tap(find.byKey(const Key('desk-theme-midnight')));
     await tester.pump();

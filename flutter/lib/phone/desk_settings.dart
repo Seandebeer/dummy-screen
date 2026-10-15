@@ -18,6 +18,27 @@ const kComputerShells = <(String, String)>[
   ('linux', 'Ubuntu'),
 ];
 
+/// Unbranded computers drop the company names. The shell id stays the same.
+List<(String, String)> computerShells({required bool branded}) {
+  if (branded) return kComputerShells;
+  return const [
+    ('macos', 'Menu'),
+    ('windows', 'Taskbar'),
+    ('linux', 'Activities'),
+  ];
+}
+
+String shellBlurb(String id, {required bool branded}) {
+  return switch (id) {
+    'macos' => 'Menu bar, one moonlit dune, and a shelf dock.',
+    'windows' => 'Pale desktop, centered taskbar, shortcut stack.',
+    'linux' => branded
+        ? 'Ubuntu top bar, left dock, and a teal activities view.'
+        : 'Top bar, left dock, and a teal activities view.',
+    _ => '',
+  };
+}
+
 const _shellLook = <String, (String, List<Color>)>{
   'macos': (
     'Menu bar, one moonlit dune, and a shelf dock.',
@@ -219,11 +240,11 @@ class _ComputerSettingsState extends State<ComputerSettings> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final item in kComputerShells) ...[
+              for (final item in computerShells(branded: os.branded)) ...[
                 SettingsTile(
                   tileKey: Key('desk-shell-${item.$1}'),
                   name: item.$2,
-                  desc: _shellLook[item.$1]!.$1,
+                  desc: shellBlurb(item.$1, branded: os.branded),
                   preview: _shellLook[item.$1]!.$2,
                   active: shell == item.$1,
                   onTap: () =>
@@ -504,7 +525,7 @@ class _ComputerSettingsState extends State<ComputerSettings> {
               const Align(
                 alignment: Alignment.centerLeft,
                 child: SettingsHint(
-                  'Generic keeps the fictional names and icons. Branded uses the real product names and artwork.',
+                  'Generic keeps fictional names and hides company logos. Branded uses the real product names and artwork.',
                 ),
               ),
             ],

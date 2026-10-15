@@ -16,7 +16,9 @@ import '../phone/catalog.dart';
 import '../phone/clock_settings.dart';
 import '../phone/console_apps.dart';
 import '../phone/desk_settings.dart';
+import '../phone/flight_board.dart';
 import '../phone/home_view.dart';
+import '../phone/transport.dart';
 import '../phone/lock_screen.dart';
 import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
@@ -230,9 +232,14 @@ class _OsPageState extends State<OsPage> {
                       // Fit the default orientation first. A 90° turn keeps that
                       // scale and only shrinks when the swapped box leaves the stage.
                       final fit = framed || store.filming;
-                      final margin = framed ? 24.0 : 0.0;
-                      final maxW = constraints.maxWidth - margin;
-                      final maxH = constraints.maxHeight - margin;
+                      final roomy = framed &&
+                          constraints.maxWidth > 480 &&
+                          constraints.maxHeight > 420;
+                      final inset = roomy
+                          ? const EdgeInsets.fromLTRB(72, 48, 72, 96)
+                          : (framed ? const EdgeInsets.all(28) : EdgeInsets.zero);
+                      final maxW = constraints.maxWidth - inset.horizontal;
+                      final maxH = constraints.maxHeight - inset.vertical;
                       final base = metricsForTurn(device.kind, turned: false);
                       var baseHeight = maxH;
                       var baseWidth = baseHeight * base.aspect;
@@ -291,7 +298,9 @@ class _OsPageState extends State<OsPage> {
                               closeTick: _closeTick,
                             );
                       final marked = _withMarks(stage, device, store);
-                      final screen = Center(
+                      final screen = Padding(
+                        padding: inset,
+                        child: Center(
                         child: SizedBox(
                           width: fit ? width : constraints.maxWidth,
                           height: fit ? height : constraints.maxHeight,
@@ -301,6 +310,7 @@ class _OsPageState extends State<OsPage> {
                                 ? DeviceBezel(frame: metrics.frame, child: marked)
                                 : marked,
                           ),
+                        ),
                         ),
                       );
                       if (!editing) return screen;
@@ -741,41 +751,99 @@ class _OsPageState extends State<OsPage> {
           pages: [
             _DevicePage(
               id: 'board',
-              icon: Icons.flight_takeoff,
+              icon: transportMark(live.os.face),
               title: 'Board',
-              detail: 'Heading and the second board',
+              detail: 'Place, heading, and the second board',
               children: [
+                SettingsSection(
+                  title: 'Place',
+                  child: SettingsOptions(
+                    prefix: 'transport-mode',
+                    options: const [
+                      ('flight', 'Flights'),
+                      ('train', 'Train'),
+                      ('bus', 'Bus'),
+                      ('ferry', 'Ferry'),
+                    ],
+                    selected: transportMode(live.os.face),
+                    onSelect: (value) => store.updateOs(
+                      live.id,
+                      (os) => applyTransport(os, value),
+                    ),
+                  ),
+                ),
+                SettingsSection(
+                  title: 'Names',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SettingsChoice(
+                              label: 'Generic',
+                              active: !live.os.branded,
+                              onTap: () => store.updateOs(
+                                live.id,
+                                (os) => os.copyWith(branded: false),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SettingsChoice(
+                              label: 'Branded',
+                              active: live.os.branded,
+                              onTap: () => store.updateOs(
+                                live.id,
+                                (os) => os.copyWith(branded: true),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const SettingsHint(
+                        'Generic uses fictional operator names and matching letter codes. Branded uses the real names.',
+                      ),
+                    ],
+                  ),
+                ),
                 SettingsSection(
                   title: 'Heading',
                   child: SettingsOptions(
                     prefix: 'flight-heading',
-                    options: const [
-                      ('departures', 'Departures'),
+                    options: [
+                      (
+                        'departures',
+                        transportMode(live.os.face) == 'ferry' ? 'Sailings' : 'Departures',
+                      ),
                       ('arrivals', 'Arrivals'),
                       ('none', 'No heading'),
                     ],
                     selected: live.os.flightHeading,
                     onSelect: (value) {
+                      final mode = transportMode(live.os.face);
                       final columns = [
                         for (var i = 0; i < 7; i++)
                           i < live.os.flightColumns.length
                               ? live.os.flightColumns[i]
-                              : kFlightColumns[i],
+                              : transportColumns(mode, value)[i],
                       ];
-                      final place = columns[1];
-                      if (place == 'DEPARTING TO' || place == 'ARRIVING FROM') {
-                        columns[1] = value == 'arrivals' ? 'ARRIVING FROM' : 'DEPARTING TO';
-                      }
-                      final title = switch (value) {
-                        'arrivals' => 'Arrivals',
-                        'none' => '',
-                        _ => 'Departures',
+                      const places = {
+                        'DEPARTING TO',
+                        'ARRIVING FROM',
+                        'DESTINATION',
+                        'ORIGIN',
                       };
+                      if (places.contains(columns[1])) {
+                        columns[1] = transportColumns(mode, value)[1];
+                      }
                       store.updateOs(
                         live.id,
                         (os) => os.copyWith(
                           flightHeading: value,
-                          flightTitle: title,
+                          flightTitle: transportHeading(mode, value),
                           flightColumns: columns,
                         ),
                       );
@@ -831,7 +899,7 @@ class _OsPageState extends State<OsPage> {
                         key: const Key('flight-flip'),
                         child: SettingsToggle(
                           label: '2 board flip',
-                          hint: 'Switches between two sets of flights.',
+                          hint: 'Switches between two boards.',
                           value: live.os.flightFlip,
                           onChanged: (value) => store.updateOs(
                             live.id,
@@ -1693,7 +1761,7 @@ String _kindLabel(String kind) {
     'tablet' => 'Tablet',
     'computer' => 'Computer',
     'tv' => 'Smart TV',
-    'flight' => 'Flight Info',
+    'flight' => 'Transport Info',
     'console' => 'Game console',
     'atm' => 'ATM',
     'cctv' => 'CCTV',

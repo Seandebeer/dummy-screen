@@ -270,17 +270,18 @@ class _WinDesktopState extends State<WinDesktop> {
     return switch (id) {
       null => null,
       'recycle' => _named(os, 'recycle', 'Recycle Bin'),
-      'edge' => _named(os, 'edge', 'Edge'),
-      'files' => _named(os, 'files', 'File Explorer'),
+      'edge' => _named(os, 'edge', os.branded ? 'Edge' : 'Browser'),
+      'files' => _named(os, 'files', os.branded ? 'File Explorer' : 'Files'),
       _ when id.startsWith('folder:') => _named(os, id, 'New Folder'),
       _ => appTitle,
     };
   }
 
   Widget _body(String? id) {
+    final os = widget.store.deviceById(widget.device.id)?.os ?? widget.device.os;
     return switch (id) {
       'recycle' => const _EmptyFolder(label: 'This folder is empty.'),
-      'edge' => const _Browser(),
+      'edge' => _Browser(branded: os.branded),
       'files' => const _Files(),
       _ when id != null && id.startsWith('folder:') =>
         const _EmptyFolder(label: 'This folder is empty.'),
@@ -339,10 +340,12 @@ class _Taskbar extends StatelessWidget {
                   tooltip: 'Start',
                   selected: startOpen,
                   onTap: onStart,
-                  child: const CustomPaint(
-                    painter: _PanesPainter(),
-                    child: SizedBox(width: 18, height: 18),
-                  ),
+                  child: os.branded
+                      ? const CustomPaint(
+                          painter: _PanesPainter(),
+                          child: SizedBox(width: 18, height: 18),
+                        )
+                      : const Icon(Icons.apps, size: 18, color: Color(0xFF1A1A1A)),
                 ),
                 _BarButton(
                   key: const Key('win-search'),
@@ -358,16 +361,18 @@ class _Taskbar extends StatelessWidget {
                 ),
                 _BarButton(
                   key: const Key('win-edge'),
-                  tooltip: 'Edge',
+                  tooltip: os.branded ? 'Edge' : 'Browser',
                   onTap: onEdge,
-                  child: const CustomPaint(
-                    painter: _WavePainter(),
-                    child: SizedBox(width: 18, height: 18),
-                  ),
+                  child: os.branded
+                      ? const CustomPaint(
+                          painter: _WavePainter(),
+                          child: SizedBox(width: 18, height: 18),
+                        )
+                      : const Icon(Icons.public, size: 18, color: Color(0xFF1A1A1A)),
                 ),
                 _BarButton(
                   key: const Key('win-files'),
-                  tooltip: 'File Explorer',
+                  tooltip: os.branded ? 'File Explorer' : 'Files',
                   onTap: onFiles,
                   child: const Icon(Icons.folder, size: 18, color: Color(0xFFE8B931)),
                 ),
@@ -738,7 +743,9 @@ class _EmptyFolder extends StatelessWidget {
 }
 
 class _Browser extends StatelessWidget {
-  const _Browser();
+  const _Browser({required this.branded});
+
+  final bool branded;
 
   @override
   Widget build(BuildContext context) {
@@ -757,11 +764,11 @@ class _Browser extends StatelessWidget {
             style: TextStyle(color: Color(0xFF1A1A1A), fontSize: 12),
           ),
         ),
-        const Expanded(
+        Expanded(
           child: Center(
             child: Text(
-              'Edge',
-              style: TextStyle(color: Color(0xFF8A8A8A), fontSize: 22, fontWeight: FontWeight.w600),
+              branded ? 'Edge' : 'Browser',
+              style: const TextStyle(color: Color(0xFF8A8A8A), fontSize: 22, fontWeight: FontWeight.w600),
             ),
           ),
         ),

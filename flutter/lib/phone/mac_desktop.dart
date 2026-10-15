@@ -8,6 +8,7 @@ import '../image_file.dart';
 import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
+import 'catalog.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
 import 'mac_desk.dart';
@@ -343,7 +344,10 @@ class _MacDesktopState extends State<MacDesktop> {
         else if (_panel == 'appstore')
           Center(
             child: _MacWindow(
-              title: 'App Store',
+              title: appLabel(
+                propAppById('appstore')!,
+                branded: _live.os.branded,
+              ),
               onClose: _closeWindow,
               child: MacAppStore(
                 store: widget.store,
@@ -545,11 +549,15 @@ class _MacDesktopState extends State<MacDesktop> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 children: [
-                  const Icon(Icons.apple, color: Colors.white, size: 15),
+                  Icon(
+                    os.branded ? Icons.apple : Icons.circle,
+                    color: Colors.white,
+                    size: os.branded ? 15 : 8,
+                  ),
                   const SizedBox(width: 14),
-                  const Text(
-                    'Finder',
-                    style: TextStyle(
+                  Text(
+                    os.branded ? 'Finder' : 'Files',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,

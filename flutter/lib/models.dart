@@ -386,7 +386,8 @@ class OsSettings {
   final List<String> dockOrder;
 
   /// Named interface on an ATM or smart-home screen. Empty uses that
-  /// device's first interface.
+  /// device's first interface. On a transport board this is flight, train,
+  /// bus, or ferry. Empty still means flights.
   final String face;
 
   /// Camera squares on a CCTV wall, from 1 to 16.
