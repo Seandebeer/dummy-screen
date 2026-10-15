@@ -76,7 +76,9 @@ MacGlyph _macGlyph(String id, OsSettings os) {
     return MacGlyph(fallback, Icons.folder_outlined, Colors.white);
   }
   if (id == 'appstore') {
-    return const MacGlyph('App Store', Icons.shopping_bag, Color(0xFF0A84FF));
+    final prop = propAppById(id);
+    final label = prop == null ? 'App Library' : appLabel(prop, branded: os.branded);
+    return MacGlyph(label, Icons.shopping_bag, const Color(0xFF0A84FF));
   }
   if (id == 'settings') {
     return const MacGlyph('Settings', Icons.settings, Color(0xFF636366));
@@ -106,19 +108,19 @@ MacGlyph _macGlyph(String id, OsSettings os) {
       if (app.id == id) return MacGlyph(app.label, app.icon, app.color);
     }
   }
-  const labels = {
+  final labels = {
     'call': 'Call',
     'tracking': 'Tracking',
     'markers': 'UI Markers',
     'video': 'Video',
-    'word': 'Word',
-    'excel': 'Excel',
+    'word': os.branded ? 'Word' : 'Document',
+    'excel': os.branded ? 'Excel' : 'Sheet',
     'terminal': 'Terminal',
     'social': 'Social',
     'photos': 'Photos',
     'music': 'Music',
     'settings': 'Settings',
-    'appstore': 'App Store',
+    'appstore': os.branded ? 'App Store' : 'App Library',
   };
   return MacGlyph(labels[id] ?? 'App', Icons.apps, const Color(0xFF8E8E93));
 }

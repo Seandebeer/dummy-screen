@@ -94,7 +94,7 @@ const kSandboxKinds = [
   ('tablet', 'Tablet'),
   ('computer', 'Computer'),
   ('tv', 'Smart TV'),
-  ('flight', 'Flight Info'),
+  ('flight', 'Transport Info'),
   ('console', 'Game console'),
   ('atm', 'ATM'),
   ('cctv', 'CCTV'),
@@ -338,14 +338,23 @@ List<(String, String, IconData)> deskApps(OsSettings os) {
     }
   }
   for (final entry in _toolIcons.entries) {
-    out.add((entry.key, entry.value.$1, entry.value.$2));
+    out.add((entry.key, _toolLabel(entry.key, entry.value.$1, os), entry.value.$2));
   }
   return out;
 }
 
+String _toolLabel(String id, String name, OsSettings os) {
+  if (os.branded) return name;
+  return switch (id) {
+    'word' => 'Document',
+    'excel' => 'Sheet',
+    _ => name,
+  };
+}
+
 String deskTitle(String id, OsSettings os) {
   final tool = _toolIcons[id];
-  if (tool != null) return tool.$1;
+  if (tool != null) return _toolLabel(id, tool.$1, os);
   return osAppTitle(id, os);
 }
 
@@ -407,7 +416,7 @@ class _ComputerOs extends StatelessWidget {
         tool: windowId == null || folder ? null : _window(windowId),
         onOpen: onOpen,
         onShell: onShell,
-        shells: kComputerShells,
+        shells: computerShells(branded: device.os.branded),
         overlay: cover,
       );
     }
@@ -423,7 +432,7 @@ class _ComputerOs extends StatelessWidget {
         tool: windowId == null || folder ? null : _window(windowId),
         onOpen: onOpen,
         onShell: onShell,
-        shells: kComputerShells,
+        shells: computerShells(branded: device.os.branded),
         overlay: cover,
       );
     }
@@ -665,7 +674,7 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
             icon: Icon(Icons.arrow_drop_down, size: 18, color: ink),
             onSelected: widget.onShell,
             itemBuilder: (context) => [
-              for (final item in kComputerShells)
+              for (final item in computerShells(branded: os.branded))
                 PopupMenuItem(value: item.$1, child: Text(item.$2)),
             ],
           ),

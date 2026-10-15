@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../format.dart';
 import '../models.dart';
 import '../store.dart';
+import 'transport.dart';
 
 const _board = Color(0xFF0A3C8C);
 const _band = Color(0xFF0E4EAE);
@@ -58,12 +59,49 @@ List<String> presentFlight(List<String> cells, int index) {
   return next;
 }
 
+/// Glass text. Unbranded swaps a known operator for a fictional name and
+/// rewrites the letter code so the prefix still belongs to that name.
+List<String> displayTransport(
+  List<String> cells,
+  int index, {
+  required String mode,
+  required bool branded,
+}) {
+  final next = [for (var i = 0; i < 7; i++) i < cells.length ? cells[i] : ''];
+  next[5] = flightStatusLabel(next[5]);
+  if (transportMode(mode) == 'flight') next[6] = flightGateLabel(next[6], index);
+  final generic = branded ? null : genericCarrier(next[2], mode);
+  if (generic == null) {
+    next[3] = flightCodeLabel(next[3]);
+  } else {
+    next[2] = generic.$1;
+    next[3] = _withPrefix(flightCodeLabel(next[3]), generic.$2);
+  }
+  return next;
+}
+
+String _withPrefix(String code, String prefix) {
+  final rest = RegExp(r'^[A-Za-z]{1,3}\s+(.*)$').firstMatch(code.trim());
+  if (rest != null) return '$prefix ${rest.group(1)}';
+  final bare = code.trim();
+  return bare.isEmpty ? prefix : '$prefix $bare';
+}
+
+IconData transportMark(String mode) {
+  return switch (transportMode(mode)) {
+    'train' => Icons.train,
+    'bus' => Icons.directions_bus,
+    'ferry' => Icons.directions_boat,
+    _ => Icons.flight_takeoff,
+  };
+}
+
 List<String> paddedFlightRows(List<String> stored, List<String> defaults) {
   if (stored.length >= defaults.length) return stored;
   return [...stored, ...defaults.skip(stored.length)];
 }
 
-/// Airport departures board. Every word on the glass can be typed in OS edit.
+/// Departures board for an airport, station, bus stop, or dock.
 class FlightBoard extends StatelessWidget {
   const FlightBoard({super.key, required this.store, required this.device});
 
@@ -140,9 +178,11 @@ class _FlightBodyState extends State<_FlightBody> {
     widget.store.updateOs(widget.device.id, change);
   }
 
+  String get _mode => transportMode(os.face);
+
   List<String> get _rows => paddedFlightRows(
     _which == 0 ? os.flightA : os.flightB,
-    _which == 0 ? kFlightBoardA : kFlightBoardB,
+    transportBoard(_mode, second: _which == 1),
   );
 
   void _writeCell(int row, int column, String value) {
@@ -150,17 +190,21 @@ class _FlightBodyState extends State<_FlightBody> {
     while (source.length <= row) {
       source.add(flightRow(const ['', '', '', '', '', '', '']));
     }
-    final cells = presentFlight(flightCells(source[row]), row);
-    cells[column] = value;
+    final cells = flightCells(source[row]);
+    cells[column] = value.trim();
+    if (column == 5) cells[column] = flightStatusLabel(cells[column]);
+    if (column == 3) cells[column] = flightCodeLabel(cells[column]);
+    if (column == 6 && _mode == 'flight') cells[column] = flightGateLabel(cells[column], row);
     source[row] = flightRow(cells);
     final placed = column == 0 ? orderedFlightBoard(source, row) : source;
     _save((current) => _which == 0 ? current.copyWith(flightA: placed) : current.copyWith(flightB: placed));
   }
 
   void _writeColumn(int column, String value) {
+    final fallback = transportColumns(_mode, os.flightHeading);
     final columns = [
       for (var i = 0; i < 7; i++)
-        i < os.flightColumns.length ? os.flightColumns[i] : kFlightColumns[i],
+        i < os.flightColumns.length ? os.flightColumns[i] : fallback[i],
     ];
     columns[column] = value;
     _save((current) => current.copyWith(flightColumns: columns));
@@ -188,7 +232,12 @@ class _FlightBodyState extends State<_FlightBody> {
                   Expanded(
                     child: _dataRow(
                       i,
-                      presentFlight(flightCells(rows[i]), i),
+                      displayTransport(
+                        flightCells(rows[i]),
+                        i,
+                        mode: _mode,
+                        branded: os.branded,
+                      ),
                       editing,
                       board,
                       body,
@@ -206,7 +255,7 @@ class _FlightBodyState extends State<_FlightBody> {
   String get _title {
     final typed = os.flightTitle.trim();
     if (typed.isNotEmpty) return typed;
-    return os.flightHeading == 'arrivals' ? 'Arrivals' : 'Departures';
+    return transportHeading(_mode, os.flightHeading);
   }
 
   Color _color(String hex, Color fallback) {
@@ -229,39 +278,46 @@ class _FlightBodyState extends State<_FlightBody> {
         children: [
           const SizedBox(width: 188),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: header, width: 2),
-                  ),
-                  child: Icon(Icons.flight_takeoff, color: header, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Flexible(
-                  child: _TypeText(
-                    fieldKey: const Key('flight-heading'),
-                    text: heading,
-                    editing: editing,
-                    align: TextAlign.center,
-                    style: TextStyle(
-                      color: header,
-                      fontSize: 46,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final room = (constraints.maxWidth - 68).clamp(80.0, constraints.maxWidth);
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: header, width: 2),
+                      ),
+                      child: Icon(transportMark(_mode), color: header, size: 32),
                     ),
-                    onTyping: (value) => setState(() => _typing = value),
-                    onSubmit: (value) {
-                      final next = value.trim();
-                      _save((current) => current.copyWith(flightTitle: next.isEmpty ? _title : next));
-                    },
-                  ),
-                ),
-              ],
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: room),
+                      child: _TypeText(
+                        fieldKey: const Key('flight-heading'),
+                        text: heading,
+                        editing: editing,
+                        hug: true,
+                        align: TextAlign.left,
+                        style: TextStyle(
+                          color: header,
+                          fontSize: 46,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        ),
+                        onTyping: (value) => setState(() => _typing = value),
+                        onSubmit: (value) {
+                          final next = value.trim();
+                          _save((current) => current.copyWith(flightTitle: next.isEmpty ? _title : next));
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           SizedBox(
@@ -318,7 +374,9 @@ class _FlightBodyState extends State<_FlightBody> {
               flex: _flex(i),
               child: _TypeText(
                 fieldKey: Key('flight-col-$i'),
-                text: i < os.flightColumns.length ? os.flightColumns[i] : kFlightColumns[i],
+                text: i < os.flightColumns.length
+                    ? os.flightColumns[i]
+                    : transportColumns(_mode, os.flightHeading)[i],
                 editing: editing,
                 align: TextAlign.left,
                 style: TextStyle(
@@ -389,8 +447,10 @@ class _FlightBodyState extends State<_FlightBody> {
   }
 
   Color _statusInk(int column, String text, Color body) {
+    if (column != 5) return body;
     final upper = text.toUpperCase();
-    if (column == 5 && (upper.contains('CANCEL') || upper.startsWith('DELAY'))) return _alert;
+    if (upper.contains('CANCEL')) return _alert;
+    if (upper.startsWith('DELAY')) return _yellow;
     return body;
   }
 }
@@ -466,6 +526,7 @@ class _TypeText extends StatefulWidget {
     required this.onSubmit,
     required this.onTyping,
     this.align = TextAlign.left,
+    this.hug = false,
   });
 
   final Key fieldKey;
@@ -473,6 +534,7 @@ class _TypeText extends StatefulWidget {
   final bool editing;
   final TextStyle style;
   final TextAlign align;
+  final bool hug;
   final ValueChanged<String> onSubmit;
   final ValueChanged<bool> onTyping;
 
@@ -528,24 +590,27 @@ class _TypeTextState extends State<_TypeText> {
   @override
   Widget build(BuildContext context) {
     if (!_open) {
+      final label = Text(
+        widget.text,
+        maxLines: 1,
+        overflow: widget.hug ? TextOverflow.clip : TextOverflow.ellipsis,
+        textAlign: widget.align,
+        style: widget.style,
+      );
       return GestureDetector(
         key: widget.fieldKey,
         behavior: HitTestBehavior.opaque,
         onTap: widget.editing ? _openField : null,
-        child: Align(
-          alignment: switch (widget.align) {
-            TextAlign.right => Alignment.centerRight,
-            TextAlign.center => Alignment.center,
-            _ => Alignment.centerLeft,
-          },
-          child: Text(
-            widget.text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: widget.align,
-            style: widget.style,
-          ),
-        ),
+        child: widget.hug
+            ? label
+            : Align(
+                alignment: switch (widget.align) {
+                  TextAlign.right => Alignment.centerRight,
+                  TextAlign.center => Alignment.center,
+                  _ => Alignment.centerLeft,
+                },
+                child: label,
+              ),
       );
     }
     return TextField(
