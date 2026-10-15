@@ -187,6 +187,60 @@ class SnapGridPainter extends CustomPainter {
       oldDelegate.rows != rows;
 }
 
+/// Moves [id] between the home grid and the dock. An occupied slot swaps.
+/// [remove] takes the app off both.
+({List<String> home, List<String> dock}) placeApp({
+  required List<String> home,
+  required List<String> dock,
+  required String id,
+  required bool remove,
+  int? homeIndex,
+  int? dockIndex,
+}) {
+  final originHome = home.indexOf(id);
+  final originDock = dock.indexOf(id);
+  if (originHome < 0 && originDock < 0) {
+    return (home: [...home], dock: [...dock]);
+  }
+  if (remove) {
+    return (
+      home: [for (final item in home) if (item != id) item],
+      dock: [for (final item in dock) if (item != id) item],
+    );
+  }
+  if (dockIndex != null && originDock >= 0 && homeIndex == null) {
+    return (home: [...home], dock: movedOrder(dock, id, remove: false, index: dockIndex));
+  }
+  if (homeIndex != null && originHome >= 0 && dockIndex == null) {
+    return (home: movedOrder(home, id, remove: false, index: homeIndex), dock: [...dock]);
+  }
+  if (dockIndex != null && originHome >= 0) {
+    final nextHome = [...home]..removeAt(originHome);
+    final nextDock = [...dock];
+    if (dockIndex >= nextDock.length) {
+      nextDock.add(id);
+    } else {
+      final displaced = nextDock[dockIndex];
+      nextDock[dockIndex] = id;
+      nextHome.insert(originHome.clamp(0, nextHome.length), displaced);
+    }
+    return (home: nextHome, dock: nextDock);
+  }
+  if (homeIndex != null && originDock >= 0) {
+    final nextDock = [...dock]..removeAt(originDock);
+    final nextHome = [...home];
+    if (homeIndex >= nextHome.length) {
+      nextHome.add(id);
+    } else {
+      final displaced = nextHome[homeIndex];
+      nextHome[homeIndex] = id;
+      nextDock.insert(originDock.clamp(0, nextDock.length), displaced);
+    }
+    return (home: nextHome, dock: nextDock);
+  }
+  return (home: [...home], dock: [...dock]);
+}
+
 /// Drop [id] on [index]. An occupied cell swaps the two apps. A cell past the
 /// last app moves it to the end. [remove] takes it off the home screen.
 List<String> movedOrder(List<String> ids, String id, {required bool remove, int? index}) {

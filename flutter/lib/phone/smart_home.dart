@@ -1194,12 +1194,36 @@ class _Tile extends StatelessWidget {
         expand: true,
         padding: EdgeInsets.symmetric(horizontal: radius > 40 ? 6 : 8, vertical: radius > 40 ? 4 : 8),
         child: radius > 40
-            ? FittedBox(
-                fit: BoxFit.scaleDown,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 110),
-                  child: _tileBody(compact: true),
-                ),
+            ? Stack(
+                alignment: Alignment.center,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: tint.withValues(alpha: on ? 0.34 : 0.14),
+                        border: Border.all(color: tint.withValues(alpha: on ? 0.85 : 0.35)),
+                      ),
+                      child: Icon(icon, color: on ? Colors.white : tint, size: 22),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(6, 0, 6, 10),
+                      child: Text(
+                        name,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
               )
             : _tileBody(compact: false),
       ),

@@ -54,6 +54,7 @@ class LegacyHome extends StatelessWidget {
     required this.onOpen,
     this.light = false,
     this.onOrder,
+    this.onDock,
     this.onHide,
   });
 
@@ -62,19 +63,20 @@ class LegacyHome extends StatelessWidget {
   final void Function(String id) onOpen;
   final bool light;
   final ValueChanged<List<String>>? onOrder;
+  final ValueChanged<List<String>>? onDock;
   final ValueChanged<String>? onHide;
 
   @override
   Widget build(BuildContext context) {
     final id = _canonical(skin);
     final home = switch (id) {
-      'ios6' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.six, onOrder: onOrder),
-      'ios7' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.seven, onOrder: onOrder),
+      'ios6' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.six, onOrder: onOrder, onDock: onDock),
+      'ios7' => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.seven, onOrder: onOrder, onDock: onDock),
       'winphone' => _WindowsHome(os: os, onOpen: onOpen),
       'holo' => _HoloHome(os: os, onOpen: onOpen),
       'webos' => _WebOsHome(os: os, onOpen: onOpen),
       'belle' => _BelleHome(os: os, onOpen: onOpen),
-      _ => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.original, onOrder: onOrder),
+      _ => _IosShelfHome(os: os, onOpen: onOpen, kind: _IosKind.original, onOrder: onOrder, onDock: onDock),
     };
     return KeyedSubtree(key: Key('legacy-$id'), child: home);
   }
@@ -113,16 +115,18 @@ class _IosShelfHome extends StatelessWidget {
     required this.onOpen,
     required this.kind,
     this.onOrder,
+    this.onDock,
   });
 
   final OsSettings os;
   final void Function(String id) onOpen;
   final _IosKind kind;
   final ValueChanged<List<String>>? onOrder;
+  final ValueChanged<List<String>>? onDock;
 
   @override
   Widget build(BuildContext context) {
-    const dockIds = ['phone', 'email', 'browser', 'music'];
+    final dockIds = os.dockOrder.isEmpty ? const ['phone', 'email', 'browser', 'music'] : os.dockOrder;
     final dock = [for (final id in dockIds) ?_app(id)];
     final apps = _grid(os, dockIds.toSet());
     final gloss = kind != _IosKind.seven;

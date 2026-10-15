@@ -254,6 +254,8 @@ class _FormOsState extends State<FormOs> {
         : switch (device.kind) {
       'flight' => FlightBoard(store: widget.store, device: device),
       'tv' => _TvOs(
+        store: widget.store,
+        device: device,
         os: os,
         shell: os.shell.isEmpty ? 'aurora' : os.shell,
         onShell: _shell,
@@ -283,7 +285,7 @@ class _FormOsState extends State<FormOs> {
         onOpen: _open,
       ),
     };
-    final banners = widget.store.bannersFor(device.id);
+    final banners = device.kind == 'atm' ? const <BannerNote>[] : widget.store.bannersFor(device.id);
     if (banners.isEmpty) return stage;
     return Stack(
       children: [
@@ -1074,6 +1076,8 @@ class _MarkerPainter extends CustomPainter {
 
 class _TvOs extends StatelessWidget {
   const _TvOs({
+    required this.store,
+    required this.device,
     required this.os,
     required this.shell,
     required this.onShell,
@@ -1081,6 +1085,8 @@ class _TvOs extends StatelessWidget {
     required this.onOpen,
   });
 
+  final StageStore store;
+  final PropDevice device;
   final OsSettings os;
   final String shell;
   final ValueChanged<String> onShell;
@@ -1090,7 +1096,7 @@ class _TvOs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (app != null) return _TvApp(id: app!, onBack: () => onOpen(null));
-    return TvHome(os: os, shell: shell, onShell: onShell, onOpen: onOpen);
+    return TvHome(os: os, shell: shell, onShell: onShell, onOpen: onOpen, store: store, device: device);
   }
 }
 

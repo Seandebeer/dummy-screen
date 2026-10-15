@@ -171,6 +171,7 @@ class _AtmOsSettingsState extends State<AtmOsSettings> {
             ),
           ),
           PlaceSettings(store: widget.store, device: device),
+          const SizedBox(height: 16),
           SettingsField(
             fieldKey: const Key('os-atm-temperature'),
             label: 'Temperature °C',
@@ -183,6 +184,7 @@ class _AtmOsSettingsState extends State<AtmOsSettings> {
           ),
         ],
         if (_page == 'bank') ...[
+          const SizedBox(height: 8),
           SettingsField(
             fieldKey: const Key('os-atm-bank-name'),
             label: 'Bank name',

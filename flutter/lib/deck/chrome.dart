@@ -44,12 +44,12 @@ const kDeckPalettes = <String, DeckPalette>{
     light: false,
   ),
   'white': DeckPalette(
-    background: Color(0xFFF7F2E9),
-    surface: Color(0xFFECE7DA),
-    line: Color(0xFFD0C8B9),
-    muted: Color(0xFF756957),
-    ink: Colors.black,
-    secondary: Color(0xFFDDD7CA),
+    background: Color(0xFFE6DCCB),
+    surface: Color(0xFFFFF8EE),
+    line: Color(0xFF8A7B68),
+    muted: Color(0xFF3C332A),
+    ink: Color(0xFF14110E),
+    secondary: Color(0xFFD5C8B4),
     light: true,
   ),
 };
@@ -71,6 +71,12 @@ ThemeData deckTheme(ThemeData base, DeckPalette palette) {
       onSecondary: ink,
     ),
     iconTheme: const IconThemeData(color: ink),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(foregroundColor: ink),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: ink),
+    ),
     listTileTheme: const ListTileThemeData(textColor: ink, iconColor: ink),
     textTheme: base.textTheme.apply(bodyColor: ink, displayColor: ink),
   );
