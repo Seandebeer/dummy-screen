@@ -18,6 +18,8 @@ String sandboxName(String kind) {
       return 'Computer';
     case 'tv':
       return 'Smart TV';
+    case 'flight':
+      return 'Flight Info';
     case 'console':
       return 'Game console';
     case 'atm':

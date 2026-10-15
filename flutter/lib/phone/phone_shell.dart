@@ -85,17 +85,21 @@ class PhoneShell extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(framed ? 40 : 0),
         child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: paper.gradient,
-            image: image == null
-                ? null
-                : DecorationImage(image: image, fit: BoxFit.cover),
-          ),
+          decoration: BoxDecoration(gradient: paper.gradient),
           child: IconTheme(
             data: IconThemeData(color: navInk),
             child: Stack(
             children: [
-              if (image == null)
+              if (image != null)
+                Positioned.fill(
+                  child: Image(
+                    image: image,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => WallpaperMotif(presetId: paper.presetId),
+                  ),
+                )
+              else
                 Positioned.fill(
                   child: WallpaperMotif(presetId: paper.presetId),
                 ),

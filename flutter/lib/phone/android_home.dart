@@ -109,11 +109,18 @@ class _FirstPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Spacer(),
           Row(
             children: [
               if (!hidden.contains('widget:weather'))
@@ -201,6 +208,10 @@ class _FirstPage extends StatelessWidget {
           const _DockRow(),
         ],
       ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -224,42 +235,54 @@ class _MorePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: Column(
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 12,
-            alignment: WrapAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: Column(
             children: [
-              for (final app in apps)
-                SizedBox(
-                  width: 76,
-                  child: StageDrag(
-                    onTap: () {},
-                    onRemove: onOrder == null
-                        ? null
-                        : () {
-                            final next = [...order]..remove(app.id);
-                            onOrder!(next);
-                          },
-                    child: _Launch(
-                      label: app.label,
-                      onTap: () => onOpen(app.id),
-                      buttonKey: Key('home-${app.id}'),
-                      mark: _PlainIcon(color: app.color, icon: app.icon),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: constraints.maxWidth - 24,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.start,
+                      children: [
+                        for (final app in apps)
+                          SizedBox(
+                            width: 76,
+                            child: StageDrag(
+                              onTap: () {},
+                              onRemove: onOrder == null
+                                  ? null
+                                  : () {
+                                      final next = [...order]..remove(app.id);
+                                      onOrder!(next);
+                                    },
+                              child: _Launch(
+                                label: app.label,
+                                onTap: () => onOpen(app.id),
+                                buttonKey: Key('home-${app.id}'),
+                                mark: _PlainIcon(color: app.color, icon: app.icon),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
+              ),
+              _Dots(count: pages, index: page),
+              const SizedBox(height: 10),
+              const _DockRow(),
             ],
           ),
-          const Spacer(),
-          _Dots(count: pages, index: page),
-          const SizedBox(height: 10),
-          const _DockRow(),
-        ],
-      ),
+        );
+      },
     );
   }
 }

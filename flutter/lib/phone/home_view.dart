@@ -418,7 +418,8 @@ class _HomePagesState extends State<_HomePages> {
                   for (final page in pages)
                     Padding(
                       padding: EdgeInsets.fromLTRB(8, top, 8, 4),
-                      child: Align(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
                         alignment: Alignment.topCenter,
                         child: _IconGrid(
                           key: page == pages[shown] ? _gridKey : null,

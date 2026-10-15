@@ -122,18 +122,28 @@ class _CctvBodyState extends State<_CctvBody> {
   DateTime? _anchor;
   Timer? _tick;
   int? _full;
+  double _in = 0;
+  double _out = 1;
+  bool _trim = false;
 
   OsSettings get os => widget.device.os;
 
   @override
   void initState() {
     super.initState();
+    _in = os.cctvIn.clamp(0, 0.98);
+    _out = os.cctvOut.clamp(_in + 0.02, 1);
     _syncPlayers();
   }
 
   @override
   void didUpdateWidget(covariant _CctvBody oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!_trim &&
+        (oldWidget.device.os.cctvIn != os.cctvIn || oldWidget.device.os.cctvOut != os.cctvOut)) {
+      _in = os.cctvIn.clamp(0, 0.98);
+      _out = os.cctvOut.clamp(_in + 0.02, 1);
+    }
     _syncPlayers();
   }
 
@@ -204,10 +214,14 @@ class _CctvBodyState extends State<_CctvBody> {
     }
   }
 
+  Duration get _loopIn => _span * _in;
+  Duration get _loopOut => _span * _out;
+
   void _togglePlay() {
     setState(() => _playing = !_playing);
     _tick?.cancel();
     if (_playing) {
+      if (_offset < _loopIn || _offset >= _loopOut) _offset = _loopIn;
       _anchor = DateTime.now();
       _anchorOffset = _offset;
       _seekAll(_offset);
@@ -217,12 +231,14 @@ class _CctvBodyState extends State<_CctvBody> {
       _tick = Timer.periodic(const Duration(milliseconds: 200), (_) {
         if (!mounted || !_playing || _anchor == null) return;
         final next = _anchorOffset + DateTime.now().difference(_anchor!);
+        final end = _loopOut;
+        final start = _loopIn;
         setState(() {
-          if (next >= _span) {
-            _offset = Duration.zero;
-            _anchorOffset = Duration.zero;
+          if (next >= end) {
+            _offset = start;
+            _anchorOffset = start;
             _anchor = DateTime.now();
-            _seekAll(Duration.zero);
+            _seekAll(start);
           } else {
             _offset = next;
           }
@@ -236,13 +252,21 @@ class _CctvBodyState extends State<_CctvBody> {
   }
 
   void _scrub(double fraction) {
-    final next = _span * fraction.clamp(0, 1);
+    final clamped = fraction.clamp(_in, _out);
+    final next = _span * clamped;
     setState(() {
       _offset = next;
       _anchorOffset = next;
       _anchor = DateTime.now();
     });
     _seekAll(next);
+  }
+
+  void _rememberLoop() {
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => current.copyWith(cctvIn: _in, cctvOut: _out),
+    );
   }
 
   DateTime _stamp() {
@@ -406,41 +430,197 @@ class _CctvBodyState extends State<_CctvBody> {
   Widget _bar() {
     final span = _span.inMilliseconds;
     final fraction = span == 0 ? 0.0 : (_offset.inMilliseconds / span).clamp(0.0, 1.0);
-    return SizedBox(
-      height: 52,
+    return Container(
+      height: 36,
+      color: const Color(0xFF121418),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
-          const SizedBox(width: 8),
           Text(
             _clock(_stamp()),
             key: const Key('cctv-timecode'),
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
+              color: Color(0xFFE6C15A),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
               fontFeatures: [FontFeature.tabularFigures()],
+              letterSpacing: 0.4,
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Slider(
+            child: _ClipTrack(
               key: const Key('cctv-scrub'),
-              value: fraction,
-              onChanged: _scrub,
+              playhead: fraction,
+              loopIn: _in,
+              loopOut: _out,
+              onScrub: _scrub,
+              onTrim: (start, end) {
+                final nextHead = fraction < start ? start : (fraction > end ? end : fraction);
+                setState(() {
+                  _trim = true;
+                  _in = start;
+                  _out = end;
+                  if (nextHead != fraction) {
+                    final next = _span * nextHead;
+                    _offset = next;
+                    _anchorOffset = next;
+                    _anchor = DateTime.now();
+                  }
+                });
+                if (nextHead != fraction) _seekAll(_span * nextHead);
+              },
+              onTrimEnd: () {
+                _trim = false;
+                _rememberLoop();
+              },
             ),
           ),
-          Text(
-            '${cctvSlots(os)} cameras',
-            style: const TextStyle(color: Colors.white54, fontSize: 11),
-          ),
-          TextButton.icon(
+          const SizedBox(width: 6),
+          IconButton(
             key: const Key('cctv-play'),
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             onPressed: _togglePlay,
             icon: Icon(_playing ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 18),
-            label: Text(_playing ? 'Pause' : 'Play', style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
+}
+
+/// Slim editor clip. The handles shorten the loop; playback stays inside it.
+class _ClipTrack extends StatelessWidget {
+  const _ClipTrack({
+    super.key,
+    required this.playhead,
+    required this.loopIn,
+    required this.loopOut,
+    required this.onScrub,
+    required this.onTrim,
+    required this.onTrimEnd,
+  });
+
+  final double playhead;
+  final double loopIn;
+  final double loopOut;
+  final ValueChanged<double> onScrub;
+  final void Function(double start, double end) onTrim;
+  final VoidCallback onTrimEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return Builder(
+          builder: (trackContext) {
+            double atGlobal(Offset global) {
+              final box = trackContext.findRenderObject() as RenderBox?;
+              if (box == null || !box.hasSize || width <= 0) return 0;
+              return (box.globalToLocal(global).dx / width).clamp(0.0, 1.0);
+            }
+
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (details) => onScrub(atGlobal(details.globalPosition)),
+              onHorizontalDragUpdate: (details) => onScrub(atGlobal(details.globalPosition)),
+              child: CustomPaint(
+                painter: _ClipPainter(playhead: playhead, loopIn: loopIn, loopOut: loopOut),
+                child: Stack(
+                  children: [
+                    _trimHandle(
+                      fraction: loopIn,
+                      width: width,
+                      onDrag: (global) => onTrim(atGlobal(global).clamp(0, loopOut - 0.02), loopOut),
+                    ),
+                    _trimHandle(
+                      fraction: loopOut,
+                      width: width,
+                      onDrag: (global) => onTrim(loopIn, atGlobal(global).clamp(loopIn + 0.02, 1)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _trimHandle({
+    required double fraction,
+    required double width,
+    required ValueChanged<Offset> onDrag,
+  }) {
+    final left = (width * fraction - 6).clamp(0.0, width <= 12 ? 0.0 : width - 12);
+    return Positioned(
+      left: left,
+      top: 4,
+      bottom: 4,
+      width: 12,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (details) => onDrag(details.globalPosition),
+        onHorizontalDragEnd: (_) => onTrimEnd(),
+        child: const DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFF2F2F2),
+            borderRadius: BorderRadius.all(Radius.circular(2)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClipPainter extends CustomPainter {
+  const _ClipPainter({required this.playhead, required this.loopIn, required this.loopOut});
+
+  final double playhead;
+  final double loopIn;
+  final double loopOut;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final track = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, size.height / 2 - 7, size.width, 14),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(track, Paint()..color = const Color(0xFF2A2E34));
+    final left = size.width * loopIn;
+    final right = size.width * loopOut;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(left, size.height / 2 - 7, right, size.height / 2 + 7),
+        const Radius.circular(3),
+      ),
+      Paint()..color = const Color(0xFF3D6EA8),
+    );
+    const ticks = 12;
+    final tick = Paint()
+      ..color = const Color(0x66FFFFFF)
+      ..strokeWidth = 1;
+    for (var i = 1; i < ticks; i++) {
+      final x = size.width * i / ticks;
+      canvas.drawLine(Offset(x, size.height / 2 - 3), Offset(x, size.height / 2 + 3), tick);
+    }
+    final head = size.width * playhead.clamp(0, 1);
+    canvas.drawLine(
+      Offset(head, 2),
+      Offset(head, size.height - 2),
+      Paint()
+        ..color = const Color(0xFFE6C15A)
+        ..strokeWidth = 2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ClipPainter oldDelegate) =>
+      oldDelegate.playhead != playhead || oldDelegate.loopIn != loopIn || oldDelegate.loopOut != loopOut;
 }
 
 /// Camera count, names, footage, and the clock the wall starts from.

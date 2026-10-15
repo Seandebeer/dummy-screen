@@ -32,11 +32,13 @@ HomeGridMetrics fillHomeGrid(double width, double height) {
   const columns = kHomeIconColumns;
   const rows = kHomeIconRows;
   const gap = kHomeIconGap;
-  final safeW = width.isFinite && width > 40 ? width : 320.0;
-  final safeH = height.isFinite && height > 80 ? height : 480.0;
+  final safeW = width.isFinite && width > 8 ? width : 320.0;
+  final safeH = height.isFinite && height > 8 ? height : 480.0;
   final cellWidth = safeW / columns;
-  final cellHeight = math.max(52.0, safeH / rows - gap);
-  final iconSize = math.min(cellWidth - 12, cellHeight - 24).clamp(44.0, 120.0);
+  final rawHeight = (safeH - gap * (rows - 1)) / rows;
+  final cellHeight = rawHeight < 8 ? 8.0 : rawHeight;
+  final room = math.min(cellWidth * 0.72, cellHeight * 0.62);
+  final iconSize = room.clamp(8.0, 120.0);
   return HomeGridMetrics(
     columns: columns,
     rows: rows,
@@ -60,7 +62,8 @@ HomeGridMetrics homeMetricsForFrame(
   for (var i = 0; i < 3; i++) {
     final dockH = dockChrome + icon;
     final gridH = height - dockH - kHomeSearchFoot - kHomeSearchLift - top - pagePad;
-    metrics = fillHomeGrid(math.max(80, width - 16), math.max(160, gridH));
+    final usable = gridH.isFinite && gridH > 8 ? gridH : 8.0;
+    metrics = fillHomeGrid(math.max(8, width - 16), usable);
     icon = metrics.iconSize * 0.75;
   }
   return HomeGridMetrics(

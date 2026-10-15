@@ -52,6 +52,66 @@ const kCellularRadios = [
   'NO SERVICE',
 ];
 
+const kFlightCell = '\u001f';
+
+const kFlightColumns = [
+  'TIME',
+  'DEPARTING TO',
+  'AIRLINE',
+  'FLIGHT',
+  'TERMINAL',
+  'STATUS',
+  'GATE',
+];
+
+const kFlightArriveColumns = [
+  'TIME',
+  'ARRIVING FROM',
+  'AIRLINE',
+  'FLIGHT',
+  'TERMINAL',
+  'STATUS',
+  'GATE',
+];
+
+const kFlightBoardA = [
+  '12:30\u001fCAPE TOWN\u001fAlitalia\u001fAO 9485\u001fT1\u001fCANCELLED\u001f14',
+  '12:45\u001fROMA\u001fAlitalia\u001fAO 4569\u001fT1\u001fDEPARTED\u001f10',
+  '12:50\u001fVANCOUVER\u001fLufthansa\u001fLH 06407\u001fT2\u001fBOARDING\u001f8',
+  '13:00\u001fCITTÀ DEL MESSICO\u001fSwissAir\u001fSN 03154\u001fT2\u001fBOARDING\u001f1',
+  '13:20\u001fFT NELSON\u001fSingapore Airlines\u001f593420\u001fT2\u001fBOARDING\u001f11',
+  '13:40\u001fISTANBUL SABIHA GOKCEN\u001fBlue Panorama\u001f563240\u001fT1\u001fON TIME\u001f5',
+  '13:45\u001fBRUGGE\u001fBrussels Airlines\u001f762\u001fT1\u001fON TIME\u001f7',
+  '13:45\u001fORLANDO\u001fSwissair\u001fGO 9324\u001fT1\u001fDELAYED 14:20\u001f14',
+  '14:10\u001fLONDON HEATHROW\u001fBritish Airways\u001fBA 00567\u001fT1\u001fON TIME\u001f2',
+  '14:23\u001fCOPENHAGEN\u001fSAS\u001fSK 00688\u001fT1\u001fON TIME\u001f15',
+  '14:50\u001fDUBAI\u001fEmirates\u001fEK 00092\u001fT2\u001fON TIME\u001f3',
+  '15:15\u001fROMA\u001fAlitalia\u001fAO 4920\u001fT1\u001fCANCELLED\u001f9',
+];
+
+const kFlightBoardB = [
+  '12:35\u001fLONDON HEATHROW\u001fBritish Airways\u001fBA 00412\u001fT1\u001fLANDED\u001f4',
+  '12:50\u001fPARIS CDG\u001fAir France\u001fAF 01380\u001fT2\u001fON TIME\u001f6',
+  '13:05\u001fNEW YORK JFK\u001fDelta\u001fDL 00401\u001fT1\u001fDELAYED 13:40\u001f12',
+  '13:20\u001fAMSTERDAM\u001fKLM\u001fKL 00811\u001fT2\u001fON TIME\u001f9',
+  '13:35\u001fMADRID\u001fIberia\u001fIB 03210\u001fT1\u001fBOARDING\u001f2',
+  '13:50\u001fTOKYO NARITA\u001fANA\u001fNH 0205\u001fT2\u001fON TIME\u001f8',
+  '14:05\u001fFRANKFURT\u001fLufthansa\u001fLH 00900\u001fT1\u001fCANCELLED\u001f11',
+  '14:20\u001fDUBLIN\u001fAer Lingus\u001fEI 0164\u001fT2\u001fON TIME\u001f3',
+  '14:40\u001fSTOCKHOLM\u001fSAS\u001fSK 00526\u001fT1\u001fLANDED\u001f7',
+  '15:00\u001fCAIRO\u001fEgyptAir\u001fMS 0778\u001fT2\u001fON TIME\u001f15',
+  '15:25\u001fLISBON\u001fTAP\u001fTP 01356\u001fT1\u001fBOARDING\u001f5',
+  '15:45\u001fZURICH\u001fSwissAir\u001fLX 00318\u001fT2\u001fON TIME\u001f1',
+];
+
+List<String> flightCells(String row) {
+  final parts = row.split(kFlightCell);
+  return [for (var i = 0; i < 7; i++) i < parts.length ? parts[i] : ''];
+}
+
+String flightRow(List<String> cells) =>
+    [for (var i = 0; i < 7; i++) i < cells.length ? cells[i] : ''].join(kFlightCell);
+
 class OsSettings {
   const OsSettings({
     this.theme = 'dark',
@@ -132,13 +192,25 @@ class OsSettings {
     this.dateDay = 0,
     this.homeHidden = const [],
     this.face = '',
-    this.cctvCount = 4,
+    this.cctvCount = 6,
     this.cctvNames = const [],
     this.cctvMedia = const [],
     this.cctvKinds = const [],
     this.cctvHour = 9,
     this.cctvMinute = 41,
     this.cctvSecond = 0,
+    this.cctvIn = 0,
+    this.cctvOut = 1,
+    this.flightHeading = 'departures',
+    this.flightTitle = '',
+    this.flightDate = 'Thu 25 November 2010',
+    this.flightFlip = false,
+    this.flightFlipSeconds = 8,
+    this.flightColumns = kFlightColumns,
+    this.flightA = kFlightBoardA,
+    this.flightB = kFlightBoardB,
+    this.trackOwned = false,
+    this.trackMarks = const [],
   });
 
   final String theme;
@@ -308,6 +380,27 @@ class OsSettings {
   final int cctvMinute;
   final int cctvSecond;
 
+  /// Loop range on the camera timeline, as fractions of the clip.
+  final double cctvIn;
+  final double cctvOut;
+
+  /// `departures`, `arrivals`, or `none`. None drops the title band.
+  final String flightHeading;
+
+  /// Title typed on the board. Empty uses the heading mode.
+  final String flightTitle;
+  final String flightDate;
+  final bool flightFlip;
+  final int flightFlipSeconds;
+  final List<String> flightColumns;
+  final List<String> flightA;
+  final List<String> flightB;
+
+  /// Marks dragged on this device. Empty until the first edit, then kept
+  /// until a factory reset even when the list itself is cleared.
+  final bool trackOwned;
+  final List<String> trackMarks;
+
   bool get isLight => theme == 'light';
 
   String get placeLabel {
@@ -415,6 +508,18 @@ class OsSettings {
     int? cctvHour,
     int? cctvMinute,
     int? cctvSecond,
+    double? cctvIn,
+    double? cctvOut,
+    String? flightHeading,
+    String? flightTitle,
+    String? flightDate,
+    bool? flightFlip,
+    int? flightFlipSeconds,
+    List<String>? flightColumns,
+    List<String>? flightA,
+    List<String>? flightB,
+    bool? trackOwned,
+    List<String>? trackMarks,
   }) => OsSettings(
     theme: theme ?? this.theme,
     backgroundType: backgroundType ?? this.backgroundType,
@@ -501,6 +606,18 @@ class OsSettings {
     cctvHour: cctvHour ?? this.cctvHour,
     cctvMinute: cctvMinute ?? this.cctvMinute,
     cctvSecond: cctvSecond ?? this.cctvSecond,
+    cctvIn: cctvIn ?? this.cctvIn,
+    cctvOut: cctvOut ?? this.cctvOut,
+    flightHeading: flightHeading ?? this.flightHeading,
+    flightTitle: flightTitle ?? this.flightTitle,
+    flightDate: flightDate ?? this.flightDate,
+    flightFlip: flightFlip ?? this.flightFlip,
+    flightFlipSeconds: flightFlipSeconds ?? this.flightFlipSeconds,
+    flightColumns: flightColumns ?? this.flightColumns,
+    flightA: flightA ?? this.flightA,
+    flightB: flightB ?? this.flightB,
+    trackOwned: trackOwned ?? this.trackOwned,
+    trackMarks: trackMarks ?? this.trackMarks,
   );
 
   Map<String, dynamic> toJson() => {
@@ -589,6 +706,18 @@ class OsSettings {
     'cctvHour': cctvHour,
     'cctvMinute': cctvMinute,
     'cctvSecond': cctvSecond,
+    'cctvIn': cctvIn,
+    'cctvOut': cctvOut,
+    'flightHeading': flightHeading,
+    'flightTitle': flightTitle,
+    'flightDate': flightDate,
+    'flightFlip': flightFlip,
+    'flightFlipSeconds': flightFlipSeconds,
+    'flightColumns': flightColumns,
+    'flightA': flightA,
+    'flightB': flightB,
+    'trackOwned': trackOwned,
+    'trackMarks': trackMarks,
   };
 
   factory OsSettings.fromJson(Map<String, dynamic> json) {
@@ -694,13 +823,25 @@ class OsSettings {
         for (final item in jsonList(json['homeHidden'])) item.toString(),
       ].where((id) => id.isNotEmpty).toList(),
       face: json['face'] as String? ?? '',
-      cctvCount: ((json['cctvCount'] as num?)?.toInt() ?? 4).clamp(1, 16),
+      cctvCount: ((json['cctvCount'] as num?)?.toInt() ?? 6).clamp(1, 16),
       cctvNames: _keptStrings(json['cctvNames']),
       cctvMedia: _keptStrings(json['cctvMedia']),
       cctvKinds: _keptStrings(json['cctvKinds']),
       cctvHour: ((json['cctvHour'] as num?)?.toInt() ?? 9).clamp(0, 23),
       cctvMinute: ((json['cctvMinute'] as num?)?.toInt() ?? 41).clamp(0, 59),
       cctvSecond: ((json['cctvSecond'] as num?)?.toInt() ?? 0).clamp(0, 59),
+      cctvIn: _unit(json['cctvIn']),
+      cctvOut: _unit(json['cctvOut'], fallback: 1),
+      flightHeading: _flightHeading(json['flightHeading']),
+      flightTitle: json['flightTitle'] as String? ?? '',
+      flightDate: json['flightDate'] as String? ?? 'Thu 25 November 2010',
+      flightFlip: json['flightFlip'] as bool? ?? false,
+      flightFlipSeconds: ((json['flightFlipSeconds'] as num?)?.toInt() ?? 8).clamp(2, 120),
+      flightColumns: _flightColumns(json['flightColumns']),
+      flightA: _flightRows(json['flightA'], kFlightBoardA),
+      flightB: _flightRows(json['flightB'], kFlightBoardB),
+      trackOwned: json['trackOwned'] as bool? ?? false,
+      trackMarks: _keptStrings(json['trackMarks']),
     );
   }
 
@@ -791,7 +932,19 @@ class OsSettings {
         cctvSecond == other.cctvSecond &&
         _sameOrder(cctvNames, other.cctvNames) &&
         _sameOrder(cctvMedia, other.cctvMedia) &&
-        _sameOrder(cctvKinds, other.cctvKinds);
+        _sameOrder(cctvKinds, other.cctvKinds) &&
+        cctvIn == other.cctvIn &&
+        cctvOut == other.cctvOut &&
+        flightHeading == other.flightHeading &&
+        flightTitle == other.flightTitle &&
+        flightDate == other.flightDate &&
+        flightFlip == other.flightFlip &&
+        flightFlipSeconds == other.flightFlipSeconds &&
+        _sameOrder(flightColumns, other.flightColumns) &&
+        _sameOrder(flightA, other.flightA) &&
+        _sameOrder(flightB, other.flightB) &&
+        trackOwned == other.trackOwned &&
+        _sameOrder(trackMarks, other.trackMarks);
   }
 
   @override
@@ -875,6 +1028,18 @@ class OsSettings {
     Object.hashAll(cctvNames),
     Object.hashAll(cctvMedia),
     Object.hashAll(cctvKinds),
+    cctvIn,
+    cctvOut,
+    flightHeading,
+    flightTitle,
+    flightDate,
+    flightFlip,
+    flightFlipSeconds,
+    Object.hashAll(flightColumns),
+    Object.hashAll(flightA),
+    Object.hashAll(flightB),
+    trackOwned,
+    Object.hashAll(trackMarks),
     Object.hashAll(bankNotes),
     Object.hashAll([
       for (final key in (panelNames.keys.toList()..sort()))
@@ -973,6 +1138,30 @@ bool _sameGlyphs(List<CustomGlyph> a, List<CustomGlyph> b) {
 List<String> _keptStrings(Object? raw) => [
   for (final item in jsonList(raw)) item.toString(),
 ];
+
+double _unit(Object? raw, {double fallback = 0}) {
+  final value = (raw as num?)?.toDouble() ?? fallback;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+}
+
+String _flightHeading(Object? raw) {
+  if (raw == 'arrivals' || raw == 'none') return raw as String;
+  return 'departures';
+}
+
+List<String> _flightColumns(Object? raw) {
+  final columns = _keptStrings(raw);
+  if (columns.length < 7) return kFlightColumns;
+  return columns.take(7).toList();
+}
+
+List<String> _flightRows(Object? raw, List<String> fallback) {
+  final rows = _keptStrings(raw).where((row) => row.trim().isNotEmpty).toList();
+  if (rows.isEmpty) return fallback;
+  return rows;
+}
 
 List<String> _idList(Object? raw) => [
   for (final item in jsonList(raw)) item.toString(),

@@ -48,7 +48,7 @@ void main() {
     await tester.pump();
     expect(find.text('Current OS'), findsOneWidget);
     expect(find.text('Legacy'), findsOneWidget);
-    expect(find.text('Turn screen with device'), findsOneWidget);
+    expect(find.text('Turn screen with device'), findsNothing);
 
     await tester.tap(find.byKey(const Key('legacy-skins')));
     await tester.pump();
