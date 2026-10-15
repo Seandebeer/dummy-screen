@@ -68,7 +68,7 @@ class TvHome extends StatelessWidget {
                     flex: 6,
                     child: _Shelf(
                       label: 'Recommended',
-                      mark: const _WordMark(word: 'NETFLIX', color: Color(0xFFE50914), on: Colors.white),
+                      mark: const _WordMark(word: 'NETFLIX', color: Colors.white, on: Color(0xFFE50914)),
                       child: const _PosterRow(posters: _recommended),
                     ),
                   ),
@@ -283,7 +283,10 @@ class _AppRow extends StatelessWidget {
           width: 132,
           color: const Color(0xFF1D428A),
           onTap: () => onOpen('sport'),
-          child: const Icon(Icons.sports_basketball, color: Colors.white, size: 36),
+          child: const Text(
+            'NBA',
+            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 0.4),
+          ),
         ),
         _AppTile(
           id: 'films',
