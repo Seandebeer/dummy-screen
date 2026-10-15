@@ -100,7 +100,8 @@ class _FlightBodyState extends State<_FlightBody> {
     final cells = flightCells(source[row]);
     cells[column] = value;
     source[row] = flightRow(cells);
-    _save((current) => _which == 0 ? current.copyWith(flightA: source) : current.copyWith(flightB: source));
+    final placed = column == 0 ? orderedFlightBoard(source, row) : source;
+    _save((current) => _which == 0 ? current.copyWith(flightA: placed) : current.copyWith(flightB: placed));
   }
 
   void _writeColumn(int column, String value) {
@@ -124,11 +125,21 @@ class _FlightBodyState extends State<_FlightBody> {
           if (heading.isNotEmpty) _mast(editing, heading),
           _columns(editing),
           Expanded(
-            child: Column(
-              children: [
-                for (var i = 0; i < rows.length; i++)
-                  Expanded(child: _dataRow(i, flightCells(rows[i]), editing)),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final count = rows.isEmpty ? 1 : rows.length;
+                final room = constraints.maxHeight / count;
+                final height = room > 32 ? 32.0 : room;
+                return Column(
+                  children: [
+                    for (var i = 0; i < rows.length; i++)
+                      SizedBox(
+                        height: height,
+                        child: _dataRow(i, flightCells(rows[i]), editing),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -146,31 +157,38 @@ class _FlightBodyState extends State<_FlightBody> {
     final now = osNow(os);
     final clock = formatOsClock(now, hour24: true);
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 16, 8),
+      height: 118,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: _yellow, width: 3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(color: _yellow, width: 2),
+          SizedBox(
+            width: 188,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(color: _yellow, width: 2),
+                ),
+                child: const Icon(Icons.flight_takeoff, color: _yellow, size: 32),
+              ),
             ),
-            child: const Icon(Icons.flight_takeoff, color: _yellow, size: 26),
           ),
-          const SizedBox(width: 12),
           Expanded(
             child: _TypeText(
               fieldKey: const Key('flight-heading'),
               text: heading,
               editing: editing,
+              align: TextAlign.center,
               style: const TextStyle(
                 color: _yellow,
-                fontSize: 40,
+                fontSize: 46,
                 fontWeight: FontWeight.w800,
                 height: 1,
               ),
@@ -181,36 +199,43 @@ class _FlightBodyState extends State<_FlightBody> {
               },
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _TypeText(
-                fieldKey: const Key('flight-clock'),
-                text: clock,
-                editing: editing,
-                style: const TextStyle(
-                  color: _yellow,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                  fontFeatures: [FontFeature.tabularFigures()],
+          SizedBox(
+            width: 188,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _TypeText(
+                  fieldKey: const Key('flight-clock'),
+                  text: clock,
+                  editing: editing,
+                  align: TextAlign.right,
+                  style: const TextStyle(
+                    color: _yellow,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                  onTyping: (value) => setState(() => _typing = value),
+                  onSubmit: (value) {
+                    final parsed = parseClockText(value);
+                    if (parsed == null) return;
+                    _save((current) => pinClock(current, parsed.$1, parsed.$2));
+                  },
                 ),
-                onTyping: (value) => setState(() => _typing = value),
-                onSubmit: (value) {
-                  final parsed = parseClockText(value);
-                  if (parsed == null) return;
-                  _save((current) => pinClock(current, parsed.$1, parsed.$2));
-                },
-              ),
-              _TypeText(
-                fieldKey: const Key('flight-date'),
-                text: os.flightDate,
-                editing: editing,
-                style: const TextStyle(color: _yellow, fontSize: 14, fontWeight: FontWeight.w600),
-                onTyping: (value) => setState(() => _typing = value),
-                onSubmit: (value) => _save((current) => current.copyWith(flightDate: value.trim())),
-              ),
-            ],
+                const SizedBox(height: 6),
+                _TypeText(
+                  fieldKey: const Key('flight-date'),
+                  text: os.flightDate,
+                  editing: editing,
+                  align: TextAlign.right,
+                  style: const TextStyle(color: _yellow, fontSize: 14, fontWeight: FontWeight.w600),
+                  onTyping: (value) => setState(() => _typing = value),
+                  onSubmit: (value) => _save((current) => current.copyWith(flightDate: value.trim())),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -254,7 +279,7 @@ class _FlightBodyState extends State<_FlightBody> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final size = (constraints.maxHeight * 0.46).clamp(8.0, 16.0);
+          final size = (constraints.maxHeight * 0.46).clamp(8.0, 13.0);
           return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
@@ -292,6 +317,32 @@ class _FlightBodyState extends State<_FlightBody> {
     if (column == 5 && text.toUpperCase().contains('CANCEL')) return _yellow;
     return _ink;
   }
+}
+
+/// Moves the edited row so the board stays in time order. Other rows keep
+/// their order. A time that cannot be read stays where it is.
+List<String> orderedFlightBoard(List<String> rows, int edited) {
+  if (edited < 0 || edited >= rows.length) return rows;
+  final moving = rows[edited];
+  final minutes = _flightMinutes(flightCells(moving).first);
+  if (minutes == null) return rows;
+  final rest = [...rows]..removeAt(edited);
+  var at = rest.length;
+  for (var i = 0; i < rest.length; i++) {
+    final other = _flightMinutes(flightCells(rest[i]).first);
+    if (other == null || other > minutes) {
+      at = i;
+      break;
+    }
+  }
+  rest.insert(at, moving);
+  return rest;
+}
+
+int? _flightMinutes(String text) {
+  final parsed = parseClockText(text);
+  if (parsed == null) return null;
+  return parsed.$1 * 60 + parsed.$2;
 }
 
 class _TypeText extends StatefulWidget {
@@ -370,7 +421,11 @@ class _TypeTextState extends State<_TypeText> {
         behavior: HitTestBehavior.opaque,
         onTap: widget.editing ? _openField : null,
         child: Align(
-          alignment: widget.align == TextAlign.right ? Alignment.centerRight : Alignment.centerLeft,
+          alignment: switch (widget.align) {
+            TextAlign.right => Alignment.centerRight,
+            TextAlign.center => Alignment.center,
+            _ => Alignment.centerLeft,
+          },
           child: Text(
             widget.text,
             maxLines: 1,

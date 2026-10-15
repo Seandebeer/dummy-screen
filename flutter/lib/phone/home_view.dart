@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../image_file.dart';
@@ -267,25 +268,25 @@ class _HomePagesState extends State<_HomePages> {
 
   List<String> get _ids => [for (final app in widget.apps) app.id];
 
-  void _beginDrag(PropApp app, LongPressStartDetails details) {
+  void _beginDrag(PropApp app, Offset global) {
     setState(() {
       _dragId = app.id;
-      _finger = details.globalPosition;
+      _finger = global;
       _slot = widget.apps.indexWhere((item) => item.id == app.id);
       _off = false;
     });
     _syncGhost();
   }
 
-  void _moveDrag(LongPressMoveUpdateDetails details) {
-    final home = context.findRenderObject() as RenderBox?;
+  void _moveDrag(Offset global) {
+    final frame = enclosingDevice(context) ?? context.findRenderObject() as RenderBox?;
     final grid = _gridKey.currentContext?.findRenderObject() as RenderBox?;
-    final off = home == null ? false : droppedOffDevice(home, details.globalPosition);
+    final off = frame != null && droppedOffDevice(frame, global);
     int? slot;
     if (!off && grid != null) {
       final local = gridSlot(
         grid,
-        details.globalPosition,
+        global,
         columns: _columns,
         rows: _rows,
         cellWidth: widget.cellWidth,
@@ -298,7 +299,7 @@ class _HomePagesState extends State<_HomePages> {
       }
     }
     setState(() {
-      _finger = details.globalPosition;
+      _finger = global;
       _off = off;
       if (slot != null) _slot = slot;
     });
@@ -536,8 +537,8 @@ class _IconGrid extends StatelessWidget {
   final void Function(String id) onOpen;
   final String? draggingId;
   final int? highlight;
-  final void Function(PropApp app, LongPressStartDetails details)? onHoldStart;
-  final void Function(LongPressMoveUpdateDetails details)? onHoldMove;
+  final void Function(PropApp app, Offset global)? onHoldStart;
+  final void Function(Offset global)? onHoldMove;
   final VoidCallback? onHoldEnd;
 
   @override
@@ -570,7 +571,7 @@ class _IconGrid extends StatelessWidget {
                         onTap: () => onOpen(apps[row * columns + column].id),
                         onHoldStart: onHoldStart == null
                             ? null
-                            : (details) => onHoldStart!(apps[row * columns + column], details),
+                            : (global) => onHoldStart!(apps[row * columns + column], global),
                         onHoldMove: onHoldMove,
                         onHoldEnd: onHoldEnd,
                       ),
@@ -657,18 +658,17 @@ class _IconApp extends StatelessWidget {
   final bool dimmed;
   Color get _iconColor => branded ? (brandMark(app.id)?.$1 ?? app.color) : app.color;
 
-  final GestureLongPressStartCallback? onHoldStart;
-  final GestureLongPressMoveUpdateCallback? onHoldMove;
+  final void Function(Offset global)? onHoldStart;
+  final void Function(Offset global)? onHoldMove;
   final VoidCallback? onHoldEnd;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return _HomePointer(
       onTap: onTap,
-      onLongPressStart: onHoldStart,
-      onLongPressMoveUpdate: onHoldMove,
-      onLongPressEnd: onHoldEnd == null ? null : (_) => onHoldEnd!(),
-      onLongPressCancel: onHoldEnd,
+      onDragStart: onHoldStart,
+      onDragUpdate: onHoldMove,
+      onDragEnd: onHoldEnd,
       child: Opacity(
         opacity: dimmed ? 0.25 : 1,
         child: Column(
@@ -729,6 +729,99 @@ class _IconApp extends StatelessWidget {
   }
 }
 
+/// Claims the pointer immediately so a home-screen swipe cannot steal the drag.
+class _HomePointer extends StatefulWidget {
+  const _HomePointer({
+    required this.child,
+    required this.onTap,
+    this.onDragStart,
+    this.onDragUpdate,
+    this.onDragEnd,
+  });
+
+  final Widget child;
+  final VoidCallback onTap;
+  final void Function(Offset global)? onDragStart;
+  final void Function(Offset global)? onDragUpdate;
+  final VoidCallback? onDragEnd;
+
+  @override
+  State<_HomePointer> createState() => _HomePointerState();
+}
+
+class _HomePointerState extends State<_HomePointer> {
+  Offset? _origin;
+  bool _dragged = false;
+
+  void _down(PointerDownEvent event) {
+    _origin = event.position;
+    _dragged = false;
+  }
+
+  void _move(PointerMoveEvent event) {
+    final origin = _origin;
+    if (origin == null || widget.onDragStart == null) return;
+    if (!_dragged && (event.position - origin).distance > 12) {
+      _dragged = true;
+      widget.onDragStart!(event.position);
+    }
+    if (_dragged) widget.onDragUpdate?.call(event.position);
+  }
+
+  void _up(PointerUpEvent event) {
+    if (_dragged) {
+      widget.onDragEnd?.call();
+    } else {
+      widget.onTap();
+    }
+    _origin = null;
+    _dragged = false;
+  }
+
+  void _cancel(PointerCancelEvent event) {
+    if (_dragged) widget.onDragEnd?.call();
+    _origin = null;
+    _dragged = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      gestures: {
+        _HomeClaim: GestureRecognizerFactoryWithHandlers<_HomeClaim>(
+          () => _HomeClaim(),
+          (_) {},
+        ),
+      },
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: _down,
+        onPointerMove: _move,
+        onPointerUp: _up,
+        onPointerCancel: _cancel,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class _HomeClaim extends OneSequenceGestureRecognizer {
+  @override
+  String get debugDescription => 'home-claim';
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {}
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
+}
+
 class _DockIcon extends StatefulWidget {
   const _DockIcon({
     required this.app,
@@ -766,28 +859,15 @@ class _DockIconState extends State<_DockIcon> {
     super.dispose();
   }
 
-  RenderBox? get _phone {
-    RenderBox? found;
-    context.visitAncestorElements((element) {
-      final object = element.renderObject;
-      if (object is RenderBox && object.hasSize && object.size.shortestSide > 180) {
-        found = object;
-        return false;
-      }
-      return true;
-    });
-    return found;
-  }
-
-  void _move(LongPressMoveUpdateDetails details) {
-    final phone = _phone;
-    final off = phone != null && droppedOffDevice(phone, details.globalPosition);
+  void _move(Offset global) {
+    final phone = enclosingDevice(context) ?? context.findRenderObject() as RenderBox?;
+    final off = phone != null && droppedOffDevice(phone, global);
     setState(() => _off = off);
     _ghost?.remove();
     _ghost = OverlayEntry(
       builder: (context) => Positioned(
-        left: details.globalPosition.dx - 34,
-        top: details.globalPosition.dy - 34,
+        left: global.dx - 34,
+        top: global.dy - 34,
         width: 76,
         child: IgnorePointer(
           child: Column(
