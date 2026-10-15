@@ -75,33 +75,45 @@ const kFlightArriveColumns = [
 ];
 
 const kFlightBoardA = [
-  '12:30\u001fCAPE TOWN\u001fAlitalia\u001fAO 9485\u001fT1\u001fCANCELLED\u001f14',
-  '12:45\u001fROMA\u001fAlitalia\u001fAO 4569\u001fT1\u001fDEPARTED\u001f10',
-  '12:50\u001fVANCOUVER\u001fLufthansa\u001fLH 06407\u001fT2\u001fBOARDING\u001f8',
-  '13:00\u001fCITTÀ DEL MESSICO\u001fSwissAir\u001fSN 03154\u001fT2\u001fBOARDING\u001f1',
-  '13:20\u001fFT NELSON\u001fSingapore Airlines\u001f593420\u001fT2\u001fBOARDING\u001f11',
-  '13:40\u001fISTANBUL SABIHA GOKCEN\u001fBlue Panorama\u001f563240\u001fT1\u001fON TIME\u001f5',
-  '13:45\u001fBRUGGE\u001fBrussels Airlines\u001f762\u001fT1\u001fON TIME\u001f7',
-  '13:45\u001fORLANDO\u001fSwissair\u001fGO 9324\u001fT1\u001fDELAYED 14:20\u001f14',
-  '14:10\u001fLONDON HEATHROW\u001fBritish Airways\u001fBA 00567\u001fT1\u001fON TIME\u001f2',
-  '14:23\u001fCOPENHAGEN\u001fSAS\u001fSK 00688\u001fT1\u001fON TIME\u001f15',
-  '14:50\u001fDUBAI\u001fEmirates\u001fEK 00092\u001fT2\u001fON TIME\u001f3',
-  '15:15\u001fROMA\u001fAlitalia\u001fAO 4920\u001fT1\u001fCANCELLED\u001f9',
+  '12:30\u001fCAPE TOWN\u001fAlitalia\u001fAO 9485\u001fT1\u001fCANCELLED\u001fC14',
+  '12:45\u001fROMA\u001fAlitalia\u001fAO 4569\u001fT1\u001fDEPARTED\u001fA10',
+  '12:50\u001fVANCOUVER\u001fLufthansa\u001fLH 06407\u001fT2\u001fBOARDING\u001fE8',
+  '13:00\u001fCITTÀ DEL MESSICO\u001fSwissAir\u001fSN 03154\u001fT2\u001fBOARDING\u001fB1',
+  '13:20\u001fFT NELSON\u001fSingapore Airlines\u001fSQ 593420\u001fT2\u001fBOARDING\u001fD11',
+  '13:40\u001fISTANBUL SABIHA GOKCEN\u001fBlue Panorama\u001fBV 563240\u001fT1\u001fON TIME\u001fG5',
+  '13:45\u001fBRUGGE\u001fBrussels Airlines\u001fSN 0762\u001fT1\u001fON TIME\u001fC7',
+  '13:45\u001fORLANDO\u001fSwissair\u001fGO 9324\u001fT1\u001fDELAYED\u001fA14',
+  '14:10\u001fLONDON HEATHROW\u001fBritish Airways\u001fBA 00567\u001fT1\u001fON TIME\u001fF2',
+  '14:23\u001fCOPENHAGEN\u001fSAS\u001fSK 00688\u001fT1\u001fON TIME\u001fB15',
+  '14:50\u001fDUBAI\u001fEmirates\u001fEK 00092\u001fT2\u001fON TIME\u001fD3',
+  '15:15\u001fROMA\u001fAlitalia\u001fAO 4920\u001fT1\u001fCANCELLED\u001fE9',
+  '16:05\u001fJOHANNESBURG\u001fSouth African\u001fSA 0321\u001fT1\u001fON TIME\u001fB4',
+  '16:20\u001fMUNICH\u001fLufthansa\u001fLH 0412\u001fT2\u001fBOARDING\u001fD6',
+  '16:40\u001fSINGAPORE\u001fSingapore Airlines\u001fSQ 0478\u001fT2\u001fON TIME\u001fA2',
+  '17:05\u001fCHICAGO\u001fUnited\u001fUA 0881\u001fT1\u001fDELAYED\u001fE8',
+  '17:30\u001fBARCELONA\u001fVueling\u001fVY 1204\u001fT1\u001fON TIME\u001fC3',
+  '17:55\u001fOSLO\u001fNorwegian\u001fDY 3310\u001fT2\u001fCANCELLED\u001fG1',
 ];
 
 const kFlightBoardB = [
-  '12:35\u001fLONDON HEATHROW\u001fBritish Airways\u001fBA 00412\u001fT1\u001fLANDED\u001f4',
-  '12:50\u001fPARIS CDG\u001fAir France\u001fAF 01380\u001fT2\u001fON TIME\u001f6',
-  '13:05\u001fNEW YORK JFK\u001fDelta\u001fDL 00401\u001fT1\u001fDELAYED 13:40\u001f12',
-  '13:20\u001fAMSTERDAM\u001fKLM\u001fKL 00811\u001fT2\u001fON TIME\u001f9',
-  '13:35\u001fMADRID\u001fIberia\u001fIB 03210\u001fT1\u001fBOARDING\u001f2',
-  '13:50\u001fTOKYO NARITA\u001fANA\u001fNH 0205\u001fT2\u001fON TIME\u001f8',
-  '14:05\u001fFRANKFURT\u001fLufthansa\u001fLH 00900\u001fT1\u001fCANCELLED\u001f11',
-  '14:20\u001fDUBLIN\u001fAer Lingus\u001fEI 0164\u001fT2\u001fON TIME\u001f3',
-  '14:40\u001fSTOCKHOLM\u001fSAS\u001fSK 00526\u001fT1\u001fLANDED\u001f7',
-  '15:00\u001fCAIRO\u001fEgyptAir\u001fMS 0778\u001fT2\u001fON TIME\u001f15',
-  '15:25\u001fLISBON\u001fTAP\u001fTP 01356\u001fT1\u001fBOARDING\u001f5',
-  '15:45\u001fZURICH\u001fSwissAir\u001fLX 00318\u001fT2\u001fON TIME\u001f1',
+  '12:35\u001fLONDON HEATHROW\u001fBritish Airways\u001fBA 00412\u001fT1\u001fLANDED\u001fA4',
+  '12:50\u001fPARIS CDG\u001fAir France\u001fAF 01380\u001fT2\u001fON TIME\u001fB6',
+  '13:05\u001fNEW YORK JFK\u001fDelta\u001fDL 00401\u001fT1\u001fDELAYED\u001fC12',
+  '13:20\u001fAMSTERDAM\u001fKLM\u001fKL 00811\u001fT2\u001fON TIME\u001fD9',
+  '13:35\u001fMADRID\u001fIberia\u001fIB 03210\u001fT1\u001fBOARDING\u001fE2',
+  '13:50\u001fTOKYO NARITA\u001fANA\u001fNH 0205\u001fT2\u001fON TIME\u001fF8',
+  '14:05\u001fFRANKFURT\u001fLufthansa\u001fLH 00900\u001fT1\u001fCANCELLED\u001fG11',
+  '14:20\u001fDUBLIN\u001fAer Lingus\u001fEI 0164\u001fT2\u001fON TIME\u001fA3',
+  '14:40\u001fSTOCKHOLM\u001fSAS\u001fSK 00526\u001fT1\u001fLANDED\u001fB7',
+  '15:00\u001fCAIRO\u001fEgyptAir\u001fMS 0778\u001fT2\u001fON TIME\u001fC15',
+  '15:25\u001fLISBON\u001fTAP\u001fTP 01356\u001fT1\u001fBOARDING\u001fD5',
+  '15:45\u001fZURICH\u001fSwissAir\u001fLX 00318\u001fT2\u001fON TIME\u001fE1',
+  '16:10\u001fVIENNA\u001fAustrian\u001fOS 0451\u001fT1\u001fON TIME\u001fF4',
+  '16:30\u001fHELSINKI\u001fFinnair\u001fAY 0832\u001fT2\u001fBOARDING\u001fG6',
+  '16:55\u001fATHENS\u001fAegean\u001fAE 0610\u001fT1\u001fON TIME\u001fA8',
+  '17:15\u001fWARSAW\u001fLOT\u001fLO 0281\u001fT2\u001fDELAYED\u001fB2',
+  '17:40\u001fBUDAPEST\u001fWizz\u001fW6 2214\u001fT1\u001fON TIME\u001fC9',
+  '18:05\u001fMILAN\u001fAlitalia\u001fAZ 0577\u001fT2\u001fCANCELLED\u001fD1',
 ];
 
 List<String> flightCells(String row) {
@@ -191,6 +203,7 @@ class OsSettings {
     this.dateMonth = 0,
     this.dateDay = 0,
     this.homeHidden = const [],
+    this.dockOrder = const [],
     this.face = '',
     this.cctvCount = 6,
     this.cctvNames = const [],
@@ -209,6 +222,10 @@ class OsSettings {
     this.flightColumns = kFlightColumns,
     this.flightA = kFlightBoardA,
     this.flightB = kFlightBoardB,
+    this.flightHeaderColor = 'FFD400',
+    this.flightBodyColor = 'FFFFFF',
+    this.flightBoardColor = '0A3C8C',
+    this.tvMedia = const [],
     this.trackOwned = false,
     this.trackMarks = const [],
   });
@@ -365,6 +382,9 @@ class OsSettings {
   /// Icons and widgets dragged off the device. `dock:id` or `widget:id`.
   final List<String> homeHidden;
 
+  /// Apps sitting in the dock. Empty uses the skin's built-in dock.
+  final List<String> dockOrder;
+
   /// Named interface on an ATM or smart-home screen. Empty uses that
   /// device's first interface.
   final String face;
@@ -395,6 +415,14 @@ class OsSettings {
   final List<String> flightColumns;
   final List<String> flightA;
   final List<String> flightB;
+
+  /// Hex colours for the departures board, without a leading #.
+  final String flightHeaderColor;
+  final String flightBodyColor;
+  final String flightBoardColor;
+
+  /// Smart TV tile uploads, each `id, kind, path`.
+  final List<String> tvMedia;
 
   /// Marks dragged on this device. Empty until the first edit, then kept
   /// until a factory reset even when the list itself is cleared.
@@ -500,6 +528,7 @@ class OsSettings {
     int? dateMonth,
     int? dateDay,
     List<String>? homeHidden,
+    List<String>? dockOrder,
     String? face,
     int? cctvCount,
     List<String>? cctvNames,
@@ -518,6 +547,10 @@ class OsSettings {
     List<String>? flightColumns,
     List<String>? flightA,
     List<String>? flightB,
+    String? flightHeaderColor,
+    String? flightBodyColor,
+    String? flightBoardColor,
+    List<String>? tvMedia,
     bool? trackOwned,
     List<String>? trackMarks,
   }) => OsSettings(
@@ -598,6 +631,7 @@ class OsSettings {
     dateMonth: dateMonth ?? this.dateMonth,
     dateDay: dateDay ?? this.dateDay,
     homeHidden: homeHidden ?? this.homeHidden,
+    dockOrder: dockOrder ?? this.dockOrder,
     face: face ?? this.face,
     cctvCount: cctvCount ?? this.cctvCount,
     cctvNames: cctvNames ?? this.cctvNames,
@@ -616,6 +650,10 @@ class OsSettings {
     flightColumns: flightColumns ?? this.flightColumns,
     flightA: flightA ?? this.flightA,
     flightB: flightB ?? this.flightB,
+    flightHeaderColor: flightHeaderColor ?? this.flightHeaderColor,
+    flightBodyColor: flightBodyColor ?? this.flightBodyColor,
+    flightBoardColor: flightBoardColor ?? this.flightBoardColor,
+    tvMedia: tvMedia ?? this.tvMedia,
     trackOwned: trackOwned ?? this.trackOwned,
     trackMarks: trackMarks ?? this.trackMarks,
   );
@@ -698,6 +736,7 @@ class OsSettings {
     'dateMonth': dateMonth,
     'dateDay': dateDay,
     'homeHidden': homeHidden,
+    'dockOrder': dockOrder,
     'face': face,
     'cctvCount': cctvCount,
     'cctvNames': cctvNames,
@@ -716,6 +755,10 @@ class OsSettings {
     'flightColumns': flightColumns,
     'flightA': flightA,
     'flightB': flightB,
+    'flightHeaderColor': flightHeaderColor,
+    'flightBodyColor': flightBodyColor,
+    'flightBoardColor': flightBoardColor,
+    'tvMedia': tvMedia,
     'trackOwned': trackOwned,
     'trackMarks': trackMarks,
   };
@@ -822,6 +865,9 @@ class OsSettings {
       homeHidden: [
         for (final item in jsonList(json['homeHidden'])) item.toString(),
       ].where((id) => id.isNotEmpty).toList(),
+      dockOrder: [
+        for (final item in jsonList(json['dockOrder'])) item.toString(),
+      ].where((id) => id.isNotEmpty).toList(),
       face: json['face'] as String? ?? '',
       cctvCount: ((json['cctvCount'] as num?)?.toInt() ?? 6).clamp(1, 16),
       cctvNames: _keptStrings(json['cctvNames']),
@@ -840,6 +886,10 @@ class OsSettings {
       flightColumns: _flightColumns(json['flightColumns']),
       flightA: _flightRows(json['flightA'], kFlightBoardA),
       flightB: _flightRows(json['flightB'], kFlightBoardB),
+      flightHeaderColor: _flightHex(json['flightHeaderColor'], 'FFD400'),
+      flightBodyColor: _flightHex(json['flightBodyColor'], 'FFFFFF'),
+      flightBoardColor: _flightHex(json['flightBoardColor'], '0A3C8C'),
+      tvMedia: _keptStrings(json['tvMedia']),
       trackOwned: json['trackOwned'] as bool? ?? false,
       trackMarks: _keptStrings(json['trackMarks']),
     );
@@ -925,6 +975,7 @@ class OsSettings {
         dateMonth == other.dateMonth &&
         dateDay == other.dateDay &&
         _sameOrder(homeHidden, other.homeHidden) &&
+        _sameOrder(dockOrder, other.dockOrder) &&
         face == other.face &&
         cctvCount == other.cctvCount &&
         cctvHour == other.cctvHour &&
@@ -943,6 +994,10 @@ class OsSettings {
         _sameOrder(flightColumns, other.flightColumns) &&
         _sameOrder(flightA, other.flightA) &&
         _sameOrder(flightB, other.flightB) &&
+        flightHeaderColor == other.flightHeaderColor &&
+        flightBodyColor == other.flightBodyColor &&
+        flightBoardColor == other.flightBoardColor &&
+        _sameOrder(tvMedia, other.tvMedia) &&
         trackOwned == other.trackOwned &&
         _sameOrder(trackMarks, other.trackMarks);
   }
@@ -1020,6 +1075,7 @@ class OsSettings {
     dateMonth,
     dateDay,
     Object.hashAll(homeHidden),
+    Object.hashAll(dockOrder),
     face,
     cctvCount,
     cctvHour,
@@ -1038,6 +1094,10 @@ class OsSettings {
     Object.hashAll(flightColumns),
     Object.hashAll(flightA),
     Object.hashAll(flightB),
+    flightHeaderColor,
+    flightBodyColor,
+    flightBoardColor,
+    Object.hashAll(tvMedia),
     trackOwned,
     Object.hashAll(trackMarks),
     Object.hashAll(bankNotes),
@@ -1144,6 +1204,12 @@ double _unit(Object? raw, {double fallback = 0}) {
   if (value < 0) return 0;
   if (value > 1) return 1;
   return value;
+}
+
+String _flightHex(Object? raw, String fallback) {
+  final text = (raw as String? ?? '').replaceAll('#', '').trim();
+  if (RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(text)) return text.toUpperCase();
+  return fallback;
 }
 
 String _flightHeading(Object? raw) {

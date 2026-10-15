@@ -83,8 +83,12 @@ void main() {
     );
     await tester.pump();
     final heading = tester.getRect(find.text('Departures'));
-    final row = tester.getSize(find.byKey(const Key('flight-cell-0-0-1')));
-    expect(heading.center.dx, closeTo(480, 80));
-    expect(row.height, lessThan(40));
+    final board = tester.getSize(find.byKey(const Key('flight-board')));
+    final last = tester.getRect(find.text('OSLO'));
+    expect(heading.center.dx, greaterThan(300));
+    expect(last.bottom, greaterThan(board.height - 24));
+    expect(find.text('SQ 593420'), findsOneWidget);
+    expect(find.text('DELAYED'), findsWidgets);
+    expect(find.text('C14'), findsOneWidget);
   });
 }

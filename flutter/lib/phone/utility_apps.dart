@@ -829,7 +829,7 @@ class PhotosApp extends StatelessWidget {
               for (final photo in photos.reversed)
                 _PhotoTile(
                   photo: photo,
-                  onTap: photo.isVideo ? () => _play(context, photo) : null,
+                  onTap: () => photo.isVideo ? _play(context, photo) : _showPhoto(context, photo),
                 ),
             ],
           );
@@ -860,6 +860,15 @@ class PhotosApp extends StatelessWidget {
     );
   }
 
+  Future<void> _showPhoto(BuildContext context, PropPhoto photo) async {
+    final provider = imageProviderForPath(photo.image);
+    if (provider == null || !context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _StillViewer(image: provider),
+    );
+  }
+
   Future<void> _play(BuildContext context, PropPhoto photo) async {
     final controller = playerForPath(photo.image);
     if (controller == null || !context.mounted) return;
@@ -879,7 +888,50 @@ class _RollPlayer extends StatefulWidget {
   State<_RollPlayer> createState() => _RollPlayerState();
 }
 
+class _StillViewer extends StatefulWidget {
+  const _StillViewer({required this.image});
+
+  final ImageProvider image;
+
+  @override
+  State<_StillViewer> createState() => _StillViewerState();
+}
+
+class _StillViewerState extends State<_StillViewer> {
+  int _turns = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.black,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RotatedBox(
+              quarterTurns: _turns,
+              child: Image(image: widget.image, fit: BoxFit.contain),
+            ),
+            Positioned(
+              right: 4,
+              top: 4,
+              child: IconButton(
+                tooltip: 'Rotate',
+                onPressed: () => setState(() => _turns = (_turns + 1) % 4),
+                icon: const Icon(Icons.screen_rotation, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RollPlayerState extends State<_RollPlayer> {
+  int _turns = 0;
+
   @override
   void initState() {
     super.initState();
@@ -899,13 +951,32 @@ class _RollPlayerState extends State<_RollPlayer> {
   @override
   Widget build(BuildContext context) {
     final ready = widget.controller.value.isInitialized;
+    final wide = ready && widget.controller.value.aspectRatio > 1;
     return Dialog(
       backgroundColor: Colors.black,
       child: AspectRatio(
         aspectRatio: ready ? widget.controller.value.aspectRatio : 16 / 9,
-        child: ready
-            ? VideoPlayer(widget.controller)
-            : const Center(child: Icon(Icons.movie_outlined, color: Colors.white54)),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RotatedBox(
+              quarterTurns: wide ? _turns : 0,
+              child: ready
+                  ? VideoPlayer(widget.controller)
+                  : const Center(child: Icon(Icons.movie_outlined, color: Colors.white54)),
+            ),
+            if (wide)
+              Positioned(
+                right: 4,
+                top: 4,
+                child: IconButton(
+                  tooltip: 'Rotate',
+                  onPressed: () => setState(() => _turns = (_turns + 1) % 4),
+                  icon: const Icon(Icons.screen_rotation, color: Colors.white),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

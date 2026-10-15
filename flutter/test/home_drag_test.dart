@@ -6,6 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('a home app swaps into an occupied dock slot', () {
+    final placed = placeApp(
+      home: const ['videocall', 'calendar', 'photos'],
+      dock: const ['phone', 'browser', 'messages', 'music'],
+      id: 'photos',
+      remove: false,
+      dockIndex: 1,
+    );
+    expect(placed.dock, ['phone', 'photos', 'messages', 'music']);
+    expect(placed.home, ['videocall', 'calendar', 'browser']);
+  });
+
   test('an occupied home slot swaps the two apps', () {
     const ids = ['videocall', 'calendar', 'photos', 'camera'];
     final swapped = movedOrder(ids, 'videocall', remove: false, index: 2);

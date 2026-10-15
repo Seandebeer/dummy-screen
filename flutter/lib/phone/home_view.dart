@@ -22,6 +22,7 @@ class PhoneHome extends StatelessWidget {
     this.light = false,
     this.wide = false,
     this.onOrder,
+    this.onDock,
     this.onHide,
   });
 
@@ -33,6 +34,9 @@ class PhoneHome extends StatelessWidget {
 
   /// New home-grid order after a snapped drop.
   final ValueChanged<List<String>>? onOrder;
+
+  /// Dock order after an app moves between the grid and the dock.
+  final ValueChanged<List<String>>? onDock;
 
   /// `dock:id` or `widget:id` dragged off the device onto the stage.
   final ValueChanged<String>? onHide;
@@ -63,6 +67,7 @@ class PhoneHome extends StatelessWidget {
         light: light,
         onOpen: onOpen,
         onOrder: onOrder,
+        onDock: onDock,
         onHide: onHide,
       );
     }
@@ -71,6 +76,7 @@ class PhoneHome extends StatelessWidget {
         os: os,
         onOpen: onOpen,
         onOrder: onOrder,
+        onDock: onDock,
         onHide: onHide,
       );
     }
@@ -98,16 +104,18 @@ class PhoneHome extends StatelessWidget {
       );
     }
     final modern = chrome == SkinChrome.modern;
+    final dockIds = os.dockOrder.isEmpty ? kDockIds : os.dockOrder;
     final grid = [
       for (final id in layout)
-        if (_resolve(id) case final app? when !kDockIds.contains(id)) app,
+        if (_resolve(id) case final app? when !dockIds.contains(id)) app,
     ];
     final hidden = os.homeHidden.toSet();
     final dock = [
-      for (final id in kDockIds)
-        if (!hidden.contains('dock:$id')) ?propAppById(id),
+      for (final id in dockIds)
+        if (!hidden.contains('dock:$id')) ?_resolve(id),
     ];
-    return LayoutBuilder(
+    return _DockFrame(
+      builder: (dockKey, pagesKey) => LayoutBuilder(
       builder: (context, constraints) {
         final metrics = modern
             ? homeMetricsForFrame(constraints.maxWidth, constraints.maxHeight)
@@ -119,7 +127,11 @@ class PhoneHome extends StatelessWidget {
       children: [
         Expanded(
           child: _HomePages(
+            key: pagesKey,
             apps: grid,
+            dockKey: dockKey,
+            dockIds: dockIds,
+            homeIds: [for (final app in grid) app.id],
             cellWidth: cellW,
             cellHeight: cellH,
             iconSize: iconSize,
@@ -131,6 +143,20 @@ class PhoneHome extends StatelessWidget {
             modern: modern,
             onOpen: onOpen,
             onOrder: onOrder,
+            onExchange: onDock == null
+                ? null
+                : (id, {required bool remove, int? homeIndex, int? dockIndex}) {
+                    final placed = placeApp(
+                      home: [for (final app in grid) app.id],
+                      dock: dockIds,
+                      id: id,
+                      remove: remove,
+                      homeIndex: homeIndex,
+                      dockIndex: dockIndex,
+                    );
+                    onOrder?.call(placed.home);
+                    onDock?.call(placed.dock);
+                  },
           ),
         ),
         if (modern) const SizedBox(height: kHomeSearchLift),
@@ -161,6 +187,7 @@ class PhoneHome extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
                     child: Row(
+                      key: dockKey,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         for (final app in dock)
@@ -176,6 +203,9 @@ class PhoneHome extends StatelessWidget {
                               iconSize: iconSize,
                               onTap: () => onOpen(app.id),
                               onHide: onHide == null ? null : () => onHide!('dock:${app.id}'),
+                              onDrop: onDock == null
+                                  ? null
+                                  : (global) => pagesKey.currentState?.acceptFromDock(app.id, global),
                             ),
                           ),
                       ],
@@ -189,8 +219,26 @@ class PhoneHome extends StatelessWidget {
       ],
         );
       },
+    ),
     );
   }
+}
+
+class _DockFrame extends StatefulWidget {
+  const _DockFrame({required this.builder});
+
+  final Widget Function(GlobalKey dockKey, GlobalKey<_HomePagesState> pagesKey) builder;
+
+  @override
+  State<_DockFrame> createState() => _DockFrameState();
+}
+
+class _DockFrameState extends State<_DockFrame> {
+  final _dockKey = GlobalKey();
+  final _pagesKey = GlobalKey<_HomePagesState>();
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_dockKey, _pagesKey);
 }
 
 /// How many fixed-size cells fit along [extent]. [stride] is the cell plus
@@ -215,6 +263,7 @@ class _HomeScroll extends MaterialScrollBehavior {
 
 class _HomePages extends StatefulWidget {
   const _HomePages({
+    super.key,
     required this.apps,
     required this.cellWidth,
     required this.cellHeight,
@@ -227,9 +276,17 @@ class _HomePages extends StatefulWidget {
     this.modern = false,
     required this.onOpen,
     this.onOrder,
+    this.dockKey,
+    this.dockIds = const [],
+    this.homeIds = const [],
+    this.onExchange,
   });
 
   final List<PropApp> apps;
+  final GlobalKey? dockKey;
+  final List<String> dockIds;
+  final List<String> homeIds;
+  final void Function(String id, {required bool remove, int? homeIndex, int? dockIndex})? onExchange;
   final double cellWidth;
   final double cellHeight;
   final double iconSize;
@@ -306,10 +363,59 @@ class _HomePagesState extends State<_HomePages> {
     _syncGhost();
   }
 
+  int? _dockSlot(Offset global) {
+    final box = widget.dockKey?.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize || widget.dockIds.isEmpty) return null;
+    final local = box.globalToLocal(global);
+    if (local.dx < -12 || local.dy < -20 || local.dx > box.size.width + 12 || local.dy > box.size.height + 20) {
+      return null;
+    }
+    final width = box.size.width / widget.dockIds.length;
+    if (width <= 0) return null;
+    return (local.dx / width).floor().clamp(0, widget.dockIds.length - 1);
+  }
+
+  int? _homeSlot(Offset global) {
+    final grid = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (grid == null) return null;
+    final local = gridSlot(
+      grid,
+      global,
+      columns: _columns,
+      rows: _rows,
+      cellWidth: widget.cellWidth,
+      cellHeight: widget.cellHeight,
+      gap: 10,
+    );
+    if (local == null) return null;
+    final slot = _page * _pageSize + local;
+    return slot > widget.apps.length ? widget.apps.length : slot;
+  }
+
+  void acceptFromDock(String id, Offset global) {
+    final exchange = widget.onExchange;
+    if (exchange == null) return;
+    final frame = enclosingDevice(context) ?? context.findRenderObject() as RenderBox?;
+    final off = frame != null && droppedOffDevice(frame, global);
+    final dockIndex = off ? null : _dockSlot(global);
+    final homeIndex = off || dockIndex != null ? null : _homeSlot(global);
+    exchange(id, remove: off, homeIndex: homeIndex, dockIndex: dockIndex);
+  }
+
   void _endDrag() {
     final id = _dragId;
     final order = widget.onOrder;
-    if (id != null && order != null) {
+    final finger = _finger;
+    final exchange = widget.onExchange;
+    if (id != null && exchange != null && finger != null) {
+      final dockIndex = _off ? null : _dockSlot(finger);
+      exchange(
+        id,
+        remove: _off,
+        homeIndex: _off || dockIndex != null ? null : _slot,
+        dockIndex: dockIndex,
+      );
+    } else if (id != null && order != null) {
       final index = _off ? null : _slot;
       order(movedOrder(_ids, id, remove: _off, index: index));
     }
@@ -833,6 +939,7 @@ class _DockIcon extends StatefulWidget {
     required this.modern,
     this.iconSize = 60,
     this.onHide,
+    this.onDrop,
   });
 
   final PropApp app;
@@ -844,6 +951,7 @@ class _DockIcon extends StatefulWidget {
   final bool modern;
   final double iconSize;
   final VoidCallback? onHide;
+  final ValueChanged<Offset>? onDrop;
 
   @override
   State<_DockIcon> createState() => _DockIconState();
@@ -862,6 +970,7 @@ class _DockIconState extends State<_DockIcon> {
   void _move(Offset global) {
     final phone = enclosingDevice(context) ?? context.findRenderObject() as RenderBox?;
     final off = phone != null && droppedOffDevice(phone, global);
+    _finger = global;
     setState(() => _off = off);
     _ghost?.remove();
     _ghost = OverlayEntry(
@@ -894,8 +1003,15 @@ class _DockIconState extends State<_DockIcon> {
     Overlay.of(context, rootOverlay: true).insert(_ghost!);
   }
 
+  Offset? _finger;
+
   void _end() {
-    if (_off) widget.onHide?.call();
+    final finger = _finger;
+    if (_off) {
+      widget.onHide?.call();
+    } else if (finger != null) {
+      widget.onDrop?.call(finger);
+    }
     _ghost?.remove();
     _ghost = null;
     setState(() => _off = false);
@@ -915,9 +1031,9 @@ class _DockIconState extends State<_DockIcon> {
       showLabel: false,
       dimmed: _off,
       onTap: widget.onTap,
-      onHoldStart: widget.onHide == null ? null : (_) {},
-      onHoldMove: widget.onHide == null ? null : _move,
-      onHoldEnd: widget.onHide == null ? null : _end,
+      onHoldStart: widget.onHide == null && widget.onDrop == null ? null : (_) {},
+      onHoldMove: widget.onHide == null && widget.onDrop == null ? null : _move,
+      onHoldEnd: widget.onHide == null && widget.onDrop == null ? null : _end,
     );
   }
 }

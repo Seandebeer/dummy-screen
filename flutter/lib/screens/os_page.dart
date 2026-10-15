@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+
+import '../image_file.dart';
 
 import '../app.dart';
 import '../deck/chrome.dart';
@@ -19,6 +22,7 @@ import '../phone/os_apps.dart';
 import '../phone/phone_shell.dart';
 import '../phone/device_marks.dart';
 import '../phone/form_factor.dart';
+import '../phone/game_catalog.dart';
 import 'home_page.dart';
 import '../os_catalog.dart';
 import '../phone/atm_os_settings.dart';
@@ -220,6 +224,7 @@ class _OsPageState extends State<OsPage> {
                     builder: (context, constraints) {
                       final framed = constraints.maxWidth >= 520 && !store.filming;
                       final turned = !store.filming &&
+                          device.kind != 'phone' &&
                           (_quarter || (device.os.autoRotate && _side != 0));
                       final metrics = metricsForTurn(device.kind, turned: turned);
                       // Fit the default orientation first. A 90° turn keeps that
@@ -379,13 +384,14 @@ class _OsPageState extends State<OsPage> {
           size: size,
           onPressed: store.redoOs,
         ),
-        _roundTool(
-          key: const Key('os-rotate'),
-          tooltip: 'Rotate',
-          icon: Icons.screen_rotation,
-          size: size,
-          onPressed: () => setState(() => _quarter = !_quarter),
-        ),
+        if (device.kind != 'phone')
+          _roundTool(
+            key: const Key('os-rotate'),
+            tooltip: 'Rotate',
+            icon: Icons.screen_rotation,
+            size: size,
+            onPressed: () => setState(() => _quarter = !_quarter),
+          ),
       ],
     );
   }
@@ -609,6 +615,7 @@ class _OsPageState extends State<OsPage> {
 
   Widget _appList(PropDevice device) {
     final store = StoreScope.of(context);
+    if (device.kind == 'console') return _gameList(store, device);
     final order = device.os.homeOrder.isEmpty ? kHomeOrder : device.os.homeOrder;
     final sections = <(String, List<(String, String, IconData, Color)>)>[
       (
@@ -655,6 +662,48 @@ class _OsPageState extends State<OsPage> {
                 next.add(id);
               }
               store.updateOs(device.id, (os) => os.copyWith(homeOrder: next));
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _gameList(StageStore store, PropDevice device) {
+    final pins = device.os.consolePins.toSet();
+    final shelves = <String, List<MockGame>>{};
+    for (final game in mockGames) {
+      shelves.putIfAbsent(game.shelf, () => []).add(game);
+    }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text('${device.name} games', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        const SizedBox(height: 4),
+        const Text(
+          'Categories start closed. Show or hide a game on the home screen.',
+          style: TextStyle(color: kMuted, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        for (final entry in shelves.entries)
+          _AppCategory(
+            name: entry.key,
+            apps: [
+              for (final game in entry.value)
+                (game.id, game.title, game.mark, game.colors.first),
+            ],
+            shown: pins,
+            onOpen: (id) {
+              setState(() => _sheet = null);
+              _open(id);
+            },
+            onToggle: (id) {
+              final next = [...device.os.consolePins];
+              if (next.contains(id)) {
+                next.remove(id);
+              } else {
+                next.add(id);
+              }
+              store.updateOs(device.id, (os) => os.copyWith(consolePins: next));
             },
           ),
       ],
@@ -734,6 +783,46 @@ class _OsPageState extends State<OsPage> {
                   ),
                 ),
                 SettingsSection(
+                  title: 'Colours',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _FlightSwatches(
+                        label: 'Header text',
+                        prefix: 'flight-header',
+                        selected: live.os.flightHeaderColor,
+                        choices: const ['FFD400', 'FFFFFF', '7DDBFF', 'FF8A00'],
+                        onSelect: (value) => store.updateOs(
+                          live.id,
+                          (os) => os.copyWith(flightHeaderColor: value),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _FlightSwatches(
+                        label: 'Body text',
+                        prefix: 'flight-body',
+                        selected: live.os.flightBodyColor,
+                        choices: const ['FFFFFF', 'FFD400', '111111', '7DDBFF'],
+                        onSelect: (value) => store.updateOs(
+                          live.id,
+                          (os) => os.copyWith(flightBodyColor: value),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _FlightSwatches(
+                        label: 'Background',
+                        prefix: 'flight-board',
+                        selected: live.os.flightBoardColor,
+                        choices: const ['0A3C8C', '061428', '0E3B2E', '4A1018', '1C1C1E'],
+                        onSelect: (value) => store.updateOs(
+                          live.id,
+                          (os) => os.copyWith(flightBoardColor: value),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SettingsSection(
                   title: 'Two boards',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -801,6 +890,54 @@ class _OsPageState extends State<OsPage> {
               title: 'Display',
               detail: 'Interface',
               children: [
+                SettingsSection(
+                  title: 'Wallpaper',
+                  child: Column(
+                    children: [
+                      for (final paper in const [
+                        ('aurora', 'Aurora'),
+                        ('dusk', 'Dusk'),
+                        ('ember', 'Ember'),
+                        ('slate', 'Slate'),
+                        ('neon', 'Neon'),
+                      ])
+                        ListTile(
+                          key: Key('tv-paper-${paper.$1}'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(paper.$2),
+                          trailing: (live.os.backgroundPreset.isEmpty ? 'aurora' : live.os.backgroundPreset) == paper.$1 &&
+                                  live.os.backgroundType != 'image'
+                              ? const Icon(Icons.check, color: kAccent, size: 18)
+                              : null,
+                          onTap: () => store.updateOs(
+                            live.id,
+                            (os) => os.copyWith(backgroundType: 'preset', backgroundPreset: paper.$1),
+                          ),
+                        ),
+                      SettingsUploadRow(
+                        uploading: false,
+                        showRemove: live.os.backgroundType == 'image' && live.os.backgroundUrl.isNotEmpty,
+                        uploadKey: const Key('tv-upload-background'),
+                        removeKey: const Key('tv-remove-background'),
+                        onUpload: () async {
+                          final file = await FilePicker.pickFile(type: FileType.image);
+                          if (file == null) return;
+                          final path = await persistPickedImage(file);
+                          if (path == null) return;
+                          store.updateOs(
+                            live.id,
+                            (os) => os.copyWith(backgroundType: 'image', backgroundUrl: path),
+                          );
+                        },
+                        onRemove: () => store.updateOs(
+                          live.id,
+                          (os) => os.copyWith(backgroundType: 'preset', backgroundUrl: ''),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 SettingsSection(
                   title: 'Interface',
                   child: Column(
@@ -1287,6 +1424,10 @@ class _OsPageState extends State<OsPage> {
           device.id,
           (current) => current.copyWith(homeOrder: order),
         ),
+        onDock: (dock) => store.updateOs(
+          device.id,
+          (current) => current.copyWith(dockOrder: dock),
+        ),
         onHide: (id) => store.updateOs(device.id, (current) {
           if (current.homeHidden.contains(id)) return current;
           return current.copyWith(homeHidden: [...current.homeHidden, id]);
@@ -1401,7 +1542,16 @@ class _AppCategoryState extends State<_AppCategory> {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    Icon(app.$3, color: app.$4, size: 20),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: app.$4,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(app.$3, color: Colors.white, size: 20),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(child: Text(app.$2)),
                     IconButton(
@@ -1483,6 +1633,56 @@ class _DeviceMenuState extends State<_DeviceMenu> {
           )
         else
           ...page.children,
+      ],
+    );
+  }
+}
+
+class _FlightSwatches extends StatelessWidget {
+  const _FlightSwatches({
+    required this.label,
+    required this.prefix,
+    required this.selected,
+    required this.choices,
+    required this.onSelect,
+  });
+
+  final String label;
+  final String prefix;
+  final String selected;
+  final List<String> choices;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final hex in choices)
+              GestureDetector(
+                key: Key('$prefix-$hex'),
+                onTap: () => onSelect(hex),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF000000 | (int.tryParse(hex, radix: 16) ?? 0)),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected.toUpperCase() == hex ? Colors.white : Colors.white24,
+                      width: selected.toUpperCase() == hex ? 2 : 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }

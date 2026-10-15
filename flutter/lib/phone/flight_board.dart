@@ -9,9 +9,59 @@ import '../store.dart';
 
 const _board = Color(0xFF0A3C8C);
 const _band = Color(0xFF0E4EAE);
-const _line = Color(0xFF1A5EC4);
 const _yellow = Color(0xFFFFD400);
 const _ink = Colors.white;
+const _alert = Color(0xFFFF3B30);
+
+const kFlightStatusCycle = ['ON TIME', 'DELAYED', 'CANCELLED'];
+
+/// The three statuses a tap walks through. Anything else starts at On time.
+String nextFlightStatus(String current) {
+  final label = flightStatusLabel(current);
+  final index = kFlightStatusCycle.indexOf(label);
+  return kFlightStatusCycle[(index + 1) % kFlightStatusCycle.length];
+}
+
+String flightStatusLabel(String raw) {
+  final text = raw.trim().toUpperCase();
+  if (text.startsWith('DELAY')) return 'DELAYED';
+  if (text.contains('CANCEL')) return 'CANCELLED';
+  return raw.trim().isEmpty ? 'ON TIME' : raw.trim();
+}
+
+String flightCodeLabel(String raw) {
+  final text = raw.trim();
+  if (RegExp(r'^[A-Za-z]{2}\b').hasMatch(text)) return text;
+  const known = {
+    '593420': 'SQ 593420',
+    '563240': 'BV 563240',
+    '762': 'SN 0762',
+  };
+  if (known.containsKey(text)) return known[text]!;
+  if (RegExp(r'^\d').hasMatch(text)) return 'XX $text';
+  return text;
+}
+
+String flightGateLabel(String raw, int index) {
+  final text = raw.trim().toUpperCase();
+  if (RegExp(r'^[A-G]\d').hasMatch(text)) return text;
+  final digits = RegExp(r'\d+').firstMatch(text)?.group(0) ?? '${index + 1}';
+  const letters = 'ABCDEFG';
+  return '${letters[index % letters.length]}$digits';
+}
+
+List<String> presentFlight(List<String> cells, int index) {
+  final next = [for (var i = 0; i < 7; i++) i < cells.length ? cells[i] : ''];
+  next[3] = flightCodeLabel(next[3]);
+  next[5] = flightStatusLabel(next[5]);
+  next[6] = flightGateLabel(next[6], index);
+  return next;
+}
+
+List<String> paddedFlightRows(List<String> stored, List<String> defaults) {
+  if (stored.length >= defaults.length) return stored;
+  return [...stored, ...defaults.skip(stored.length)];
+}
 
 /// Airport departures board. Every word on the glass can be typed in OS edit.
 class FlightBoard extends StatelessWidget {
@@ -90,14 +140,17 @@ class _FlightBodyState extends State<_FlightBody> {
     widget.store.updateOs(widget.device.id, change);
   }
 
-  List<String> get _rows => _which == 0 ? os.flightA : os.flightB;
+  List<String> get _rows => paddedFlightRows(
+    _which == 0 ? os.flightA : os.flightB,
+    _which == 0 ? kFlightBoardA : kFlightBoardB,
+  );
 
   void _writeCell(int row, int column, String value) {
     final source = [..._rows];
     while (source.length <= row) {
       source.add(flightRow(const ['', '', '', '', '', '', '']));
     }
-    final cells = flightCells(source[row]);
+    final cells = presentFlight(flightCells(source[row]), row);
     cells[column] = value;
     source[row] = flightRow(cells);
     final placed = column == 0 ? orderedFlightBoard(source, row) : source;
@@ -118,28 +171,31 @@ class _FlightBodyState extends State<_FlightBody> {
     final editing = !widget.store.filming;
     final heading = os.flightHeading == 'none' ? '' : _title;
     final rows = _rows;
+    final board = _color(os.flightBoardColor, _board);
+    final header = _color(os.flightHeaderColor, _yellow);
+    final body = _color(os.flightBodyColor, _ink);
     return ColoredBox(
-      color: _board,
+      key: const Key('flight-board'),
+      color: board,
       child: Column(
         children: [
-          if (heading.isNotEmpty) _mast(editing, heading),
-          _columns(editing),
+          if (heading.isNotEmpty) _mast(editing, heading, header),
+          _columns(editing, body),
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final count = rows.isEmpty ? 1 : rows.length;
-                final room = constraints.maxHeight / count;
-                final height = room > 32 ? 32.0 : room;
-                return Column(
-                  children: [
-                    for (var i = 0; i < rows.length; i++)
-                      SizedBox(
-                        height: height,
-                        child: _dataRow(i, flightCells(rows[i]), editing),
-                      ),
-                  ],
-                );
-              },
+            child: Column(
+              children: [
+                for (var i = 0; i < rows.length; i++)
+                  Expanded(
+                    child: _dataRow(
+                      i,
+                      presentFlight(flightCells(rows[i]), i),
+                      editing,
+                      board,
+                      body,
+                      header,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -153,50 +209,59 @@ class _FlightBodyState extends State<_FlightBody> {
     return os.flightHeading == 'arrivals' ? 'Arrivals' : 'Departures';
   }
 
-  Widget _mast(bool editing, String heading) {
+  Color _color(String hex, Color fallback) {
+    final value = int.tryParse(hex, radix: 16);
+    if (value == null) return fallback;
+    return Color(0xFF000000 | value);
+  }
+
+  Widget _mast(bool editing, String heading, Color header) {
     final now = osNow(os);
     final clock = formatOsClock(now, hour24: true);
     return Container(
       height: 118,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: _yellow, width: 3)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: header, width: 3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 188,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                width: 52,
-                height: 52,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(color: _yellow, width: 2),
-                ),
-                child: const Icon(Icons.flight_takeoff, color: _yellow, size: 32),
-              ),
-            ),
-          ),
+          const SizedBox(width: 188),
           Expanded(
-            child: _TypeText(
-              fieldKey: const Key('flight-heading'),
-              text: heading,
-              editing: editing,
-              align: TextAlign.center,
-              style: const TextStyle(
-                color: _yellow,
-                fontSize: 46,
-                fontWeight: FontWeight.w800,
-                height: 1,
-              ),
-              onTyping: (value) => setState(() => _typing = value),
-              onSubmit: (value) {
-                final next = value.trim();
-                _save((current) => current.copyWith(flightTitle: next.isEmpty ? _title : next));
-              },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: header, width: 2),
+                  ),
+                  child: Icon(Icons.flight_takeoff, color: header, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Flexible(
+                  child: _TypeText(
+                    fieldKey: const Key('flight-heading'),
+                    text: heading,
+                    editing: editing,
+                    align: TextAlign.center,
+                    style: TextStyle(
+                      color: header,
+                      fontSize: 46,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
+                    onTyping: (value) => setState(() => _typing = value),
+                    onSubmit: (value) {
+                      final next = value.trim();
+                      _save((current) => current.copyWith(flightTitle: next.isEmpty ? _title : next));
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(
@@ -210,12 +275,12 @@ class _FlightBodyState extends State<_FlightBody> {
                   text: clock,
                   editing: editing,
                   align: TextAlign.right,
-                  style: const TextStyle(
-                    color: _yellow,
+                  style: TextStyle(
+                    color: header,
                     fontSize: 36,
                     fontWeight: FontWeight.w800,
                     height: 1,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                   onTyping: (value) => setState(() => _typing = value),
                   onSubmit: (value) {
@@ -230,7 +295,7 @@ class _FlightBodyState extends State<_FlightBody> {
                   text: os.flightDate,
                   editing: editing,
                   align: TextAlign.right,
-                  style: const TextStyle(color: _yellow, fontSize: 14, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: header, fontSize: 14, fontWeight: FontWeight.w600),
                   onTyping: (value) => setState(() => _typing = value),
                   onSubmit: (value) => _save((current) => current.copyWith(flightDate: value.trim())),
                 ),
@@ -242,7 +307,7 @@ class _FlightBodyState extends State<_FlightBody> {
     );
   }
 
-  Widget _columns(bool editing) {
+  Widget _columns(bool editing, Color body) {
     return Container(
       color: _band,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -256,8 +321,8 @@ class _FlightBodyState extends State<_FlightBody> {
                 text: i < os.flightColumns.length ? os.flightColumns[i] : kFlightColumns[i],
                 editing: editing,
                 align: TextAlign.left,
-                style: const TextStyle(
-                  color: _ink,
+                style: TextStyle(
+                  color: body,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.4,
@@ -271,15 +336,16 @@ class _FlightBodyState extends State<_FlightBody> {
     );
   }
 
-  Widget _dataRow(int index, List<String> cells, bool editing) {
+  Widget _dataRow(int index, List<String> cells, bool editing, Color board, Color body, Color header) {
+    final alt = Color.alphaBlend(Colors.black.withValues(alpha: 0.16), board);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: index.isEven ? _board : const Color(0xFF08357C),
-        border: const Border(bottom: BorderSide(color: _line, width: 1)),
+        color: index.isEven ? board : alt,
+        border: Border(bottom: BorderSide(color: header.withValues(alpha: 0.28), width: 1)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final size = (constraints.maxHeight * 0.46).clamp(8.0, 13.0);
+          final size = (constraints.maxHeight * 0.42).clamp(11.0, 20.0);
           return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
@@ -287,12 +353,21 @@ class _FlightBodyState extends State<_FlightBody> {
             for (var column = 0; column < 7; column++)
               Expanded(
                 flex: _flex(column),
-                child: _TypeText(
+                child: column == 5
+                    ? _StatusTap(
+                        fieldKey: Key('flight-cell-$_which-$index-$column'),
+                        text: cells[column],
+                        editing: editing,
+                        color: _statusInk(column, cells[column], body),
+                        size: size,
+                        onCycle: () => _writeCell(index, column, nextFlightStatus(cells[column])),
+                      )
+                    : _TypeText(
                   fieldKey: Key('flight-cell-$_which-$index-$column'),
                   text: cells[column],
                   editing: editing,
                   style: TextStyle(
-                    color: _statusInk(column, cells[column]),
+                    color: _statusInk(column, cells[column], body),
                     fontSize: size,
                     fontWeight: FontWeight.w700,
                     letterSpacing: column == 1 ? 0.3 : 0,
@@ -313,9 +388,46 @@ class _FlightBodyState extends State<_FlightBody> {
     return const [9, 24, 16, 12, 10, 14, 7][column];
   }
 
-  Color _statusInk(int column, String text) {
-    if (column == 5 && text.toUpperCase().contains('CANCEL')) return _yellow;
-    return _ink;
+  Color _statusInk(int column, String text, Color body) {
+    final upper = text.toUpperCase();
+    if (column == 5 && (upper.contains('CANCEL') || upper.startsWith('DELAY'))) return _alert;
+    return body;
+  }
+}
+
+class _StatusTap extends StatelessWidget {
+  const _StatusTap({
+    required this.fieldKey,
+    required this.text,
+    required this.editing,
+    required this.color,
+    required this.size,
+    required this.onCycle,
+  });
+
+  final Key fieldKey;
+  final String text;
+  final bool editing;
+  final Color color;
+  final double size;
+  final VoidCallback onCycle;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: fieldKey,
+      behavior: HitTestBehavior.opaque,
+      onTap: editing ? onCycle : null,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: color, fontSize: size, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
   }
 }
 

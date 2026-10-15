@@ -796,7 +796,7 @@ class _AtmScreenState extends State<AtmScreen> {
               (name) => _save((current) => current.copyWith(bankName: name)),
               key: const Key('atm-bank-name'),
             ),
-            SizedBox(height: 14 * scale),
+            SizedBox(height: 22 * scale),
             _nameField(
               scale,
               _t('userName'),
@@ -804,7 +804,7 @@ class _AtmScreenState extends State<AtmScreen> {
               (name) => _save((current) => current.copyWith(bankHolder: name)),
               key: const Key('atm-user-name'),
             ),
-            SizedBox(height: 14 * scale),
+            SizedBox(height: 22 * scale),
             _nameField(
               scale,
               _t('accountBalance'),
@@ -823,7 +823,7 @@ class _AtmScreenState extends State<AtmScreen> {
               (value) => _save((current) => current.copyWith(place: value)),
               key: const Key('atm-place'),
             ),
-            SizedBox(height: 14 * scale),
+            SizedBox(height: 22 * scale),
             _nameField(
               scale,
               _t('time'),
@@ -832,7 +832,7 @@ class _AtmScreenState extends State<AtmScreen> {
               key: const Key('atm-time'),
               keyboardType: TextInputType.datetime,
             ),
-            SizedBox(height: 14 * scale),
+            SizedBox(height: 22 * scale),
             _nameField(
               scale,
               _t('temperature'),
@@ -842,7 +842,7 @@ class _AtmScreenState extends State<AtmScreen> {
               keyboardType: TextInputType.number,
               suffix: '°C',
             ),
-            SizedBox(height: 14 * scale),
+            SizedBox(height: 22 * scale),
             _nameField(
               scale,
               'Date',
@@ -852,7 +852,7 @@ class _AtmScreenState extends State<AtmScreen> {
               keyboardType: TextInputType.datetime,
               allowEmpty: true,
             ),
-            SizedBox(height: 18 * scale),
+            SizedBox(height: 28 * scale),
             Theme(
               data: ThemeData.dark(useMaterial3: true),
               child: Material(

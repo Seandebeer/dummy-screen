@@ -16,12 +16,14 @@ class AndroidHome extends StatelessWidget {
     required this.os,
     required this.onOpen,
     this.onOrder,
+    this.onDock,
     this.onHide,
   });
 
   final OsSettings os;
   final void Function(String id) onOpen;
   final ValueChanged<List<String>>? onOrder;
+  final ValueChanged<List<String>>? onDock;
   final ValueChanged<String>? onHide;
 
   @override
