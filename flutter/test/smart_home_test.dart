@@ -139,9 +139,7 @@ void main() {
     },
   );
 
-  testWidgets('slate board is circles titled smart home, with numbered panel fields', (
-    tester,
-  ) async {
+  testWidgets('retired faces fall back to harbour glass', (tester) async {
     final store = StageStore.demo();
     addTearDown(store.dispose);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -162,10 +160,18 @@ void main() {
     );
     expect(find.text('Smart home'), findsOneWidget);
     expect(find.text('Slate Board'), findsNothing);
+    expect(find.text('Ember Dial'), findsNothing);
     expect(find.byKey(const Key('home-lights')), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byKey(const Key('home-settings')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('home-cat-display')));
+    await tester.pump();
+    expect(find.text('Harbour Glass'), findsOneWidget);
+    expect(find.text('Wall Climate'), findsOneWidget);
+    expect(find.text('Slate Board'), findsNothing);
+    await tester.tap(find.byKey(const Key('home-settings-back')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('home-cat-panels')));
     await tester.pump();
@@ -176,17 +182,94 @@ void main() {
     expect(store.deviceById('home-slate')!.os.panelNames['lights'], 'Lamps');
   });
 
-  testWidgets('ember dial is titled smart home', (tester) async {
+  testWidgets('each new smart home face fits the wall and the phone', (
+    tester,
+  ) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const faces = [
+      'climate',
+      'living',
+      'board',
+      'halo',
+      'orbit',
+      'ivory',
+      'linen',
+    ];
+    for (final face in faces) {
+      final device = PropDevice(
+        id: 'face-$face',
+        name: face,
+        projectId: 'sandbox',
+        kind: 'smarthome',
+        os: OsSettings(face: face),
+      );
+      await tester.binding.setSurfaceSize(const Size(1024, 768));
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: HomePanel(store: store, device: device),
+        ),
+      );
+      expect(find.byKey(Key('home-face-$face')), findsOneWidget);
+      expect(find.byKey(const Key('home-lights')), findsOneWidget);
+      expect(find.byKey(const Key('home-settings')), findsOneWidget);
+      expect(find.text('Smart home'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: HomePanel(store: store, device: device, portrait: true),
+        ),
+      );
+      expect(find.byKey(Key('home-face-$face')), findsOneWidget);
+      expect(find.byKey(const Key('home-lights')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('night board away scene arms the panel', (tester) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+    final device = PropDevice(
+      id: 'home-board',
+      name: 'Board',
+      projectId: 'sandbox',
+      kind: 'smarthome',
+      os: const OsSettings(face: 'board'),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: HomePanel(store: store, device: device),
+      ),
+    );
+    expect(find.text('70%'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home-lights')));
+    await tester.pump();
+    expect(find.text('0%'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home-scene-away')));
+    await tester.pump();
+    expect(store.alarms['home-board'], isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('halo temperature steps past the shown target', (tester) async {
     final store = StageStore.demo();
     addTearDown(store.dispose);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(390, 844));
     final device = PropDevice(
-      id: 'home-ember',
-      name: 'Ember phone',
+      id: 'home-halo',
+      name: 'Halo',
       projectId: 'sandbox',
       kind: 'homephone',
-      os: const OsSettings(face: 'ember'),
+      os: const OsSettings(face: 'halo'),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -194,9 +277,10 @@ void main() {
         home: HomePanel(store: store, device: device, portrait: true),
       ),
     );
-    expect(find.text('Smart home'), findsOneWidget);
-    expect(find.text('Ember Dial'), findsNothing);
-    expect(find.byKey(const Key('home-phone')), findsOneWidget);
+    expect(find.text('21°'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home-temp-up')));
+    await tester.pump();
+    expect(find.textContaining('23°'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

@@ -3,12 +3,14 @@ import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../format.dart';
 import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import 'clock_settings.dart';
 import 'language_settings.dart';
 import 'place_settings.dart';
+import 'smart_faces.dart';
 
 const kHomePanelOrder = [
   'lights',
@@ -129,11 +131,7 @@ class _HomePanelState extends State<HomePanel> {
 
   OsSettings get os => _live.os;
 
-  String get _face => switch (os.face) {
-    'slate' => 'slate',
-    'ember' => 'ember',
-    _ => 'glass',
-  };
+  String get _face => homeFaceId(os.face);
 
   String _label(String id) => homePanelName(os, id);
 
@@ -223,46 +221,118 @@ class _HomePanelState extends State<HomePanel> {
     widget.store.setAlarm(widget.device.id, _alarm);
   }
 
+  void _toggleSecurity() {
+    setState(() {
+      _alarm = !_alarm;
+      if (_alarm) _locked = true;
+    });
+    widget.store.setAlarm(widget.device.id, _alarm);
+  }
+
+  void _nudgeTemp(int delta) {
+    setState(() => _temp = (_temp + delta).clamp(10, 32));
+  }
+
+  void _setTemp(double value) {
+    setState(() => _temp = value.clamp(10, 32));
+  }
+
+  void _cycleScene() {
+    const order = ['home', 'away', 'sleep', 'movie'];
+    final index = order.indexOf(_scene);
+    _apply(order[(index + 1) % order.length]);
+  }
+
+  void _toggleLamp() {
+    setState(() => _blinds = _blinds > 0 ? 0 : 0.35);
+  }
+
+  HomeChrome _chrome(bool portrait) {
+    final now = osNow(os);
+    final outside = os.weatherUnit == 'c'
+        ? '${os.weatherDegrees}°C'
+        : '${os.weatherDegrees}°';
+    return HomeChrome(
+      portrait: portrait,
+      clock24: formatOsClock(now, hour24: true),
+      clock12: formatOsClock(now, hour24: false),
+      outside: outside,
+      temp: _temp,
+      lightsOn: _lights,
+      locked: _locked,
+      garageOpen: _garage,
+      musicOn: _music,
+      alarmOn: _alarm,
+      cameraOn: _camera,
+      lampOn: _blinds > 0,
+      scene: _scene,
+      label: _label,
+      onLights: () => setState(() => _lights = !_lights),
+      onSecurity: _toggleSecurity,
+      onMusic: () => setState(() => _music = !_music),
+      onCamera: () => setState(() => _camera = !_camera),
+      onLamp: _toggleLamp,
+      onGarage: () => setState(() => _garage = !_garage),
+      onScene: _apply,
+      onCycleScene: _cycleScene,
+      onTemp: _setTemp,
+      onTempDelta: _nudgeTemp,
+      onSettings: () => setState(() {
+        _screen = 'settings';
+        _settingsPage = null;
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final image = os.backgroundType == 'image'
         ? imageProviderForPath(os.backgroundUrl)
         : null;
-    return Stack(
-      key: const Key('home-panel'),
-      fit: StackFit.expand,
-      children: [
-        if (image != null)
-          Positioned.fill(
-            key: const Key('home-custom-background'),
-            child: Image(
-              image: image,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+    final glass = _screen == 'settings' || _face == 'glass';
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        key: const Key('home-panel'),
+        fit: StackFit.expand,
+        children: [
+          if (image != null)
+            Positioned.fill(
+              key: const Key('home-custom-background'),
+              child: Image(
+                image: image,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
             ),
+          if (glass)
+            CustomPaint(painter: _HarborWash(veil: image != null))
+          else
+            Positioned.fill(
+              child: ColoredBox(
+                color: homeFaceFill(_face)
+                    .withValues(alpha: image != null ? 0.88 : 1),
+              ),
+            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final portrait =
+                  widget.portrait ||
+                  constraints.maxWidth < constraints.maxHeight;
+              return Padding(
+                padding: EdgeInsets.all(
+                  glass ? (portrait ? 16 : 22) : (portrait ? 12 : 16),
+                ),
+                child: _screen == 'settings'
+                    ? _settings()
+                    : _face == 'glass'
+                    ? (portrait ? _phone() : _wall())
+                    : homeFace(_face, _chrome(portrait)),
+              );
+            },
           ),
-        CustomPaint(painter: _HarborWash(veil: image != null)),
-        if (_face == 'slate')
-          const Positioned.fill(child: ColoredBox(color: Color(0xD91A2433))),
-        if (_face == 'ember')
-          const Positioned.fill(child: ColoredBox(color: Color(0xD92A140C))),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final portrait =
-                widget.portrait || constraints.maxWidth < constraints.maxHeight;
-            return Padding(
-              padding: EdgeInsets.all(portrait ? 16 : 22),
-              child: _screen == 'settings'
-                  ? _settings()
-                  : switch (_face) {
-                      'slate' => portrait ? _slatePhone() : _slateWall(),
-                      'ember' => portrait ? _emberPhone() : _emberWall(),
-                      _ => portrait ? _phone() : _wall(),
-                    },
-            );
-          },
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -300,213 +370,6 @@ class _HomePanelState extends State<HomePanel> {
             ],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _slatePhone() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _faceTitle('Smart home', square: true, compact: true),
-        const SizedBox(height: 10),
-        _circleScenes(),
-        const SizedBox(height: 10),
-        Align(
-          child: SizedBox(
-            width: 168,
-            height: 168,
-            child: _climate(wide: false, radius: 999),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Expanded(child: _circleGrid(_tiles(radius: 999))),
-      ],
-    );
-  }
-
-  Widget _slateWall() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _faceTitle('Smart home', square: true, compact: false),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(child: _circleScenes()),
-              const SizedBox(width: 12),
-              Expanded(child: _roundClimate()),
-              const SizedBox(width: 12),
-              Expanded(child: _circleGrid(_tiles(radius: 999))),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _emberPhone() {
-    return Column(
-      children: [
-        _faceTitle('Smart home', square: false, compact: true),
-        const SizedBox(height: 12),
-        _roundScenes(),
-        const SizedBox(height: 12),
-        _climate(wide: true),
-        const SizedBox(height: 12),
-        Expanded(child: _tileBlock(_tiles())),
-      ],
-    );
-  }
-
-  Widget _emberWall() {
-    final tiles = _tiles();
-    return Column(
-      children: [
-        _faceTitle('Smart home', square: false, compact: false),
-        const SizedBox(height: 12),
-        _roundScenes(),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(child: _tileBlock(tiles.sublist(0, 4))),
-              const SizedBox(width: 12),
-              Expanded(child: _climate(wide: false)),
-              const SizedBox(width: 12),
-              Expanded(child: _tileBlock(tiles.sublist(4))),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _faceTitle(String name, {required bool square, required bool compact}) {
-    return Container(
-      key: Key(compact ? 'home-phone' : 'home-wall'),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: square ? const Color(0xFF31445F) : const Color(0xFF3A2418),
-        borderRadius: BorderRadius.circular(square ? 0 : 28),
-        border: Border.all(
-          color: square ? const Color(0xFF9BB0CC) : const Color(0xFFF0B27A),
-          width: 2,
-        ),
-      ),
-      child: Text(
-        name,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: square ? const Color(0xFFE7EEF8) : const Color(0xFFFFE6CC),
-          fontSize: compact ? 26 : 32,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  Widget _circleScenes() {
-    const scenes = ['home', 'away', 'sleep', 'movie'];
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        for (final id in scenes)
-          GestureDetector(
-            key: Key('home-scene-$id'),
-            onTap: () => _apply(id),
-            child: Container(
-              width: 76,
-              height: 76,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _scene == id ? const Color(0xFF8FA4C4) : const Color(0xFF243044),
-                border: Border.all(color: const Color(0xFF9BB0CC), width: 2),
-              ),
-              child: Text(
-                _label(id),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _circleGrid(List<Widget> tiles) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const cols = 2;
-        const gap = 14.0;
-        final size = ((constraints.maxWidth - gap * (cols - 1)) / cols).clamp(64.0, 148.0);
-        return SingleChildScrollView(
-          child: Wrap(
-            spacing: gap,
-            runSpacing: gap,
-            alignment: WrapAlignment.center,
-            children: [
-              for (final tile in tiles) SizedBox(width: size, height: size, child: tile),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _roundClimate() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final height = constraints.maxHeight;
-        final side = !width.isFinite
-            ? 168.0
-            : !height.isFinite
-            ? width.clamp(96.0, 220.0)
-            : (width < height ? width : height).clamp(96.0, 220.0);
-        return Center(
-          child: SizedBox(
-            width: side,
-            height: side,
-            child: _climate(wide: false, radius: 999),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _roundScenes() {
-    const scenes = ['home', 'away', 'sleep', 'movie'];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        for (final id in scenes)
-          GestureDetector(
-            key: Key('home-scene-$id'),
-            onTap: () => _apply(id),
-            child: Container(
-              width: 68,
-              height: 68,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _scene == id ? const Color(0xFFE07A3D) : const Color(0xFF2A211C),
-                border: Border.all(color: const Color(0xFFF0C9A0), width: 2),
-              ),
-              child: Text(
-                _label(id),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFFFFF1E4), fontSize: 11, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -868,16 +731,14 @@ class _HomePanelState extends State<HomePanel> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final face in const [
-                        ('glass', 'Harbor Glass'),
-                        ('slate', 'Slate Board'),
-                        ('ember', 'Ember Dial'),
-                      ])
+                      for (final face in kHomeFaces)
                         _settingsChip(
-                          face.$2,
-                          () => _save((current) => current.copyWith(face: face.$1)),
-                          Key('home-face-${face.$1}'),
-                          lit: _face == face.$1,
+                          face.name,
+                          () => _save(
+                            (current) => current.copyWith(face: face.id),
+                          ),
+                          Key('home-face-${face.id}'),
+                          lit: _face == face.id,
                         ),
                     ],
                   ),
@@ -934,7 +795,11 @@ class _HomePanelState extends State<HomePanel> {
                   PlaceSettings(store: widget.store, device: _live),
                 ],
                 if (page == 'language')
-                  LanguageChoices(store: widget.store, device: _live, keyPrefix: 'home-language'),
+                  LanguageChoices(
+                    store: widget.store,
+                    device: _live,
+                    keyPrefix: 'home-language',
+                  ),
               ],
             ),
           ),
@@ -1155,7 +1020,11 @@ class _Tile extends StatelessWidget {
             color: tint.withValues(alpha: on ? 0.34 : 0.14),
             border: Border.all(color: tint.withValues(alpha: on ? 0.85 : 0.35)),
           ),
-          child: Icon(icon, color: on ? Colors.white : tint, size: compact ? 18 : 16),
+          child: Icon(
+            icon,
+            color: on ? Colors.white : tint,
+            size: compact ? 18 : 16,
+          ),
         ),
         SizedBox(height: compact ? 4 : 6),
         Text(
@@ -1192,7 +1061,10 @@ class _Tile extends StatelessWidget {
         tint: tint,
         lit: on,
         expand: true,
-        padding: EdgeInsets.symmetric(horizontal: radius > 40 ? 6 : 8, vertical: radius > 40 ? 4 : 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: radius > 40 ? 6 : 8,
+          vertical: radius > 40 ? 4 : 8,
+        ),
         child: radius > 40
             ? Stack(
                 alignment: Alignment.center,
@@ -1205,9 +1077,15 @@ class _Tile extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: tint.withValues(alpha: on ? 0.34 : 0.14),
-                        border: Border.all(color: tint.withValues(alpha: on ? 0.85 : 0.35)),
+                        border: Border.all(
+                          color: tint.withValues(alpha: on ? 0.85 : 0.35),
+                        ),
                       ),
-                      child: Icon(icon, color: on ? Colors.white : tint, size: 22),
+                      child: Icon(
+                        icon,
+                        color: on ? Colors.white : tint,
+                        size: 22,
+                      ),
                     ),
                   ),
                   Align(
@@ -1219,7 +1097,11 @@ class _Tile extends StatelessWidget {
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
