@@ -139,7 +139,9 @@ class MacLayout {
 
   /// Folders drawn on Windows and Ubuntu. A fresh machine shows one folder.
   static List<String> deskFolders(OsSettings os) {
-    if (os.deskFolders.isNotEmpty) return os.deskFolders;
+    if (os.deskFolders.isNotEmpty) {
+      return [for (final id in os.deskFolders) if (id != '-' && id.isNotEmpty) id];
+    }
     if (deskCustom(os)) return os.deskFolders;
     return const ['folder:Untitled Folder'];
   }
@@ -211,6 +213,10 @@ class MacLayout {
     Size area,
   ) {
     final places = <String, String>{'_': '1'};
+    for (final key in const [kDeskGridKey, kDeskBarKey]) {
+      final saved = os.macPlaces[key];
+      if (saved != null) places[key] = saved;
+    }
     for (final entry in spots.entries) {
       places[entry.key] = encode(clampSpot(entry.value, area), area);
     }
@@ -219,6 +225,49 @@ class MacLayout {
 
   static OsSettings writeStatus(OsSettings os, List<String> items) =>
       os.copyWith(macStatus: items.isEmpty ? const ['-'] : items);
+}
+
+/// Windows and Ubuntu keep their icon order here so a Mac layout save does
+/// not wipe it. `'-'` is an explicit empty list.
+const kDeskGridKey = 'grid';
+const kDeskBarKey = 'bar';
+
+List<String>? readDeskKey(OsSettings os, String key) {
+  final raw = os.macPlaces[key];
+  if (raw == null) return null;
+  if (raw == '-' || raw.isEmpty) return const [];
+  return [for (final id in raw.split('\u001f')) if (id.isNotEmpty) id];
+}
+
+List<String> deskGridIds(OsSettings os) {
+  final saved = readDeskKey(os, kDeskGridKey);
+  if (saved != null) return saved;
+  return MacLayout.deskFolders(os);
+}
+
+List<String> deskBarIds(OsSettings os) {
+  final saved = readDeskKey(os, kDeskBarKey);
+  if (saved != null) return saved;
+  return [...kDockIds];
+}
+
+OsSettings writeDeskLayout(
+  OsSettings os, {
+  List<String>? grid,
+  List<String>? bar,
+}) {
+  final places = Map<String, String>.from(os.macPlaces);
+  if (grid != null) places[kDeskGridKey] = grid.isEmpty ? '-' : grid.join('\u001f');
+  if (bar != null) places[kDeskBarKey] = bar.isEmpty ? '-' : bar.join('\u001f');
+  final folders = grid == null
+      ? null
+      : [for (final id in grid) if (id.startsWith('folder:')) id];
+  return os.copyWith(
+    macPlaces: places,
+    deskFolders: folders == null
+        ? null
+        : (folders.isEmpty ? const ['-'] : folders),
+  );
 }
 
 /// The next "New Folder" name that is not already on the desktop.
@@ -242,9 +291,18 @@ OsSettings addDeskFolder(OsSettings os, {Offset? spot, Size? area}) {
   final id = 'folder:${DateTime.now().microsecondsSinceEpoch}';
   final names = Map<String, String>.from(os.deskNames)
     ..[id] = freshFolderName(os);
-  final folders = [...os.deskFolders, id];
+  final folders = [
+    for (final item in os.deskFolders)
+      if (item != '-' && item.isNotEmpty) item,
+    id,
+  ];
   if (spot == null || area == null) {
-    return os.copyWith(deskFolders: folders, deskNames: names);
+    var next = os.copyWith(deskFolders: folders, deskNames: names);
+    final saved = readDeskKey(os, kDeskGridKey);
+    if (saved != null) {
+      next = writeDeskLayout(next, grid: [...saved, id]);
+    }
+    return next;
   }
   final spots = Map<String, Offset>.from(MacLayout.spots(os, area));
   spots[id] = MacLayout.clampSpot(spot, area);
