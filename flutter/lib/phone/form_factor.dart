@@ -16,9 +16,11 @@ import 'tv_home.dart';
 import 'console_apps.dart';
 import 'game_catalog.dart';
 import 'catalog.dart';
+import 'desk_grid.dart';
 import 'desk_os_apps.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
+import 'home_drag.dart';
 import 'ios_keyboard.dart';
 import 'mac_desk.dart';
 import 'mac_desktop.dart';
@@ -479,6 +481,9 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
   String? _renaming;
   bool _activities = false;
   bool _allApps = true;
+  final _fieldKey = GlobalKey<SnapFieldState>();
+  final _barKey = GlobalKey();
+  String? _barDrag;
 
   @override
   void dispose() {
@@ -508,6 +513,28 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
     widget.store.updateOs(
       widget.device.id,
       (current) => renameDeskItem(current, id, name),
+    );
+  }
+
+  void _layout(String id, {required bool remove, int? homeIndex, int? dockIndex}) {
+    final os = widget.store.deviceById(widget.device.id)?.os ?? widget.device.os;
+    if (dockIndex != null && (id.startsWith('folder:') || id.startsWith('file:'))) {
+      dockIndex = null;
+    }
+    final home = [...deskGridIds(os)];
+    final dock = [...deskBarIds(os)];
+    if (!home.contains(id) && !dock.contains(id)) return;
+    final placed = placeApp(
+      home: home,
+      dock: dock,
+      id: id,
+      remove: remove,
+      homeIndex: homeIndex,
+      dockIndex: dockIndex,
+    );
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => writeDeskLayout(current, grid: placed.home, bar: placed.dock),
     );
   }
 
@@ -553,27 +580,35 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
                       Positioned.fill(child: widget.overlay!),
                     Positioned.fill(
                       child: Padding(
-                      padding: const EdgeInsets.fromLTRB(72, 12, 12, 12),
-                      child: SingleChildScrollView(
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            for (final id in MacLayout.deskFolders(current.os))
-                              _linuxIcon(
-                                current.os,
-                                id,
-                                macGlyph(id, current.os).label,
-                                const Icon(
-                                  Icons.folder,
-                                  color: Color(0xFFE8B931),
-                                  size: 28,
-                                ),
-                              ),
-                          ],
+                        padding: const EdgeInsets.fromLTRB(72, 12, 12, 12),
+                        child: SnapField(
+                          key: _fieldKey,
+                          ids: deskGridIds(current.os),
+                          dockKey: _barKey,
+                          dockCount: deskBarIds(current.os).length,
+                          dockAxis: Axis.vertical,
+                          onSecondary: () => widget.store.updateOs(
+                            widget.device.id,
+                            addDeskFolder,
+                          ),
+                          onDrop: _layout,
+                          buildIcon: (id, {required bool dimmed, required bool ghost, onDragStart, onDragMove, onDragEnd}) {
+                            final glyph = macGlyph(id, current.os);
+                            final folder = id.startsWith('folder:') || id.startsWith('file:');
+                            return _linuxGridIcon(
+                              current.os,
+                              id,
+                              glyph,
+                              folder: folder,
+                              dimmed: dimmed,
+                              ghost: ghost,
+                              onDragStart: onDragStart,
+                              onDragMove: onDragMove,
+                              onDragEnd: onDragEnd,
+                            );
+                          },
                         ),
                       ),
-                    ),
                     ),
                     if (_activities) _activitiesView(current.os, ink),
                     Positioned(
@@ -604,6 +639,56 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
           ),
         );
       },
+    );
+  }
+
+  Widget _linuxGridIcon(
+    OsSettings os,
+    String id,
+    MacGlyph glyph, {
+    required bool folder,
+    required bool dimmed,
+    required bool ghost,
+    void Function(Offset global)? onDragStart,
+    void Function(Offset global)? onDragMove,
+    VoidCallback? onDragEnd,
+  }) {
+    final label = _named(os, id, glyph.label);
+    return SizedBox(
+      width: 84,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HoldDrag(
+            key: ghost ? null : Key(folder ? 'linux-icon-$id' : 'linux-desk-$id'),
+            onTap: ghost
+                ? () {}
+                : () {
+                    setState(() => _activities = false);
+                    widget.onOpen(id);
+                  },
+            onStart: onDragStart,
+            onMove: onDragMove,
+            onEnd: onDragEnd,
+            child: Opacity(
+              opacity: dimmed ? 0.35 : 1,
+              child: Icon(
+                folder ? Icons.folder : glyph.icon,
+                color: folder ? const Color(0xFFE8B931) : glyph.color,
+                size: 28,
+              ),
+            ),
+          ),
+          DeskIconName(
+            label: label,
+            labelKey: Key(ghost ? 'linux-ghost-$id' : 'linux-label-$id'),
+            editing: _renaming == id && !ghost,
+            controller: _rename,
+            onStart: ghost ? () {} : () => _beginRename(id, label),
+            onCommit: _commitRename,
+          ),
+        ],
+      ),
     );
   }
 
@@ -769,28 +854,52 @@ class _LinuxDesktopState extends State<_LinuxDesktop> {
   }
 
   Widget _dock(Color ink, OsSettings os) {
-    final docked = [
-      for (final id in kDockIds)
-        if (propAppById(id) case final prop?)
-          (id, appLabel(prop, branded: os.branded), brandedGlyph(prop, branded: os.branded).$1),
-      for (final item in widget.apps)
-        if (item.$1 == 'settings') item,
-    ];
+    final bar = deskBarIds(os);
     return Container(
       width: 58,
       color: const Color(0x66111111),
       child: Column(
         children: [
           const SizedBox(height: 8),
-          for (final item in docked)
-            IconButton(
-              tooltip: item.$2,
-              onPressed: () {
-                setState(() => _activities = false);
-                widget.onOpen(item.$1);
-              },
-              icon: Icon(item.$3, color: ink, size: 22),
-            ),
+          Column(
+            key: _barKey,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final id in bar)
+                HoldDrag(
+                  key: Key('linux-bar-$id'),
+                  onTap: () {
+                    setState(() => _activities = false);
+                    widget.onOpen(id);
+                  },
+                  onStart: (global) {
+                    setState(() => _barDrag = id);
+                    _fieldKey.currentState?.track(id, global);
+                  },
+                  onMove: (global) => _fieldKey.currentState?.track(id, global),
+                  onEnd: () {
+                    setState(() => _barDrag = null);
+                    _fieldKey.currentState?.finish();
+                  },
+                  child: Opacity(
+                    opacity: _barDrag == id ? 0.35 : 1,
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Icon(macGlyph(id, os).icon, color: ink, size: 22),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          IconButton(
+            tooltip: 'Settings',
+            onPressed: () {
+              setState(() => _activities = false);
+              widget.onOpen('settings');
+            },
+            icon: Icon(Icons.settings, color: ink, size: 22),
+          ),
           const Spacer(),
           Container(
             width: 28,

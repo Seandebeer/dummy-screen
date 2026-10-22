@@ -8,7 +8,9 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'catalog.dart';
+import 'desk_grid.dart';
 import 'desk_window.dart';
+import 'home_drag.dart';
 import 'mac_desk.dart';
 import 'wallpaper_art.dart';
 
@@ -49,6 +51,9 @@ class _WinDesktopState extends State<WinDesktop> {
   bool _tasks = false;
   final _rename = TextEditingController();
   String? _renaming;
+  final _fieldKey = GlobalKey<SnapFieldState>();
+  final _barKey = GlobalKey();
+  String? _barDrag;
 
   @override
   void dispose() {
@@ -92,6 +97,28 @@ class _WinDesktopState extends State<WinDesktop> {
       _tasks = false;
     });
     widget.onOpen(id);
+  }
+
+  void _layout(String id, {required bool remove, int? homeIndex, int? dockIndex}) {
+    final os = widget.store.deviceById(widget.device.id)?.os ?? widget.device.os;
+    if (dockIndex != null && (id.startsWith('folder:') || id.startsWith('file:'))) {
+      dockIndex = null;
+    }
+    final home = [...deskGridIds(os)];
+    final dock = [...deskBarIds(os)];
+    if (!home.contains(id) && !dock.contains(id)) return;
+    final placed = placeApp(
+      home: home,
+      dock: dock,
+      id: id,
+      remove: remove,
+      homeIndex: homeIndex,
+      dockIndex: dockIndex,
+    );
+    widget.store.updateOs(
+      widget.device.id,
+      (current) => writeDeskLayout(current, grid: placed.home, bar: placed.dock),
+    );
   }
 
   @override
@@ -151,43 +178,42 @@ class _WinDesktopState extends State<WinDesktop> {
             child: widget.overlay!,
           ),
         Positioned(
-          left: 2,
-          top: 2,
-          bottom: 48,
-          width: 246,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final folders = MacLayout.deskFolders(live.os);
-              final count = folders.length;
-              final rows = (count / 3).ceil().clamp(1, 99);
-              final cellH = constraints.maxHeight / rows;
-              return Wrap(
-                key: const Key('win-icons'),
-                direction: Axis.vertical,
-                spacing: 0,
-                runSpacing: 0,
-                children: [
-                  for (final id in folders)
-                    _DesktopIcon(
-                      label: _named(live.os, id, macGlyph(id, live.os).label),
-                      iconKey: Key('win-folder-$id'),
-                      labelKey: Key('win-label-$id'),
-                      height: cellH,
-                      editing: _renaming == id,
-                      controller: _rename,
-                      onRename: () => _beginRename(
-                        id,
-                        _named(live.os, id, macGlyph(id, live.os).label),
-                      ),
-                      onCommit: _commitRename,
-                      onTap: () => _open(id),
-                      child: const Icon(
-                        Icons.folder,
-                        color: Color(0xFFE8B931),
-                        size: 28,
-                      ),
-                    ),
-                ],
+          left: 8,
+          top: 8,
+          right: 8,
+          bottom: 52,
+          child: SnapField(
+            key: _fieldKey,
+            ids: deskGridIds(live.os),
+            dockKey: _barKey,
+            dockCount: deskBarIds(live.os).length,
+            onSecondary: _newFolder,
+            onDrop: _layout,
+            buildIcon: (id, {required bool dimmed, required bool ghost, onDragStart, onDragMove, onDragEnd}) {
+              final glyph = macGlyph(id, live.os);
+              final folder = id.startsWith('folder:') || id.startsWith('file:');
+              return _GridIcon(
+                label: _named(live.os, id, glyph.label),
+                iconKey: ghost
+                    ? null
+                    : Key(folder ? 'win-folder-$id' : 'win-desk-$id'),
+                labelKey: Key(ghost ? 'win-ghost-$id' : 'win-label-$id'),
+                dimmed: dimmed,
+                editing: _renaming == id && !ghost,
+                controller: _rename,
+                onRename: ghost
+                    ? () {}
+                    : () => _beginRename(id, _named(live.os, id, glyph.label)),
+                onCommit: _commitRename,
+                onOpen: ghost ? () {} : () => _open(id),
+                onDragStart: onDragStart,
+                onDragMove: onDragMove,
+                onDragEnd: onDragEnd,
+                child: Icon(
+                  folder ? Icons.folder : glyph.icon,
+                  color: folder ? const Color(0xFFE8B931) : glyph.color,
+                  size: 28,
+                ),
               );
             },
           ),
@@ -255,6 +281,18 @@ class _WinDesktopState extends State<WinDesktop> {
             onFiles: () => _open('files'),
             onEdge: () => _open('edge'),
             onPinned: _open,
+            barKey: _barKey,
+            barIds: deskBarIds(live.os),
+            draggingId: _barDrag,
+            onBarStart: (id, global) {
+              setState(() => _barDrag = id);
+              _fieldKey.currentState?.track(id, global);
+            },
+            onBarMove: (id, global) => _fieldKey.currentState?.track(id, global),
+            onBarEnd: () {
+              setState(() => _barDrag = null);
+              _fieldKey.currentState?.finish();
+            },
             onShell: widget.onShell,
             shells: widget.shells,
           ),
@@ -301,6 +339,12 @@ class _Taskbar extends StatelessWidget {
     required this.onFiles,
     required this.onEdge,
     required this.onPinned,
+    required this.barKey,
+    required this.barIds,
+    required this.draggingId,
+    required this.onBarStart,
+    required this.onBarMove,
+    required this.onBarEnd,
     required this.onShell,
     required this.shells,
   });
@@ -314,6 +358,12 @@ class _Taskbar extends StatelessWidget {
   final VoidCallback onFiles;
   final VoidCallback onEdge;
   final ValueChanged<String> onPinned;
+  final GlobalKey barKey;
+  final List<String> barIds;
+  final String? draggingId;
+  final void Function(String id, Offset global) onBarStart;
+  final void Function(String id, Offset global) onBarMove;
+  final VoidCallback onBarEnd;
   final ValueChanged<String> onShell;
   final List<(String, String)> shells;
 
@@ -376,18 +426,24 @@ class _Taskbar extends StatelessWidget {
                   onTap: onFiles,
                   child: const Icon(Icons.folder, size: 18, color: Color(0xFFE8B931)),
                 ),
-                for (final id in kDockIds)
-                  if (propAppById(id) case final prop?)
-                    _BarButton(
-                      key: Key('win-bar-$id'),
-                      tooltip: appLabel(prop, branded: os.branded),
-                      onTap: () => onPinned(id),
-                      child: Icon(
-                        brandedGlyph(prop, branded: os.branded).$1,
-                        size: 18,
-                        color: brandedGlyph(prop, branded: os.branded).$2,
-                      ),
-                    ),
+                Row(
+                  key: barKey,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final id in barIds)
+                      if (macGlyph(id, os) case final glyph)
+                        _BarButton(
+                          key: Key('win-bar-$id'),
+                          tooltip: glyph.label,
+                          dimmed: draggingId == id,
+                          onTap: () => onPinned(id),
+                          onDragStart: (global) => onBarStart(id, global),
+                          onDragMove: (global) => onBarMove(id, global),
+                          onDragEnd: onBarEnd,
+                          child: Icon(glyph.icon, size: 18, color: glyph.color),
+                        ),
+                  ],
+                ),
               ],
             ),
             Positioned(
@@ -458,67 +514,97 @@ class _BarButton extends StatelessWidget {
     required this.onTap,
     required this.child,
     this.selected = false,
+    this.dimmed = false,
+    this.onDragStart,
+    this.onDragMove,
+    this.onDragEnd,
   });
 
   final String tooltip;
   final VoidCallback onTap;
   final Widget child;
   final bool selected;
+  final bool dimmed;
+  final void Function(Offset global)? onDragStart;
+  final void Function(Offset global)? onDragMove;
+  final VoidCallback? onDragEnd;
 
   @override
   Widget build(BuildContext context) {
+    final face = Opacity(
+      opacity: dimmed ? 0.35 : 1,
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? const Color(0x14000000) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: child,
+      ),
+    );
     return Tooltip(
       message: tooltip,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0x14000000) : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: child,
-        ),
-      ),
+      child: onDragStart == null
+          ? GestureDetector(onTap: onTap, child: face)
+          : HoldDrag(
+              onTap: onTap,
+              onStart: onDragStart,
+              onMove: onDragMove,
+              onEnd: onDragEnd,
+              child: face,
+            ),
     );
   }
 }
 
-class _DesktopIcon extends StatelessWidget {
-  const _DesktopIcon({
+class _GridIcon extends StatelessWidget {
+  const _GridIcon({
     required this.label,
     required this.iconKey,
     required this.labelKey,
-    required this.height,
+    required this.dimmed,
     required this.editing,
     required this.controller,
     required this.onRename,
     required this.onCommit,
-    required this.onTap,
+    required this.onOpen,
     required this.child,
+    this.onDragStart,
+    this.onDragMove,
+    this.onDragEnd,
   });
 
   final String label;
   final Key? iconKey;
   final Key labelKey;
-  final double height;
+  final bool dimmed;
   final bool editing;
   final TextEditingController controller;
   final VoidCallback onRename;
   final VoidCallback onCommit;
-  final VoidCallback onTap;
+  final VoidCallback onOpen;
   final Widget child;
+  final void Function(Offset global)? onDragStart;
+  final void Function(Offset global)? onDragMove;
+  final VoidCallback? onDragEnd;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 78,
-      height: height,
+      width: 84,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(key: iconKey, onTap: onTap, child: child),
+          HoldDrag(
+            key: iconKey,
+            onTap: onOpen,
+            onStart: onDragStart,
+            onMove: onDragMove,
+            onEnd: onDragEnd,
+            child: Opacity(opacity: dimmed ? 0.35 : 1, child: child),
+          ),
           const SizedBox(height: 2),
           DeskIconName(
             label: label,
@@ -529,6 +615,7 @@ class _DesktopIcon extends StatelessWidget {
             onCommit: onCommit,
             fontSize: 10,
             maxLines: 2,
+            color: Colors.white,
           ),
         ],
       ),

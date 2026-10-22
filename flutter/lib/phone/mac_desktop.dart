@@ -9,8 +9,10 @@ import '../models.dart';
 import '../os_catalog.dart';
 import '../store.dart';
 import 'catalog.dart';
+import 'desk_grid.dart';
 import 'desk_settings.dart';
 import 'desk_window.dart';
+import 'home_drag.dart';
 import 'mac_desk.dart';
 import 'wallpaper_art.dart';
 
@@ -51,6 +53,7 @@ class _MacDesktopState extends State<MacDesktop> {
   String? _dragging;
   Offset? _dragGlobal;
   Offset? _dragLocal;
+  int? _hover;
   final _deskKey = GlobalKey();
   final _dockKey = GlobalKey();
   final _slotKeys = <String, GlobalKey>{};
@@ -107,16 +110,15 @@ class _MacDesktopState extends State<MacDesktop> {
     widget.onOpen(null);
   }
 
-  void _pan(String id, DragUpdateDetails details) {
+  void _panAt(String id, Offset global) {
     final box = _deskKey.currentContext?.findRenderObject() as RenderBox?;
     setState(() {
       _dragging = id;
-      _dragGlobal = details.globalPosition;
+      _dragGlobal = global;
       if (box != null && box.hasSize) {
-        _dragLocal = MacLayout.clampSpot(
-          box.globalToLocal(details.globalPosition) - const Offset(54, 32),
-          box.size,
-        );
+        final pointer = box.globalToLocal(global);
+        _dragLocal = MacLayout.clampSpot(pointer - const Offset(54, 32), box.size);
+        _hover = DeskGrid.of(box.size).indexAt(pointer);
       }
     });
   }
@@ -129,11 +131,17 @@ class _MacDesktopState extends State<MacDesktop> {
       _dragging = null;
       _dragGlobal = null;
       _dragLocal = null;
+      _hover = null;
     });
     if (id == null || global == null) return;
     final os = _live.os;
-    if (_hit(_dockKey, global) && !id.startsWith('file:')) {
-      _dropOnDock(os, id, global);
+    final frame = enclosingDevice(context);
+    if (frame != null && droppedOffDevice(frame, global)) {
+      _removeIcon(os, id);
+      return;
+    }
+    if (_hit(_dockKey, global)) {
+      _dropOnDock(os, id, global, local);
       return;
     }
     if (local != null) _dropOnDesk(os, id, local);
@@ -150,43 +158,104 @@ class _MacDesktopState extends State<MacDesktop> {
   }
 
   int _dockIndex(List<String> dock, Offset global) {
+    if (dock.isEmpty) return 0;
+    var nearest = 0;
+    var best = double.infinity;
     for (var i = 0; i < dock.length; i++) {
       final box =
           _slot('dock:${dock[i]}').currentContext?.findRenderObject()
               as RenderBox?;
       if (box == null || !box.hasSize) continue;
-      final center = box.localToGlobal(box.size.center(Offset.zero));
-      if (global.dx < center.dx) return i;
+      final rect = box.localToGlobal(Offset.zero) & box.size;
+      if (rect.inflate(8).contains(global)) return i;
+      final distance = (global.dx - rect.center.dx).abs();
+      if (distance < best) {
+        best = distance;
+        nearest = i;
+      }
     }
-    return dock.length;
+    final last =
+        _slot('dock:${dock.last}').currentContext?.findRenderObject()
+            as RenderBox?;
+    if (last != null && last.hasSize) {
+      final right = last.localToGlobal(Offset(last.size.width, 0)).dx;
+      if (global.dx > right + 8) return dock.length;
+    }
+    return nearest;
   }
 
-  void _dropOnDock(OsSettings os, String id, Offset global) {
-    final dock = [...MacLayout.dock(os)];
-    final from = dock.indexOf(id);
-    var to = _dockIndex(dock, global);
-    if (from >= 0 && to > from) to -= 1;
-    if (from >= 0) dock.removeAt(from);
-    dock.insert(to.clamp(0, dock.length), id);
-    final spots = Map<String, Offset>.from(MacLayout.spots(os, _area))
-      ..remove(id);
+  bool _staysOnDesk(String id) => id.startsWith('file:') || id.startsWith('folder:');
+
+  void _removeIcon(OsSettings os, String id) {
+    final spots = Map<String, Offset>.from(MacLayout.spots(os, _area))..remove(id);
+    final dock = [for (final item in MacLayout.dock(os)) if (item != id) item];
     _save((current) {
-      var next = MacLayout.writeDock(current, dock);
-      if (MacLayout.desktop(current).contains(id) ||
-          MacLayout.deskCustom(current)) {
-        next = MacLayout.writeDesktop(next, spots, _area);
+      var next = MacLayout.writeDesktop(current, spots, _area);
+      next = MacLayout.writeDock(next, dock);
+      if (id.startsWith('folder:')) {
+        final folders = [for (final item in MacLayout.deskFolders(current)) if (item != id) item];
+        next = next.copyWith(deskFolders: folders.isEmpty ? const ['-'] : folders);
+      }
+      return next;
+    });
+  }
+
+  void _dropOnDock(OsSettings os, String id, Offset global, Offset? local) {
+    if (_staysOnDesk(id)) {
+      if (local != null) _dropOnDesk(os, id, local);
+      return;
+    }
+    final area = _area;
+    final grid = DeskGrid.of(area);
+    final spots = Map<String, Offset>.from(MacLayout.spots(os, area));
+    final home = spots.keys.toList();
+    final dock = [...MacLayout.dock(os)];
+    if (dock.isEmpty && !home.contains(id)) return;
+    final to = dock.isEmpty ? 0 : _dockIndex(dock, global);
+    final placed = placeApp(
+      home: home,
+      dock: dock,
+      id: id,
+      remove: false,
+      dockIndex: to,
+    );
+    final cells = {
+      for (final item in home) item: snapSpot(grid, spots[item] ?? Offset.zero),
+    };
+    final nextSpots = <String, Offset>{};
+    for (final item in placed.home) {
+      final cell = cells[item];
+      if (cell != null) nextSpots[item] = cell;
+    }
+    final arrived = [for (final item in placed.home) if (!cells.containsKey(item)) item];
+    final left = [for (final item in home) if (!placed.home.contains(item)) item];
+    if (arrived.length == 1 && left.isNotEmpty) {
+      nextSpots[arrived.single] = cells[left.first]!;
+    }
+    _save((current) {
+      var next = MacLayout.writeDock(current, placed.dock);
+      if (placed.home.join('\u001f') != home.join('\u001f') || MacLayout.deskCustom(current)) {
+        next = MacLayout.writeDesktop(next, nextSpots, area);
       }
       return next;
     });
   }
 
   void _dropOnDesk(OsSettings os, String id, Offset local) {
-    final spots = Map<String, Offset>.from(MacLayout.spots(os, _area));
-    spots[id] = MacLayout.clampSpot(local, _area);
-    final dock = [...MacLayout.dock(os)]..remove(id);
+    final area = _area;
+    final grid = DeskGrid.of(area);
+    final spots = Map<String, Offset>.from(MacLayout.spots(os, area));
+    final moved = snapMove(grid: grid, spots: spots, id: id, drop: local);
+    final dock = [...MacLayout.dock(os)];
+    final from = dock.indexOf(id);
+    if (from >= 0) dock.removeAt(from);
+    final displaced = moved.displaced;
+    if (displaced != null && !dock.contains(displaced)) {
+      dock.insert(from < 0 ? dock.length : from.clamp(0, dock.length), displaced);
+    }
     _save((current) {
-      var next = MacLayout.writeDesktop(current, spots, _area);
-      if (!id.startsWith('file:') && MacLayout.dock(current).contains(id)) {
+      var next = MacLayout.writeDesktop(current, moved.spots, area);
+      if (!_staysOnDesk(id) && (from >= 0 || displaced != null)) {
         next = MacLayout.writeDock(next, dock);
       }
       return next;
@@ -401,6 +470,7 @@ class _MacDesktopState extends State<MacDesktop> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final area = constraints.biggest;
+        final grid = DeskGrid.of(area);
         final spots = MacLayout.spots(os, area);
         final ids = MacLayout.desktop(os);
         return GestureDetector(
@@ -420,6 +490,21 @@ class _MacDesktopState extends State<MacDesktop> {
           child: Stack(
             clipBehavior: Clip.hardEdge,
             children: [
+              if (_dragging != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: SnapGridPainter(
+                        columns: grid.columns,
+                        rows: grid.rows,
+                        cellWidth: grid.cellWidth,
+                        cellHeight: grid.cellHeight,
+                        gap: grid.gap,
+                        slot: _hover,
+                      ),
+                    ),
+                  ),
+                ),
               for (final id in ids)
                 if (spots[id] case final spot?)
                   Positioned(
@@ -465,8 +550,9 @@ class _MacDesktopState extends State<MacDesktop> {
           onRename: ghost ? () {} : () => _beginRename(id),
           onCommit: _commitRename,
           onTap: ghost ? () {} : () => _openFolder(spec.label),
-          onPanUpdate: ghost ? null : (details) => _pan(id, details),
-          onPanEnd: ghost ? null : (_) => _endPan(),
+          onDragStart: ghost ? null : (global) => _panAt(id, global),
+          onDragMove: ghost ? null : (global) => _panAt(id, global),
+          onDragEnd: ghost ? null : _endPan,
         ),
       );
     }
@@ -481,8 +567,9 @@ class _MacDesktopState extends State<MacDesktop> {
         onRename: ghost ? () {} : () => _beginRename(id),
         onCommit: _commitRename,
         onTap: ghost ? () {} : () => _openApp(id),
-        onPanUpdate: ghost ? null : (details) => _pan(id, details),
-        onPanEnd: ghost ? null : (_) => _endPan(),
+        onDragStart: ghost ? null : (global) => _panAt(id, global),
+        onDragMove: ghost ? null : (global) => _panAt(id, global),
+        onDragEnd: ghost ? null : _endPan,
         child: _glyph(id, os),
       ),
     );
@@ -801,8 +888,9 @@ class _MacDesktopState extends State<MacDesktop> {
                           tileKey: Key('mac-dock-$id'),
                           dim: _dragging == id,
                           onTap: () => _openApp(id),
-                          onPanUpdate: (details) => _pan(id, details),
-                          onPanEnd: (_) => _endPan(),
+                          onDragStart: (global) => _panAt(id, global),
+                          onDragMove: (global) => _panAt(id, global),
+                          onDragEnd: _endPan,
                           child: _glyph(id, os),
                         ),
                       ),
@@ -881,8 +969,9 @@ class _DesktopFile extends StatelessWidget {
     required this.onRename,
     required this.onCommit,
     required this.onTap,
-    this.onPanUpdate,
-    this.onPanEnd,
+    this.onDragStart,
+    this.onDragMove,
+    this.onDragEnd,
   });
 
   final String name;
@@ -893,37 +982,38 @@ class _DesktopFile extends StatelessWidget {
   final VoidCallback onRename;
   final VoidCallback onCommit;
   final VoidCallback onTap;
-  final GestureDragUpdateCallback? onPanUpdate;
-  final GestureDragEndCallback? onPanEnd;
+  final void Function(Offset global)? onDragStart;
+  final void Function(Offset global)? onDragMove;
+  final VoidCallback? onDragEnd;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      key: Key('mac-file-$name'),
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      onPanUpdate: onPanUpdate,
-      onPanEnd: onPanEnd,
-      child: SizedBox(
-        width: 108,
-        child: Column(
-          children: [
-            SizedBox(
+    return SizedBox(
+      width: 108,
+      child: Column(
+        children: [
+          HoldDrag(
+            key: Key('mac-file-$name'),
+            onTap: onTap,
+            onStart: onDragStart,
+            onMove: onDragMove,
+            onEnd: onDragEnd,
+            child: SizedBox(
               width: 52,
               height: 46,
               child: CustomPaint(painter: _FilePainter(kind)),
             ),
-            const SizedBox(height: 3),
-            DeskIconName(
-              label: name,
-              labelKey: labelKey,
-              editing: editing,
-              controller: controller,
-              onStart: onRename,
-              onCommit: onCommit,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 3),
+          DeskIconName(
+            label: name,
+            labelKey: labelKey,
+            editing: editing,
+            controller: controller,
+            onStart: onRename,
+            onCommit: onCommit,
+          ),
+        ],
       ),
     );
   }
@@ -1202,8 +1292,9 @@ class _DockButton extends StatelessWidget {
     required this.tileKey,
     required this.onTap,
     required this.child,
-    this.onPanUpdate,
-    this.onPanEnd,
+    this.onDragStart,
+    this.onDragMove,
+    this.onDragEnd,
     this.dim = false,
   });
 
@@ -1211,20 +1302,21 @@ class _DockButton extends StatelessWidget {
   final Key tileKey;
   final VoidCallback onTap;
   final Widget child;
-  final GestureDragUpdateCallback? onPanUpdate;
-  final GestureDragEndCallback? onPanEnd;
+  final void Function(Offset global)? onDragStart;
+  final void Function(Offset global)? onDragMove;
+  final VoidCallback? onDragEnd;
   final bool dim;
 
   @override
   Widget build(BuildContext context) {
     return Tooltip(
       message: label,
-      child: GestureDetector(
+      child: HoldDrag(
         key: tileKey,
-        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        onPanUpdate: onPanUpdate,
-        onPanEnd: onPanEnd,
+        onStart: onDragStart,
+        onMove: onDragMove,
+        onEnd: onDragEnd,
         child: Opacity(
           opacity: dim ? 0.35 : 1,
           child: SizedBox(width: 42, height: 40, child: Center(child: child)),
@@ -1245,8 +1337,9 @@ class _DeskApp extends StatelessWidget {
     required this.onCommit,
     required this.onTap,
     required this.child,
-    this.onPanUpdate,
-    this.onPanEnd,
+    this.onDragStart,
+    this.onDragMove,
+    this.onDragEnd,
   });
 
   final String label;
@@ -1258,33 +1351,34 @@ class _DeskApp extends StatelessWidget {
   final VoidCallback onCommit;
   final VoidCallback onTap;
   final Widget child;
-  final GestureDragUpdateCallback? onPanUpdate;
-  final GestureDragEndCallback? onPanEnd;
+  final void Function(Offset global)? onDragStart;
+  final void Function(Offset global)? onDragMove;
+  final VoidCallback? onDragEnd;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      key: tileKey,
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      onPanUpdate: onPanUpdate,
-      onPanEnd: onPanEnd,
-      child: SizedBox(
-        width: 108,
-        child: Column(
-          children: [
-            child,
-            const SizedBox(height: 3),
-            DeskIconName(
-              label: label,
-              labelKey: labelKey,
-              editing: editing,
-              controller: controller,
-              onStart: onRename,
-              onCommit: onCommit,
-            ),
-          ],
-        ),
+    return SizedBox(
+      width: 108,
+      child: Column(
+        children: [
+          HoldDrag(
+            key: tileKey,
+            onTap: onTap,
+            onStart: onDragStart,
+            onMove: onDragMove,
+            onEnd: onDragEnd,
+            child: child,
+          ),
+          const SizedBox(height: 3),
+          DeskIconName(
+            label: label,
+            labelKey: labelKey,
+            editing: editing,
+            controller: controller,
+            onStart: onRename,
+            onCommit: onCommit,
+          ),
+        ],
       ),
     );
   }
