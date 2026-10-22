@@ -7,6 +7,9 @@ import '../image_file.dart';
 import '../models.dart';
 import '../store.dart';
 import '../video_source.dart';
+import 'app_catalog.dart';
+import 'app_place.dart';
+import 'catalog.dart';
 
 /// Smart TV launcher. The rows follow a living-room home: search, apps,
 /// what is playing next, and a recommended shelf.
@@ -138,6 +141,7 @@ class _TvHomeState extends State<TvHome> {
                       mark: const _AppsMark(),
                       onMark: () => widget.onOpen('appstore'),
                       child: _AppRow(
+                        os: os,
                         onOpen: (id) => _openTile(id, () => widget.onOpen(id)),
                         matches: _matches,
                         media: _media,
@@ -382,12 +386,14 @@ class _WordMark extends StatelessWidget {
 
 class _AppRow extends StatelessWidget {
   const _AppRow({
+    required this.os,
     required this.onOpen,
     required this.matches,
     required this.media,
     this.onUpload,
   });
 
+  final OsSettings os;
   final ValueChanged<String> onOpen;
   final bool Function(String title) matches;
   final (String, String)? Function(String id) media;
@@ -396,7 +402,7 @@ class _AppRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tiles = <Widget>[
-        if (matches('Netflix'))
+        if (matches('Netflix') && tvTileVisible(os, 'flixiq'))
         _AppTile(
           id: 'flixiq',
           width: 148,
@@ -407,7 +413,7 @@ class _AppRow extends StatelessWidget {
             style: TextStyle(color: Color(0xFFE50914), fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.4),
           ),
         ),
-        if (matches('YouTube'))
+        if (matches('YouTube') && tvTileVisible(os, 'vidtube'))
         _AppTile(
           id: 'vidtube',
           width: 168,
@@ -420,7 +426,7 @@ class _AppRow extends StatelessWidget {
             style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
           ),
         ),
-        if (matches('NBC'))
+        if (matches('NBC') && tvTileVisible(os, 'news'))
         _AppTile(
           id: 'news',
           width: 132,
@@ -428,7 +434,7 @@ class _AppRow extends StatelessWidget {
           onTap: () => onOpen('news'),
           child: const _NbcMark(),
         ),
-        if (matches('Hulu'))
+        if (matches('Hulu') && tvTileVisible(os, 'shows'))
         _AppTile(
           id: 'shows',
           width: 132,
@@ -439,7 +445,7 @@ class _AppRow extends StatelessWidget {
             style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.6),
           ),
         ),
-        if (matches('NBA'))
+        if (matches('NBA') && tvTileVisible(os, 'sport'))
         _AppTile(
           id: 'sport',
           width: 132,
@@ -450,7 +456,7 @@ class _AppRow extends StatelessWidget {
             style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 0.4),
           ),
         ),
-        if (matches('Canal'))
+        if (matches('Canal') && tvTileVisible(os, 'films'))
         _AppTile(
           id: 'films',
           width: 148,
@@ -466,7 +472,7 @@ class _AppRow extends StatelessWidget {
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
         ),
-        if (matches('Disney'))
+        if (matches('Disney') && tvTileVisible(os, 'disney'))
         _AppTile(
           id: 'disney',
           width: 140,
@@ -474,7 +480,7 @@ class _AppRow extends StatelessWidget {
           onTap: () => onOpen('disney'),
           child: const Text('Disney+', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ),
-        if (matches('Prime'))
+        if (matches('Prime') && tvTileVisible(os, 'prime'))
         _AppTile(
           id: 'prime',
           width: 140,
@@ -482,6 +488,7 @@ class _AppRow extends StatelessWidget {
           onTap: () => onOpen('prime'),
           child: const Text('prime', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ),
+        for (final id in tvExtraApps(os)) ..._extraTile(id),
     ];
     if (tiles.isEmpty) {
       return const Center(child: Text('No matches', style: TextStyle(color: Colors.white70)));
@@ -492,6 +499,32 @@ class _AppRow extends StatelessWidget {
       ],
     );
   }
+
+  List<Widget> _extraTile(String id) {
+    final glyph = _tvGlyph(id);
+    if (!matches(glyph.$1)) return const [];
+    return [
+      _AppTile(
+        id: id,
+        width: 140,
+        color: glyph.$3,
+        onTap: () => onOpen(id),
+        label: glyph.$1,
+        child: Icon(glyph.$2, color: Colors.white, size: 28),
+      ),
+    ];
+  }
+}
+
+(String, IconData, Color) _tvGlyph(String id) {
+  final prop = propAppById(id);
+  if (prop != null) return (prop.label, prop.icon, prop.color);
+  for (final section in mockCatalog) {
+    for (final app in section.apps) {
+      if (app.id == id) return (app.label, app.icon, app.color);
+    }
+  }
+  return (id, Icons.apps, const Color(0xFF3A3A3C));
 }
 
 class _AppTile extends StatelessWidget {

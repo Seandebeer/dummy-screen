@@ -4,6 +4,7 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import 'app_catalog.dart';
+import 'app_place.dart';
 import 'catalog.dart';
 import 'ios_keyboard.dart';
 
@@ -82,27 +83,25 @@ class _LibraryAppState extends State<LibraryApp> {
   }
 
   void _toggleHome(String id) {
-    if (kDockIds.contains(id)) return;
-    final current = widget.device.os.homeOrder.isEmpty
-        ? [...kHomeOrder]
-        : [...widget.device.os.homeOrder];
-    if (current.contains(id)) {
-      current.remove(id);
-    } else {
-      current.add(id);
-    }
+    if (libraryLocked(widget.device).contains(id)) return;
+    final visible = libraryShown(widget.device).contains(id);
     widget.store.updateOs(
       widget.device.id,
-      (os) => os.copyWith(homeOrder: current),
+      (os) => placeShownApp(
+        os,
+        id,
+        kind: widget.device.kind,
+        shown: !visible,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final query = _query.text.trim().toLowerCase();
-    final order = widget.device.os.homeOrder.isEmpty
-        ? kHomeOrder
-        : widget.device.os.homeOrder;
+    final order = libraryShown(widget.device);
+    final locked = libraryLocked(widget.device);
+    final desktop = widget.device.kind == 'computer' || widget.device.kind == 'tv';
     final favs = widget.store.appFavorites.toSet();
     final categories = [...mockCatalog]
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -249,7 +248,9 @@ class _LibraryAppState extends State<LibraryApp> {
                             )
                           : _AppGrid(
                               apps: section.apps,
-                              order: order,
+                              shown: order,
+                              locked: locked,
+                              desktop: desktop,
                               favs: favs,
                               onStar: widget.store.toggleAppFavorite,
                               onEye: _toggleHome,
@@ -362,14 +363,18 @@ class _Section extends StatelessWidget {
 class _AppGrid extends StatelessWidget {
   const _AppGrid({
     required this.apps,
-    required this.order,
+    required this.shown,
+    required this.locked,
+    required this.desktop,
     required this.favs,
     required this.onStar,
     required this.onEye,
   });
 
   final List<_LibApp> apps;
-  final List<String> order;
+  final Set<String> shown;
+  final Set<String> locked;
+  final bool desktop;
   final Set<String> favs;
   final void Function(String id) onStar;
   final void Function(String id) onEye;
@@ -395,8 +400,8 @@ class _AppGrid extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final app = apps[index];
-            final docked = kDockIds.contains(app.id);
-            final visible = docked || order.contains(app.id);
+            final docked = locked.contains(app.id);
+            final visible = docked || shown.contains(app.id);
             final faved = favs.contains(app.id);
             return Opacity(
               opacity: visible ? 1 : 0.5,
@@ -461,7 +466,9 @@ class _AppGrid extends StatelessWidget {
                       _RoundIcon(
                         tooltip: docked
                             ? 'Stays in the dock'
-                            : (visible ? 'Hide from home' : 'Show on home'),
+                            : (visible
+                                  ? (desktop ? 'Hide from desktop' : 'Hide from home')
+                                  : (desktop ? 'Show on desktop' : 'Show on home')),
                         onTap: docked ? null : () => onEye(app.id),
                         background: visible
                             ? Colors.white.withValues(alpha: 0.20)

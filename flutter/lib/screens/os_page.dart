@@ -12,6 +12,7 @@ import '../store.dart';
 import '../format.dart';
 import '../models.dart';
 import '../phone/app_catalog.dart';
+import '../phone/app_place.dart';
 import '../phone/catalog.dart';
 import '../phone/clock_settings.dart';
 import '../phone/console_apps.dart';
@@ -627,7 +628,7 @@ class _OsPageState extends State<OsPage> {
   Widget _appList(PropDevice device) {
     final store = StoreScope.of(context);
     if (device.kind == 'console') return _gameList(store, device);
-    final order = device.os.homeOrder.isEmpty ? kHomeOrder : device.os.homeOrder;
+    final shown = appSurfaceIds(device);
     final sections = <(String, List<(String, String, IconData, Color)>)>[
       (
         'Functional',
@@ -650,29 +651,30 @@ class _OsPageState extends State<OsPage> {
       children: [
         Text('${device.name} apps', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
         const SizedBox(height: 4),
-        const Text(
-          'Categories start closed. Show or hide an app on the home screen.',
-          style: TextStyle(color: kMuted, fontSize: 12),
+        Text(
+          device.kind == 'computer'
+              ? 'Categories start closed. Show or hide an app on the desktop.'
+              : device.kind == 'tv'
+              ? 'Categories start closed. Show or hide an app on the home row.'
+              : 'Categories start closed. Show or hide an app on the home screen.',
+          style: const TextStyle(color: kMuted, fontSize: 12),
         ),
         const SizedBox(height: 8),
         for (final section in sections)
           _AppCategory(
             name: section.$1,
             apps: section.$2,
-            shown: order.toSet(),
+            shown: shown,
             onOpen: (id) {
               setState(() => _sheet = null);
               _open(id);
             },
             onToggle: (id) {
-              if (kDockIds.contains(id)) return;
-              final next = [...order];
-              if (next.contains(id)) {
-                next.remove(id);
-              } else {
-                next.add(id);
-              }
-              store.updateOs(device.id, (os) => os.copyWith(homeOrder: next));
+              final visible = shown.contains(id);
+              store.updateOs(
+                device.id,
+                (os) => placeShownApp(os, id, kind: device.kind, shown: !visible),
+              );
             },
           ),
       ],
@@ -1624,7 +1626,7 @@ class _AppCategoryState extends State<_AppCategory> {
                     const SizedBox(width: 10),
                     Expanded(child: Text(app.$2)),
                     IconButton(
-                      tooltip: widget.shown.contains(app.$1) ? 'Hide on home' : 'Show on home',
+                      tooltip: widget.shown.contains(app.$1) ? 'Hide' : 'Show',
                       onPressed: () => widget.onToggle(app.$1),
                       icon: Icon(
                         widget.shown.contains(app.$1) ? Icons.visibility : Icons.visibility_off,
