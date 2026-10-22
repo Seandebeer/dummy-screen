@@ -14,6 +14,7 @@ import '../video_source.dart';
 import 'ios_keyboard.dart';
 import 'browser_frame.dart';
 import 'catalog.dart';
+import 'roll_attach.dart';
 import 'social_apps.dart';
 
 class BulletinApp extends StatefulWidget {
@@ -632,12 +633,19 @@ class _RealtyAppState extends State<RealtyApp> {
 
 /// The prop inbox, shared by the phone app and the desktop mail window.
 List<Map<String, dynamic>> inboxSeed() => [
-  for (final mail in _inboxSeed)
-    {
-      ...mail,
-      'thread': [for (final part in mail['thread'] as List) {...part as Map}],
-    },
+  for (final mail in _inboxSeed) copyMail(mail),
 ];
+
+/// Pushed mail replaces a seed item with the same id so an edited message
+/// comes back instead of the original prop copy.
+List<Map<String, dynamic>> mergeInbox(List<Map<String, dynamic>> extra) {
+  final ids = extra.map((mail) => mail['id']).toSet();
+  return [
+    for (final mail in extra) copyMail(mail),
+    for (final mail in inboxSeed())
+      if (!ids.contains(mail['id'])) mail,
+  ];
+}
 
 const _inboxSeed = <Map<String, dynamic>>[
   {
@@ -739,11 +747,17 @@ class InboxApp extends StatefulWidget {
     this.extra = const [],
     this.chrome = SkinChrome.modern,
     this.contacts = kContacts,
+    this.photos = const [],
+    this.onSave,
   });
 
   final List<Map<String, dynamic>> extra;
   final SkinChrome chrome;
   final List<ContactCard> contacts;
+  final List<PropPhoto> photos;
+
+  /// Persists a sent or edited message. Seed mail is included once it changes.
+  final void Function(Map<String, dynamic> mail)? onSave;
 
   @override
   State<InboxApp> createState() => _InboxAppState();
@@ -754,13 +768,14 @@ class _InboxAppState extends State<InboxApp> {
   final _to = TextEditingController();
   final _subject = TextEditingController();
   final _body = TextEditingController();
+  final _edit = TextEditingController();
   int? _openId;
   bool _composing = false;
   Map<String, dynamic>? _replyTo;
-  late final List<Map<String, dynamic>> _emails = [
-    ...widget.extra,
-    ...inboxSeed(),
-  ];
+  PropPhoto? _attach;
+  Object? _editingMail;
+  int? _editingPart;
+  late final List<Map<String, dynamic>> _emails = mergeInbox(widget.extra);
 
   @override
   void didUpdateWidget(InboxApp oldWidget) {
@@ -772,7 +787,7 @@ class _InboxAppState extends State<InboxApp> {
     );
     for (final email in widget.extra) {
       if (!_emails.any((item) => item['id'] == email['id'])) {
-        _emails.insert(0, email);
+        _emails.insert(0, copyMail(email));
       }
     }
   }
@@ -783,6 +798,7 @@ class _InboxAppState extends State<InboxApp> {
     _to.dispose();
     _subject.dispose();
     _body.dispose();
+    _edit.dispose();
     super.dispose();
   }
 
@@ -839,33 +855,103 @@ class _InboxAppState extends State<InboxApp> {
     setState(() => _to.text = picked.name);
   }
 
+  Future<void> _pickRoll() async {
+    final picked = await pickCameraRoll(context, widget.photos);
+    if (picked == null || !mounted) return;
+    setState(() => _attach = picked);
+  }
+
+  Map<String, dynamic> _part(String body) {
+    final photo = _attach;
+    return {
+      'who': 'me',
+      'body': body,
+      'time': 'Now',
+      if (photo != null) 'media': rollMediaRef(photo),
+      if (photo != null) 'mediaType': rollMediaType(photo),
+    };
+  }
+
   void _sendCompose() {
     final subject = _subject.text.trim();
     final body = _body.text.trim();
-    if (subject.isEmpty && body.isEmpty) return;
+    if (subject.isEmpty && body.isEmpty && _attach == null) return;
     hideIosKeyboard(context);
+    Map<String, dynamic>? saved;
     setState(() {
       final reply = _replyTo;
+      final part = _part(body);
       if (reply != null) {
         final thread = reply['thread'];
-        if (thread is List) {
-          thread.add({'who': 'me', 'body': body, 'time': 'Now'});
-        }
+        if (thread is List) thread.add(part);
+        saved = reply;
       } else {
-        _emails.insert(0, {
+        final mail = {
           'id': DateTime.now().microsecondsSinceEpoch,
           'from': _to.text.trim().isEmpty ? 'Me' : _to.text.trim(),
           'subject': subject.isEmpty ? '(no subject)' : subject,
           'time': 'Now',
           'unread': false,
-          'thread': [
-            {'who': 'me', 'body': body, 'time': 'Now'},
-          ],
-        });
+          'thread': [part],
+        };
+        _emails.insert(0, mail);
+        _openId = mail['id'] as int;
+        saved = mail;
       }
       _composing = false;
       _replyTo = null;
+      _attach = null;
+      _body.clear();
     });
+    final mail = saved;
+    if (mail != null) widget.onSave?.call(mail);
+  }
+
+  void _beginMailEdit(Map<String, dynamic> email, int index) {
+    final thread = email['thread'];
+    if (thread is! List || index < 0 || index >= thread.length) return;
+    final body = '${jsonMap(thread[index])['body']}';
+    if (body.trim().isEmpty) return;
+    if (_editingMail != null &&
+        _editingPart != null &&
+        (_editingMail != email['id'] || _editingPart != index)) {
+      final current = _emails
+          .where((item) => item['id'] == _editingMail)
+          .firstOrNull;
+      if (current != null) _commitMail(current, _editingPart!);
+    }
+    _edit.text = body;
+    hideIosKeyboard(context);
+    setState(() {
+      _editingMail = email['id'];
+      _editingPart = index;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _editingMail != email['id'] || _editingPart != index) return;
+      openIosKeyboard(context, _edit, onDone: () => _commitMail(email, index));
+    });
+  }
+
+  void _commitMail(Map<String, dynamic> email, int index) {
+    final thread = email['thread'];
+    hideIosKeyboard(context);
+    Map<String, dynamic>? saved;
+    if (thread is List && index >= 0 && index < thread.length) {
+      final part = jsonMap(thread[index]);
+      final next = _edit.text.trim();
+      final media = '${part['media'] ?? ''}';
+      final previous = '${part['body'] ?? ''}'.trim();
+      if ((next.isNotEmpty || media.isNotEmpty) && next != previous) {
+        thread[index] = {...part, 'body': next};
+        saved = email;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _editingMail = null;
+      _editingPart = null;
+    });
+    if (saved != null) widget.onSave?.call(saved);
   }
 
   @override
@@ -992,7 +1078,7 @@ class _InboxAppState extends State<InboxApp> {
                         ),
                       ),
                       subtitle: Text(
-                        '${email['subject']}\n${(email['thread'] as List).first['body']}',
+                        '${email['subject']}\n${mailSnippet((email['thread'] as List).first)}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Color(0xFF8E8E93)),
@@ -1045,28 +1131,28 @@ class _InboxAppState extends State<InboxApp> {
               children: [
                 Text('${email['subject']}', style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
-                for (final message in thread) ...[
+                for (var i = 0; i < thread.length; i++) ...[
                   Row(
                     children: [
                       CircleAvatar(
                         radius: 16,
                         backgroundColor: const Color(0xFF8E8E93),
-                        child: Text('${message['who'] == 'me' ? 'Me' : email['from']}'.characters.first, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        child: Text('${thread[i]['who'] == 'me' ? 'Me' : email['from']}'.characters.first, style: const TextStyle(color: Colors.white, fontSize: 12)),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${message['who'] == 'me' ? 'Me' : email['from']}', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
-                            Text('${message['time'] ?? email['time']}', style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12)),
+                            Text('${thread[i]['who'] == 'me' ? 'Me' : email['from']}', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
+                            Text('${thread[i]['time'] ?? email['time']}', style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12)),
                           ],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text('${message['body']}', style: const TextStyle(color: Colors.black, height: 1.35, fontSize: 16)),
+                  _mailBody(email, i),
                   const Divider(height: 28),
                 ],
               ],
@@ -1124,6 +1210,27 @@ class _InboxAppState extends State<InboxApp> {
           ),
           _composeField('To', _to, contacts: true),
           _composeField('Subject', _subject),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            child: Row(
+              children: [
+                IconButton(
+                  key: const Key('mail-attach'),
+                  tooltip: 'Camera Roll',
+                  onPressed: _pickRoll,
+                  icon: const Icon(Icons.photo_outlined, color: Color(0xFF0A84FF)),
+                ),
+                if (_attach case final photo?)
+                  RollStill(
+                    key: const Key('mail-pending'),
+                    media: rollMediaRef(photo),
+                    mediaType: rollMediaType(photo),
+                    width: 48,
+                    height: 48,
+                  ),
+              ],
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: _body,
@@ -1147,6 +1254,55 @@ class _InboxAppState extends State<InboxApp> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _mailBody(Map<String, dynamic> email, int index) {
+    final part = jsonMap((email['thread'] as List)[index]);
+    final body = '${part['body'] ?? ''}';
+    final media = '${part['media'] ?? ''}';
+    final editing = _editingMail == email['id'] && _editingPart == index;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (editing)
+          TextField(
+            key: const Key('mail-edit'),
+            controller: _edit,
+            readOnly: true,
+            showCursor: true,
+            autofocus: true,
+            maxLines: null,
+            style: const TextStyle(color: Colors.black, height: 1.35, fontSize: 16),
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+              border: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF0A84FF)),
+              ),
+            ),
+            onTap: () => openIosKeyboard(
+              context,
+              _edit,
+              onDone: () => _commitMail(email, index),
+            ),
+          )
+        else if (body.trim().isNotEmpty)
+          GestureDetector(
+            key: Key('mail-body-$index'),
+            onTap: () => _beginMailEdit(email, index),
+            child: Text(
+              body,
+              style: const TextStyle(color: Colors.black, height: 1.35, fontSize: 16),
+            ),
+          ),
+        if (media.isNotEmpty)
+          RollStill(
+            key: Key('mail-media-$index'),
+            media: media,
+            mediaType: '${part['mediaType'] ?? ''}',
+          ),
+      ],
     );
   }
 

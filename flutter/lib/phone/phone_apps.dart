@@ -7,6 +7,7 @@ import '../store.dart';
 import 'catalog.dart';
 import 'ios_keyboard.dart';
 import 'phone_copy.dart';
+import 'roll_attach.dart';
 
 const _phoneGreen = Color(0xFF34C759);
 const _missedRed = Color(0xFFFF3B30);
@@ -588,7 +589,10 @@ class MessagesApp extends StatefulWidget {
 
 class _MessagesAppState extends State<MessagesApp> {
   final _reply = TextEditingController();
+  final _edit = TextEditingController();
   String? _thread;
+  String? _editingId;
+  PropPhoto? _attach;
 
   @override
   void initState() {
@@ -608,6 +612,7 @@ class _MessagesAppState extends State<MessagesApp> {
   @override
   void dispose() {
     _reply.dispose();
+    _edit.dispose();
     super.dispose();
   }
 
@@ -642,16 +647,49 @@ class _MessagesAppState extends State<MessagesApp> {
   void _send() {
     final thread = _thread;
     final text = _reply.text.trim();
-    if (thread == null || text.isEmpty) return;
+    final photo = _attach;
+    if (thread == null || (text.isEmpty && photo == null)) return;
     widget.store.sendMessage(
       deviceId: widget.deviceId,
       sender: 'phone',
       text: text,
       senderName: thread,
       thread: thread,
+      media: photo == null ? '' : rollMediaRef(photo),
+      mediaType: photo == null ? '' : rollMediaType(photo),
     );
     _reply.clear();
     hideIosKeyboard(context);
+    setState(() => _attach = null);
+  }
+
+  Future<void> _pickRoll() async {
+    final photos = widget.store.photos[widget.deviceId] ?? const <PropPhoto>[];
+    final picked = await pickCameraRoll(context, photos);
+    if (picked == null || !mounted) return;
+    setState(() => _attach = picked);
+  }
+
+  void _beginEdit(StageMessage message) {
+    if (message.text.isEmpty) return;
+    final previous = _editingId;
+    if (previous != null && previous != message.id) {
+      widget.store.updateMessageText(previous, _edit.text);
+    }
+    _edit.text = message.text;
+    hideIosKeyboard(context);
+    setState(() => _editingId = message.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _editingId != message.id) return;
+      openIosKeyboard(context, _edit, onDone: () => _commitEdit(message.id));
+    });
+  }
+
+  void _commitEdit(String id) {
+    widget.store.updateMessageText(id, _edit.text);
+    hideIosKeyboard(context);
+    if (!mounted) return;
+    setState(() => _editingId = null);
   }
 
   Future<void> _confirmDelete(StageMessage message) async {
@@ -672,6 +710,76 @@ class _MessagesAppState extends State<MessagesApp> {
       ),
     );
     if (ok == true) widget.store.deleteMessage(message.id);
+  }
+
+  Widget _bubble(StageMessage message) {
+    final mine = message.sender == 'phone';
+    final ink = mine || widget.chrome == SkinChrome.tiles ? Colors.white : Colors.black;
+    final editing = _editingId == message.id;
+    return GestureDetector(
+      onLongPress: editing ? null : () => _confirmDelete(message),
+      child: Align(
+        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.72),
+          decoration: BoxDecoration(
+            color: mine
+                ? _sent
+                : (widget.chrome == SkinChrome.tiles ? const Color(0xFF2C2C2E) : const Color(0xFFE9E9EB)),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (message.media.isNotEmpty)
+                RollStill(
+                  key: Key('msg-media-${message.id}'),
+                  media: message.media,
+                  mediaType: message.mediaType,
+                ),
+              if (editing)
+                SizedBox(
+                  width: 180,
+                  child: TextField(
+                    key: const Key('msg-edit'),
+                    controller: _edit,
+                    readOnly: true,
+                    showCursor: true,
+                    autofocus: true,
+                    style: TextStyle(color: ink, fontSize: 16),
+                    cursorColor: ink,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      border: UnderlineInputBorder(
+                        borderSide: BorderSide(color: ink.withValues(alpha: 0.45)),
+                      ),
+                    ),
+                    onTap: () => openIosKeyboard(
+                      context,
+                      _edit,
+                      onDone: () => _commitEdit(message.id),
+                    ),
+                  ),
+                )
+              else if (message.text.isNotEmpty)
+                GestureDetector(
+                  key: Key('msg-text-${message.id}'),
+                  onTap: () => _beginEdit(message),
+                  onLongPress: () => _confirmDelete(message),
+                  child: Text(
+                    message.text,
+                    style: TextStyle(color: ink, fontSize: 16),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -724,7 +832,10 @@ class _MessagesAppState extends State<MessagesApp> {
                             ),
                             title: Text(name, style: TextStyle(color: _ink, fontWeight: FontWeight.w600)),
                             subtitle: Text(
-                              grouped[name]!.last.text,
+                              messagePreview(
+                                grouped[name]!.last.text,
+                                grouped[name]!.last.mediaType,
+                              ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Color(0xFF8E8E93)),
@@ -774,38 +885,41 @@ class _MessagesAppState extends State<MessagesApp> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               children: [
-                for (final message in items)
-                  GestureDetector(
-                    onLongPress: () => _confirmDelete(message),
-                    child: Align(
-                    alignment: message.sender == 'phone' ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.72),
-                      decoration: BoxDecoration(
-                        color: message.sender == 'phone' ? _sent : (widget.chrome == SkinChrome.tiles ? const Color(0xFF2C2C2E) : const Color(0xFFE9E9EB)),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text(
-                        message.text,
-                        style: TextStyle(
-                          color: message.sender == 'phone' || widget.chrome == SkinChrome.tiles ? Colors.white : Colors.black,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  ),
+                for (final message in items) _bubble(message),
               ],
             ),
           ),
+          if (_attach case final photo?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+              child: Row(
+                children: [
+                  RollStill(
+                    key: const Key('msg-pending'),
+                    media: rollMediaRef(photo),
+                    mediaType: rollMediaType(photo),
+                    width: 54,
+                    height: 54,
+                  ),
+                  IconButton(
+                    tooltip: 'Remove',
+                    onPressed: () => setState(() => _attach = null),
+                    icon: Icon(Icons.close, color: _ink, size: 18),
+                  ),
+                ],
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
             child: Row(
               children: [
-                const Icon(Icons.add_circle, color: Color(0xFF8E8E93)),
-                const SizedBox(width: 8),
+                IconButton(
+                  key: const Key('msg-attach'),
+                  tooltip: 'Camera Roll',
+                  onPressed: _pickRoll,
+                  icon: const Icon(Icons.add_circle, color: Color(0xFF8E8E93)),
+                  visualDensity: VisualDensity.compact,
+                ),
                 Expanded(
                   child: TextField(
                     controller: _reply,
@@ -813,7 +927,11 @@ class _MessagesAppState extends State<MessagesApp> {
                     showCursor: true,
                     onTapAlwaysCalled: true,
                     style: TextStyle(color: _ink),
-                    onTap: () => openIosKeyboard(context, _reply, onDone: _send),
+                    onTap: () {
+                      final editing = _editingId;
+                      if (editing != null) _commitEdit(editing);
+                      openIosKeyboard(context, _reply, onDone: _send);
+                    },
                     decoration: InputDecoration(
                       hintText: _composerHint,
                       hintStyle: const TextStyle(color: Color(0xFF8E8E93)),

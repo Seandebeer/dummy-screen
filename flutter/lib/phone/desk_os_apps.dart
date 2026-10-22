@@ -19,6 +19,7 @@ import 'library_app.dart';
 import 'maps_app.dart';
 import 'os_apps.dart';
 import 'prop_apps.dart';
+import 'roll_attach.dart';
 import 'social_apps.dart';
 import 'utility_apps.dart';
 
@@ -408,7 +409,10 @@ class _DeskMessages extends StatefulWidget {
 
 class _DeskMessagesState extends State<_DeskMessages> {
   final _reply = TextEditingController();
+  final _edit = TextEditingController();
   String? _thread;
+  String? _editingId;
+  PropPhoto? _attach;
 
   @override
   void initState() {
@@ -419,21 +423,49 @@ class _DeskMessagesState extends State<_DeskMessages> {
   @override
   void dispose() {
     _reply.dispose();
+    _edit.dispose();
     super.dispose();
   }
 
   void _send(String thread) {
     final text = _reply.text.trim();
-    if (text.isEmpty) return;
+    final photo = _attach;
+    if (text.isEmpty && photo == null) return;
     widget.store.sendMessage(
       deviceId: widget.device.id,
       sender: 'phone',
       text: text,
       senderName: thread,
       thread: thread,
+      media: photo == null ? '' : rollMediaRef(photo),
+      mediaType: photo == null ? '' : rollMediaType(photo),
     );
     _reply.clear();
+    setState(() => _attach = null);
     hideIosKeyboard(context);
+  }
+
+  Future<void> _pickRoll() async {
+    final photos = widget.store.photos[widget.device.id] ?? const <PropPhoto>[];
+    final picked = await pickCameraRoll(context, photos);
+    if (picked == null || !mounted) return;
+    setState(() => _attach = picked);
+  }
+
+  void _beginEdit(StageMessage message) {
+    if (message.text.isEmpty) return;
+    final previous = _editingId;
+    if (previous != null && previous != message.id) {
+      widget.store.updateMessageText(previous, _edit.text);
+    }
+    _edit.text = message.text;
+    setState(() => _editingId = message.id);
+  }
+
+  void _commitEdit(String id) {
+    widget.store.updateMessageText(id, _edit.text);
+    if (!mounted) return;
+    setState(() => _editingId = null);
   }
 
   Future<void> _confirmDelete(StageMessage message) async {
@@ -456,6 +488,79 @@ class _DeskMessagesState extends State<_DeskMessages> {
     if (ok == true) widget.store.deleteMessage(message.id);
   }
 
+  Widget _bubble(StageMessage message) {
+    final mine = message.sender == 'phone';
+    final editing = _editingId == message.id;
+    return GestureDetector(
+      onLongPress: editing ? null : () => _confirmDelete(message),
+      child: Align(
+        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          constraints: const BoxConstraints(maxWidth: 320),
+          decoration: BoxDecoration(
+            color: mine ? const Color(0xFF0A84FF) : const Color(0xFF2C2C33),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (message.media.isNotEmpty)
+                RollStill(
+                  key: Key('desk-media-${message.id}'),
+                  media: message.media,
+                  mediaType: message.mediaType,
+                ),
+              if (editing)
+                SizedBox(
+                  width: 200,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const Key('desk-msg-edit'),
+                          controller: _edit,
+                          autofocus: true,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            border: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white54),
+                            ),
+                          ),
+                          onSubmitted: (_) => _commitEdit(message.id),
+                        ),
+                      ),
+                      IconButton(
+                        key: const Key('desk-msg-done'),
+                        tooltip: 'Done',
+                        onPressed: () => _commitEdit(message.id),
+                        icon: const Icon(Icons.check, size: 16, color: Colors.white),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                )
+              else if (message.text.isNotEmpty)
+                GestureDetector(
+                  key: Key('desk-msg-text-${message.id}'),
+                  onTap: () => _beginEdit(message),
+                  onLongPress: () => _confirmDelete(message),
+                  child: Text(
+                    message.text,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final messages = widget.store.messagesFor(widget.device.id);
@@ -473,7 +578,10 @@ class _DeskMessagesState extends State<_DeskMessages> {
           _SideRow(
             key: Key('desk-thread-$name'),
             title: name,
-            subtitle: threads[name]!.last.text,
+            subtitle: messagePreview(
+              threads[name]!.last.text,
+              threads[name]!.last.mediaType,
+            ),
             meta: formatStamp(threads[name]!.last.sentAt),
             selected: name == thread,
             leading: CircleAvatar(
@@ -498,49 +606,45 @@ class _DeskMessagesState extends State<_DeskMessages> {
                   child: ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
-                      for (final message in items)
-                        GestureDetector(
-                          onLongPress: () => _confirmDelete(message),
-                          child: Align(
-                          alignment: message.sender == 'phone'
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 6),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 7,
-                            ),
-                            constraints: const BoxConstraints(maxWidth: 320),
-                            decoration: BoxDecoration(
-                              color: message.sender == 'phone'
-                                  ? const Color(0xFF0A84FF)
-                                  : const Color(0xFF2C2C33),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              message.text,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                        ),
+                      for (final message in items) _bubble(message),
                     ],
                   ),
                 ),
+                if (_attach case final photo?)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: RollStill(
+                        key: const Key('desk-pending'),
+                        media: rollMediaRef(photo),
+                        mediaType: rollMediaType(photo),
+                        width: 64,
+                        height: 48,
+                      ),
+                    ),
+                  ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 8, 10),
+                  padding: const EdgeInsets.fromLTRB(4, 0, 8, 10),
                   child: Row(
                     children: [
+                      IconButton(
+                        key: const Key('desk-attach'),
+                        tooltip: 'Camera Roll',
+                        onPressed: _pickRoll,
+                        icon: const Icon(Icons.add_circle_outline, size: 18),
+                        color: _dim,
+                      ),
                       Expanded(
                         child: TextField(
                           key: const Key('desk-reply'),
                           controller: _reply,
                           style: const TextStyle(color: _ink, fontSize: 13),
                           decoration: _field('Write a message'),
+                          onTap: () {
+                            final editing = _editingId;
+                            if (editing != null) _commitEdit(editing);
+                          },
                           onSubmitted: (_) => _send(thread),
                         ),
                       ),
@@ -970,13 +1074,21 @@ class _DeskMail extends StatefulWidget {
 }
 
 class _DeskMailState extends State<_DeskMail> {
-  late final List<Map<String, dynamic>> _mail = [...inboxSeed()];
+  final _to = TextEditingController();
+  final _subject = TextEditingController();
+  final _compose = TextEditingController();
+  final _reply = TextEditingController();
+  final _edit = TextEditingController();
+  late final List<Map<String, dynamic>> _mail;
   int _open = 0;
+  bool _composing = false;
+  PropPhoto? _attach;
+  int? _editingPart;
 
   @override
   void initState() {
     super.initState();
-    _syncPushed();
+    _mail = mergeInbox(_pushed());
   }
 
   @override
@@ -985,14 +1097,27 @@ class _DeskMailState extends State<_DeskMail> {
     _syncPushed();
   }
 
-  void _syncPushed() {
+  @override
+  void dispose() {
+    _to.dispose();
+    _subject.dispose();
+    _compose.dispose();
+    _reply.dispose();
+    _edit.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> _pushed() {
     final raw = widget.store.pages['mail-${widget.device.id}'];
-    final pushed = raw is Map
-        ? [
-            for (final item in jsonList(raw['items']))
-              if (item is Map) {...jsonMap(item), 'pushed': true},
-          ]
-        : const <Map<String, dynamic>>[];
+    if (raw is! Map) return const [];
+    return [
+      for (final item in jsonList(raw['items']))
+        if (item is Map) {...copyMail(jsonMap(item)), 'pushed': true},
+    ];
+  }
+
+  void _syncPushed() {
+    final pushed = _pushed();
     final ids = pushed.map((item) => item['id']).toSet();
     _mail.removeWhere((item) => item['pushed'] == true && !ids.contains(item['id']));
     for (final item in pushed.reversed) {
@@ -1000,6 +1125,91 @@ class _DeskMailState extends State<_DeskMail> {
         _mail.insert(0, item);
       }
     }
+  }
+
+  void _persist(Map<String, dynamic> mail) {
+    widget.store.saveMailItem(deviceId: widget.device.id, mail: mail);
+  }
+
+  Map<String, dynamic> _part(String body) {
+    final photo = _attach;
+    return {
+      'who': 'me',
+      'body': body,
+      'time': 'Now',
+      if (photo != null) 'media': rollMediaRef(photo),
+      if (photo != null) 'mediaType': rollMediaType(photo),
+    };
+  }
+
+  void _sendNew() {
+    final subject = _subject.text.trim();
+    final body = _compose.text.trim();
+    if (subject.isEmpty && body.isEmpty && _attach == null) return;
+    final mail = {
+      'id': DateTime.now().microsecondsSinceEpoch,
+      'from': _to.text.trim().isEmpty ? 'Me' : _to.text.trim(),
+      'subject': subject.isEmpty ? '(no subject)' : subject,
+      'time': 'Now',
+      'unread': false,
+      'pushed': true,
+      'thread': [_part(body)],
+    };
+    setState(() {
+      _mail.insert(0, mail);
+      _open = 0;
+      _composing = false;
+      _attach = null;
+      _compose.clear();
+    });
+    _persist(mail);
+  }
+
+  void _sendReply(Map<String, dynamic> mail) {
+    final body = _reply.text.trim();
+    if (body.isEmpty && _attach == null) return;
+    final thread = mail['thread'];
+    if (thread is! List) return;
+    setState(() {
+      thread.add(_part(body));
+      _attach = null;
+      _reply.clear();
+    });
+    _persist(mail);
+  }
+
+  void _beginEdit(int index, String body) {
+    if (body.trim().isEmpty) return;
+    if (_editingPart != null && _editingPart != index && _mail.isNotEmpty) {
+      final open = _mail[_open.clamp(0, _mail.length - 1)];
+      _commitEdit(open, _editingPart!);
+    }
+    _edit.text = body;
+    setState(() => _editingPart = index);
+  }
+
+  void _commitEdit(Map<String, dynamic> mail, int index) {
+    final thread = mail['thread'];
+    var changed = false;
+    if (thread is List && index >= 0 && index < thread.length) {
+      final part = jsonMap(thread[index]);
+      final next = _edit.text.trim();
+      final media = '${part['media'] ?? ''}';
+      final previous = '${part['body'] ?? ''}'.trim();
+      if ((next.isNotEmpty || media.isNotEmpty) && next != previous) {
+        thread[index] = {...part, 'body': next};
+        changed = true;
+      }
+    }
+    setState(() => _editingPart = null);
+    if (changed) _persist(mail);
+  }
+
+  Future<void> _pickRoll() async {
+    final photos = widget.store.photos[widget.device.id] ?? const <PropPhoto>[];
+    final picked = await pickCameraRoll(context, photos);
+    if (picked == null || !mounted) return;
+    setState(() => _attach = picked);
   }
 
   @override
@@ -1010,6 +1220,19 @@ class _DeskMailState extends State<_DeskMail> {
     return _Split(
       title: 'Inbox',
       list: [
+        _SideRow(
+          key: const Key('desk-mail-compose'),
+          title: 'New message',
+          leading: const Icon(Icons.edit_outlined, size: 14, color: _dim),
+          onTap: () => setState(() {
+            _composing = true;
+            _editingPart = null;
+            _attach = null;
+            _to.clear();
+            _subject.clear();
+            _compose.clear();
+          }),
+        ),
         for (var i = 0; i < _mail.length; i++)
           _SideRow(
             key: Key('desk-mail-$i'),
@@ -1017,14 +1240,18 @@ class _DeskMailState extends State<_DeskMail> {
             subtitle: '${_mail[i]['subject']}',
             meta: '${_mail[i]['time']}',
             strong: _mail[i]['unread'] == true,
-            selected: i == index,
+            selected: !_composing && i == index,
             onTap: () => setState(() {
               _mail[i]['unread'] = false;
               _open = i;
+              _composing = false;
+              _editingPart = null;
             }),
           ),
       ],
-      body: open == null
+      body: _composing
+          ? _composer()
+          : open == null
           ? const Center(child: Text('No mail', style: TextStyle(color: _dim)))
           : Column(
               children: [
@@ -1038,31 +1265,202 @@ class _DeskMailState extends State<_DeskMail> {
                       _mail.removeAt(index);
                       if (_open >= _mail.length) _open = _mail.length - 1;
                       if (_open < 0) _open = 0;
+                      _editingPart = null;
                     }),
-                    icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFFF3B30)),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: Color(0xFFFF3B30),
+                    ),
                   ),
                 ),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      for (final part in thread)
+                      for (var i = 0; i < thread.length; i++)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 14),
-                          child: Text(
-                            '${jsonMap(part)['body']}',
-                            style: const TextStyle(
-                              color: _ink,
-                              fontSize: 13,
-                              height: 1.45,
-                            ),
-                          ),
+                          child: _partView(open, i),
                         ),
+                    ],
+                  ),
+                ),
+                if (_attach != null) _pending(const Key('desk-mail-pending')),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        key: const Key('desk-mail-reply-attach'),
+                        tooltip: 'Camera Roll',
+                        onPressed: _pickRoll,
+                        icon: const Icon(Icons.photo_outlined, size: 18),
+                        color: _dim,
+                      ),
+                      Expanded(
+                        child: TextField(
+                          key: const Key('desk-mail-reply'),
+                          controller: _reply,
+                          style: const TextStyle(color: _ink, fontSize: 13),
+                          decoration: _field('Reply'),
+                          onTap: () {
+                            if (_editingPart != null && _mail.isNotEmpty) {
+                              _commitEdit(
+                                _mail[_open.clamp(0, _mail.length - 1)],
+                                _editingPart!,
+                              );
+                            }
+                          },
+                          onSubmitted: (_) => _sendReply(open),
+                        ),
+                      ),
+                      IconButton(
+                        key: const Key('desk-mail-reply-send'),
+                        tooltip: 'Send',
+                        onPressed: () => _sendReply(open),
+                        icon: const Icon(Icons.send, size: 16),
+                        color: _ink,
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _partView(Map<String, dynamic> mail, int index) {
+    final part = jsonMap(jsonList(mail['thread'])[index]);
+    final body = '${part['body'] ?? ''}';
+    final media = '${part['media'] ?? ''}';
+    final editing = _editingPart == index;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (editing)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('desk-mail-edit'),
+                  controller: _edit,
+                  autofocus: true,
+                  minLines: 1,
+                  maxLines: 6,
+                  style: const TextStyle(color: _ink, fontSize: 13, height: 1.45),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _commitEdit(mail, index),
+                ),
+              ),
+              IconButton(
+                key: const Key('desk-mail-done'),
+                tooltip: 'Done',
+                onPressed: () => _commitEdit(mail, index),
+                icon: const Icon(Icons.check, size: 18, color: _ink),
+              ),
+            ],
+          )
+        else if (body.trim().isNotEmpty)
+          GestureDetector(
+            key: Key('desk-mail-body-$index'),
+            onTap: () => _beginEdit(index, body),
+            child: Text(
+              body,
+              style: const TextStyle(color: _ink, fontSize: 13, height: 1.45),
+            ),
+          ),
+        if (media.isNotEmpty)
+          RollStill(
+            key: Key('desk-mail-media-$index'),
+            media: media,
+            mediaType: '${part['mediaType'] ?? ''}',
+          ),
+      ],
+    );
+  }
+
+  Widget _pending(Key key) {
+    final photo = _attach;
+    if (photo == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: RollStill(
+          key: key,
+          media: rollMediaRef(photo),
+          mediaType: rollMediaType(photo),
+          width: 72,
+          height: 48,
+        ),
+      ),
+    );
+  }
+
+  Widget _composer() {
+    return Column(
+      children: [
+        _Head(
+          title: 'New Message',
+          trailing: TextButton(
+            key: const Key('desk-mail-send'),
+            onPressed: _sendNew,
+            child: const Text('Send'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+          child: TextField(
+            key: const Key('desk-mail-to'),
+            controller: _to,
+            style: const TextStyle(color: _ink, fontSize: 13),
+            decoration: _field('To'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: TextField(
+            key: const Key('desk-mail-subject'),
+            controller: _subject,
+            style: const TextStyle(color: _ink, fontSize: 13),
+            decoration: _field('Subject'),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: TextField(
+              key: const Key('desk-mail-body'),
+              controller: _compose,
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              style: const TextStyle(color: _ink, fontSize: 13),
+              decoration: _field('Message'),
+            ),
+          ),
+        ),
+        _pending(const Key('desk-mail-pending')),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 8, 8),
+          child: Row(
+            children: [
+              IconButton(
+                key: const Key('desk-mail-attach'),
+                tooltip: 'Camera Roll',
+                onPressed: _pickRoll,
+                icon: const Icon(Icons.photo_outlined, size: 18),
+                color: _dim,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

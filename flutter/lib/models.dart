@@ -1428,11 +1428,11 @@ class StageMessage {
   final String mediaType;
   final bool read;
 
-  StageMessage copyWith({bool? read}) => StageMessage(
+  StageMessage copyWith({bool? read, String? text}) => StageMessage(
     id: id,
     deviceId: deviceId,
     sender: sender,
-    text: text,
+    text: text ?? this.text,
     senderName: senderName,
     thread: thread,
     sentAt: sentAt,

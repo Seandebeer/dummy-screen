@@ -767,6 +767,60 @@ class StageStore extends ChangeNotifier {
     _touch({'kind': 'delete_message', 'id': id});
   }
 
+  /// Rewrites the text of a message already on the device. A cleared caption
+  /// stays only when the message still has a photo or video attached.
+  void updateMessageText(String id, String text) {
+    final index = messages.indexWhere((message) => message.id == id);
+    if (index < 0) return;
+    final current = messages[index];
+    final trimmed = text.trim();
+    if (trimmed == current.text) return;
+    if (trimmed.isEmpty && current.media.isEmpty) return;
+    final next = current.copyWith(text: trimmed);
+    messages = [...messages]..[index] = next;
+    _touch({'kind': 'edit_message', 'message': next.toJson()});
+  }
+
+  /// Inserts or replaces one inbox item for this device.
+  void saveMailItem({
+    required String deviceId,
+    required Map<String, dynamic> mail,
+  }) {
+    if (deviceId.isEmpty || mail['id'] == null) return;
+    final key = 'mail-$deviceId';
+    final current = pages[key];
+    final items = current is Map
+        ? [
+            for (final item in jsonList(current['items']))
+              if (item is Map) _copyMail(jsonMap(item)),
+          ]
+        : <Map<String, dynamic>>[];
+    final stored = _copyMail(mail)..remove('pushed');
+    final index = items.indexWhere((item) => item['id'] == stored['id']);
+    if (index >= 0) {
+      items[index] = stored;
+    } else {
+      items.insert(0, stored);
+    }
+    pages = {
+      ...pages,
+      key: {'items': items},
+    };
+    _touch({'kind': 'page', 'app': key, 'data': pages[key]});
+  }
+
+  Map<String, dynamic> _copyMail(Map<String, dynamic> mail) {
+    final copy = Map<String, dynamic>.from(mail);
+    final thread = copy['thread'];
+    if (thread is List) {
+      copy['thread'] = [
+        for (final part in thread)
+          if (part is Map) Map<String, dynamic>.from(jsonMap(part)) else part,
+      ];
+    }
+    return copy;
+  }
+
   void startCall({
     String? id,
     required String deviceId,
@@ -1163,6 +1217,7 @@ class StageStore extends ChangeNotifier {
       'banner_dismiss',
       'clear_messages',
       'delete_message',
+      'edit_message',
       'clear_mail',
       'clear_banners',
       'os_drive',
@@ -1203,6 +1258,8 @@ class StageStore extends ChangeNotifier {
           senderName: message.senderName,
           thread: message.thread,
           sentAt: message.sentAt,
+          media: message.media,
+          mediaType: message.mediaType,
           banner: banner,
         );
       case 'call_start':
@@ -1248,6 +1305,9 @@ class StageStore extends ChangeNotifier {
         clearMessages(patch['deviceId'] as String? ?? '');
       case 'delete_message':
         deleteMessage(patch['id'] as String? ?? '');
+      case 'edit_message':
+        final edited = StageMessage.fromJson(jsonMap(patch['message']));
+        updateMessageText(edited.id, edited.text);
       case 'clear_mail':
         clearMail(patch['deviceId'] as String? ?? '');
       case 'clear_banners':

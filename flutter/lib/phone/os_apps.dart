@@ -163,6 +163,8 @@ class _OsAppViewState extends State<OsAppView> {
           extra: _mail,
           chrome: chromeFor(device.skin),
           contacts: contactsFor(device.os),
+          photos: store.photos[device.id] ?? const [],
+          onSave: (mail) => store.saveMailItem(deviceId: device.id, mail: mail),
         );
       case 'calendar':
         return CalendarApp(os: device.os);
