@@ -34,6 +34,7 @@ import '../phone/language_settings.dart';
 import '../phone/place_settings.dart';
 import '../phone/settings_app.dart';
 import '../phone/settings_kit.dart';
+import '../phone/smart_faces.dart';
 import '../phone/smart_home.dart';
 import '../theme.dart';
 import '../vfx/catalog.dart';
@@ -1077,33 +1078,14 @@ class _OsPageState extends State<OsPage> {
                   title: 'Interface',
                   child: Column(
                     children: [
-                      for (final face in const [
-                        (
-                          'glass',
-                          'Harbor Glass',
-                          'Frosted panels over a harbour wash.',
-                          [Color(0xFF12343A), Color(0xFF071816)],
-                        ),
-                        (
-                          'slate',
-                          'Slate Board',
-                          'Circular controls on a slate field.',
-                          [Color(0xFF31445F), Color(0xFF1A2433)],
-                        ),
-                        (
-                          'ember',
-                          'Ember Dial',
-                          'Round dials on a warm field.',
-                          [Color(0xFF3A2418), Color(0xFF1A100C)],
-                        ),
-                      ]) ...[
+                      for (final face in kHomeFaces) ...[
                         SettingsTile(
-                          tileKey: Key('os-home-face-${face.$1}'),
-                          name: face.$2,
-                          desc: face.$3,
-                          preview: face.$4,
-                          active: (live.os.face.isEmpty ? 'glass' : live.os.face) == face.$1,
-                          onTap: () => store.updateOs(live.id, (os) => os.copyWith(face: face.$1)),
+                          tileKey: Key('os-home-face-${face.id}'),
+                          name: face.name,
+                          desc: face.desc,
+                          preview: face.preview,
+                          active: homeFaceId(live.os.face) == face.id,
+                          onTap: () => store.updateOs(live.id, (os) => os.copyWith(face: face.id)),
                         ),
                         const SizedBox(height: 8),
                       ],
