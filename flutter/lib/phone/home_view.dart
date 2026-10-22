@@ -104,7 +104,9 @@ class PhoneHome extends StatelessWidget {
       );
     }
     final modern = chrome == SkinChrome.modern;
-    final dockIds = os.dockOrder.isEmpty ? kDockIds : os.dockOrder;
+    final dockIds = os.dockOrder.isEmpty
+        ? kDockIds
+        : [for (final id in os.dockOrder) if (id != '-' && id.isNotEmpty) id];
     final grid = [
       for (final id in layout)
         if (_resolve(id) case final app? when !dockIds.contains(id)) app,

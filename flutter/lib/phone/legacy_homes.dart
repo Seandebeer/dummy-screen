@@ -126,7 +126,9 @@ class _IosShelfHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dockIds = os.dockOrder.isEmpty ? const ['phone', 'email', 'browser', 'music'] : os.dockOrder;
+    final dockIds = os.dockOrder.isEmpty
+        ? const ['phone', 'email', 'browser', 'music']
+        : [for (final id in os.dockOrder) if (id != '-' && id.isNotEmpty) id];
     final dock = [for (final id in dockIds) ?_app(id)];
     final apps = _grid(os, dockIds.toSet());
     final gloss = kind != _IosKind.seven;
