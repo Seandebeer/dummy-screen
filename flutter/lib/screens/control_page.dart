@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../deck/chrome.dart';
+import 'cue_deck.dart';
 import '../image_file.dart';
 import '../media/call_media.dart';
 import '../models.dart';
@@ -601,6 +602,15 @@ class _ControlPageState extends State<ControlPage> {
                   ),
                   ),
                   ],
+                  CueDeck(
+                    palette: palette,
+                    store: store,
+                    targets: _targets(store),
+                    enabled: channel != null,
+                    open: _open,
+                    stripHeight: _stripHeight(context),
+                    onOpenChanged: (value) => setState(() => _open = value),
+                  ),
                   if (channel != null) ...[
                     const SizedBox(height: 20),
                     _LockPad(

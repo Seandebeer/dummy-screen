@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models.dart';
 import 'os_catalog.dart';
+import 'phone/cues.dart';
 
 enum LinkRole { solo, host, client }
 
@@ -58,6 +59,8 @@ class StageStore extends ChangeNotifier {
   bool ready = false;
   bool _importing = false;
   final Map<String, Timer> _ringTimers = {};
+  final Map<String, Timer> _cueTimers = {};
+  Map<String, PhoneCue> cues = {};
 
   List<Project> projects = [];
   List<PropDevice> devices = [];
@@ -119,7 +122,79 @@ class StageStore extends ChangeNotifier {
       timer.cancel();
     }
     _ringTimers.clear();
+    for (final timer in _cueTimers.values) {
+      timer.cancel();
+    }
+    _cueTimers.clear();
     super.dispose();
+  }
+
+  PhoneCue? cueFor(String deviceId) => cues[deviceId];
+
+  /// Plays a simulated picture cue. Sleep toggles off when it is already up.
+  /// Repeating an effect restarts it. Battery, lock, and stored data stay put.
+  void playCue(String deviceId, String effect, {int intensity = 70}) {
+    if (deviceById(deviceId) == null || !knownCue(effect)) return;
+    if (effect == 'sleep' && cues[deviceId]?.effect == 'sleep') {
+      stopCue(deviceId);
+      return;
+    }
+    final cue = PhoneCue(
+      effect: effect,
+      startedAt: DateTime.now().millisecondsSinceEpoch,
+      intensity: intensity.clamp(0, 100).toInt(),
+      generation: (cues[deviceId]?.generation ?? 0) + 1,
+    );
+    cues = {...cues, deviceId: cue};
+    _armCue(deviceId, cue);
+    _touch({'kind': 'cue', 'deviceId': deviceId, 'cue': cue.toJson()});
+  }
+
+  void setCueIntensity(String deviceId, int intensity) {
+    final current = cues[deviceId];
+    if (current == null) return;
+    final next = current.copyWith(intensity: intensity.clamp(0, 100).toInt());
+    cues = {...cues, deviceId: next};
+    _touch({'kind': 'cue', 'deviceId': deviceId, 'cue': next.toJson()});
+  }
+
+  void stopCue(String deviceId) {
+    _cueTimers.remove(deviceId)?.cancel();
+    if (!cues.containsKey(deviceId)) return;
+    cues = {...cues}..remove(deviceId);
+    _touch({'kind': 'cue', 'deviceId': deviceId, 'cue': null});
+  }
+
+  /// Host-side apply. Keeps the cue's original start time.
+  void adoptCue(String deviceId, PhoneCue? cue) {
+    _cueTimers.remove(deviceId)?.cancel();
+    if (cue == null || cue.effect.isEmpty) {
+      if (!cues.containsKey(deviceId)) return;
+      cues = {...cues}..remove(deviceId);
+      _touch(null);
+      return;
+    }
+    cues = {...cues, deviceId: cue};
+    _armCue(deviceId, cue);
+    _touch(null);
+  }
+
+  void _armCue(String deviceId, PhoneCue cue) {
+    _cueTimers.remove(deviceId)?.cancel();
+    if ((sync?.role ?? LinkRole.solo) == LinkRole.client) return;
+    final span = cueAutoStop(cue.effect);
+    if (span == null) return;
+    final left = span.inMilliseconds -
+        (DateTime.now().millisecondsSinceEpoch - cue.startedAt);
+    _cueTimers[deviceId] = Timer(
+      Duration(milliseconds: left <= 0 ? 0 : left),
+      () {
+        _cueTimers.remove(deviceId);
+        final live = cues[deviceId];
+        if (live == null || live.generation != cue.generation) return;
+        stopCue(deviceId);
+      },
+    );
   }
 
   void _cancelRing(String deviceId) {
@@ -606,6 +681,10 @@ class StageStore extends ChangeNotifier {
     }
     if (photos.containsKey(id)) {
       photos = {...photos}..remove(id);
+    }
+    _cueTimers.remove(id)?.cancel();
+    if (cues.containsKey(id)) {
+      cues = {...cues}..remove(id);
     }
     _touch({'kind': 'device_reset', 'device': reset.toJson()});
   }
@@ -1225,6 +1304,7 @@ class StageStore extends ChangeNotifier {
       'page',
       'screen',
       'marker_stage',
+      'cue',
     };
     if (activeTrigger != null &&
         session != null &&
@@ -1340,6 +1420,11 @@ class StageStore extends ChangeNotifier {
           patch['deviceId'] as String?,
           patch.containsKey('app') ? patch['app'] as String? : null,
         );
+      case 'cue':
+        adoptCue(
+          patch['deviceId'] as String? ?? '',
+          patch['cue'] is Map ? PhoneCue.fromJson(jsonMap(patch['cue'])) : null,
+        );
       case 'vfx_color':
         setVfxColor(patch['color'] as String? ?? 'green');
       case 'vfx_marks':
@@ -1370,6 +1455,9 @@ class StageStore extends ChangeNotifier {
     'markerConfig': markerConfig,
     'pages': pages,
     'activeTrigger': activeTrigger,
+    'cues': {
+      for (final entry in cues.entries) entry.key: entry.value.toJson(),
+    },
   };
 
   void importState(Map<String, dynamic> json) {
@@ -1458,6 +1546,26 @@ class StageStore extends ChangeNotifier {
     markerConfig = jsonMap(json['markerConfig']);
     pages = jsonMap(json['pages']);
     activeTrigger = json['activeTrigger'] as String?;
+    _readCues(json['cues']);
+  }
+
+  void _readCues(dynamic raw) {
+    for (final timer in _cueTimers.values) {
+      timer.cancel();
+    }
+    _cueTimers.clear();
+    cues = {};
+    if (raw is Map) {
+      raw.forEach((key, value) {
+        if (value is! Map) return;
+        final cue = PhoneCue.fromJson(jsonMap(value));
+        if (cue.effect.isEmpty) return;
+        cues[key.toString()] = cue;
+      });
+    }
+    for (final entry in cues.entries) {
+      _armCue(entry.key, entry.value);
+    }
   }
 
   void _dropDevices(Set<String> ids) {
@@ -1473,6 +1581,12 @@ class StageStore extends ChangeNotifier {
         .toList();
     alarms.removeWhere((key, _) => ids.contains(key));
     photos.removeWhere((key, _) => ids.contains(key));
+    for (final id in ids) {
+      _cueTimers.remove(id)?.cancel();
+    }
+    if (ids.any(cues.containsKey)) {
+      cues = {...cues}..removeWhere((key, _) => ids.contains(key));
+    }
   }
 
   void _normalize() {
