@@ -181,32 +181,24 @@ class _CueCategoryCardState extends State<_CueCategoryCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Plays on the connected device. Stop and Reset restore the screen.',
-            style: TextStyle(color: palette.muted, fontSize: 11, height: 1.35),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final spec in section.specs)
-                _CueButton(
-                  effect: spec.id,
-                  label: spec.label,
-                  active: live?.effect == spec.id,
-                  enabled: widget.enabled,
-                  onPressed: () => _play(spec.id),
-                ),
-            ],
-          ),
+          for (var i = 0; i < section.specs.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            _CueRow(
+              spec: section.specs[i],
+              palette: palette,
+              color: section.color,
+              active: live?.effect == section.specs[i].id,
+              enabled: widget.enabled,
+              onPressed: () => _play(section.specs[i].id),
+            ),
+          ],
           if (showIntensity) ...[
             const SizedBox(height: 14),
             Text(
               section.id == 'power'
                   ? 'Phone dying intensity'
                   : 'Glitch and heat intensity',
-              style: TextStyle(color: palette.muted, fontSize: 11),
+              style: TextStyle(color: palette.muted, fontSize: 10),
             ),
             Slider(
               key: Key('deck-cue-intensity-${section.id}'),
@@ -217,38 +209,62 @@ class _CueCategoryCardState extends State<_CueCategoryCard> {
               onChanged: widget.enabled ? _onIntensity : null,
             ),
           ],
-          const SizedBox(height: 8),
-          if (live != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                'Playing · ${cueLabel(live.effect)}',
-                style: const TextStyle(
-                  color: kSignal,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+          if (live != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Playing · ${cueLabel(live.effect)}',
+              style: TextStyle(
+                color: section.color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
+          ],
+          const SizedBox(height: 8),
           Row(
             children: [
-              OutlinedButton(
-                key: Key('deck-cue-stop-${section.id}'),
-                onPressed: live == null ? null : _stopOwned,
-                child: const Text('Stop'),
+              Expanded(
+                child: _CueRow(
+                  key: Key('deck-cue-stop-${section.id}'),
+                  spec: const CueSpec(
+                    'stop',
+                    'Stop',
+                    '',
+                    Icons.stop_circle_outlined,
+                  ),
+                  palette: palette,
+                  color: kAlert,
+                  active: false,
+                  enabled: live != null,
+                  onPressed: _stopOwned,
+                ),
               ),
               const SizedBox(width: 8),
-              OutlinedButton(
-                key: Key('deck-cue-reset-${section.id}'),
-                onPressed: live == null
-                    ? null
-                    : () {
-                        _stopOwned();
-                        setState(() => _intensity = 70);
-                      },
-                child: const Text('Reset'),
+              Expanded(
+                child: _CueRow(
+                  key: Key('deck-cue-reset-${section.id}'),
+                  spec: const CueSpec(
+                    'reset',
+                    'Reset',
+                    '',
+                    Icons.settings_backup_restore,
+                  ),
+                  palette: palette,
+                  color: palette.ink,
+                  active: false,
+                  enabled: live != null,
+                  onPressed: () {
+                    _stopOwned();
+                    setState(() => _intensity = 70);
+                  },
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Stop and Reset restore the screen.',
+            style: TextStyle(color: palette.muted, fontSize: 10),
           ),
         ],
       ),
@@ -256,46 +272,82 @@ class _CueCategoryCardState extends State<_CueCategoryCard> {
   }
 }
 
-class _CueButton extends StatelessWidget {
-  const _CueButton({
-    required this.effect,
-    required this.label,
+class _CueRow extends StatelessWidget {
+  const _CueRow({
+    super.key,
+    required this.spec,
+    required this.palette,
+    required this.color,
     required this.active,
     required this.enabled,
     required this.onPressed,
   });
 
-  final String effect;
-  final String label;
+  final CueSpec spec;
+  final DeckPalette palette;
+  final Color color;
   final bool active;
   final bool enabled;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final style = ButtonStyle(
-      visualDensity: VisualDensity.compact,
-      padding: WidgetStateProperty.all(
-        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    final ink = active ? color : palette.ink;
+    return Opacity(
+      opacity: enabled ? 1 : 0.4,
+      child: Material(
+        color: active
+            ? color.withValues(alpha: 0.16)
+            : palette.secondary.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          key: spec.id == 'stop' || spec.id == 'reset'
+              ? null
+              : Key('deck-cue-${spec.id}'),
+          onTap: enabled ? onPressed : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: active ? color.withValues(alpha: 0.7) : palette.line,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  spec.icon,
+                  size: 18,
+                  color: active ? color : palette.muted,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    spec.label,
+                    style: TextStyle(
+                      color: ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (active)
+                  Text(
+                    'LIVE',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
-      textStyle: WidgetStateProperty.all(
-        const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-      ),
-    );
-    final child = Text(label);
-    if (active) {
-      return FilledButton(
-        key: Key('deck-cue-$effect'),
-        style: style,
-        onPressed: enabled ? onPressed : null,
-        child: child,
-      );
-    }
-    return OutlinedButton(
-      key: Key('deck-cue-$effect'),
-      style: style,
-      onPressed: enabled ? onPressed : null,
-      child: child,
     );
   }
 }

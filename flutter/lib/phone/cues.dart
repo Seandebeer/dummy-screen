@@ -6,41 +6,47 @@ import '../os_catalog.dart';
 /// security, or stored data. Stop and Reset clear the cue and the previous
 /// screen is still underneath.
 class CueSpec {
-  const CueSpec(this.id, this.label, this.category);
+  const CueSpec(this.id, this.label, this.category, this.icon);
 
   final String id;
   final String label;
   final String category;
+  final IconData icon;
 }
 
 const kPowerCues = [
-  CueSpec('boot', 'Power on', 'power'),
-  CueSpec('shutdown', 'Power off', 'power'),
-  CueSpec('dying', 'Phone dying', 'power'),
-  CueSpec('restart', 'Restart', 'power'),
-  CueSpec('sleep', 'Sleep & wake', 'power'),
-  CueSpec('force', 'Force restart', 'power'),
-  CueSpec('charged', 'Battery 100%', 'power'),
+  CueSpec('boot', 'Power on', 'power', Icons.power_settings_new),
+  CueSpec('shutdown', 'Power off', 'power', Icons.power_off),
+  CueSpec('dying', 'Phone dying', 'power', Icons.battery_alert),
+  CueSpec('restart', 'Restart', 'power', Icons.restart_alt),
+  CueSpec('sleep', 'Sleep & wake', 'power', Icons.bedtime_outlined),
+  CueSpec('force', 'Force restart', 'power', Icons.flash_on_outlined),
+  CueSpec('charged', 'Battery 100%', 'power', Icons.battery_charging_full),
 ];
 
 const kFaultCues = [
-  CueSpec('crash', 'App crash', 'faults'),
-  CueSpec('fatal', 'System error', 'faults'),
-  CueSpec('frozen', 'Touch frozen', 'faults'),
-  CueSpec('bluescreen', 'Blue screen', 'faults'),
-  CueSpec('bootloop', 'Boot loop', 'faults'),
-  CueSpec('glitch', 'Screen glitch', 'faults'),
-  CueSpec('overheat', 'Overheating', 'faults'),
-  CueSpec('storage', 'Storage full', 'faults'),
+  CueSpec('crash', 'App crash', 'faults', Icons.error_outline),
+  CueSpec('fatal', 'System error', 'faults', Icons.report_outlined),
+  CueSpec('frozen', 'Touch frozen', 'faults', Icons.do_not_touch_outlined),
+  CueSpec('bluescreen', 'Blue screen', 'faults', Icons.monitor_heart_outlined),
+  CueSpec('bootloop', 'Boot loop', 'faults', Icons.loop),
+  CueSpec('glitch', 'Screen glitch', 'faults', Icons.grain),
+  CueSpec('overheat', 'Overheating', 'faults', Icons.device_thermostat),
+  CueSpec('storage', 'Storage full', 'faults', Icons.sd_storage_outlined),
 ];
 
 const kSecurityCues = [
-  CueSpec('seclock', 'Security lock', 'security'),
-  CueSpec('passcode', 'Wrong passcode', 'security'),
-  CueSpec('lockout', 'Failed attempts', 'security'),
-  CueSpec('biometric', 'Biometric failed', 'security'),
-  CueSpec('remotelock', 'Remote lock', 'security'),
-  CueSpec('erase', 'Erase warning', 'security'),
+  CueSpec('seclock', 'Security lock', 'security', Icons.lock_outline),
+  CueSpec('passcode', 'Wrong passcode', 'security', Icons.pin_outlined),
+  CueSpec('lockout', 'Failed attempts', 'security', Icons.timer_outlined),
+  CueSpec('biometric', 'Biometric failed', 'security', Icons.fingerprint),
+  CueSpec(
+    'remotelock',
+    'Remote lock',
+    'security',
+    Icons.phonelink_lock_outlined,
+  ),
+  CueSpec('erase', 'Erase warning', 'security', Icons.warning_amber_rounded),
 ];
 
 const kCueSpecs = [...kPowerCues, ...kFaultCues, ...kSecurityCues];
