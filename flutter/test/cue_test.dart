@@ -315,4 +315,68 @@ void main() {
     expect(store.deviceById('d-hero')!.locked, isTrue);
     expect(store.deviceById('d-hero')!.os.battery, 80);
   });
+
+  testWidgets('the deck monitors the selected device and the glitch looks', (
+    tester,
+  ) async {
+    final store = StageStore.demo();
+    addTearDown(store.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1200, 2400));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(),
+        home: Scaffold(
+          body: StoreScope(store: store, child: const ControlPage()),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('deck-live-view')), findsOneWidget);
+    expect(find.text('Mild glitch'), findsNothing);
+
+    await tester.ensureVisible(find.text('System errors & malfunctions'));
+    await tester.tap(find.text('System errors & malfunctions'));
+    await tester.pump();
+
+    expect(find.text('Mild glitch'), findsOneWidget);
+    expect(find.text('Screen glitch'), findsOneWidget);
+    expect(find.text('Signal glitch'), findsOneWidget);
+    expect(find.text('Extreme glitch'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('deck-cue-glitch-mild')));
+    await tester.tap(find.byKey(const Key('deck-cue-glitch-mild')));
+    await tester.pump();
+    expect(store.cueFor('d-hero')!.effect, 'glitch-mild');
+    expect(find.byKey(const Key('phone-cue-glitch-mild')), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('deck-cue-glitch-extreme')),
+    );
+    await tester.tap(find.byKey(const Key('deck-cue-glitch-extreme')));
+    await tester.pump();
+    expect(store.cueFor('d-hero')!.effect, 'glitch-extreme');
+    expect(find.byKey(const Key('phone-cue-glitch-extreme')), findsOneWidget);
+    expect(find.byKey(const Key('phone-cue-glitch-mild')), findsNothing);
+
+    await tester.ensureVisible(find.byKey(const Key('deck-live-toggle')));
+    await tester.tap(find.byKey(const Key('deck-live-toggle')));
+    await tester.pump();
+    expect(find.byKey(const Key('deck-live-view')), findsNothing);
+    expect(store.cueFor('d-hero')!.effect, 'glitch-extreme');
+
+    await tester.tap(find.byKey(const Key('deck-live-toggle')));
+    await tester.pump();
+    expect(find.byKey(const Key('deck-live-view')), findsOneWidget);
+    expect(find.byKey(const Key('phone-cue-glitch-extreme')), findsOneWidget);
+
+    store.stopCue('d-hero');
+    await tester.pump();
+    expect(find.byKey(const Key('phone-cue-glitch-extreme')), findsNothing);
+    expect(find.byKey(const Key('deck-live-view')), findsOneWidget);
+    expect(store.deviceById('d-hero')!.locked, isTrue);
+    expect(store.deviceById('d-hero')!.os.battery, 80);
+  });
 }

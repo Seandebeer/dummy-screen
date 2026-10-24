@@ -30,7 +30,10 @@ const kFaultCues = [
   CueSpec('frozen', 'Touch frozen', 'faults', Icons.do_not_touch_outlined),
   CueSpec('bluescreen', 'Blue screen', 'faults', Icons.monitor_heart_outlined),
   CueSpec('bootloop', 'Boot loop', 'faults', Icons.loop),
+  CueSpec('glitch-mild', 'Mild glitch', 'faults', Icons.waves),
   CueSpec('glitch', 'Screen glitch', 'faults', Icons.grain),
+  CueSpec('glitch-signal', 'Signal glitch', 'faults', Icons.tv),
+  CueSpec('glitch-extreme', 'Extreme glitch', 'faults', Icons.broken_image),
   CueSpec('overheat', 'Overheating', 'faults', Icons.device_thermostat),
   CueSpec('storage', 'Storage full', 'faults', Icons.sd_storage_outlined),
 ];
@@ -54,7 +57,7 @@ const kCueSpecs = [...kPowerCues, ...kFaultCues, ...kSecurityCues];
 bool knownCue(String effect) => kCueSpecs.any((spec) => spec.id == effect);
 
 bool cueUsesIntensity(String effect) =>
-    effect == 'dying' || effect == 'glitch' || effect == 'overheat';
+    effect == 'dying' || effect == 'overheat' || effect.startsWith('glitch');
 
 String cueLabel(String effect) {
   for (final spec in kCueSpecs) {
@@ -460,7 +463,11 @@ class _CueFrame extends StatelessWidget {
                 ),
               ),
               CustomPaint(
-                painter: _GlitchPainter(elapsed: elapsed, intensity: 90),
+                painter: _GlitchPainter(
+                  elapsed: elapsed,
+                  intensity: 90,
+                  style: 'glitch-extreme',
+                ),
                 child: const SizedBox.expand(),
               ),
             ],
@@ -521,8 +528,15 @@ class _CueFrame extends StatelessWidget {
         }
         return _boot(chrome, phase, 2100);
       case 'glitch':
+      case 'glitch-mild':
+      case 'glitch-signal':
+      case 'glitch-extreme':
         return CustomPaint(
-          painter: _GlitchPainter(elapsed: elapsed, intensity: cue.intensity),
+          painter: _GlitchPainter(
+            elapsed: elapsed,
+            intensity: cue.intensity,
+            style: cue.effect,
+          ),
           child: const SizedBox.expand(),
         );
       case 'overheat':
@@ -1152,15 +1166,61 @@ class _Banner extends StatelessWidget {
 }
 
 class _GlitchPainter extends CustomPainter {
-  _GlitchPainter({required this.elapsed, required this.intensity});
+  _GlitchPainter({
+    required this.elapsed,
+    required this.intensity,
+    this.style = 'glitch',
+  });
 
   final int elapsed;
   final int intensity;
+  final String style;
 
   @override
   void paint(Canvas canvas, Size size) {
     final amp = intensity.clamp(0, 100) / 100;
     if (amp <= 0 || size.isEmpty) return;
+    switch (style) {
+      case 'glitch-mild':
+        _mild(canvas, size, amp);
+      case 'glitch-signal':
+        _signal(canvas, size, amp);
+      case 'glitch-extreme':
+        _extreme(canvas, size, amp);
+      default:
+        _digital(canvas, size, amp);
+    }
+  }
+
+  /// A few hairline tears and a faint colour fringe. The screen stays readable.
+  void _mild(Canvas canvas, Size size, double amp) {
+    final tick = elapsed ~/ 160;
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFF7AD7FF).withValues(alpha: 0.04 * amp),
+    );
+    for (var i = 0; i < 2; i++) {
+      final seed = _mix(tick * 9 + i * 5);
+      final y = (seed % 1000) / 1000 * size.height;
+      final slip = ((seed % 17) - 8) * amp;
+      canvas.drawRect(
+        Rect.fromLTWH(0, y, size.width, 1),
+        Paint()..color = Colors.white.withValues(alpha: 0.28 * amp),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(slip, y + 1, size.width * 0.42, 1.5),
+        Paint()..color = const Color(0xFFFF4D6A).withValues(alpha: 0.35 * amp),
+      );
+    }
+    final scan = ((elapsed ~/ 18) % 1000) / 1000 * size.height;
+    canvas.drawRect(
+      Rect.fromLTWH(0, scan, size.width, 1),
+      Paint()..color = Colors.white.withValues(alpha: 0.18 * amp),
+    );
+  }
+
+  /// Chunked colour blocks and a hard scan line.
+  void _digital(Canvas canvas, Size size, double amp) {
     final tick = elapsed ~/ 70;
     final wash = [
       const Color(0x55FF2D55),
@@ -1171,7 +1231,7 @@ class _GlitchPainter extends CustomPainter {
       Offset.zero & size,
       Paint()..color = wash.withValues(alpha: 0.18 * amp),
     );
-    final slices = 9;
+    const slices = 9;
     for (var i = 0; i < slices; i++) {
       final band = size.height / slices;
       final jitter = ((_mix(tick * 13 + i) % 100) / 100 - 0.5) * 48 * amp;
@@ -1203,9 +1263,94 @@ class _GlitchPainter extends CustomPainter {
     }
   }
 
+  /// Analog hold: scan lines, snow, and a rolling tracking bar.
+  void _signal(Canvas canvas, Size size, double amp) {
+    final tick = elapsed ~/ 40;
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFF102018).withValues(alpha: 0.18 * amp),
+    );
+    final line = Paint()..color = Colors.black.withValues(alpha: 0.22 * amp);
+    for (var y = 0.0; y < size.height; y += 3) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 1), line);
+    }
+    final roll = ((elapsed / 6) % (size.height + 36)) - 18;
+    canvas.drawRect(
+      Rect.fromLTWH(-8, roll, size.width + 16, 22),
+      Paint()..color = const Color(0xFFD5FFE4).withValues(alpha: 0.16 * amp),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, roll + 8, size.width, 2),
+      Paint()..color = Colors.white.withValues(alpha: 0.45 * amp),
+    );
+    final specks = (28 + amp * 40).round();
+    for (var i = 0; i < specks; i++) {
+      final seed = _mix(tick * 19 + i * 3);
+      final x = (seed % 1000) / 1000 * size.width;
+      final y = ((seed ~/ 11) % 1000) / 1000 * size.height;
+      final ink = i.isEven ? const Color(0xFFB7FFC8) : const Color(0xFF9AA0A6);
+      canvas.drawRect(
+        Rect.fromLTWH(x, y, 2, 2),
+        Paint()..color = ink.withValues(alpha: 0.55 * amp),
+      );
+    }
+  }
+
+  /// Thick torn bands, inverted flashes, and large dead pixels.
+  void _extreme(Canvas canvas, Size size, double amp) {
+    final tick = elapsed ~/ 40;
+    const bands = 5;
+    for (var i = 0; i < bands; i++) {
+      final seed = _mix(tick * 23 + i * 11);
+      final band = size.height / bands;
+      final slip = ((seed % 160) - 80) * amp;
+      final mode = seed % 5;
+      final paint = Paint();
+      if (mode == 0) {
+        paint.color = const Color(0xFF000000).withValues(alpha: 0.82);
+      } else if (mode == 1) {
+        paint.color = const Color(0xFFFFFFFF).withValues(alpha: 0.72 * amp);
+      } else if (mode == 2) {
+        paint.color = const Color(0xFFFF2D55).withValues(alpha: 0.55 * amp);
+      } else if (mode == 3) {
+        paint.color = const Color(0xFF00F0FF).withValues(alpha: 0.5 * amp);
+      } else {
+        paint.color = const Color(0xFFFFFF40).withValues(alpha: 0.45 * amp);
+      }
+      canvas.drawRect(
+        Rect.fromLTWH(slip, i * band, size.width, band - 2),
+        paint,
+      );
+    }
+    for (var i = 0; i < 8; i++) {
+      final seed = _mix(tick * 7 + i * 29);
+      if (seed % 3 == 0) continue;
+      final col = size.width / 8;
+      canvas.drawRect(
+        Rect.fromLTWH(i * col, (seed % 40) * amp, col - 2, size.height),
+        Paint()
+          ..color = (i.isEven ? const Color(0xFFFF4D6A) : const Color(0xFF39F3FF))
+              .withValues(alpha: 0.22 * amp),
+      );
+    }
+    final blocks = (6 + amp * 8).round();
+    for (var b = 0; b < blocks; b++) {
+      final seed = _mix(tick * 41 + b * 13);
+      final x = (seed % 1000) / 1000 * size.width;
+      final y = ((seed ~/ 9) % 1000) / 1000 * size.height;
+      final w = 18 + (seed % 48) * amp;
+      canvas.drawRect(
+        Rect.fromLTWH(x, y, w, w * 0.72),
+        Paint()..color = const Color(0xF0101014),
+      );
+    }
+  }
+
   @override
   bool shouldRepaint(_GlitchPainter oldDelegate) =>
-      oldDelegate.elapsed != elapsed || oldDelegate.intensity != intensity;
+      oldDelegate.elapsed != elapsed ||
+      oldDelegate.intensity != intensity ||
+      oldDelegate.style != style;
 }
 
 int _mix(int n) {

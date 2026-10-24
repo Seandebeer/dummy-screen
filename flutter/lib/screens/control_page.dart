@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../deck/chrome.dart';
 import 'cue_deck.dart';
+import 'deck_monitor.dart';
 import '../image_file.dart';
 import '../media/call_media.dart';
 import '../models.dart';
@@ -61,6 +62,7 @@ class _ControlPageState extends State<ControlPage> {
   final List<_QueuedNote> _notes = [];
   final List<_QueuedNote> _pushedNotes = [];
   bool _broadcast = false;
+  bool _liveView = true;
   int _lockClicks = 0;
   DateTime? _lockAt;
   String? _open;
@@ -195,10 +197,12 @@ class _ControlPageState extends State<ControlPage> {
                     store: store,
                     channel: channel,
                     broadcast: _broadcast,
+                    liveView: _liveView,
                     onBroadcast: (value) {
                       setState(() => _broadcast = value);
                       store.setDeckBroadcast(value);
                     },
+                    onLiveView: (value) => setState(() => _liveView = value),
                   ),
                   if (_open == null || _open == 'contact') ...[
                   SizedBox(height: _open == 'contact' ? 12 : 20),
@@ -649,18 +653,23 @@ class _TargetCard extends StatelessWidget {
     required this.store,
     required this.channel,
     required this.broadcast,
+    required this.liveView,
     required this.onBroadcast,
+    required this.onLiveView,
   });
 
   final DeckPalette palette;
   final StageStore store;
   final String? channel;
   final bool broadcast;
+  final bool liveView;
   final ValueChanged<bool> onBroadcast;
+  final ValueChanged<bool> onLiveView;
 
   @override
   Widget build(BuildContext context) {
     final connected = channel != null;
+    final device = store.deviceById(store.targetDeviceId);
     return DeckCard(
       palette: palette,
       child: Column(
@@ -777,6 +786,37 @@ class _TargetCard extends StatelessWidget {
                 : 'tap the panel to pick a device - None disconnects',
             style: TextStyle(color: palette.muted, fontSize: 11),
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(Icons.monitor, size: 16, color: palette.muted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Live view',
+                  style: TextStyle(
+                    color: palette.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Switch(
+                key: const Key('deck-live-toggle'),
+                value: liveView && device != null,
+                onChanged: device == null ? null : onLiveView,
+              ),
+            ],
+          ),
+          if (liveView && device != null) ...[
+            const SizedBox(height: 8),
+            DeckLiveView(store: store, device: device),
+            const SizedBox(height: 4),
+            Text(
+              device.name,
+              style: TextStyle(color: palette.muted, fontSize: 10),
+            ),
+          ],
           if (!store.holdsTrigger) ...[
             const SizedBox(height: 8),
             Text(
