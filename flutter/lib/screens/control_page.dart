@@ -63,6 +63,8 @@ class _ControlPageState extends State<ControlPage> {
   final List<_QueuedNote> _pushedNotes = [];
   bool _broadcast = false;
   bool _liveView = true;
+  Offset? _liveOffset;
+  double _liveHeight = 260;
   int _lockClicks = 0;
   DateTime? _lockAt;
   String? _open;
@@ -163,7 +165,11 @@ class _ControlPageState extends State<ControlPage> {
     final media = CallMediaScope.maybeOf(context);
     return GridFill(
       palette: palette,
-      child: ListView(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         children: [
           Center(
@@ -642,6 +648,23 @@ class _ControlPageState extends State<ControlPage> {
             ),
           ),
         ],
+              ),
+              if (_liveView && target != null)
+                DeckLiveWindow(
+                  store: store,
+                  device: target,
+                  palette: palette,
+                  bounds: constraints.biggest,
+                  initialOffset: _liveOffset,
+                  initialHeight: _liveHeight,
+                  onFrame: (offset, height) {
+                    _liveOffset = offset;
+                    _liveHeight = height;
+                  },
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -808,15 +831,6 @@ class _TargetCard extends StatelessWidget {
               ),
             ],
           ),
-          if (liveView && device != null) ...[
-            const SizedBox(height: 8),
-            DeckLiveView(store: store, device: device),
-            const SizedBox(height: 4),
-            Text(
-              device.name,
-              style: TextStyle(color: palette.muted, fontSize: 10),
-            ),
-          ],
           if (!store.holdsTrigger) ...[
             const SizedBox(height: 8),
             Text(

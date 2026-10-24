@@ -335,6 +335,29 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('deck-live-view')), findsOneWidget);
+    expect(find.byKey(const Key('deck-live-window')), findsOneWidget);
+
+    final before = tester.getTopLeft(find.byKey(const Key('deck-live-window')));
+    await tester.drag(
+      find.byKey(const Key('deck-live-drag')),
+      const Offset(-36, 64),
+    );
+    await tester.pump();
+    final moved = tester.getTopLeft(find.byKey(const Key('deck-live-window')));
+    expect(moved.dx, lessThan(before.dx - 20));
+    expect(moved.dy, greaterThan(before.dy + 40));
+
+    final sized = tester.getSize(find.byKey(const Key('deck-live-window')));
+    await tester.drag(
+      find.byKey(const Key('deck-live-resize')),
+      const Offset(0, 80),
+    );
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const Key('deck-live-window'))).height,
+      greaterThan(sized.height + 40),
+    );
+
     expect(find.text('Mild glitch'), findsNothing);
 
     await tester.ensureVisible(find.text('System errors & malfunctions'));
