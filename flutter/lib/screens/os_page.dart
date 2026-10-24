@@ -14,6 +14,7 @@ import '../models.dart';
 import '../phone/app_catalog.dart';
 import '../phone/app_place.dart';
 import '../phone/catalog.dart';
+import '../phone/cues.dart';
 import '../phone/clock_settings.dart';
 import '../phone/console_apps.dart';
 import '../phone/desk_settings.dart';
@@ -300,7 +301,12 @@ class _OsPageState extends State<OsPage> {
                               launchTick: _launchTick,
                               closeTick: _closeTick,
                             );
-                      final marked = _withMarks(stage, device, store);
+                      final cued = PhoneCueLayer(
+                        cue: store.cueFor(device.id),
+                        skin: device.skin,
+                        child: stage,
+                      );
+                      final marked = _withMarks(cued, device, store);
                       final screen = Padding(
                         padding: inset,
                         child: Center(
